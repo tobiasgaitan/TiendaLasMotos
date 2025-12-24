@@ -31,7 +31,15 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+# env files (can opt-in for committing if needed)
+.env
+.env.local
+
+# firebase
+.firebase/
+
+# logs
+*.log
 
 # vercel
 .vercel
