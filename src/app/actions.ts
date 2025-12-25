@@ -5,6 +5,7 @@ import { db } from "@/lib/firestore";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { Lead } from "@/types";
 
@@ -151,4 +152,28 @@ export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
         console.error("Error updating moto:", error);
         return { success: false, message: "Error al guardar en base de datos. Verifica permisos." };
     }
+}
+
+// --- Auth ---
+
+export async function loginAction(prevState: any, formData: FormData) {
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    // Validation
+    // Hardcoded check for Beta Phase
+    if (email === "admin@tiendalasmotos.com" && password === "admin123") {
+        const cookieStore = await cookies();
+
+        cookieStore.set('__session', 'authenticated', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 5, // 5 days
+        });
+
+        redirect("/admin");
+    }
+
+    return { message: "Credenciales incorrectas. Intenta de nuevo." };
 }
