@@ -2,26 +2,29 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-    // Check if we are checking an admin route
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        /**
-         * Session Validation Logic:
-         * We check for the presence of the '__session' cookie which is set by Firebase Auth.
-         * This provides a basic layer of security at the edge before the request reaches the server components.
-         * Fail-Closed: If the cookie is missing, we immediately redirect to login.
-         */
-        const sessionCookie = request.cookies.get('__session')
+    // 1. Get session cookie
+    const session = request.cookies.get('__session')?.value
 
-        if (!sessionCookie) {
-            // Redirect to login if no session - FAIL CLOSED
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
+    // 2. Define routes
+    const isProtectedRoute = request.nextUrl.pathname.startsWith('/admin')
+    const isLoginPage = request.nextUrl.pathname === '/login'
+
+    // 3. Redirection Logic
+
+    // Protect Admin Routes: If no session, go to login
+    if (isProtectedRoute && !session) {
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Redirect Logged-in Users: If session exists and trying to access login, go to admin
+    if (isLoginPage && session) {
+        return NextResponse.redirect(new URL('/admin', request.url))
     }
 
     return NextResponse.next()
 }
 
-// Configure matcher to only run on /admin paths
+// Configure matcher to include both admin paths and login for the reverse redirect check
 export const config = {
-    matcher: '/admin/:path*',
+    matcher: ['/admin/:path*', '/login'],
 }

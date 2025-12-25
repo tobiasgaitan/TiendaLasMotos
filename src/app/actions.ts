@@ -176,9 +176,10 @@ export async function loginAction(prevState: any, formData: FormData) {
 
         cookieStore.set('__session', 'authenticated', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true, // Force secure in production
             path: '/',
-            maxAge: 60 * 60 * 24 * 5, // 5 days
+            maxAge: 60 * 60 * 24, // 1 day
+            sameSite: 'lax',
         });
 
         return { success: true, message: "Ingreso exitoso" };
