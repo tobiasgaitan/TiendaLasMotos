@@ -23,6 +23,12 @@ function SubmitButton() {
     );
 }
 
+/**
+ * Login Page Component
+ * Renders the authentication form for the Admin Panel.
+ * USES server action `loginAction` for processing.
+ * Redirects to `/admin` upon success.
+ */
 export default function LoginPage() {
     const [state, action] = useActionState(loginAction, null);
     const router = useRouter();

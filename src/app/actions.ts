@@ -156,6 +156,15 @@ export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
 
 // --- Auth ---
 
+/**
+ * Handles Admin Login
+ * @param prevState - Previous state of the form
+ * @param formData - Form data containing email and password
+ * @returns Object with success status and message
+ *
+ * VALIDATION: Currently uses Hardcoded Beta Credentials.
+ * TODO: Integrate with full Firebase Admin Auth in Phase 2.
+ */
 export async function loginAction(prevState: any, formData: FormData) {
     const email = formData.get("email");
     const password = formData.get("password");
