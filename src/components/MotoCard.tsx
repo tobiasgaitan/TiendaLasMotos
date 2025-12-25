@@ -11,15 +11,27 @@ interface MotoCardProps {
 export default function MotoCard({ moto }: MotoCardProps) {
     const { openModal } = useLeadModal();
 
+    /**
+     * Formats price to Colombian Peso (COP) without decimals.
+     * Used for consistent display across the card.
+     * @param value - Numerical price value
+     */
     const formatPrice = (value: number) => {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 
     // Bonus Logic
+    /**
+     * Time-Based Bonus Calculation:
+     * Determines if a bonus is currently active based on the current server/client time vs the bonus deadline.
+     * This drives urgency in the UI.
+     * @returns boolean - true if bonus is active and not expired
+     */
     const hasActiveBonus = () => {
         if (!moto.bono || !moto.bono.activo) return false;
 

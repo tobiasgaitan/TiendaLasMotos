@@ -7,6 +7,12 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Lead } from "@/types";
 
 // Schema Validation
+/**
+ * Lead Validation Schema (Zod):
+ * Defines strict rules for incoming lead data to ensure integrity and security.
+ * - Sanitizes unknown fields (via z.object defaults)
+ * - Enforces specific formats for sensitive fields like 'celular'
+ */
 const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }), // Basic CO mobile validation
@@ -34,6 +40,11 @@ export type LeadState = {
 
 export async function submitLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
 
+    /**
+     * Raw Data Extraction:
+     * Pulls data directly from FormData. 
+     * Note: We do *not* automatically trust this data until it passes Zod validation.
+     */
     const rawData = {
         nombre: formData.get("nombre") as string,
         celular: formData.get("celular") as string,

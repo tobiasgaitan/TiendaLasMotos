@@ -129,9 +129,17 @@ export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 
     });
 
 // 2. Manual HTTP Trigger
-export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 300 }).https.onRequest(async (req, res) => {
+export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 300, secrets: ["CRON_SECRET_TOKEN"] }).https.onRequest(async (req, res) => {
     // Security: Check for Secret Token
-    const validationToken = "TIENDA_LAS_MOTOS_SYNC_SECURE_2025";
+    // Security: Check for Secret Token
+    const validationToken = process.env.CRON_SECRET_TOKEN;
+    if (!validationToken) {
+        console.error("CRON_SECRET_TOKEN is not defined in the environment.");
+        // Fail closed
+        res.status(500).send("Internal Server Configuration Error");
+        return;
+    }
+
     const requestToken = req.query.token || req.headers["x-sync-token"];
 
     if (requestToken !== validationToken) {
