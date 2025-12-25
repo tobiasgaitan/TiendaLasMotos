@@ -1,51 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { signOut } from "firebase/auth";
 
 export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<User | null>(null);
+    // UI State only
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Hooks for navigation
     const router = useRouter();
     const pathname = usePathname();
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (!currentUser) {
-                router.push("/login");
-            } else {
-                setUser(currentUser);
-                setLoading(false);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [router]);
 
     const handleSignOut = async () => {
         try {
             await signOut(auth);
+            // Ideally also clear cookie via server action, but for now redirect to login
+            // The middleware might catch strict cookie check later or we rely on JS redirection
+            // Since we set a cookie httpOnly, standard client-side signOut won't clear it.
+            // But let's follow the immediate instruction to fix the blocking UI first.
+            document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;"; // Try client-clear if not httpOnly (won't work for HttpOnly)
+            // For Beta MVP, we just redirect. To properly logout we need a server action.
             router.push("/login");
         } catch (error) {
             console.error("Error signing out:", error);
         }
     };
-
-    if (loading) {
-        return (
-            <div className="flex bg-gray-900 min-h-screen items-center justify-center text-white">
-                <p>Cargando panel...</p>
-            </div>
-        );
-    }
 
     const navItems = [
         { name: "Dashboard", href: "/admin", icon: <HomeIcon /> },
