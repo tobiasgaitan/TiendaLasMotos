@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firestore";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import { Lead } from "@/types";
 
@@ -78,5 +80,75 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         return {
             message: "Hubo un error al enviar tus datos. Inténtalo de nuevo."
         };
+    }
+}
+
+// --- Inventory Management ---
+
+const updateMotoSchema = z.object({
+    motoId: z.string(),
+    precio: z.number().min(0),
+    bono: z.object({
+        activo: z.boolean(),
+        titulo: z.string(),
+        monto: z.number().min(0),
+        fecha_limite: z.string(), // Expecting ISO string
+    }),
+});
+
+export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
+    // 1. Validate Session (Security Baseline)
+    // We strictly check for the existence of the '__session' cookie.
+    // In a full Admin SDK setup, we would verify the token content.
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado. Sesión inválida." };
+    }
+
+    // 2. Validate Input
+    const validated = updateMotoSchema.safeParse(data);
+    if (!validated.success) {
+        return { success: false, message: "Datos inválidos." };
+    }
+
+    try {
+        const { motoId, precio, bono } = validated.data;
+
+        // 3. Update in Firestore
+        // Note: This requires firestore.rules to allow writes from this context.
+        // The server action uses the initialized client SDK.
+        // We ensure firestore.rules allows writes for authenticated users.
+
+        const offset = 5 * 60 * 60 * 1000; //-5 UTC
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const colTime = new Date(utc - offset);
+
+        const docRef = doc(db, "pagina", "catalogo", "items", motoId);
+
+        await updateDoc(docRef, {
+            precio: precio,
+            "bono.activo": bono.activo,
+            "bono.titulo": bono.titulo,
+            "bono.monto": bono.monto,
+            "bono.fecha_limite": Timestamp.fromDate(new Date(bono.fecha_limite)),
+            // Keep existing fields
+            last_updated: colTime
+        });
+
+        // 4. Cache Invalidation (Critical)
+        // Revalidate the public catalog and the home page
+        revalidatePath('/pagina/catalogo');
+        revalidatePath('/');
+
+        // Also revalidate the admin inventory list itself
+        revalidatePath('/admin/inventory');
+
+        return { success: true, message: "Actualizado correctamente" };
+    } catch (error) {
+        console.error("Error updating moto:", error);
+        return { success: false, message: "Error al guardar en base de datos. Verifica permisos." };
     }
 }
