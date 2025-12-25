@@ -52,11 +52,11 @@ export default function AdminLayout({
 
             {/* Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-10 w-64 bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+                className={`fixed inset-y-0 left-0 z-10 w-64 bg-gray-900 border-r border-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
                     }`}
             >
-                <div className="flex flex-col h-full">
-                    <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col h-full text-gray-200">
+                    <div className="h-16 flex items-center justify-center border-b border-gray-800">
                         <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
                             ADMIN PANEL
                         </h1>
@@ -72,7 +72,7 @@ export default function AdminLayout({
                                             href={item.href}
                                             className={`flex items-center px-4 py-3 rounded-lg transition-colors ${isActive
                                                 ? "bg-red-600 text-white shadow-md"
-                                                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                                 }`}
                                             onClick={() => setIsSidebarOpen(false)}
                                         >
@@ -85,10 +85,10 @@ export default function AdminLayout({
                         </ul>
                     </nav>
 
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="p-4 border-t border-gray-800">
                         <button
                             onClick={handleSignOut}
-                            className="flex w-full items-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="flex w-full items-center px-4 py-3 text-sm font-medium text-red-500 hover:bg-gray-800 hover:text-red-400 rounded-lg transition-colors"
                         >
                             <LogOutIcon />
                             <span className="ml-3">Cerrar Sesión</span>
