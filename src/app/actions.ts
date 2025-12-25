@@ -175,5 +175,5 @@ export async function loginAction(prevState: any, formData: FormData) {
         redirect("/admin");
     }
 
-    return { message: "Credenciales incorrectas. Intenta de nuevo." };
+    return { success: false, message: "Credenciales incorrectas. Intenta de nuevo." };
 }
