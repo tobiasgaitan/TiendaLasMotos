@@ -6,8 +6,15 @@ import { getCatalogoMotos } from "@/lib/firestore";
 // import { updateMotoAction } from "@/app/actions"; // We will implement this
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import InventoryTable from "@/components/InventoryTable";
 import { updateMotoAction } from "../../actions"; // Import the server action
 
+/**
+ * Página de gestión de inventario para administradores.
+ * Fetches moto catalog from Firestore and visualizes it using the `InventoryTable` component.
+ * Provides functionality to edit product details (price, bonus) via a modal which invokes `updateMotoAction`.
+ * Uses client-side filtering for search functionality.
+ */
 export default function InventoryPage() {
     const [motos, setMotos] = useState<Moto[]>([]);
     const [loading, setLoading] = useState(true);
@@ -131,63 +138,20 @@ export default function InventoryPage() {
                 />
             </div>
 
-            <div className="overflow-x-auto bg-gray-800 rounded-lg shadow">
-                <table className="min-w-full text-left text-sm text-gray-400">
-                    <thead className="bg-gray-700 text-gray-200 uppercase font-medium">
-                        <tr>
-                            <th className="px-6 py-4">Foto</th>
-                            <th className="px-6 py-4">Modelo</th>
-                            <th className="px-6 py-4">Precio Base</th>
-                            <th className="px-6 py-4">Bono</th>
-                            <th className="px-6 py-4">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700">
-                        {filteredMotos.map((moto) => (
-                            <tr key={moto.id} className="hover:bg-gray-750">
-                                <td className="px-6 py-4">
-                                    {moto.imagen && (
-                                        <div className="w-16 h-12 relative overflow-hidden rounded">
-                                            <Image
-                                                src={moto.imagen}
-                                                alt={moto.referencia}
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 font-semibold text-white">
-                                    {moto.referencia}
-                                    <div className="text-xs text-gray-500">{moto.marca}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    ${moto.precio.toLocaleString()}
-                                </td>
-                                <td className="px-6 py-4">
-                                    {moto.bono?.activo ? (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            Activo: -${moto.bono.monto.toLocaleString()}
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                            Inactivo
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <button
-                                        onClick={() => handleEditClick(moto)}
-                                        className="text-indigo-400 hover:text-indigo-300 font-medium"
-                                    >
-                                        Editar
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <InventoryTable
+                products={filteredMotos.map(moto => ({
+                    id: moto.id,
+                    brand: moto.marca,
+                    model: moto.referencia,
+                    price: moto.precio,
+                    status: 'Activo', // Default status as 'Activo' since it's not in Moto model
+                    imageUrl: moto.imagen,
+                }))}
+                onEdit={(product) => {
+                    const moto = motos.find(m => m.id === product.id);
+                    if (moto) handleEditClick(moto);
+                }}
+            />
 
             {/* Edit Modal */}
             {isModalOpen && selectedMoto && (

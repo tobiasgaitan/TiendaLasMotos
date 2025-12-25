@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     // SAFEST Path for now: Keep unoptimized: true but comment out output: export.
     unoptimized: true,
     remotePatterns: [
-      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com', port: '', pathname: '/**' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' }
     ]
   }
