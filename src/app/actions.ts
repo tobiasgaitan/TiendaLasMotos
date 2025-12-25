@@ -181,7 +181,7 @@ export async function loginAction(prevState: any, formData: FormData) {
             maxAge: 60 * 60 * 24 * 5, // 5 days
         });
 
-        redirect("/admin");
+        return { success: true, message: "Ingreso exitoso" };
     }
 
     return { success: false, message: "Credenciales incorrectas. Intenta de nuevo." };
