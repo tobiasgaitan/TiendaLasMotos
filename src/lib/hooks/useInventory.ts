@@ -21,6 +21,14 @@ export interface Product {
     status: 'Activo' | 'Inactivo';
     imageUrl?: string;
     external_url?: string;
+    // New fields for Extended Management
+    category?: string;
+    seoDescription?: string;
+    isVisible?: boolean;
+    bonusAmount?: number;
+    bonusEndDate?: string;
+    year?: number;
+    stock?: number;
 }
 
 /**
@@ -74,7 +82,16 @@ export function useInventory() {
                         // Manejo de imagen (acepta string o la estructura del bot) - Input Validation
                         imageUrl: typeof data.imagenUrl === 'string' ? data.imagenUrl : (data.imagenUrl?.url || ''),
                         // Link del bot
-                        external_url: data.external_url
+                        external_url: data.external_url,
+
+                        // Extended Fields
+                        category: data.category || 'motos',
+                        seoDescription: data.seoDescription || '',
+                        isVisible: data.isVisible !== undefined ? data.isVisible : true,
+                        bonusAmount: Number(data.bonusAmount || 0),
+                        bonusEndDate: data.bonusEndDate || '',
+                        year: Number(data.year || new Date().getFullYear()),
+                        stock: Number(data.stock || 0)
                     };
                 }) as Product[];
 
