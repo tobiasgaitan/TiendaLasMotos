@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import InventoryTable from "@/components/InventoryTable";
-import { useInventory } from "@/lib/hooks/useInventory";
+import { useState } from 'react';
+import { useInventory, Product } from '@/lib/hooks/useInventory';
+import InventoryTable from '@/components/InventoryTable';
+import EditProductModal from '@/components/EditProductModal';
 
-/**
- * Página de gestión de inventario para administradores.
- * Utiliza `useInventory` para conectarse al feed en tiempo real del Bot y
- * redirige la gestión de UI (Buscador, Edición) al componente `InventoryTable`.
- */
 export default function InventoryPage() {
     const { products, loading, error } = useInventory();
+    // ESTADO ELEVADO: Aquí vive la verdad sobre qué se está editando
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+    // Loading State simple
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
@@ -37,13 +37,38 @@ export default function InventoryPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight">Gestión de Inventario</h1>
                     <p className="text-gray-400 mt-1">
-                        Control total de {products.length} items activos en tiempo real.
+                        Control total de <span className="text-white font-bold">{products.length}</span> items activos en tiempo real.
                     </p>
                 </div>
             </div>
 
-            {/* Smart Table with Built-in Search & Modal */}
-            <InventoryTable products={products} />
+            {/* Contenedor Principal de la Tabla */}
+            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                    <p className="text-gray-400 text-sm">
+                        Mostrando <span className="text-white font-bold">{products.length}</span> items activos.
+                    </p>
+                </div>
+
+                {/* TABLA: Ahora es "tonta", solo avisa clicks */}
+                <InventoryTable
+                    products={products}
+                    onEdit={(product) => {
+                        console.log("Jefe: Recibida solicitud de editar", product.model);
+                        setEditingProduct(product);
+                    }}
+                />
+            </div>
+
+            {/* MODAL: Vive fuera de la tabla, imposible de ocultar */}
+            {/* Se renderiza condicionalmente si editingProduct tiene datos */}
+            {editingProduct && (
+                <EditProductModal
+                    product={editingProduct}
+                    isOpen={!!editingProduct}
+                    onClose={() => setEditingProduct(null)}
+                />
+            )}
         </div>
     );
 }
