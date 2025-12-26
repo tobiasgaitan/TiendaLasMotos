@@ -87,7 +87,9 @@ export default function InventoryTable({ products, onEdit }: Props) {
                                             e.stopPropagation();
                                             onEdit(product);
                                         }}
-                                        className="relative z-50 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform border-none"
+                                        // AGREGAMOS style={{...}} PARA FORZAR EL COLOR
+                                        style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                                        className="relative z-50 px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform"
                                     >
                                         EDITAR
                                     </button>
