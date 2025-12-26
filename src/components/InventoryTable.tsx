@@ -58,7 +58,7 @@ export default function InventoryTable({ products, onEdit }: Props) {
                             <tr key={product.id} className="hover:bg-gray-900 transition-colors">
                                 {/* Foto */}
                                 <td className="px-4 py-3">
-                                    <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0" style={{ width: '48px', height: '48px' }}>
+                                    <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0">
                                         {product.imageUrl ? (
                                             <Image src={product.imageUrl} alt="Moto" fill className="object-cover" />
                                         ) : (
@@ -87,9 +87,7 @@ export default function InventoryTable({ products, onEdit }: Props) {
                                             e.stopPropagation();
                                             onEdit(product);
                                         }}
-                                        // AGREGAMOS style={{...}} PARA FORZAR EL COLOR
-                                        style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', cursor: 'pointer' }}
-                                        className="relative z-50 px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform"
+                                        className="relative z-50 px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform bg-blue-600 text-white hover:bg-blue-700 cursor-pointer border-none"
                                     >
                                         EDITAR
                                     </button>
