@@ -1,82 +1,104 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
-import Image from 'next/image';
 
+/**
+ * Props for the ImageUploader component.
+ */
 interface Props {
+    /** The current image URL to display as a preview. */
     currentImage?: string;
+    /** Callback function triggered when an image is successfully uploaded. */
     onImageUploaded: (url: string) => void;
 }
 
+/**
+ * ImageUploader component.
+ * 
+ * Handles uploading images to Firebase Storage (`inventory_images/` path).
+ * Displays a preview of the uploaded image or the current image.
+ * Uses a fixed height container to avoid Next.js Image height issues.
+ * 
+ * @param {Props} props - The component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 export default function ImageUploader({ currentImage, onImageUploaded }: Props) {
     const [uploading, setUploading] = useState(false);
-    const [preview, setPreview] = useState(currentImage || '');
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    /**
+     * Handles the file input change event.
+     * Uploads the selected file to Firebase Storage.
+     * 
+     * @param {React.ChangeEvent<HTMLInputElement>} e - The change event.
+     */
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setUploading(true);
         try {
-            // Guardamos en carpeta 'inventory_images' con timestamp para que el nombre sea único
-            const filename = `inventory_images/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-            const storageRef = ref(storage, filename);
+            // Security: Validate file type client-side (redundant to accept="image/*" but good practice)
+            if (!file.type.startsWith('image/')) {
+                throw new Error("Solo se permiten archivos de imagen.");
+            }
 
+            const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
-
-            setPreview(url);
-            onImageUploaded(url); // ¡Éxito! Devolvemos el link al padre
+            onImageUploaded(url);
         } catch (error) {
             console.error("Error subiendo imagen:", error);
-            alert("Error al subir. Revisa tu conexión.");
+            alert("Error al subir imagen");
         } finally {
             setUploading(false);
         }
     };
 
     return (
-        <div className="space-y-3">
-            <label className="block text-xs text-gray-500 font-medium uppercase tracking-wide">
-                Imagen del Producto
-            </label>
+        <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">Imagen del Producto</label>
 
-            <div className="flex items-start gap-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                {/* Vista Previa */}
-                <div className="relative h-20 w-20 bg-gray-900 rounded border border-gray-600 overflow-hidden flex-shrink-0">
-                    {preview ? (
-                        <Image src={preview} alt="Preview" fill className="object-cover" />
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-gray-600 text-[10px] text-center p-1">
-                            Sin Imagen
+            {/* PREVISUALIZACIÓN: Agregamos h-48 w-full relative para evitar el error de height 0 */}
+            <div className="relative h-48 w-full bg-gray-900 border-2 border-dashed border-gray-700 rounded-lg overflow-hidden flex items-center justify-center group hover:border-blue-500 transition-colors">
+                {currentImage ? (
+                    <>
+                        <Image
+                            src={currentImage}
+                            alt="Preview"
+                            fill
+                            className="object-contain p-2"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <span className="text-white text-sm font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                                Cambiar Imagen
+                            </span>
                         </div>
-                    )}
-                    {uploading && (
-                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
-                            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    )}
-                </div>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs font-medium">Click para subir imagen</span>
+                    </div>
+                )}
 
-                {/* Input */}
-                <div className="flex-1 space-y-2">
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        disabled={uploading}
-                        className="block w-full text-xs text-gray-400
-              file:mr-3 file:py-1.5 file:px-3
-              file:rounded-md file:border-0
-              file:text-xs file:font-semibold
-              file:bg-blue-600 file:text-white
-              hover:file:bg-blue-500
-              cursor-pointer bg-gray-900 rounded border border-gray-700 focus:outline-none"
-                    />
-                    <p className="text-[10px] text-gray-500">
-                        {uploading ? 'Subiendo a la nube...' : 'Formatos: JPG, PNG, WEBP.'}
-                    </p>
-                </div>
+                <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    disabled={uploading}
+                />
+
+                {uploading && (
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <div className="text-xs text-blue-400 font-medium animate-pulse">Subiendo...</div>
+                    </div>
+                )}
             </div>
         </div>
     );
