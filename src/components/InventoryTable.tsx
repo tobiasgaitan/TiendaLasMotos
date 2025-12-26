@@ -2,7 +2,23 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Product } from '@/lib/hooks/useInventory';
 
-export default function InventoryTable({ products, onEdit }: { products: Product[], onEdit: (p: Product) => void }) {
+interface Props {
+    products: Product[];
+    onEdit: (product: Product) => void;
+}
+
+/**
+ * InventoryTable Component
+ * 
+ * Displays a searchable table of inventory products (motos).
+ * Includes product image, details, price, and an action button to edit.
+ * 
+ * @param {Props} props - Component props
+ * @param {Product[]} props.products - List of products to display
+ * @param {function} props.onEdit - Callback function to handle edit action
+ * @returns {JSX.Element} The rendered inventory table
+ */
+export default function InventoryTable({ products, onEdit }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredProducts = products.filter(product => {
@@ -26,6 +42,7 @@ export default function InventoryTable({ products, onEdit }: { products: Product
                 />
             </div>
 
+            {/* --- ZONA DE LA TABLA --- */}
             <div className="w-full overflow-hidden bg-black rounded-lg border border-gray-800">
                 <table className="w-full text-left text-gray-300">
                     <thead className="text-xs uppercase bg-gray-800 text-gray-400">
@@ -39,6 +56,7 @@ export default function InventoryTable({ products, onEdit }: { products: Product
                     <tbody className="divide-y divide-gray-800">
                         {filteredProducts.map((product) => (
                             <tr key={product.id} className="hover:bg-gray-900 transition-colors">
+                                {/* Foto */}
                                 <td className="px-4 py-3">
                                     <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0" style={{ width: '48px', height: '48px' }}>
                                         {product.imageUrl ? (
@@ -48,6 +66,7 @@ export default function InventoryTable({ products, onEdit }: { products: Product
                                         )}
                                     </div>
                                 </td>
+                                {/* Info */}
                                 <td className="px-4 py-3 align-middle">
                                     <div className="flex flex-col justify-center">
                                         <span className="text-white font-bold text-sm">
@@ -57,16 +76,18 @@ export default function InventoryTable({ products, onEdit }: { products: Product
                                         {product.year && <span className="text-[10px] text-gray-600">Año {product.year}</span>}
                                     </div>
                                 </td>
+                                {/* Precio */}
                                 <td className="px-4 py-3 align-middle text-emerald-400 font-mono text-sm">
                                     ${product.price?.toLocaleString('es-CO') || '0'}
                                 </td>
+                                {/* BOTÓN AZUL (CORREGIDO) */}
                                 <td className="px-4 py-3 align-middle text-right relative">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onEdit(product);
                                         }}
-                                        className="relative z-50 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold shadow-md"
+                                        className="relative z-50 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform border-none"
                                     >
                                         EDITAR
                                     </button>
