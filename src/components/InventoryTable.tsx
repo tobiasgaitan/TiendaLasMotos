@@ -3,15 +3,10 @@ import Image from 'next/image';
 import { Product } from '@/lib/hooks/useInventory';
 import EditProductModal from './EditProductModal';
 
-/**
- * Tabla de inventario inteligente.
- * Incluye barra de búsqueda instantánea tipo Google y gestión de estado para el modal de edición.
- */
 export default function InventoryTable({ products }: { products: Product[] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-    // Lógica de Búsqueda Instantánea
     const filteredProducts = products.filter(product => {
         const term = searchTerm.toLowerCase();
         return (
@@ -22,84 +17,89 @@ export default function InventoryTable({ products }: { products: Product[] }) {
 
     return (
         <div className="w-full space-y-4">
-            {/* BARRA DE BÚSQUEDA TIPO GOOGLE */}
+            {/* BARRA DE BÚSQUEDA */}
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
                 <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg leading-5 bg-gray-900 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-gray-800 focus:border-blue-500 transition-colors duration-200 sm:text-sm"
-                    placeholder="Buscar por modelo, marca..."
+                    className="block w-full p-4 border border-gray-700 rounded-lg bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="🔍 Buscar moto..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
 
-            {/* TABLA DE RESULTADOS */}
-            <div className="w-full overflow-x-auto bg-gray-900 rounded-lg shadow-lg border border-gray-800">
+            {/* TABLA SIMPLIFICADA */}
+            <div className="w-full overflow-hidden bg-black rounded-lg border border-gray-800">
                 <table className="w-full text-left text-gray-300">
                     <thead className="text-xs uppercase bg-gray-800 text-gray-400">
                         <tr>
-                            <th scope="col" className="px-6 py-4">Foto</th>
-                            <th scope="col" className="px-6 py-4">Modelo / Marca</th>
-                            <th scope="col" className="px-6 py-4">Precio</th>
-                            <th scope="col" className="px-6 py-4 text-center">Visible</th>
-                            <th scope="col" className="px-6 py-4 text-right">Acciones</th>
+                            <th className="px-4 py-3 w-[80px]">Foto</th>
+                            <th className="px-4 py-3">Modelo / Marca</th>
+                            <th className="px-4 py-3">Precio</th>
+                            <th className="px-4 py-3 text-right">Acción</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
                         {filteredProducts.map((product) => (
-                            <tr key={product.id} className="hover:bg-gray-800/50 transition-colors group">
-                                <td className="px-6 py-4">
-                                    <div className="h-12 w-12 relative bg-gray-700 rounded overflow-hidden">
+                            <tr key={product.id} className="hover:bg-gray-900 transition-colors">
+
+                                {/* COLUMNA FOTO (Caja fija para que no se aplaste) */}
+                                <td className="px-4 py-3">
+                                    <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0" style={{ width: '48px', height: '48px' }}>
                                         {product.imageUrl ? (
                                             <Image
                                                 src={product.imageUrl}
-                                                alt={product.model}
+                                                alt="Moto"
                                                 fill
                                                 className="object-cover"
                                             />
                                         ) : (
-                                            <span className="flex items-center justify-center h-full text-xs text-gray-500">N/A</span>
+                                            <div className="flex items-center justify-center h-full w-full text-[10px] text-gray-500">
+                                                N/A
+                                            </div>
                                         )}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.model}</div>
-                                    <div className="text-xs text-gray-500">{product.brand} • {product.year || 'N/A'}</div>
+
+                                {/* COLUMNA TEXTO (Una sola línea limpia) */}
+                                <td className="px-4 py-3 align-middle">
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-white font-bold text-sm">
+                                            {product.model}
+                                            <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">
+                                                {product.brand}
+                                            </span>
+                                        </span>
+                                        {/* Año opcional abajo pequeñito */}
+                                        {product.year && <span className="text-[10px] text-gray-600">Año {product.year}</span>}
+                                    </div>
                                 </td>
-                                <td className="px-6 py-4 font-mono text-emerald-400">
-                                    ${product.price.toLocaleString('es-CO')}
+
+                                {/* COLUMNA PRECIO */}
+                                <td className="px-4 py-3 align-middle text-emerald-400 font-mono text-sm">
+                                    ${product.price?.toLocaleString('es-CO') || '0'}
                                 </td>
-                                <td className="px-6 py-4 text-center">
-                                    {/* Indicador visual de estado */}
-                                    <div className={`inline-flex h-3 w-3 rounded-full ${product.isVisible !== false ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-600'}`}></div>
-                                </td>
-                                <td className="px-6 py-4 text-right">
+
+                                {/* COLUMNA ACCIÓN (Botón con prioridad Z-Index) */}
+                                <td className="px-4 py-3 align-middle text-right relative">
                                     <button
-                                        onClick={() => setEditingProduct(product)}
-                                        className="text-blue-400 hover:text-white bg-blue-900/20 hover:bg-blue-600 px-3 py-1 rounded text-xs font-medium transition-all"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Evita que el click se pierda en la fila
+                                            console.log("CLICK DETECTADO EN:", product.model);
+                                            setEditingProduct(product);
+                                        }}
+                                        className="relative z-50 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform"
                                     >
-                                        Editar
+                                        EDITAR
                                     </button>
                                 </td>
                             </tr>
                         ))}
-                        {filteredProducts.length === 0 && (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                                    No se encontraron resultados para "{searchTerm}"
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </div>
 
-            {/* MODAL DE EDICIÓN */}
+            {/* MODAL */}
             {editingProduct && (
                 <EditProductModal
                     product={editingProduct}
