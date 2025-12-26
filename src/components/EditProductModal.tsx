@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product } from '@/lib/hooks/useInventory';
-import ImageUploader from './ImageUploader';
+import ImageUploader from './ImageUploader'; // Asegúrate que este archivo exista en la misma carpeta
 
 interface Props {
     product: Product;
@@ -11,8 +11,13 @@ interface Props {
 }
 
 /**
- * Modal avanzado para la edición de productos (Motos y Repuestos).
- * Maneja lógica dual para campos específicos y utiliza Firestore directamente.
+ * Modal component for editing or deleting a product from the inventory.
+ * Handles both "motos" and "repuestos" categories with specific form fields.
+ * 
+ * @param {Props} props - Component properties
+ * @param {Product} props.product - The product object to edit
+ * @param {boolean} props.isOpen - Controls modal visibility
+ * @param {() => void} props.onClose - Function to close the modal
  */
 export default function EditProductModal({ product, isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
@@ -41,6 +46,10 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     if (!isOpen) return null;
 
+    /**
+     * Handles the deletion of the product document from Firestore.
+     * Prompts for confirmation before deleting.
+     */
     const handleDelete = async () => {
         if (!confirm(`¿Eliminar "${product.model}" permanentemente? No se puede deshacer.`)) return;
         setLoading(true);
@@ -48,11 +57,16 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             await deleteDoc(doc(db, "pagina", "catalogo", "items", product.id));
             onClose();
         } catch (e) {
+            console.error(e);
             alert("Error al eliminar");
             setLoading(false);
         }
     };
 
+    /**
+     * Handles the update of the product document in Firestore.
+     * Maps form data to the correct Firestore document structure based on category.
+     */
     const handleSave = async () => {
         setLoading(true);
         try {
@@ -73,7 +87,6 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             if (formData.category === 'motos') {
                 dataToSave.year = Number(formData.year);
                 dataToSave.external_url = formData.external_url;
-                // Motos: El precio lo maneja el Bot, no lo sobrescribimos aquí
             } else {
                 dataToSave.price = Number(formData.price);
                 dataToSave.stock = Number(formData.stock);
@@ -82,8 +95,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             await updateDoc(ref, dataToSave);
             onClose();
         } catch (e) {
-            console.error(e);
-            alert("Error al guardar cambios");
+            console.error("Error guardando:", e);
+            alert("Error al guardar cambios. Revisa la consola.");
         } finally {
             setLoading(false);
         }
@@ -102,6 +115,14 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     {/* COLUMNA IZQUIERDA: Identidad */}
                     <div className="space-y-5">
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider border-b border-gray-800 pb-2">Información Básica</h3>
+
+                        {/* INTEGRACIÓN DEL IMAGE UPLOADER */}
+                        <div className="bg-gray-800/30 p-2 rounded-lg border border-gray-700/50">
+                            <ImageUploader
+                                currentImage={formData.imageUrl}
+                                onImageUploaded={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
+                            />
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -135,27 +156,24 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500">Descripción SEO (Google)</label>
+                            <label className="text-xs text-gray-500">Descripción SEO</label>
                             <textarea
                                 className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white h-24 text-sm resize-none"
                                 value={formData.seoDescription}
                                 onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
-                                placeholder="Ej: La moto más vendida de Colombia, ideal para trabajo..."
+                                placeholder="Texto para Google..."
                             />
                         </div>
 
-                        <div className="col-span-full">
-                            <ImageUploader
-                                currentImage={formData.imageUrl}
-                                onImageUploaded={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
-                            />
-                        </div>
-
-                        {/* Switch de Visibilidad */}
                         <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700">
                             <span className="text-sm text-gray-300">¿Visible en la Tienda?</span>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="sr-only peer" />
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isVisible}
+                                    onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
+                                    className="sr-only peer"
+                                />
                                 <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                             </label>
                         </div>
