@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { logoutAction } from '@/lib/actions';
 
 /**
  * Componente de navegación lateral para el panel de administración.
@@ -39,12 +38,7 @@ export default function SideNav() {
                 <div className="hidden h-auto w-full grow rounded-md bg-gray-900 md:block"></div>
                 {/* Botón Salir (Lógica Nativa) */}
                 <form
-                    action={async () => {
-                        "use server"
-                        const cookieStore = await cookies();
-                        cookieStore.delete('__session');
-                        redirect('/login');
-                    }}
+                    action={logoutAction}
                 >
                     <button className="flex h-[48px] w-full grow items-center justify-center gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-red-600 hover:text-white md:flex-none md:justify-start md:p-2 md:px-3">
                         <div className="hidden md:block">Cerrar Sesión</div>

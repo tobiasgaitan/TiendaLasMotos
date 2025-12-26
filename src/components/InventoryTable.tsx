@@ -60,7 +60,13 @@ export default function InventoryTable({ products, onEdit }: Props) {
                                 <td className="px-4 py-3">
                                     <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0">
                                         {product.imageUrl ? (
-                                            <Image src={product.imageUrl} alt="Moto" fill className="object-cover" />
+                                            <Image
+                                                src={product.imageUrl}
+                                                alt="Moto"
+                                                width={48}
+                                                height={48}
+                                                className="object-cover w-full h-full"
+                                            />
                                         ) : (
                                             <div className="flex items-center justify-center h-full w-full text-[10px] text-gray-500">N/A</div>
                                         )}
@@ -87,7 +93,7 @@ export default function InventoryTable({ products, onEdit }: Props) {
                                             e.stopPropagation();
                                             onEdit(product);
                                         }}
-                                        className="relative z-50 px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform bg-blue-600 text-white hover:bg-blue-700 cursor-pointer border-none"
+                                        className="relative z-50 px-4 py-2 rounded text-xs font-bold shadow-md active:scale-95 transition-transform bg-[#2563eb] text-white hover:bg-[#1d4ed8] cursor-pointer border-none"
                                     >
                                         EDITAR
                                     </button>
