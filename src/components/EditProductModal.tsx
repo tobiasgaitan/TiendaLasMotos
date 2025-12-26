@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product } from '@/lib/hooks/useInventory';
+import ImageUploader from './ImageUploader';
 
 interface Props {
     product: Product;
@@ -140,6 +141,13 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                                 value={formData.seoDescription}
                                 onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
                                 placeholder="Ej: La moto más vendida de Colombia, ideal para trabajo..."
+                            />
+                        </div>
+
+                        <div className="col-span-full">
+                            <ImageUploader
+                                currentImage={formData.imageUrl}
+                                onImageUploaded={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
                             />
                         </div>
 
