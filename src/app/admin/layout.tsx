@@ -5,21 +5,16 @@ import '@/app/globals.css';
 import AdminSidenav from '@/app/ui/admin-sidenav';
 
 /**
- * Layout principal para el panel de administración.
- *
- * Implementa una estrategia de "Split Sidebar" para manejar la responsividad:
- * - Desktop: Usa un `<aside>` estático visible (`hidden md:flex`).
- * - Mobile: Usa un `Drawer` (panel deslizante) controlado por estado (`md:hidden`).
- *
- * Esta estructura asegura que el sidebar siempre esté presente en pantallas grandes
- * sin superponerse al contenido, mientras que en móviles funciona como un menú capa superior.
- * Incluye cabecera móvil dedicada y manejo de backdrop.
+ * Layout principal del panel administrativo.
+ * Estructura "Split":
+ * - Desktop: Sidebar estático a la izquierda.
+ * - Móvil: Drawer deslizable + Header superior.
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-black text-white overflow-hidden">
+        <div className="flex h-screen bg-black text-white overflow-hidden relative">
 
             {/* 1. DESKTOP SIDEBAR (Static, hidden on mobile) */}
             <aside className="hidden md:flex w-64 flex-col border-r border-gray-800 bg-gray-900 overflow-y-auto">
@@ -27,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </aside>
 
             {/* 2. MOBILE SIDEBAR (Drawer, hidden on desktop) */}
-            {/* Backdrop */}
+            {/* Backdrop (Fondo oscuro al abrir menú en móvil) */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
@@ -35,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 />
             )}
 
-            {/* Drawer Panel */}
+            {/* Drawer Panel (El menú deslizable) */}
             <div className={`
                 fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out md:hidden
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
