@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "tiendalasmotos"
+  },
   "targets": {
     "tiendalasmotos": {
       "hosting": {
