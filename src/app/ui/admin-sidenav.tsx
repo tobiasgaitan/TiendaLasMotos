@@ -20,30 +20,27 @@ export default function SideNav() {
                     <span className="text-xl font-bold">TiendaMotos</span>
                 </div>
             </Link>
-            {/* Enlaces de Navegación */}
-            <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
 
+            {/* Enlaces de Navegación */}
+            <div className="flex grow flex-col space-y-2">
                 <Link
                     href="/admin/inventory"
-                    className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white md:flex-none md:justify-start md:p-2 md:px-3"
+                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white"
                 >
                     <p>Inventario</p>
                 </Link>
                 <Link
                     href="/admin/leads"
-                    className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white md:flex-none md:justify-start md:p-2 md:px-3"
+                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white"
                 >
                     <p>Prospectos</p>
                 </Link>
                 <div className="hidden h-auto w-full grow rounded-md bg-gray-900 md:block"></div>
-                {/* Botón Salir (Lógica Nativa) */}
-                <form
-                    action={logoutAction}
-                >
-                    <button className="flex h-[48px] w-full grow items-center justify-center gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-red-600 hover:text-white md:flex-none md:justify-start md:p-2 md:px-3">
-                        <div className="hidden md:block">Cerrar Sesión</div>
-                        {/* Icono visible en móvil para logout (opcional) */}
-                        <div className="block md:hidden">Salir</div>
+
+                {/* Botón Salir */}
+                <form action={logoutAction}>
+                    <button className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-red-600 hover:text-white">
+                        <div>Cerrar Sesión</div>
                     </button>
                 </form>
             </div>
