@@ -2,6 +2,9 @@
   "name": "tienda-las-motos",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,11 +13,15 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@types/markdown-it": "^14.1.2",
+    "acorn": "^8.15.0",
     "firebase": "^12.7.0",
+    "markdown-it": "^14.1.0",
     "next": "^16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.68.0",
+    "sharp": "^0.33.5",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -27,5 +34,11 @@
     "firebase-tools": "^15.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@img/sharp-linux-x64": "^0.34.5"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.4"
   }
 }

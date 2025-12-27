@@ -5,20 +5,17 @@ import { db } from "@/lib/firestore";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
+// Tipos básicos
 import { Lead } from "@/types";
 
-// Schema Validation
-/**
- * Lead Validation Schema (Zod):
- * Defines strict rules for incoming lead data to ensure integrity and security.
- * - Sanitizes unknown fields (via z.object defaults)
- * - Enforces specific formats for sensitive fields like 'celular'
- */
+// ==========================================
+// 1. GESTIÓN DE LEADS (Formulario Web)
+// ==========================================
+
 const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
-    celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }), // Basic CO mobile validation
+    celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }),
     motoInteres: z.string(),
     motivo_inscripcion: z.enum([
         'Solicitud de Crédito',
@@ -42,12 +39,6 @@ export type LeadState = {
 }
 
 export async function submitLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
-
-    /**
-     * Raw Data Extraction:
-     * Pulls data directly from FormData. 
-     * Note: We do *not* automatically trust this data until it passes Zod validation.
-     */
     const rawData = {
         nombre: formData.get("nombre") as string,
         celular: formData.get("celular") as string,
@@ -56,7 +47,6 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         origen: "WEB_BETA",
     };
 
-    // Validate using Zod
     const validatedFields = leadSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
@@ -84,23 +74,36 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     }
 }
 
-// --- Inventory Management ---
+// ==========================================
+// 2. GESTIÓN DE INVENTARIO (Admin V2)
+// ==========================================
 
-const updateMotoSchema = z.object({
+// Schema completo para la edición del producto
+// Incluye la CORRECCIÓN DE IMAGEN y todos los campos del modal
+const productSchema = z.object({
     motoId: z.string(),
-    precio: z.number().min(0),
+    // IMPORTANTE: Aquí validamos la URL de la imagen (la remolacha)
+    imagenUrl: z.string().optional(),
+    precio: z.coerce.number().min(0),
+    marca: z.string().optional(),
+    modelo: z.string().optional(),
+    anio: z.coerce.number().optional(),
+    isVisible: z.boolean().optional(),
     bono: z.object({
         activo: z.boolean(),
         titulo: z.string(),
-        monto: z.number().min(0),
-        fecha_limite: z.string(), // Expecting ISO string
-    }),
+        monto: z.coerce.number().min(0),
+        fecha_limite: z.string(),
+    }).optional(),
 });
 
-export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
-    // 1. Validate Session (Security Baseline)
-    // We strictly check for the existence of the '__session' cookie.
-    // In a full Admin SDK setup, we would verify the token content.
+/**
+ * saveProduct (Antiguo updateMotoAction)
+ * Función maestra para guardar cambios desde el panel de administración.
+ * Soluciona el problema de mapeo de imagenUrl.
+ */
+export async function saveProduct(data: z.infer<typeof productSchema>) {
+    // 1. Validar Sesión (Seguridad)
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('__session');
 
@@ -108,20 +111,17 @@ export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
         return { success: false, message: "No autorizado. Sesión inválida." };
     }
 
-    // 2. Validate Input
-    const validated = updateMotoSchema.safeParse(data);
+    // 2. Validar Datos de Entrada
+    const validated = productSchema.safeParse(data);
     if (!validated.success) {
-        return { success: false, message: "Datos inválidos." };
+        console.error("Validation Error:", validated.error);
+        return { success: false, message: "Datos inválidos. Revisa los campos." };
     }
 
     try {
-        const { motoId, precio, bono } = validated.data;
+        const { motoId, precio, imagenUrl, marca, modelo, anio, isVisible, bono } = validated.data;
 
-        // 3. Update in Firestore
-        // Note: This requires firestore.rules to allow writes from this context.
-        // The server action uses the initialized client SDK.
-        // We ensure firestore.rules allows writes for authenticated users.
-
+        // Configuración de fecha para last_updated (Zona horaria Colombia aprox)
         const offset = 5 * 60 * 60 * 1000; //-5 UTC
         const now = new Date();
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -129,56 +129,71 @@ export async function updateMotoAction(data: z.infer<typeof updateMotoSchema>) {
 
         const docRef = doc(db, "pagina", "catalogo", "items", motoId);
 
-        await updateDoc(docRef, {
+        // Objeto de actualización base
+        const updatePayload: any = {
             precio: precio,
-            "bono.activo": bono.activo,
-            "bono.titulo": bono.titulo,
-            "bono.monto": bono.monto,
-            "bono.fecha_limite": Timestamp.fromDate(new Date(bono.fecha_limite)),
-            // Keep existing fields
             last_updated: colTime
-        });
+        };
 
-        // 4. Cache Invalidation (Critical)
-        // Revalidate the public catalog and the home page
+        // --- LA CORRECCIÓN CLAVE ---
+        // Si recibimos una URL de imagen nueva, la guardamos en 'imagenUrl' (el campo Legacy)
+        if (imagenUrl && imagenUrl.length > 0) {
+            updatePayload.imagenUrl = imagenUrl;
+        }
+
+        // Mapeo de campos opcionales (solo actualizamos si existen)
+        if (marca) updatePayload.marca = marca;
+        // Nota: A veces el ID es el modelo, pero si tienes campo modelo visual, lo guardamos:
+        if (modelo) updatePayload.modelo = modelo;
+        if (anio) updatePayload.anio = anio;
+
+        // Manejo de booleano isVisible (mapeado a isVisible en BD)
+        if (typeof isVisible === 'boolean') {
+            updatePayload.isVisible = isVisible;
+        }
+
+        // Actualización de Bonos (si viene el objeto bono)
+        if (bono) {
+            updatePayload["bono.activo"] = bono.activo;
+            updatePayload["bono.titulo"] = bono.titulo;
+            updatePayload["bono.monto"] = bono.monto;
+            // Convertimos string ISO a Timestamp de Firestore
+            updatePayload["bono.fecha_limite"] = Timestamp.fromDate(new Date(bono.fecha_limite));
+        }
+
+        // 3. Escribir en Firestore
+        await updateDoc(docRef, updatePayload);
+
+        // 4. Limpiar Caché (Para que se vea la remolacha al instante)
         revalidatePath('/pagina/catalogo');
         revalidatePath('/');
-
-        // Also revalidate the admin inventory list itself
         revalidatePath('/admin/inventory');
 
-        return { success: true, message: "Actualizado correctamente" };
+        return { success: true, message: "Producto actualizado correctamente" };
+
     } catch (error) {
-        console.error("Error updating moto:", error);
+        console.error("Error saving product:", error);
         return { success: false, message: "Error al guardar en base de datos. Verifica permisos." };
     }
 }
 
-// --- Auth ---
+// ==========================================
+// 3. AUTENTICACIÓN (Login Beta)
+// ==========================================
 
-/**
- * Handles Admin Login
- * @param prevState - Previous state of the form
- * @param formData - Form data containing email and password
- * @returns Object with success status and message
- *
- * VALIDATION: Currently uses Hardcoded Beta Credentials.
- * TODO: Integrate with full Firebase Admin Auth in Phase 2.
- */
 export async function loginAction(prevState: any, formData: FormData) {
     const email = formData.get("email");
     const password = formData.get("password");
 
-    // Validation
-    // Hardcoded check for Beta Phase
+    // Credenciales Hardcoded (Fase Beta)
     if (email === "admin@tiendalasmotos.com" && password === "admin123") {
         const cookieStore = await cookies();
 
         cookieStore.set('__session', 'authenticated', {
             httpOnly: true,
-            secure: true, // Force secure in production
+            secure: true,
             path: '/',
-            maxAge: 60 * 60 * 24, // 1 day
+            maxAge: 60 * 60 * 24, // 1 día
             sameSite: 'lax',
         });
 

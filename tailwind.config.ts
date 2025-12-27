@@ -16,17 +16,6 @@ const config: Config = {
             },
         },
     },
-    safelist: [
-        "bg-blue-600",
-        "hover:bg-blue-700",
-        "text-white",
-        "w-12",
-        "h-12",
-        "h-48",
-        "w-full",
-        "object-contain",
-        "object-cover",
-    ],
     plugins: [],
 };
 export default config;
