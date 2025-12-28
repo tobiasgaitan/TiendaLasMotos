@@ -73,10 +73,19 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
         }
     };
 
+    /**
+     * Guarda los cambios del producto en Firestore.
+     * Realiza una limpieza agresiva del campo precio para evitar errores de formato.
+     */
     const handleSave = async () => {
         setLoading(true);
         try {
             const ref = doc(db, "pagina", "catalogo", "items", product.id);
+
+            // LIMPIEZA AGRESIVA: Precio
+            // Eliminamos todo lo que no sea dígito para curar formatos como "$ 12.345"
+            const precioLimpio = Number(formData.price.toString().replace(/[^0-9]/g, ''));
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dataToSave: any = {
                 category: formData.category,
@@ -87,16 +96,20 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 imageUrl: formData.imageUrl,
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
+                // Campos numéricos críticos corregidos
+                price: precioLimpio,
+                stock: Number(formData.stock),
             };
 
+            // Campos específicos de Motos (si aplica)
             if (formData.category === 'motos') {
                 dataToSave.year = Number(formData.year);
                 dataToSave.external_url = formData.external_url;
-            } else {
-                dataToSave.price = Number(formData.price);
-                dataToSave.stock = Number(formData.stock);
             }
+
             await updateDoc(ref, dataToSave);
+
+            // Actualización optimista o cierre
             onClose();
         } catch (e) {
             console.error("Error guardando:", e);
