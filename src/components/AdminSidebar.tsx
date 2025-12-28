@@ -77,9 +77,10 @@ export default function AdminSidebar() {
                 <div className="hidden h-auto w-full grow rounded-md bg-gray-900 md:block"></div>
 
                 {/* Botón Salir */}
+                {/* Botón Salir */}
                 <button
                     onClick={() => logout()}
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-red-600 hover:text-white transition-colors group"
+                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-red-600 hover:text-white transition-colors group mt-auto"
                     title="Cerrar Sesión"
                 >
                     <svg
