@@ -1,14 +1,18 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLeadModal } from "@/context/LeadModalContext";
-import { submitLead } from "@/app/actions";
 import { createPortal } from "react-dom";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-// Duplicate schema for client-side immediate feedback
+/**
+ * Validatio Schema
+ * Ensures data quality before sending to Firebase
+ */
 const clientSchema = z.object({
     nombre: z.string().min(3, "El nombre es muy corto"),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, "Número celular inválido (10 dígitos)"),
@@ -22,12 +26,21 @@ const clientSchema = z.object({
 
 type ClientFormSchema = z.infer<typeof clientSchema>;
 
+/**
+ * LeadForm Component
+ * 
+ * Floating modal that captures user leads and saves them to Firestore
+ * in the 'prospectos' collection. Prepared for AI/Chatbot integration.
+ */
 export default function LeadForm() {
     const { isOpen, closeModal, selectedMoto } = useLeadModal();
-    const [state, formAction, isPending] = useActionState(submitLead, {});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const {
         register,
+        handleSubmit,
         formState: { errors, isValid },
         reset
     } = useForm<ClientFormSchema>({
@@ -35,18 +48,62 @@ export default function LeadForm() {
         mode: "onBlur"
     });
 
-    // Close on success after delay or show success message state
+    // Close on success after delay
     useEffect(() => {
-        if (state.success) {
+        if (submitSuccess) {
             const timer = setTimeout(() => {
                 closeModal();
+                setSubmitSuccess(false); // Reset internal state
                 reset(); // Reset form for next time
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [state.success, closeModal, reset]);
+    }, [submitSuccess, closeModal, reset]);
 
     if (!isOpen) return null;
+
+    /**
+     * Handles form submission
+     * - Cleans data
+     * - Adds metadata for Bot
+     * - Saves to Firestore
+     */
+    const onSubmit = async (data: ClientFormSchema) => {
+        setIsSubmitting(true);
+        setSubmitError(null);
+
+        try {
+            // 1. Clean Phone Number (Remove spaces, dashes, etc - though Regex enforces digits, being safe)
+            const cleanPhone = data.celular.replace(/\D/g, '');
+
+            // 2. Prepare Payload
+            const payload = {
+                nombre: data.nombre,
+                celular: cleanPhone,
+                motoInteres: selectedMoto ? selectedMoto.referencia : "General",
+                motivo_inscripcion: data.motivo_inscripcion,
+                fecha: serverTimestamp(),
+                estado: "NUEVO",
+
+                // AI/Chatbot Fields
+                ai_summary: null,
+                chatbot_status: "PENDING",
+                origen: "WEB_COTIZADOR"
+            };
+
+            // 3. Send to Firestore
+            await addDoc(collection(db, "prospectos"), payload);
+
+            // 4. Handle Success
+            setSubmitSuccess(true);
+
+        } catch (error) {
+            console.error("Error submitting lead:", error);
+            setSubmitError("Hubo un error al enviar tus datos. Por favor intenta de nuevo.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     // Render Portal to body to avoid z-index issues
     return createPortal(
@@ -72,7 +129,7 @@ export default function LeadForm() {
 
                 {/* Form Body */}
                 <div className="p-6">
-                    {state.success ? (
+                    {submitSuccess ? (
                         <div className="bg-green-900/20 border border-green-800 rounded-xl p-6 text-center animate-in fade-in slide-in-from-bottom-4">
                             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-600 mb-4 shadow-lg shadow-green-900/50">
                                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,9 +142,7 @@ export default function LeadForm() {
                             </p>
                         </div>
                     ) : (
-                        <form action={formAction} className="space-y-4">
-                            {/* Hidden Input for Context Data */}
-                            <input type="hidden" name="motoInteres" value={selectedMoto?.id || "General"} />
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                             <div>
                                 <label htmlFor="nombre" className="block text-sm font-medium text-slate-300 mb-1">
@@ -100,9 +155,9 @@ export default function LeadForm() {
                                     placeholder="Ej: Juan Pérez"
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent transition-all"
                                 />
-                                {(errors.nombre || state.errors?.nombre) && (
+                                {errors.nombre && (
                                     <p className="text-red-500 text-xs mt-1">
-                                        {errors.nombre?.message || state.errors?.nombre?.[0]}
+                                        {errors.nombre.message}
                                     </p>
                                 )}
                             </div>
@@ -118,9 +173,9 @@ export default function LeadForm() {
                                     placeholder="Ej: 300 123 4567"
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent transition-all"
                                 />
-                                {(errors.celular || state.errors?.celular) && (
+                                {errors.celular && (
                                     <p className="text-red-500 text-xs mt-1">
-                                        {errors.celular?.message || state.errors?.celular?.[0]}
+                                        {errors.celular.message}
                                     </p>
                                 )}
                             </div>
@@ -141,25 +196,25 @@ export default function LeadForm() {
                                     <option value="Asesoría General">Asesoría General</option>
                                     <option value="Repuestos/Accesorios">Repuestos / Accesorios</option>
                                 </select>
-                                {(errors.motivo_inscripcion || state.errors?.motivo_inscripcion) && (
+                                {errors.motivo_inscripcion && (
                                     <p className="text-red-500 text-xs mt-1">
-                                        {errors.motivo_inscripcion?.message || state.errors?.motivo_inscripcion?.[0]}
+                                        {errors.motivo_inscripcion.message}
                                     </p>
                                 )}
                             </div>
 
-                            {state.message && !state.success && (
+                            {submitError && (
                                 <div className="p-3 rounded-lg bg-red-900/20 border border-red-800 text-red-200 text-sm">
-                                    {state.message}
+                                    {submitError}
                                 </div>
                             )}
 
                             <button
                                 type="submit"
-                                disabled={isPending || !isValid} // Optional: disable if strictly client validation fails
+                                disabled={isSubmitting || !isValid}
                                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-900/20 transform transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                             >
-                                {isPending ? (
+                                {isSubmitting ? (
                                     <>
                                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
