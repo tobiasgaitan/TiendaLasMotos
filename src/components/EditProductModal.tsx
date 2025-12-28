@@ -1,21 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product } from '@/lib/hooks/useInventory';
 import ImageUploader from './ImageUploader';
 
 interface Props {
-    product: Product;
+    product: Product | null; // Product is now optional
     isOpen: boolean;
     onClose: () => void;
 }
 
 /**
- * EditProductModal (Versión Híbrida Estable)
+ * EditProductModal (Versión Híbrida Estable - Universal)
+ * - Soporta EDICIÓN (con product) y CREACIÓN (product = null).
  * - Estilos: Usa Inline Styles para garantizar visibilidad (z-index forzado).
- * - Lógica: Usa useEffect para garantizar que los datos (y la FOTO) se carguen.
+ * - Lógica: Usa useEffect para inicializar datos o limpiar para "Crear".
  */
 export default function EditProductModal({ product, isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
@@ -36,23 +37,42 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
         stock: 0,
     });
 
-    // 1. LÓGICA CRÍTICA (ESTO ARREGLA LA FOTO)
+    // 1. LÓGICA CRÍTICA DE INICIALIZACIÓN
     useEffect(() => {
-        if (isOpen && product) {
-            setFormData({
-                category: product.category || 'motos',
-                brand: product.brand || '',
-                model: product.model || '',
-                seoDescription: product.seoDescription || '',
-                isVisible: product.isVisible !== undefined ? product.isVisible : true,
-                imageUrl: product.imageUrl || '', // <--- Aquí cargamos la foto
-                bonusAmount: product.bonusAmount || 0,
-                bonusEndDate: product.bonusEndDate || '',
-                year: product.year || new Date().getFullYear(),
-                external_url: product.external_url || '',
-                price: product.price || 0,
-                stock: product.stock || 0,
-            });
+        if (isOpen) {
+            if (product) {
+                // MODO EDICIÓN: Cargar datos existentes
+                setFormData({
+                    category: product.category || 'motos',
+                    brand: product.brand || '',
+                    model: product.model || '',
+                    seoDescription: product.seoDescription || '',
+                    isVisible: product.isVisible !== undefined ? product.isVisible : true,
+                    imageUrl: product.imageUrl || '',
+                    bonusAmount: product.bonusAmount || 0,
+                    bonusEndDate: product.bonusEndDate || '',
+                    year: product.year || new Date().getFullYear(),
+                    external_url: product.external_url || '',
+                    price: product.price || 0,
+                    stock: product.stock || 0,
+                });
+            } else {
+                // MODO CREACIÓN: Limpiar formulario
+                setFormData({
+                    category: 'motos',
+                    brand: '',
+                    model: '',
+                    seoDescription: '',
+                    isVisible: true,
+                    imageUrl: '',
+                    bonusAmount: 0,
+                    bonusEndDate: '',
+                    year: new Date().getFullYear(),
+                    external_url: '',
+                    price: 0,
+                    stock: 0,
+                });
+            }
             // Bloqueamos scroll trasero
             document.body.style.overflow = 'hidden';
         }
@@ -60,6 +80,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
     }, [isOpen, product]);
 
     const handleDelete = async () => {
+        if (!product) return; // Validación extra
         if (!confirm(`¿Eliminar "${product.model}" permanentemente?`)) return;
         setLoading(true);
         try {
@@ -74,20 +95,28 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
     };
 
     /**
-     * Guarda los cambios del producto en Firestore.
-     * Mapea los campos del formulario a la estructura Legacy de la base de datos:
-     * - price -> precio
-     * - imageUrl -> imagenUrl
+     * Genera un Slug (ID) único y SEO-friendly basado en el modelo.
      * 
-     * Implementa lógica condicional para evitar re-enviar la imagen si no cambió.
+     * @param modelName - El nombre del modelo ingresado (ej: "Duke 200 NG")
+     * @returns string - ID normalizado (ej: "duke_200_ng")
+     * 
+     * Seguridad: Limpia caracteres especiales para asegurar compatibilidad con URLs.
+     */
+    const generateId = (modelName: string) => {
+        return modelName
+            .toLowerCase()
+            .trim()
+            .replace(/ /g, '_')
+            .replace(/[^\w-]+/g, '');
+    };
+
+    /**
+     * Guarda los cambios (CREAR o EDITAR) en Firestore.
      */
     const handleSave = async () => {
         setLoading(true);
         try {
-            const ref = doc(db, "pagina", "catalogo", "items", product.id);
-
             // LIMPIEZA AGRESIVA: Precio
-            // Eliminamos todo lo que no sea dígito para curar formatos como "$ 12.345"
             const precioLimpio = Number(formData.price.toString().replace(/[^0-9]/g, ''));
 
             // Definimos el objeto base con los nombres de campo ESPAÑOL (Legacy)
@@ -103,28 +132,53 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 stock: Number(formData.stock),
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
+                // Fecha de actualización para ordenar (si la DB lo usa)
+                fechaActualizacion: new Date().toISOString()
             };
 
             // Lógica Condicional para Imagen:
-            // Solo actualizamos 'imagenUrl' si la URL del form es diferente a la original.
-            if (formData.imageUrl !== product.imageUrl) {
-                // Mapeo Crítico: imageUrl -> imagenUrl
+            if (product) {
+                // MODO EDICIÓN: Solo actualizar imagen si cambió
+                if (formData.imageUrl !== product.imageUrl) {
+                    dataToSave.imagenUrl = formData.imageUrl;
+                }
+            } else {
+                // MODO CREACIÓN: Siempre enviar imagen
                 dataToSave.imagenUrl = formData.imageUrl;
             }
 
-            // Campos específicos de Motos (si aplica)
+            // Campos específicos de Motos
             if (formData.category === 'motos') {
                 dataToSave.year = Number(formData.year);
                 dataToSave.external_url = formData.external_url;
             }
 
-            await updateDoc(ref, dataToSave);
+            if (product) {
+                // --- MODO EDICIÓN (UPDATE) ---
+                const ref = doc(db, "pagina", "catalogo", "items", product.id);
+                await updateDoc(ref, dataToSave);
+            } else {
+                // --- MODO CREACIÓN (SET) ---
+                // 1. Generar ID Automático
+                if (!formData.model) throw new Error("Debes ingresar un Modelo para generar el ID.");
+                const newId = generateId(formData.model);
 
-            // Actualización optimista o cierre
+                // 2. Agregar campos por defecto de Creación
+                dataToSave.fechaCreacion = new Date().toISOString();
+                // Asegurar que nombre y marca (Legacy) también existan para compatibilidad máxima
+                dataToSave.nombre = formData.model;
+                dataToSave.marca = formData.brand;
+                dataToSave.status = 'Activo';
+
+                const ref = doc(db, "pagina", "catalogo", "items", newId);
+                // Usamos setDoc para crear con ID personalizado
+                await setDoc(ref, dataToSave);
+            }
+
             onClose();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error guardando:", e);
-            alert("Error al guardar cambios.");
+            alert("Error al guardar: " + (e.message || "Intenta nuevamente."));
         } finally {
             setLoading(false);
         }
@@ -132,7 +186,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     if (!isOpen) return null;
 
-    // 2. ESTILOS A PRUEBA DE FALLOS (Recuperados de tu versión anterior funcional)
+    const isEditing = !!product;
+
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -172,7 +227,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
                 <div className="p-6">
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                        <span className="text-blue-500">✎</span> Editar: {product.model}
+                        <span className="text-blue-500">{isEditing ? '✎' : '+'}</span>
+                        {isEditing ? `Editar: ${product.model}` : 'Agregar Nueva Moto'}
                     </h2>
 
                     {/* FORMULARIO */}
@@ -189,23 +245,32 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                             </div>
 
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Marca</label>
-                                <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} />
+                                <label className="text-xs text-gray-500 block mb-1">Marca*</label>
+                                <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
+                                    value={formData.brand}
+                                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                    placeholder="Ej: KTM"
+                                />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Modelo</label>
-                                <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} />
+                                <label className="text-xs text-gray-500 block mb-1">Modelo* (Generará ID)</label>
+                                <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
+                                    value={formData.model}
+                                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                                    placeholder="Ej: Duke 200"
+                                />
                             </div>
                             <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700">
-                                <span className="text-sm text-gray-300">¿Visible?</span>
+                                <span className="text-sm text-gray-300">¿Visible en Web?</span>
                                 <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />
                             </div>
                         </div>
 
                         {/* DERECHA */}
                         <div className="space-y-5">
-                            <div><label className="text-xs text-blue-300 block mb-1">Precio</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} /></div>
+                            <div><label className="text-xs text-blue-300 block mb-1">Precio Compra</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} /></div>
                             <div><label className="text-xs text-blue-300 block mb-1">Año</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} /></div>
+                            <div><label className="text-xs text-gray-500 block mb-1">Stock Disponible</label><input type="number" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} /></div>
 
                             <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-800/30 space-y-4">
                                 <h4 className="text-xs font-bold text-purple-300">Bonos</h4>
@@ -219,16 +284,21 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
                     {/* Footer */}
                     <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-700">
-                        <button onClick={handleDelete} className="text-red-400 text-sm hover:underline">Eliminar</button>
+                        {isEditing ? (
+                            <button onClick={handleDelete} className="text-red-400 text-sm hover:underline">Eliminar</button>
+                        ) : (
+                            <div></div> // Spacer
+                        )}
+
                         <div className="flex gap-4">
                             <button onClick={onClose} className="px-5 py-2.5 text-gray-400 hover:text-white">Cancelar</button>
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
-                                style={{ backgroundColor: '#2563eb', color: 'white' }} // Estilo inline para el botón azul
+                                style={{ backgroundColor: '#2563eb', color: 'white' }}
                                 className="px-6 py-2.5 rounded-lg font-bold hover:brightness-110"
                             >
-                                {loading ? 'Guardando...' : 'Guardar'}
+                                {loading ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Producto')}
                             </button>
                         </div>
                     </div>

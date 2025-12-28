@@ -5,10 +5,41 @@ import { useInventory, Product } from '@/lib/hooks/useInventory';
 import InventoryTable from '@/components/InventoryTable';
 import EditProductModal from '@/components/EditProductModal';
 
+/**
+ * InventoryPage - Dashboard de Gestión de Inventario
+ * 
+ * Permite a los administradores visualizar, editar y CREAR nuevos productos.
+ * 
+ * Flow de Creación:
+ * 1. Click en "Agregar Moto" -> handleCreate() -> Abre modal con product=null.
+ * 2. EditProductModal detecta null -> Modo Creación -> setDoc con nuevo ID.
+ * 
+ * Estado:
+ * - isModalOpen: Controla visibilidad explícita del modal.
+ * - editingProduct: Data del producto a editar o NULL para crear.
+ */
 export default function InventoryPage() {
     const { products, loading, error } = useInventory();
-    // ESTADO ELEVADO: Aquí vive la verdad sobre qué se está editando
+
+    // Estado del Modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    // Producto en edición (null = Creando nuevo)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+    const handleCreate = () => {
+        setEditingProduct(null); // Modo creación
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (product: Product) => {
+        setEditingProduct(product); // Modo edición
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setEditingProduct(null);
+    };
 
     // Loading State simple
     if (loading) {
@@ -40,6 +71,13 @@ export default function InventoryPage() {
                         Control total de <span className="text-white font-bold">{products.length}</span> items activos en tiempo real.
                     </p>
                 </div>
+                {/* BOTÓN DE CREAR - Lado derecho header */}
+                <button
+                    onClick={handleCreate}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-all hover:scale-105"
+                >
+                    <span className="text-xl">+</span> Agregar Moto
+                </button>
             </div>
 
             {/* Contenedor Principal de la Tabla */}
@@ -53,20 +91,16 @@ export default function InventoryPage() {
                 {/* TABLA: Ahora es "tonta", solo avisa clicks */}
                 <InventoryTable
                     products={products}
-                    onEdit={(product) => {
-                        console.log("Jefe: Recibida solicitud de editar", product.model);
-                        setEditingProduct(product);
-                    }}
+                    onEdit={handleEdit}
                 />
             </div>
 
-            {/* MODAL: Vive fuera de la tabla, imposible de ocultar */}
-            {/* Se renderiza condicionalmente si editingProduct tiene datos */}
-            {editingProduct && (
+            {/* MODAL: Controlado explícitamente por isModalOpen */}
+            {isModalOpen && (
                 <EditProductModal
                     product={editingProduct}
-                    isOpen={!!editingProduct}
-                    onClose={() => setEditingProduct(null)}
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
                 />
             )}
         </div>
