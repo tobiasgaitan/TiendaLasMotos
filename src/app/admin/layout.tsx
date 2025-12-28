@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import '@/app/globals.css';
-import AdminSidenav from '@/app/ui/admin-sidenav';
+import AdminSidebar from '@/components/AdminSidebar';
 
 /**
  * Layout principal del panel administrativo.
@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* 1. DESKTOP SIDEBAR (Static, hidden on mobile) */}
             <aside className="hidden md:flex w-64 flex-col border-r border-gray-800 bg-gray-900 overflow-y-auto">
-                <AdminSidenav />
+                <AdminSidebar />
             </aside>
 
             {/* 2. MOBILE SIDEBAR (Drawer, hidden on desktop) */}
@@ -43,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </button>
                 </div>
                 <div className="h-full overflow-y-auto">
-                    <AdminSidenav />
+                    <AdminSidebar />
                 </div>
             </div>
 

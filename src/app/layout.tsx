@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 };
 
 import { LeadModalProvider } from "@/context/LeadModalContext";
+import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
 
 export default function RootLayout({
@@ -40,8 +41,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-200`}
       >
         <LeadModalProvider>
-          {children}
-          <LeadForm />
+          <AuthProvider>
+            {children}
+            <LeadForm />
+          </AuthProvider>
         </LeadModalProvider>
       </body>
     </html>
