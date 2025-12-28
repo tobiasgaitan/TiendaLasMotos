@@ -33,13 +33,13 @@ service cloud.firestore {
 
     // Legacy Panel Access (Restored for panel.tiendalasmotos.com)
     match /usuarios/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
     }
     match /sedes/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
     }
     match /sucursales/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
     }
     match /imported_tables/{document=**} {
       allow read: if request.auth != null;
