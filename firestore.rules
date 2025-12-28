@@ -2,36 +2,31 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default: Deny all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Public Read-Only for Catalog
+    
+    // 1. Catálogo: Lectura pública, escritura para admins
     match /pagina/catalogo/items/{item} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Leads: Admin Only (Auth Required)
+    // 2. Leads: Solo administradores autenticados
     match /leads/{lead} {
       allow read, write: if request.auth != null;
     }
 
-    // Prospectos: Public create, Admin/Auth read/update/delete
+    // 3. Prospectos: Creación pública, gestión solo para admins
     match /prospectos/{document} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
 
-
-
-    // System Admins: Read-only for authenticated users to verify role
+    // 4. Panel Nuevo: Validación de roles administrativos
     match /sys_admin_users/{document} {
       allow read: if request.auth != null;
     }
 
-    // Legacy Panel Access (Restored for panel.tiendalasmotos.com)
+    // 5. Panel Antiguo (panel.tiendalasmotos.com): 
+    // Acceso público de lectura para permitir el inicio de sesión
     match /usuarios/{document=**} {
       allow read: if true;
     }
@@ -42,7 +37,13 @@ service cloud.firestore {
       allow read: if true;
     }
     match /imported_tables/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
+    }
+
+    // Regla de seguridad por defecto: Denegar cualquier otra cosa no especificada
+    // Se coloca al final para no interferir con las reglas anteriores
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
