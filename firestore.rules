@@ -17,5 +17,11 @@ service cloud.firestore {
     match /leads/{lead} {
       allow read, write: if request.auth != null;
     }
+
+    // Prospectos: Public create, Admin/Auth read/update/delete
+    match /prospectos/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
   }
 }
