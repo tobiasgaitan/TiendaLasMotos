@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import '@/app/globals.css';
 import AdminSidebar from '@/components/AdminSidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -13,6 +14,13 @@ import ProtectedRoute from '@/components/ProtectedRoute';
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const pathname = usePathname();
+    const isLoginPage = pathname === '/admin/login';
+
+    // Si es la página de login, renderizamos sin sidebar ni protección (la protección la maneja el formulario/acción)
+    if (isLoginPage) {
+        return <div className="min-h-screen bg-gray-950 text-white">{children}</div>;
+    }
 
     return (
         <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
