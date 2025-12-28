@@ -132,6 +132,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 stock: Number(formData.stock),
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
+                // Garantizar consistencia de Referencia
+                referencia: formData.model,
                 // Fecha de actualización para ordenar (si la DB lo usa)
                 fechaActualizacion: new Date().toISOString()
             };
@@ -167,6 +169,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 dataToSave.fechaCreacion = new Date().toISOString();
                 // Asegurar que nombre y marca (Legacy) también existan para compatibilidad máxima
                 dataToSave.nombre = formData.model;
+                dataToSave.referencia = formData.model; // ADDED: Critical for legacy compatibility
                 dataToSave.marca = formData.brand;
                 dataToSave.status = 'Activo';
 
