@@ -75,7 +75,11 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     /**
      * Guarda los cambios del producto en Firestore.
-     * Realiza una limpieza agresiva del campo precio para evitar errores de formato.
+     * Mapea los campos del formulario a la estructura Legacy de la base de datos:
+     * - price -> precio
+     * - imageUrl -> imagenUrl
+     * 
+     * Implementa lógica condicional para evitar re-enviar la imagen si no cambió.
      */
     const handleSave = async () => {
         setLoading(true);
@@ -86,6 +90,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             // Eliminamos todo lo que no sea dígito para curar formatos como "$ 12.345"
             const precioLimpio = Number(formData.price.toString().replace(/[^0-9]/g, ''));
 
+            // Definimos el objeto base con los nombres de campo ESPAÑOL (Legacy)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dataToSave: any = {
                 category: formData.category,
@@ -93,13 +98,19 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 model: formData.model,
                 seoDescription: formData.seoDescription,
                 isVisible: formData.isVisible,
-                imageUrl: formData.imageUrl,
+                // Mapeo Crítico: price -> precio
+                precio: precioLimpio,
+                stock: Number(formData.stock),
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
-                // Campos numéricos críticos corregidos
-                price: precioLimpio,
-                stock: Number(formData.stock),
             };
+
+            // Lógica Condicional para Imagen:
+            // Solo actualizamos 'imagenUrl' si la URL del form es diferente a la original.
+            if (formData.imageUrl !== product.imageUrl) {
+                // Mapeo Crítico: imageUrl -> imagenUrl
+                dataToSave.imagenUrl = formData.imageUrl;
+            }
 
             // Campos específicos de Motos (si aplica)
             if (formData.category === 'motos') {
