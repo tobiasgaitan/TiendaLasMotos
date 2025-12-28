@@ -15,7 +15,7 @@ import { db } from "@/lib/firebase";
  */
 const clientSchema = z.object({
     nombre: z.string().min(3, "El nombre es muy corto"),
-    celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, "Número celular inválido (10 dígitos)"),
+    celular: z.string().regex(/^[0-9+-\s()]*$/, "Carácter no válido en el celular").min(7, "El número es muy corto").max(20, "El número es muy largo"),
     motivo_inscripcion: z.enum([
         'Solicitud de Crédito',
         'Pago de Contado',
@@ -64,9 +64,9 @@ export default function LeadForm() {
 
     /**
      * Handles form submission
-     * - Cleans data
-     * - Adds metadata for Bot
-     * - Saves to Firestore
+     * - Sanitizes the phone number to store only digits (removes formatting like spaces, dashes).
+     * - Adds metadata for Bot processing (AI summary placeholder, origin).
+     * - Saves the clean data to Firestore 'prospectos' collection.
      */
     const onSubmit = async (data: ClientFormSchema) => {
         setIsSubmitting(true);
