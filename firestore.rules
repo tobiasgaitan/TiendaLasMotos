@@ -3,45 +3,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 1. Catálogo: Lectura pública, escritura para admins
-    match /pagina/catalogo/items/{item} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
+    // 1. Reglas existentes para el panel nuevo y catálogo
+    match /pagina/catalogo/items/{item} { allow read: if true; allow write: if request.auth != null; }
+    match /leads/{lead} { allow create: if true; allow read, update, delete: if request.auth != null; }
+    match /prospectos/{document} { allow create: if true; allow read, update, delete: if request.auth != null; }
+    match /sys_admin_users/{document} { allow read: if request.auth != null; }
 
-    // 2. Leads: Solo administradores autenticados
-    match /leads/{lead} {
-      allow read, write: if request.auth != null;
-    }
+    // 2. Desbloqueo para el Panel Viejo (Legacy)
+    // Agregamos 'configuracion' y 'settings' que son vitales para los formularios
+    match /usuarios/{document=**} { allow read: if request.auth != null; }
+    match /sedes/{document=**} { allow read: if true; }
+    match /sucursales/{document=**} { allow read: if true; }
+    match /imported_tables/{document=**} { allow read: if request.auth != null; }
+    match /configuracion/{document=**} { allow read: if request.auth != null; }
+    match /settings/{document=**} { allow read: if true; }
+    match /config/{document=**} { allow read: if true; }
+    match /panel/{document=**} { allow read: if request.auth != null; }
+    match /tables/{document=**} { allow read: if request.auth != null; }
+    
+    // Formularios: moto_ideal público, el resto privado
+    match /formularios/moto_ideal { allow read: if true; }
+    match /formularios/{document=**} { allow read: if request.auth != null; }
 
-    // 3. Prospectos: Creación pública, gestión solo para admins
-    match /prospectos/{document} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
+    match /labels/{document=**} { allow read: if true; }
+    match /etiquetas/{document=**} { allow read: if true; }
+    match /traducciones/{document=**} { allow read: if request.auth != null; }
+    match /ui_texts/{document=**} { allow read: if true; }
 
-    // 4. Panel Nuevo: Validación de roles administrativos
-    match /sys_admin_users/{document} {
-      allow read: if request.auth != null;
-    }
-
-    // 5. Panel Antiguo (panel.tiendalasmotos.com): 
-    // Acceso público de lectura para permitir el inicio de sesión
-    match /usuarios/{document=**} {
-      allow read: if true;
-    }
-    match /sedes/{document=**} {
-      allow read: if true;
-    }
-    match /sucursales/{document=**} {
-      allow read: if true;
-    }
-    match /imported_tables/{document=**} {
-      allow read: if true;
-    }
-
-    // Regla de seguridad por defecto: Denegar cualquier otra cosa no especificada
-    // Se coloca al final para no interferir con las reglas anteriores
+    // Regla de seguridad por defecto
     match /{document=**} {
       allow read, write: if false;
     }

@@ -4,6 +4,7 @@
         "indexes": "firestore.indexes.json"
     },
     "hosting": {
+        "target": "tiendalasmotos",
         "source": ".",
         "ignore": [
             "firebase.json",
