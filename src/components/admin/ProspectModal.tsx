@@ -2,12 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Timestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+/**
+ * Estructura de una nota interna en el historial del prospecto.
+ */
 interface Note {
     content: string;
     createdAt: Timestamp;
     author: string; // 'Admin' or 'System' for now
 }
 
+/**
+ * Interfaz principal del usuario/prospecto.
+ * Extiende la interfaz base usada en la lista para incluir arrays de notas.
+ */
 export interface Prospect {
     id: string;
     nombre: string;
@@ -36,6 +43,18 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     DISCARDED: { label: 'Descartados', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
 };
 
+/**
+ * ProspectModal Component
+ * 
+ * Modal para la gestión detallada de un prospecto. Permite:
+ * 1. Cambiar el estado del lead (Pendiente, Gestión, Venta, Descartado).
+ * 2. Visualizar y agregar notas internas al historial.
+ * 3. Ver el resumen generado por IA (si existe).
+ * 
+ * @param isOpen - Controla la visibilidad del modal.
+ * @param onClose - Función para cerrar el modal.
+ * @param prospect - Objeto prospecto seleccionado.
+ */
 export default function ProspectModal({ isOpen, onClose, prospect }: ProspectModalProps) {
     const [currentStatus, setCurrentStatus] = useState<string>('PENDING');
     const [newNote, setNewNote] = useState('');
