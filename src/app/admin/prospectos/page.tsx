@@ -3,30 +3,32 @@
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 
-// Interfaz para el tipo de dato Prospecto
-interface Prospect {
-    id: string;
-    nombre: string;
-    celular: string; // Se asume que viene limpio (ej: 3001234567)
-    motoInteres?: string;
-    motivo_inscripcion?: string;
-    fecha: Timestamp;
-    chatbot_status?: 'PENDING' | 'DONE' | string;
-    // Otros campos que puedan venir
-    [key: string]: any;
-}
+// Status Configuration Map (Must match Modal)
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    PENDING: { label: 'Pendientes', color: 'bg-amber-500/20 text-amber-500 border-amber-500/50' },
+    IN_PROGRESS: { label: 'En Gestión', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' },
+    DONE: { label: 'Venta Cerrada', color: 'bg-green-500/20 text-green-500 border-green-500/50' },
+    DISCARDED: { label: 'Descartados', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
+};
 
 /**
  * ProspectsPage - Dashboard de Prospectos y Ventas
  * 
  * Visualiza los leads capturados en tiempo real desde la colección "prospectos".
- * Permite contactar rápidamente vía WhatsApp.
+ * Permite filtrar por estado, ver detalles y gestionar el ciclo de vida del cliente.
  */
 export default function ProspectsPage() {
     const [leads, setLeads] = useState<Prospect[]>([]);
+    const [filteredLeads, setFilteredLeads] = useState<Prospect[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // UI State
+    const [currentFilter, setCurrentFilter] = useState<string>('ALL');
+    const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -57,36 +59,66 @@ export default function ProspectsPage() {
         return () => unsubscribe();
     }, []);
 
+    // Filter Logic
+    useEffect(() => {
+        if (currentFilter === 'ALL') {
+            setFilteredLeads(leads);
+        } else {
+            setFilteredLeads(leads.filter(lead => {
+                const status = lead.status || 'PENDING'; // Default to PENDING if undefined
+                return status === currentFilter;
+            }));
+        }
+    }, [leads, currentFilter]);
+
     // Helper para formatear fecha (ej: 28 Dic, 10:30 AM)
     const formatDate = (timestamp: Timestamp) => {
         if (!timestamp) return 'Fecha desconocida';
-        const date = timestamp.toDate();
-        return new Intl.DateTimeFormat('es-CO', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        }).format(date);
+        try {
+            const date = timestamp.toDate();
+            return new Intl.DateTimeFormat('es-CO', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }).format(date);
+        } catch (e) {
+            return 'Fecha inválida';
+        }
     };
 
     /**
      * Construye y abre el enlace de WhatsApp
      */
-    const handleWhatsAppClick = (lead: Prospect) => {
+    const handleWhatsAppClick = (e: React.MouseEvent, lead: Prospect) => {
+        e.stopPropagation(); // Prevent opening modal
         const interes = lead.motoInteres || lead.motivo_inscripcion || "nuestras motos";
         const message = `Hola ${lead.nombre}, vi que te interesaste en la ${interes}, ¿cómo puedo ayudarte hoy?`;
 
-        // Codificar el mensaje para URL
         const encodedMessage = encodeURIComponent(message);
         const url = `https://wa.me/${lead.celular}?text=${encodedMessage}`;
 
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
+    const handleRowClick = (lead: Prospect) => {
+        setSelectedProspect(lead);
+        setIsModalOpen(true);
+    };
+
+    const getStatusBadge = (status?: string) => {
+        const key = status || 'PENDING';
+        const config = STATUS_CONFIG[key] || STATUS_CONFIG.PENDING;
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.color}`}>
+                {config.label}
+            </span>
+        );
+    };
+
     // --- RENDERIZADO ---
 
-    // 1. Estado de Carga
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12 min-h-[50vh]">
@@ -98,7 +130,6 @@ export default function ProspectsPage() {
         );
     }
 
-    // 2. Estado de Error
     if (error) {
         return (
             <div className="p-8 text-center bg-red-900/20 border border-red-900 rounded-xl mx-4 mt-8">
@@ -118,12 +149,39 @@ export default function ProspectsPage() {
                 </p>
             </div>
 
-            {/* Empty State */}
-            {leads.length === 0 ? (
+            {/* Filter Tabs */}
+            <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+                <button
+                    onClick={() => setCurrentFilter('ALL')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap
+                        ${currentFilter === 'ALL'
+                            ? 'bg-white text-black'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        }`}
+                >
+                    Todos
+                </button>
+                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                    <button
+                        key={key}
+                        onClick={() => setCurrentFilter(key)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap border
+                            ${currentFilter === key
+                                ? config.color.replace('bg-opacity-20', 'bg-opacity-100') + ' ring-1'
+                                : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                            }`}
+                    >
+                        {config.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Empty State (Filtered) */}
+            {filteredLeads.length === 0 ? (
                 <div className="bg-gray-900/50 p-12 rounded-xl border border-gray-800 text-center">
                     <div className="text-6xl mb-4">📭</div>
-                    <h3 className="text-xl font-bold text-white mb-2">Aún no hay clientes interesados</h3>
-                    <p className="text-gray-400">¡Pronto llegarán! Asegúrate de compartir el link de cotización.</p>
+                    <h3 className="text-xl font-bold text-white mb-2">No se encontraron prospectos</h3>
+                    <p className="text-gray-400">Intenta cambiar el filtro o espera nuevos clientes.</p>
                 </div>
             ) : (
                 /* Data Table Container */
@@ -140,8 +198,12 @@ export default function ProspectsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-800">
-                                {leads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-gray-800/30 transition-colors group">
+                                {filteredLeads.map((lead) => (
+                                    <tr
+                                        key={lead.id}
+                                        onClick={() => handleRowClick(lead)}
+                                        className="hover:bg-gray-800/30 transition-colors group cursor-pointer"
+                                    >
                                         {/* FECHA */}
                                         <td className="p-4 text-gray-300 whitespace-nowrap">
                                             {formatDate(lead.fecha)}
@@ -164,21 +226,13 @@ export default function ProspectsPage() {
 
                                         {/* ESTADO */}
                                         <td className="p-4 text-center">
-                                            <span className={`
-                                                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                                                ${lead.chatbot_status === 'DONE'
-                                                    ? 'bg-green-900/30 text-green-400 border-green-900'
-                                                    : 'bg-yellow-900/30 text-yellow-400 border-yellow-900'
-                                                }
-                                            `}>
-                                                {lead.chatbot_status === 'DONE' ? 'Atendido' : 'Pendiente'}
-                                            </span>
+                                            {getStatusBadge(lead.status)}
                                         </td>
 
                                         {/* ACCIONES */}
                                         <td className="p-4 text-right">
                                             <button
-                                                onClick={() => handleWhatsAppClick(lead)}
+                                                onClick={(e) => handleWhatsAppClick(e, lead)}
                                                 className="
                                                     inline-flex items-center gap-2 
                                                     bg-green-600 hover:bg-green-500 text-white 
@@ -199,6 +253,13 @@ export default function ProspectsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Detail Modal */}
+            <ProspectModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                prospect={selectedProspect}
+            />
         </div>
     );
 }

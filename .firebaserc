@@ -5,11 +5,11 @@
   "targets": {
     "tiendalasmotos": {
       "hosting": {
-        "beta": [
-          "tiendalasmotos-beta"
-        ],
         "tiendalasmotos": [
           "tiendalasmotos"
+        ],
+        "tiendalasmotos-beta": [
+          "tiendalasmotos-beta"
         ]
       }
     }

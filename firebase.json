@@ -3,17 +3,32 @@
         "rules": "firestore.rules",
         "indexes": "firestore.indexes.json"
     },
-    "hosting": {
-        "target": "tiendalasmotos",
-        "source": ".",
-        "ignore": [
-            "firebase.json",
-            "**/.*",
-            "**/node_modules/**",
-            "package-lock.json"
-        ],
-        "frameworksBackend": {
-            "region": "us-central1"
+    "hosting": [
+        {
+            "target": "tiendalasmotos",
+            "source": ".",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**",
+                "package-lock.json"
+            ],
+            "frameworksBackend": {
+                "region": "us-central1"
+            }
+        },
+        {
+            "target": "tiendalasmotos-beta",
+            "source": ".",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**",
+                "package-lock.json"
+            ],
+            "frameworksBackend": {
+                "region": "us-central1"
+            }
         }
-    }
+    ]
 }

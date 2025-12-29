@@ -2,32 +2,49 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Middleware to protect administrative routes.
- * Checks for the presence of the '__session' cookie on all /admin paths.
- * Redirects unauthenticated users to /admin/login.
+ * Middleware for Domain Separation and Auth Protection.
+ * 
+ * 1. Domain Separation:
+ *    - Production (tiendalasmotos.com): Rewrites '/' to '/maintenance'.
+ *    - Beta (tiendalasmotos-beta): Serves standard '/'.
+ * 
+ * 2. Admin Protection:
+ *    - Checks for '__session' cookie on /admin routes.
  */
 export function middleware(request: NextRequest) {
-    // Only intercept requests under /admin
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    const hostname = request.headers.get('host') || '';
+    const { pathname } = request.nextUrl;
 
-        // Allow access to the login page itself to avoid redirect loops
-        if (request.nextUrl.pathname === '/admin/login') {
+    // --- Domain Separation Logic ---
+    // If we are NOT on beta, NOT on localhost, and NOT on the panel site
+    const isProduction = !hostname.includes('beta') &&
+        !hostname.includes('localhost') &&
+        !hostname.includes('lasmotos-panel');
+
+    // If Production User requests Home Page -> Show Maintenance
+    if (isProduction && pathname === '/') {
+        return NextResponse.rewrite(new URL('/maintenance', request.url));
+    }
+
+    // --- Admin Protection Logic ---
+    if (pathname.startsWith('/admin')) {
+
+        // Allow access to login
+        if (pathname === '/admin/login') {
             return NextResponse.next();
         }
 
         const session = request.cookies.get('__session');
 
-        // If no session cookie exists, redirect to login
+        // If no session cookie, redirect to login
         if (!session) {
             return NextResponse.redirect(new URL('/admin/login', request.url));
         }
     }
+
     return NextResponse.next();
 }
 
-/**
- * Configuration to match only specific paths.
- */
 export const config = {
-    matcher: ['/admin/:path*'],
+    matcher: ['/', '/admin/:path*'], // Added '/' to matcher to ensure it runs on home page
 };
