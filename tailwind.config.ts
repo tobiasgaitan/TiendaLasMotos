@@ -9,6 +9,11 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            colors: {
+                "brand-yellow": "#FCD116",
+                "brand-blue": "#003893",
+                "brand-red": "#CE1126",
+            },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
                 "gradient-conic":

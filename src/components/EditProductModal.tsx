@@ -263,6 +263,15 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                                     placeholder="Ej: Duke 200"
                                 />
                             </div>
+                            <div>
+                                <label className="text-xs text-blue-300 block mb-1">URL de Referencia (Auteco)</label>
+                                <input className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white text-sm"
+                                    value={formData.external_url}
+                                    onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
+                                    placeholder="https://www.auteco.com.co/moto..."
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1"> *Necesario para sincronización de precios.</p>
+                            </div>
                             <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700">
                                 <span className="text-sm text-gray-300">¿Visible en Web?</span>
                                 <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />

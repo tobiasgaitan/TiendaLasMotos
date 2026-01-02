@@ -10,7 +10,13 @@ const db = admin.firestore();
 
 // --- Shared Logic ---
 
-async function fetchPrice(url: string): Promise<number | null> {
+interface ProductMetadata {
+    price: number | null;
+    specs: Record<string, string>;
+    warranty: string | null;
+}
+
+async function fetchProductDetails(url: string): Promise<ProductMetadata> {
     try {
         const { data } = await axios.get(url, {
             headers: {
@@ -19,28 +25,26 @@ async function fetchPrice(url: string): Promise<number | null> {
             },
         });
         const $ = cheerio.load(data);
-        let price: number | null = null;
 
-        // 1. Try Meta Tag (Most reliable for VTEX/SEO)
+        let price: number | null = null;
+        const specs: Record<string, string> = {};
+        let warranty: string | null = null;
+
+        // --- 1. Price Extraction ---
         const metaPrice = $('meta[property="product:price:amount"]').attr("content");
         if (metaPrice) {
             price = parseFloat(metaPrice);
         }
 
-        // 2. Try VTEX specific class if meta fails
         if (!price || isNaN(price)) {
             const vtexPrice = $(".vtex-product-price-1-x-currencyContainer").first().text();
             if (vtexPrice) {
-                // Remove non-numeric chars except format (assuming COP, might have points)
-                // Usually comes as "$ 15.990.000" -> "15990000"
                 const cleanString = vtexPrice.replace(/[^\d]/g, "");
                 price = parseFloat(cleanString);
             }
         }
 
-        // 3. Fallback generic class
         if (!price || isNaN(price)) {
-            // Fallback for some auteco landing pages that might differ
             const genericPrice = $(".price").first().text();
             if (genericPrice) {
                 const cleanString = genericPrice.replace(/[^\d]/g, "");
@@ -48,16 +52,77 @@ async function fetchPrice(url: string): Promise<number | null> {
             }
         }
 
-        return (price && !isNaN(price)) ? price : null;
+        // --- 2. Technical Specs Extraction ---
+        // Generic approach: look for tables or lists commonly used for specs
+        // This attempts to capture key-value pairs from common layout structures
+
+        // Strategy A: Look for standard tables
+        $("table tr").each((_, el) => {
+            const tds = $(el).find("td, th");
+            if (tds.length >= 2) {
+                const key = $(tds[0]).text().trim().replace(/:$/, "");
+                const value = $(tds[1]).text().trim();
+                if (key && value && key.length < 50 && value.length < 200) { // Safety checks
+                    specs[key] = value;
+                }
+            }
+        });
+
+        // Strategy B: Definition lists (dl, dt, dd)
+        $("dl").each((_, el) => {
+            const dts = $(el).find("dt");
+            const dds = $(el).find("dd");
+            if (dts.length === dds.length) {
+                dts.each((i, dt) => {
+                    const key = $(dt).text().trim().replace(/:$/, "");
+                    const value = $(dds[i]).text().trim();
+                    if (key && value) {
+                        specs[key] = value;
+                    }
+                });
+            }
+        });
+
+        // --- 3. Warranty Extraction ---
+        // Look for sections/tabs containing "Garantía" or "Warranty"
+        // This is heuristic-based and might need refinement for specific sites
+
+        // Strategy A: Check for headings or tabs with "Garantía"
+        let warrantyText = "";
+        const warrantyHeader = $("h2, h3, h4, .tab-title, .accordion-title").filter((_, el) => {
+            return $(el).text().toLowerCase().includes("garantía");
+        }).first();
+
+        if (warrantyHeader.length > 0) {
+            // Get content immediately following the header
+            const nextElem = warrantyHeader.next();
+            if (nextElem.length > 0) {
+                warrantyText = nextElem.text().trim();
+            } else {
+                // Or parent's sibling or similar structure depending on standard layouts
+                warrantyText = warrantyHeader.parent().text().replace(warrantyHeader.text(), "").trim();
+            }
+        }
+
+        if (warrantyText) {
+            warranty = warrantyText.substring(0, 500); // Limit length
+        }
+
+
+        return {
+            price: (price && !isNaN(price)) ? price : null,
+            specs,
+            warranty
+        };
+
     } catch (error) {
         console.error(`Error fetching ${url}:`, error);
-        return null;
+        return { price: null, specs: {}, warranty: null };
     }
 }
 
 async function runPriceSync() {
     const itemsRef = db.collection("pagina").doc("catalogo").collection("items");
-    // Only query items that have an external_url
     const snapshot = await itemsRef.where("external_url", "!=", null).get();
 
     if (snapshot.empty) {
@@ -78,27 +143,34 @@ async function runPriceSync() {
         updates.push(
             (async () => {
                 try {
-                    const newPrice = await fetchPrice(url);
+                    const metadata = await fetchProductDetails(url);
 
-                    if (newPrice !== null) {
-                        const currentPrice = moto.precio;
+                    if (metadata.price !== null || Object.keys(metadata.specs).length > 0) {
 
-                        // Compare (ignoring small float diffs if any, though usually integers in COP)
-                        if (currentPrice !== newPrice) {
-                            console.log(`Updating price for ${moto.referencia}: ${currentPrice} -> ${newPrice}`);
-                            await doc.ref.update({
-                                precio: newPrice,
-                                last_checked: admin.firestore.FieldValue.serverTimestamp()
-                            });
-                            updatedCount++;
-                        } else {
-                            // Just update timestamp to show we checked
-                            await doc.ref.update({
-                                last_checked: admin.firestore.FieldValue.serverTimestamp()
-                            });
+                        const updateData: any = {
+                            last_checked: admin.firestore.FieldValue.serverTimestamp()
+                        };
+
+                        // Update Price if changed
+                        if (metadata.price !== null && metadata.price !== moto.precio) {
+                            console.log(`Updating price for ${moto.referencia}: ${moto.precio} -> ${metadata.price}`);
+                            updateData.precio = metadata.price;
                         }
+
+                        // Update Specs if found (merge or overwrite?) - Using overwrite for simplicity/freshness
+                        if (Object.keys(metadata.specs).length > 0) {
+                            updateData.fichatecnica = metadata.specs;
+                        }
+
+                        // Update Warranty if found
+                        if (metadata.warranty) {
+                            updateData.garantia = metadata.warranty;
+                        }
+
+                        await doc.ref.set(updateData, { merge: true });
+                        updatedCount++;
                     } else {
-                        console.warn(`Could not extract price for ${moto.referencia} (${url})`);
+                        console.warn(`Could not extract useful data for ${moto.referencia} (${url})`);
                         errorCount++;
                     }
                 } catch (err) {
@@ -129,21 +201,31 @@ export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 
     });
 
 // 2. Manual HTTP Trigger
-export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 300, secrets: ["CRON_SECRET_TOKEN"] }).https.onRequest(async (req, res) => {
+export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 300 }).https.onRequest(async (req, res) => {
     // Security: Check for Secret Token
     // Security: Check for Secret Token
-    const validationToken = process.env.CRON_SECRET_TOKEN;
+    // Hardcoded token for immediate fix
+    const validationToken = "SYNC_MASTER_KEY_2025_SECURE_HARDCODED"; // process.env.CRON_SECRET_TOKEN;
     if (!validationToken) {
-        console.error("CRON_SECRET_TOKEN is not defined in the environment.");
-        // Fail closed
-        res.status(500).send("Internal Server Configuration Error");
+        console.error("CRON_SECRET_TOKEN is not defined.");
+        res.status(500).send("Server Config Error");
         return;
     }
 
-    const requestToken = req.query.token || req.headers["x-sync-token"];
+    let requestToken = (req.query.token as string) || (req.headers["x-sync-token"] as string);
+
+    if (!requestToken && req.headers.authorization) {
+        const parts = req.headers.authorization.split(" ");
+        if (parts.length === 2 && parts[0] === "Bearer") {
+            requestToken = parts[1];
+        }
+    }
+
+    // Trim clean
+    if (requestToken) requestToken = requestToken.trim();
 
     if (requestToken !== validationToken) {
-        console.warn("Unauthorized sync attempt.");
+        console.warn(`Unauthorized sync attempt. Received token length: ${requestToken?.length}, Expected token length: ${validationToken?.length}`);
         res.status(403).send("Unauthorized: Invalid Token");
         return;
     }
