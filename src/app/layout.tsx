@@ -42,14 +42,16 @@ export default function RootLayout({
    */
   return (
     <html lang="en">
-      className={`${interSans.variable} ${robotoMono.variable} antialiased bg-slate-50 text-slate-900`}
-      <LeadModalProvider>
-        <AuthProvider>
-          {children}
-          <LeadForm />
-        </AuthProvider>
-      </LeadModalProvider>
-    </body>
+      <body
+        className={`${interSans.variable} ${robotoMono.variable} antialiased bg-slate-50 text-slate-900`}
+      >
+        <LeadModalProvider>
+          <AuthProvider>
+            {children}
+            <LeadForm />
+          </AuthProvider>
+        </LeadModalProvider>
+      </body>
     </html >
   );
 }
