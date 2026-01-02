@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Moto } from "@/types";
 import { City, SoatRate, FinancialEntity } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
+import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { CreditSimulation } from "@/types";
 // import jsPDF from "jspdf"; // Will need to install: npm i jspdf jspdf-autotable
 // import autoTable from "jspdf-autotable";
 
@@ -20,6 +23,20 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
     const [selectedFinancialId, setSelectedFinancialId] = useState<string>(financialEntities[0]?.id || "");
     const [months, setMonths] = useState<number>(48);
     const [downPayment, setDownPayment] = useState<number>(0);
+
+    const [ticket, setTicket] = useState<number | null>(null);
+
+    // Default Down Payment (20%)
+    useEffect(() => {
+        if (!moto || downPayment > 0) return;
+        // Estimate base price roughly to set initial default
+        // We can't know exact subtotal yet without city, but we can approximate or wait for first quote result?
+        // Let's use useEffect on quote result?
+        // Risk: Infinite loop if setting downPayment triggers quote recalc.
+        // Better: Set it once when moto/city loads.
+        const base = moto.precio + (cities.find(c => c.id === selectedCityId)?.registrationCost.credit || 0);
+        setDownPayment(Math.floor(base * 0.20));
+    }, [moto.id, selectedCityId]);
 
     const [quote, setQuote] = useState<QuoteResult | null>(null);
 
@@ -48,7 +65,58 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
 
     // -- HANDLERS --
 
+    const saveSimulation = async (): Promise<number> => {
+        if (!quote) return 0;
+
+        try {
+            // 1. Get next ticket number
+            const q = query(collection(db, "credit_simulations"), orderBy("ticketNumber", "desc"), limit(1));
+            const querySnapshot = await getDocs(q);
+            let nextTicket = 1000;
+            if (!querySnapshot.empty) {
+                const lastData = querySnapshot.docs[0].data();
+                nextTicket = (lastData.ticketNumber || 1000) + 1;
+            }
+
+            // 2. Save Simulation
+            const simData: Omit<CreditSimulation, 'id'> = {
+                ticketNumber: nextTicket,
+                createdAt: serverTimestamp() as any,
+                motoId: moto.id,
+                cityId: selectedCityId,
+                financialEntityId: selectedFinancialId,
+                snapshot: {
+                    motoPrice: quote.vehiclePrice,
+                    registrationPrice: quote.registrationPrice,
+                    soatPrice: quote.soatPrice,
+                    interestRate: quote.interestRate || 0,
+                    lifeInsuranceRate: 0.1126, // Should come from config/constants
+                    movableGuaranteePrice: 120000,
+                    specialAdjustment: quote.specialAdjustment
+                },
+                results: {
+                    totalValue: quote.total,
+                    downPayment: quote.downPayment,
+                    loanAmount: quote.loanAmount,
+                    monthlyPayment: quote.monthlyPayment || 0,
+                    months: quote.months || 0
+                }
+            };
+
+            await addDoc(collection(db, "credit_simulations"), simData);
+            setTicket(nextTicket);
+            return nextTicket;
+
+        } catch (e) {
+            console.error("Error saving simulation:", e);
+            return 0; // Fallback
+        }
+    };
+
     const handleDownloadPDF = async () => {
+        if (!quote) return;
+        const ticketNum = await saveSimulation();
+
         // Dynamic import to avoid SSR issues with jspdf
         const jsPDF = (await import('jspdf')).default;
         const autoTable = (await import('jspdf-autotable')).default;
@@ -60,9 +128,13 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         doc.setTextColor(0, 56, 147); // Brand Blue
         doc.text("Tienda Las Motos", 14, 20);
 
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Ticket #${ticketNum} | Fecha: ${new Date().toLocaleDateString()}`, 14, 26);
+
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        doc.text(`Cotización: ${moto.marca} ${moto.referencia}`, 14, 30);
+        doc.text(`Cotización: ${moto.marca} ${moto.referencia}`, 14, 35);
 
         // Table
         const tableData: any[] = [
@@ -72,17 +144,32 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             ["Matrícula", `$ ${quote.registrationPrice.toLocaleString()}`],
             ["Gestión Documental", `$ ${quote.documentationFee.toLocaleString()}`],
             ["Ajuste Especial", `$ ${quote.specialAdjustment.toLocaleString()}`],
-            [{ content: "TOTAL A PAGAR", styles: { fontStyle: 'bold', fillColor: [252, 209, 22] } }, `$ ${quote.total.toLocaleString()}`]
         ];
 
         if (quote.isCredit) {
             tableData.push(
+                ["Garantia Mobiliaria", `$ ${quote.movableGuaranteeCost?.toLocaleString()}`],
+                ["Seguro de Vida (Est. Total)", `$ ${((quote.lifeInsuranceValue || 0) * (quote.months || 0)).toLocaleString()}`], // Show total estimated? Or monthly? Usually hidden in quota or shown as "Incluido"
+            );
+        }
+
+        tableData.push(
+            [{ content: "VALOR TOTAL PROYECTO", styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, `$ ${quote.subtotal.toLocaleString()}`]
+        );
+
+        if (quote.isCredit) {
+            tableData.push(
                 ["", ""],
-                ["Opción Crédito", ""],
+                [{ content: "PLAN DE FINANCIACIÓN", styles: { fontStyle: 'bold', textColor: [0, 56, 147] } }, ""],
                 ["Cuota Inicial", `$ ${quote.downPayment.toLocaleString()}`],
                 ["Monto a Financiar", `$ ${quote.loanAmount.toLocaleString()}`],
-                ["Cuota Mensual Aprox.", `$ ${quote.monthlyPayment?.toLocaleString()}`],
+                ["Tasa Mensual", `${quote.interestRate}%`],
+                [{ content: "CUOTA MENSUAL ESTIMADA", styles: { fontStyle: 'bold', fillColor: [252, 209, 22] } }, `$ ${quote.monthlyPayment?.toLocaleString()}`],
                 ["Plazo", `${quote.months} meses`]
+            );
+        } else {
+            tableData.push(
+                [{ content: "TOTAL A PAGAR (Contado)", styles: { fontStyle: 'bold', fillColor: [252, 209, 22] } }, `$ ${quote.subtotal.toLocaleString()}`]
             );
         }
 
@@ -91,23 +178,34 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             head: [['Concepto', 'Valor']],
             body: tableData.slice(1),
             theme: 'grid',
-            styles: { fontSize: 12 },
+            styles: { fontSize: 11 },
             headStyles: { fillColor: [0, 56, 147] }
         });
 
-        doc.save(`Cotizacion_${moto.referencia}.pdf`);
+        doc.save(`Cotizacion_${moto.referencia}_${ticketNum}.pdf`);
     };
 
-    const handleWhatsapp = () => {
+    const handleWhatsapp = async () => {
+        if (!quote) return;
+        const ticketNum = await saveSimulation();
+
         const phone = "573008603210"; // Default commercial number or dynamic
-        let text = `Hola, me interesa la *${moto.marca} ${moto.referencia}*.\n\n`;
+        let text = `Hola, me interesa la *${moto.marca} ${moto.referencia}*.\n`;
+        text += `Ticket: *#${ticketNum}*\n\n`;
         text += `*Ciudad:* ${cities.find(c => c.id === selectedCityId)?.name}\n`;
         text += `*Modalidad:* ${paymentMethod === 'credit' ? 'Crédito' : 'Contado'}\n`;
-        text += `*Precio Total:* $${quote.total.toLocaleString()}\n`;
+        text += `*Precio Proyecto:* $${quote.subtotal.toLocaleString()}\n`;
+
         if (quote.isCredit) {
+            const daily = Math.round((quote.monthlyPayment || 0) / 30);
             text += `*Cuota Inicial:* $${downPayment.toLocaleString()}\n`;
-            text += `*Cuota Mensual Est:* $${quote.monthlyPayment?.toLocaleString()} (${months} meses)\n`;
+            text += `*Cuota Mensual:* $${quote.monthlyPayment?.toLocaleString()}\n`;
+            text += `*Cuota Diaria Aprox:* $${daily.toLocaleString()}\n`;
+            text += `*Plazo:* ${months} meses\n`;
+        } else {
+            text += `*Total a Pagar:* $${quote.total.toLocaleString()}\n`;
         }
+
         text += `\nGeneré esta cotización en la página web. Quiero asesoría.`;
 
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
@@ -158,7 +256,7 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial (Sugerido 20%)</label>
                             <input
                                 type="number"
                                 className="w-full p-2 border rounded-xl bg-gray-50"
@@ -196,8 +294,8 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
 
                 <div className="border-t pt-2 mt-2">
                     <div className="flex justify-between text-lg font-bold text-gray-900">
-                        <span>Total</span>
-                        <span>${quote.total.toLocaleString()}</span>
+                        <span>Total Proyecto</span>
+                        <span>${quote.subtotal.toLocaleString()}</span>
                     </div>
                     {quote.isCredit && (
                         <div className="flex justify-between text-brand-blue font-bold mt-1">
