@@ -5,6 +5,8 @@ import { useInventory, Product } from '@/lib/hooks/useInventory';
 import InventoryTable from '@/components/InventoryTable';
 import EditProductModal from '@/components/EditProductModal';
 
+import ScrapingControl from '@/components/admin/ScrapingControl';
+
 /**
  * InventoryPage - Dashboard de Gestión de Inventario
  * 
@@ -71,13 +73,17 @@ export default function InventoryPage() {
                         Control total de <span className="text-white font-bold">{products.length}</span> items activos en tiempo real.
                     </p>
                 </div>
-                {/* BOTÓN DE CREAR - Lado derecho header */}
-                <button
-                    onClick={handleCreate}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-all hover:scale-105"
-                >
-                    <span className="text-xl">+</span> Agregar Moto
-                </button>
+                {/* BOTONES DE ACCIÓN - Lado derecho header */}
+                <div className="flex flex-wrap items-center gap-4">
+                    <ScrapingControl />
+
+                    <button
+                        onClick={handleCreate}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-all hover:scale-105"
+                    >
+                        <span className="text-xl">+</span> Agregar Moto
+                    </button>
+                </div>
             </div>
 
             {/* Contenedor Principal de la Tabla */}

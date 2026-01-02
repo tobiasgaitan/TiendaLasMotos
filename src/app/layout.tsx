@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next"; // <--- Agregamos 'Viewport' aquí
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Roboto_Mono } from "next/font/google"; // <--- Cambiado a fuentes estándar compatibles
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const interSans = Inter({
+  variable: "--font-geist-sans", // Mantenemos la variable para no romper CSS global
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const robotoMono = Roboto_Mono({
+  variable: "--font-geist-mono", // Mantenemos la variable
   subsets: ["latin"],
 });
 
@@ -38,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-200`}
+        className={`${interSans.variable} ${robotoMono.variable} antialiased bg-slate-950 text-slate-200`}
       >
         <LeadModalProvider>
           <AuthProvider>
