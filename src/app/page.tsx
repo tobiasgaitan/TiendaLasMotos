@@ -68,6 +68,18 @@ export default async function Home() {
                     </div>
                 </section>
 
+                {/* CALCULATOR SECTION */}
+                <section className="py-16 bg-white relative z-30 -mt-10 px-4">
+                    <div className="container mx-auto max-w-4xl">
+                        <SmartQuotaSlider
+                            motos={motos}
+                            cities={cities}
+                            soatRates={soatRates}
+                            financialEntities={financialEntities}
+                        />
+                    </div>
+                </section>
+
                 {/* CATALOG GRID */}
                 <section id="catalogo" className="py-20 bg-slate-50">
                     <div className="container mx-auto px-4">
