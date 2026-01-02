@@ -35,6 +35,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  /**
+   * Root Layout Component
+   * Configures the global HTML structure, fonts, and providers (Auth, LeadModal).
+   * This layout wraps all pages in the application.
+   */
   return (
     <html lang="en">
       <body

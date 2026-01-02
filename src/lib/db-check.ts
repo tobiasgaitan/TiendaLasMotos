@@ -1,54 +1,35 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.FIREBASE_SERVICE_ACCOUNT) {
-    console.warn('⚠️ No credentials found. setup credentials to run this script safely.');
-    // In a real scenario we might fail, but for now we warn if local
-}
-
-try {
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.applicationDefault(),
-        });
-    }
-} catch (e) {
-    console.error("Failed to initialize admin", e);
-    process.exit(1);
-}
-
-const db = admin.firestore();
-
-async function checkHealth() {
-    const collectionName = '_system_check_';
-    const docName = 'health_check';
-
-    console.log(`🏥 Starting Health Check on ${collectionName}...`);
+async function checkDatabaseConnection() {
+    console.log('🔍 Checking Firestore connection...');
 
     try {
-        const ref = db.collection(collectionName).doc(docName);
-        const payload = {
-            status: 'ok',
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            v: '15.0.0'
-        };
-
-        // Write
-        await ref.set(payload);
-        console.log('✅ Write successful');
-
-        // Read
-        const doc = await ref.get();
-        if (!doc.exists) {
-            throw new Error('Document written but not found.');
+        if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+            throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is missing in environment variables.');
         }
-        console.log('✅ Read successful');
 
-        console.log('💚 Health Check Passed!');
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
+        if (getApps().length === 0) {
+            initializeApp({
+                credential: cert(serviceAccount),
+            });
+        }
+
+        const db = getFirestore();
+        const startTime = Date.now();
+
+        // Try to list collections or read a test document to verify connection
+        await db.listCollections();
+
+        const duration = Date.now() - startTime;
+        console.log(`✅ Firestore connection successful! (${duration}ms)`);
         process.exit(0);
     } catch (error) {
-        console.error('❌ Health Check Failed:', error);
+        console.error('❌ Firestore connection failed:', error);
         process.exit(1);
     }
 }
 
-checkHealth();
+checkDatabaseConnection();
