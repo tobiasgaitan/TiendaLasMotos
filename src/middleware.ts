@@ -28,15 +28,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('https://tiendalasmotos.com/admin', request.url))
     }
 
-    // 2. PRODUCTION ENV: Maintenance Mode for Public
-    // If it's production, we ONLY allow Admin, Login, and Maintenance page.
-    // Everything else (the public commercial site) goes to Maintenance.
-    if (isProduction) {
-        // Allow: Admin, Login, Maintenance itself, Static assets/API
-        if (!isAdminPath && !isLoginPath && !isMaintenancePage && !isStaticAsset) {
-            return NextResponse.redirect(new URL('/maintenance', request.url))
-        }
-    }
+
 
     // --- AUTHENTICATION LOGIC (Applies globally where Admin is accessible) ---
 
