@@ -16,6 +16,12 @@
                 "**/node_modules/**",
                 "package-lock.json"
             ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ],
             "frameworksBackend": {
                 "region": "us-central1"
             }

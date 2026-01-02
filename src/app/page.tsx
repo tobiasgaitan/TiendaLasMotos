@@ -2,11 +2,25 @@ import { getCatalogoMotos } from "@/lib/firestore";
 import MotoCard from "@/components/MotoCard";
 import Image from "next/image";
 import StickyBar from "@/components/StickyBar";
+import SmartQuotaSlider from "@/components/SmartQuotaSlider";
+import { collection, getDocs, limit, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { City, SoatRate, FinancialEntity } from "@/types/financial";
 
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function Home() {
     const motos = await getCatalogoMotos();
+
+    // Fetch Config Data for Calculator
+    const citiesSnap = await getDocs(query(collection(db, "financial_config/general/cities")));
+    const cities = citiesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City));
+
+    const soatSnap = await getDocs(query(collection(db, "financial_config/general/tarifas_soat")));
+    const soatRates = soatSnap.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate));
+
+    const finSnap = await getDocs(query(collection(db, "financial_config/general/financieras")));
+    const financialEntities = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
 
     return (
         <div className="min-h-screen flex flex-col font-sans">
