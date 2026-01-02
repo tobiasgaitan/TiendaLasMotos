@@ -1,5 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
+export * from './financial';
+
 export interface Lead {
     // Core Fields
     nombre: string;
@@ -41,4 +43,6 @@ export interface Moto {
     external_url?: string;
     last_checked?: any;
     bono?: Bono;
+    displacement?: number; // Cilindraje en CC
+    specialAdjustment?: number; // Ajuste especial (bono o cargo extra)
 }
