@@ -44,8 +44,8 @@ export default function MotoCard({ moto }: MotoCardProps) {
     const showBonus = hasActiveBonus();
 
     return (
-        <article className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-orange-900/20 hover:border-orange-600/50 transition-all duration-300 group flex flex-col h-full">
-            <div className="relative aspect-square w-full bg-gradient-to-br from-slate-800 to-slate-900">
+        <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-brand-blue/20 hover:border-brand-blue/30 transition-all duration-300 group flex flex-col h-full">
+            <div className="relative aspect-square w-full bg-slate-100">
                 {moto.imagen ? (
                     <Image
                         src={moto.imagen}
@@ -55,7 +55,7 @@ export default function MotoCard({ moto }: MotoCardProps) {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-slate-600">
+                    <div className="flex items-center justify-center h-full text-slate-400">
                         Sin imagen
                     </div>
                 )}
@@ -63,12 +63,12 @@ export default function MotoCard({ moto }: MotoCardProps) {
                 {/* Badges overlay */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                     {moto.marca && (
-                        <span className="bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium border-l-2 border-orange-500">
+                        <span className="bg-brand-blue/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium">
                             {moto.marca}
                         </span>
                     )}
                     {moto.frenosABS && (
-                        <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-md font-bold shadow-md">
+                        <span className="bg-brand-red text-white text-xs px-2 py-1 rounded-md font-bold shadow-md">
                             ABS
                         </span>
                     )}
@@ -86,17 +86,17 @@ export default function MotoCard({ moto }: MotoCardProps) {
             </div>
 
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-xl font-bold text-white mb-1 tracking-tight truncate">
+                <h3 className="text-xl font-bold text-slate-900 mb-1 tracking-tight truncate">
                     {moto.referencia}
                 </h3>
 
                 <div className="mt-auto pt-4 flex items-center justify-between">
-                    <span className="text-lg font-semibold text-orange-400">
+                    <span className="text-lg font-black text-brand-red">
                         {formatPrice(moto.precio)}
                     </span>
                     <button
                         onClick={() => openModal(moto)}
-                        className="text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 py-2 px-4 rounded-lg transition-colors shadow-lg hover:shadow-orange-500/30"
+                        className="text-sm font-bold text-slate-900 bg-brand-yellow hover:bg-yellow-400 py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg"
                     >
                         COTIZAR
                     </button>
