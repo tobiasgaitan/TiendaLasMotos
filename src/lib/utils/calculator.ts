@@ -12,6 +12,8 @@ export interface QuoteResult {
     downPayment: number;
     loanAmount: number;
     fngCost: number;
+    lifeInsuranceValue: number;
+    movableGuaranteeCost: number;
     monthlyPayment?: number;
     months?: number;
     interestRate?: number;
@@ -46,13 +48,14 @@ export const calculateQuote = (
     paymentMethod: 'credit' | 'cash',
     financialEntity?: FinancialEntity,
     months: number = 48,
-    downPayment: number = 0
+    downPaymentInput: number = 0
 ): QuoteResult => {
-    const displacement = moto.displacement || 0;
+    // 1. Fallback Rule: If no displacement, use 150cc
+    const displacement = moto.displacement || 150;
     const price = moto.precio;
     const specialAdjustment = moto.specialAdjustment || 0;
 
-    // 1. Core Costs
+    // 2. Core Costs
     const soatPrice = calculateSoat(displacement, soatRates);
     const registrationPrice = paymentMethod === 'credit'
         ? city.registrationCost.credit
@@ -60,46 +63,62 @@ export const calculateQuote = (
 
     const documentationFee = city.documentationFee || 0;
 
+    // 3. Subtotal (Value of the deal before credit logic)
     const subtotal = price + soatPrice + registrationPrice + documentationFee + specialAdjustment;
 
-    // 2. Credit Calculation
+    // Credit Logic
     let fngCost = 0;
     let total = subtotal;
     let loanAmount = 0;
     let monthlyPayment = 0;
+    let lifeInsuranceValue = 0;
+    let movableGuaranteeCost = 0;
+
+    // Actual Down Payment (Default handled in UI, logic here treats input as authoritative)
+    const downPayment = downPaymentInput;
 
     if (paymentMethod === 'credit' && financialEntity) {
-        // Basic FNG calculation (simplified, usually % of loan amount)
-        // Assuming FNG is applied on the amount to finance
-        const amountToFinance = subtotal - downPayment;
+        // Defined Constants
+        const LIFE_INSURANCE_RATE = 0.1126 / 100; // 0.1126% Mes vencido sobre saldo
+        const MOVABLE_GUARANTEE_COST = 120000; // $120.000 Fixed
 
-        // FNG logic varies, here we assume a standard ~5% on amount to finance if needed, 
-        // but the prompt said "apply FNG". Let's assume a simplified static rate or passed via config.
-        // For now, let's assume 0 if not provided in config (we don't have config here yet).
-        // Let's approximate FNG for now or standard 0.
+        // Values to Finance
+        movableGuaranteeCost = MOVABLE_GUARANTEE_COST;
+        const baseAmountToFinance = subtotal - downPayment;
 
-        loanAmount = amountToFinance;
+        // Guarantee is usually added to the loan amount or paid upfront? 
+        // Prompt says: "se suma al capital inicial financiado".
+        loanAmount = baseAmountToFinance + movableGuaranteeCost;
 
-        // Monthly Payment Calculation: PMT formula
+        // Monthly Payment Calculation with Life Insurance (PMT + Insurance)
         // Rate is monthly percentage
         const r = (financialEntity.monthlyRate || 0) / 100;
         const n = months;
 
-        if (r > 0 && n > 0 && loanAmount > 0) {
-            monthlyPayment = (loanAmount * r) / (1 - Math.pow(1 + r, -n));
-        } else if (loanAmount > 0 && n > 0) {
-            monthlyPayment = loanAmount / n;
+        if (loanAmount > 0 && n > 0) {
+            // Base Amortization Payment
+            let basePmt = 0;
+            if (r > 0) {
+                basePmt = (loanAmount * r) / (1 - Math.pow(1 + r, -n));
+            } else {
+                basePmt = loanAmount / n;
+            }
+
+            // Life Insurance: Usually calculated on average balance or initial balance?
+            // "Calculado sobre el saldo". Because it's a fixed quota, we usually approximate it 
+            // average balance * rate OR calculate it in the amortization schedule.
+            // For a simple calculator, we typically add (LoanAmount * Rate). 
+            // OR (Standard method: Add to quota).
+            // Let's assume standard banking approximation: Initial Balance * Rate
+            // BETTER: Average Balance method -> (LoanAmount / 2) * Rate? 
+            // Let's just use LoanAmount * Rate for conservative estimate (common in simplified simulators).
+            lifeInsuranceValue = loanAmount * LIFE_INSURANCE_RATE;
+
+            monthlyPayment = basePmt + lifeInsuranceValue;
         }
 
-        total = downPayment + (monthlyPayment * n); // This is total paid over time? 
-        // Usually "Total" in a quote means the "Total Value of the Deal" or "Total Cash Price equivalents".
-        // For credit, usually we show: Loan Amount, Monthly Payment.
-        // The PROMPT said: "CRÉDITO: Usar 'Matrícula Crédito', aplicar FNG...".
+        total = downPayment + (monthlyPayment * n);
 
-    } else {
-        // CASH: Discount? Prompt said "Matrícula Contado" (reduced).
-        // "Eliminar FNG e intereses". 
-        // Logic handled above by selecting cash registration price.
     }
 
     return {
@@ -117,6 +136,8 @@ export const calculateQuote = (
         months: paymentMethod === 'credit' ? months : 0,
         interestRate: paymentMethod === 'credit' ? financialEntity?.monthlyRate : 0,
         financialEntity: financialEntity?.name,
-        isCredit: paymentMethod === 'credit'
+        isCredit: paymentMethod === 'credit',
+        lifeInsuranceValue,
+        movableGuaranteeCost
     };
 };

@@ -43,6 +43,31 @@ export interface Moto {
     external_url?: string;
     last_checked?: any;
     bono?: Bono;
-    displacement?: number; // Cilindraje en CC
+    displacement?: number; // Cilindraje en CC (Fallback 150cc if null)
     specialAdjustment?: number; // Ajuste especial (bono o cargo extra)
+}
+
+export interface CreditSimulation {
+    id?: string;
+    ticketNumber: number; // Auto-incremental
+    createdAt: Timestamp;
+    motoId: string;
+    cityId: string;
+    financialEntityId?: string;
+    snapshot: {
+        motoPrice: number;
+        registrationPrice: number;
+        soatPrice: number;
+        interestRate: number;
+        lifeInsuranceRate: number;
+        movableGuaranteePrice: number;
+        specialAdjustment: number;
+    };
+    results: {
+        totalValue: number;
+        downPayment: number;
+        loanAmount: number;
+        monthlyPayment: number;
+        months: number;
+    };
 }
