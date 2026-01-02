@@ -1,5 +1,11 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Tailwind CSS Configuration
+ * Extends the default theme with custom fonts and the specific brand color palette.
+ * @type {import('tailwindcss').Config}
+ */
+
 const config: Config = {
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
