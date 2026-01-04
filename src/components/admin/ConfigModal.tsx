@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 import { City, SoatRate, FinancialEntity } from "@/types/financial";
 
@@ -15,45 +16,30 @@ interface ConfigModalProps {
 }
 
 export default function ConfigModal({ isOpen, onClose, onSave, initialData, type }: ConfigModalProps) {
+    const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
+
+    useEffect(() => {
+        if (isOpen) {
+            const defaults = initialData || getDefaults(type);
+            reset(defaults);
+        }
+    }, [initialData, type, isOpen, reset]);
+
+    const onSubmit = async (data: any) => {
+        try {
+            await onSave(data);
+            onClose();
+        } catch (error) {
+            console.error("Error saving:", error);
+            alert("Error al guardar. Revisa la consola.");
+        }
+    };
+
     const getDefaults = (t: ConfigType) => {
         if (t === 'city') return { name: "", department: "", registrationCost: { credit: 0 }, documentationFee: 0 };
         if (t === 'soat') return { year: new Date().getFullYear(), vehicleType: "moto", category: "", price: 0 };
         if (t === 'financial') return { name: "", interestRate: 0, minDownPaymentPercentage: 0, requiresProceduresInCredit: true };
         return {};
-    };
-
-    const [formData, setFormData] = useState<any>(() => initialData || getDefaults(type));
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (isOpen) {
-            setFormData(initialData || getDefaults(type));
-        }
-    }, [initialData, type, isOpen]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await onSave(formData);
-            onClose();
-        } catch (error) {
-            console.error("Error saving:", error);
-            alert("Error al guardar. Revisa la consola.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleChange = (field: string, value: any) => {
-        setFormData((prev: any) => ({ ...prev, [field]: value }));
-    };
-
-    const handleNestedChange = (parent: string, field: string, value: any) => {
-        setFormData((prev: any) => ({
-            ...prev,
-            [parent]: { ...prev[parent], [field]: value }
-        }));
     };
 
     if (!isOpen) return null;
@@ -70,7 +56,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
 
                     {/* --- CITY FIELDS --- */}
                     {type === 'city' && (
@@ -78,31 +64,25 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Ciudad</label>
                                 <input
-                                    required
+                                    {...register("name", { required: true })}
                                     type="text"
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.name || ''}
-                                    onChange={(e) => handleChange('name', e.target.value)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula (Crédito)</label>
                                 <input
-                                    required
+                                    {...register("registrationCost.credit", { required: true, valueAsNumber: true })}
                                     type="number"
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.registrationCost?.credit?.toString() ?? ''}
-                                    onChange={(e) => handleNestedChange('registrationCost', 'credit', e.target.value)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Gastos de Documentación</label>
                                 <input
-                                    required
+                                    {...register("documentationFee", { required: true, valueAsNumber: true })}
                                     type="number"
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.documentationFee?.toString() ?? ''}
-                                    onChange={(e) => handleChange('documentationFee', e.target.value)}
                                 />
                             </div>
                         </>
@@ -114,33 +94,27 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría (Cilindraje)</label>
                                 <input
-                                    required
+                                    {...register("category", { required: true })}
                                     type="text"
                                     placeholder="Ej: Menos de 100 c.c."
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.category || ''}
-                                    onChange={(e) => handleChange('category', e.target.value)}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
                                     <input
-                                        required
+                                        {...register("price", { required: true, valueAsNumber: true })}
                                         type="number"
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.price?.toString() ?? ''}
-                                        onChange={(e) => handleChange('price', e.target.value)}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
                                     <input
-                                        required
+                                        {...register("year", { required: true, valueAsNumber: true })}
                                         type="number"
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.year?.toString() ?? ''}
-                                        onChange={(e) => handleChange('year', e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -153,45 +127,38 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Entidad</label>
                                 <input
-                                    required
+                                    {...register("name", { required: true })}
                                     type="text"
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.name || ''}
-                                    onChange={(e) => handleChange('name', e.target.value)}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tasa de Interés (%)</label>
                                     <input
-                                        required
+                                        {...register("interestRate", { required: true, valueAsNumber: true })}
                                         type="number"
                                         step="0.01"
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.interestRate?.toString() ?? ''}
-                                        onChange={(e) => handleChange('interestRate', e.target.value)}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">% Cuota Inicial Mínima</label>
                                     <input
-                                        required
+                                        {...register("minDownPaymentPercentage", { required: true, valueAsNumber: true })}
                                         type="number"
                                         step="1"
                                         max="100"
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.minDownPaymentPercentage?.toString() ?? ''}
-                                        onChange={(e) => handleChange('minDownPaymentPercentage', e.target.value)}
                                     />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 pt-2">
                                 <input
+                                    {...register("requiresProceduresInCredit")}
                                     type="checkbox"
                                     id="procReq"
                                     className="w-4 h-4 text-blue-600 rounded"
-                                    checked={formData.requiresProceduresInCredit || false}
-                                    onChange={(e) => handleChange('requiresProceduresInCredit', e.target.checked)}
                                 />
                                 <label htmlFor="procReq" className="text-sm text-gray-700">Incluye Trámites en Crédito</label>
                             </div>
@@ -202,16 +169,16 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                             type="button"
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors"
-                            disabled={loading}
+                            disabled={isSubmitting}
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center gap-2"
-                            disabled={loading}
+                            disabled={isSubmitting}
                         >
-                            {loading ? 'Guardando...' : 'Guardar Cambios'}
+                            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
                         </button>
                     </div>
                 </form>
