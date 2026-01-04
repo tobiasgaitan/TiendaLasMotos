@@ -8,18 +8,20 @@ import { redirect } from 'next/navigation';
  * 
  * @param {string} idToken - The Firebase ID Token obtained after successful login.
  */
-export async function createSession(idToken: string) {
+export async function createSession(idToken: string, redirectTo: string = '/admin/inventory') {
     const cookieStore = await cookies();
 
     // Set secure, HTTP-only cookie for session management
+    // Firebase Hosting requires the cookie name to be '__session'
     cookieStore.set('__session', idToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Always secure for Firebase Hosting (Production & Preview)
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 5, // 5 days
         path: '/',
     });
 
-    redirect('/admin/inventory');
+    redirect(redirectTo);
 }
 
 /**

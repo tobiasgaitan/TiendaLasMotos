@@ -11,7 +11,20 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'auteco.com.co' },
       { protocol: 'https', hostname: 'images.unsplash.com' }
     ]
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'unsafe-none',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

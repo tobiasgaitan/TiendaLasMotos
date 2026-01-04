@@ -28,11 +28,11 @@ export const calculateSoat = (displacement: number, rates: SoatRate[]): number =
     if (!rates || rates.length === 0) return 0;
 
     // Sort by min displacement to find the correct range
-    const sortedRates = [...rates].sort((a, b) => a.minDisplacement - b.minDisplacement);
+    const sortedRates = [...rates].sort((a, b) => (a.minDisplacement || 0) - (b.minDisplacement || 0));
 
     const rate = sortedRates.find(r =>
-        displacement >= r.minDisplacement &&
-        displacement <= r.maxDisplacement
+        displacement >= (r.minDisplacement || 0) &&
+        displacement <= (r.maxDisplacement || 99999)
     );
 
     return rate ? rate.price : 0;
@@ -57,9 +57,8 @@ export const calculateQuote = (
 
     // 2. Core Costs
     const soatPrice = calculateSoat(displacement, soatRates);
-    const registrationPrice = paymentMethod === 'credit'
-        ? city.registrationCost.credit
-        : city.registrationCost.cash;
+
+    const registrationPrice = city.registrationCost.credit; // Defaulting to credit/standard cost as Cash field was removed
 
     const documentationFee = city.documentationFee || 0;
 
@@ -92,7 +91,8 @@ export const calculateQuote = (
 
         // Monthly Payment Calculation with Life Insurance (PMT + Insurance)
         // Rate is monthly percentage
-        const r = (financialEntity.monthlyRate || 0) / 100;
+        const effectiveRate = financialEntity.interestRate || financialEntity.monthlyRate || 0;
+        const r = effectiveRate / 100;
         const n = months;
 
         if (loanAmount > 0 && n > 0) {
@@ -134,7 +134,7 @@ export const calculateQuote = (
         fngCost,
         monthlyPayment: paymentMethod === 'credit' ? monthlyPayment : 0,
         months: paymentMethod === 'credit' ? months : 0,
-        interestRate: paymentMethod === 'credit' ? financialEntity?.monthlyRate : 0,
+        interestRate: paymentMethod === 'credit' ? (financialEntity?.interestRate || financialEntity?.monthlyRate) : 0,
         financialEntity: financialEntity?.name,
         isCredit: paymentMethod === 'credit',
         lifeInsuranceValue,
