@@ -19,19 +19,20 @@ export function middleware(request: NextRequest) {
     // Critical Fix: Explicitly define Login Path
     const isLoginPage = pathname === '/admin/login';
 
-    // Critical Fix: Exclude Login Page AND config page (temp debug) from isAdminPath
-    const isAdminPath = pathname.startsWith('/admin') && !isLoginPage && pathname !== '/admin/config';
+    // Critical Fix: Exclude Login Page from isAdminPath check to prevent infinite loop
+    const isAdminPath = pathname.startsWith('/admin') && !isLoginPage;
 
     const isStaticAsset = pathname.startsWith('/_next') || pathname.includes('.') || pathname.startsWith('/api')
 
     // --- ROUTING LOGIC ---
 
-    // 1. BETA ENV: Redirect Admin to Production
-    if (isBeta && pathname.startsWith('/admin')) {
-        return NextResponse.redirect(new URL('https://tiendalasmotos.com/admin', request.url))
-    }
+    // --- ROUTING LOGIC ---
+
+    // 1. BETA ENV: [REMOVED REDIRECTION FOR QA PURPOSES]
+    // Previously redirected admin to production. Removed to allow testing.
 
     // Protect Admin Routes: If no session, go to login
+    // Strict Check: /admin or /admin/*
     if (isAdminPath && !session) {
         const loginUrl = new URL('/admin/login', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);

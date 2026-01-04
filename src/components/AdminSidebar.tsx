@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 
+import { deleteSession } from "@/app/admin/login/actions";
+
 /**
  * Componente de barra lateral (Sidebar) para el panel administrativo.
  * 
@@ -13,6 +15,23 @@ import Image from "next/image";
  */
 export default function AdminSidebar() {
     const { user, role, loading, logout } = useAuth();
+
+    const handleLogout = async () => {
+        try {
+            // 1. Client-side Firebase Logout
+            await logout();
+
+            // 2. Server-side Cookie Deletion
+            await deleteSession();
+
+            // 3. FORCE HARD RELOAD to clear React state and prevent black screen
+            window.location.href = '/admin/login';
+        } catch (error) {
+            console.error("Logout failed", error);
+            // Fallback
+            window.location.href = '/admin/login';
+        }
+    };
 
     return (
         <div className="flex h-full flex-col px-3 py-4 md:px-2">
@@ -99,7 +118,7 @@ export default function AdminSidebar() {
 
                 {/* Botón Salir */}
                 <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="mt-auto flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium text-white transition-colors hover:bg-red-600 hover:text-white"
                 >
                     <svg

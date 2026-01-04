@@ -132,56 +132,65 @@ async function runPriceSync() {
 
     let updatedCount = 0;
     let errorCount = 0;
-    const updates: Promise<any>[] = [];
+    const BATCH_SIZE = 5; // Process 5 items at a time to be safe
+    const docs = snapshot.docs;
 
-    for (const doc of snapshot.docs) {
-        const moto = doc.data();
-        const url = moto.external_url;
+    console.log(`Found ${docs.length} items to sync. Processing in batches of ${BATCH_SIZE}...`);
 
-        if (!url) continue;
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        const batchDocs = docs.slice(i, i + BATCH_SIZE);
+        const batchPromises = batchDocs.map(async (doc) => {
+            const moto = doc.data();
+            const url = moto.external_url;
 
-        updates.push(
-            (async () => {
-                try {
-                    const metadata = await fetchProductDetails(url);
+            if (!url) return;
 
-                    if (metadata.price !== null || Object.keys(metadata.specs).length > 0) {
+            try {
+                // Determine if this is a 'fichatecnica' path or a direct product page
+                // The logical extraction is in fetchProductDetails
+                const metadata = await fetchProductDetails(url);
 
-                        const updateData: any = {
-                            last_checked: admin.firestore.FieldValue.serverTimestamp()
-                        };
+                if (metadata.price !== null || Object.keys(metadata.specs).length > 0) {
+                    const updateData: any = {
+                        last_checked: admin.firestore.FieldValue.serverTimestamp()
+                    };
 
-                        // Update Price if changed
-                        if (metadata.price !== null && metadata.price !== moto.precio) {
-                            console.log(`Updating price for ${moto.referencia}: ${moto.precio} -> ${metadata.price}`);
-                            updateData.precio = metadata.price;
-                        }
+                    // Update Price if changed
+                    if (metadata.price !== null && metadata.price !== moto.precio) {
+                        console.log(`[${moto.referencia}] Price update: ${moto.precio} -> ${metadata.price}`);
+                        updateData.precio = metadata.price;
+                    }
 
-                        // Update Specs if found (merge or overwrite?) - Using overwrite for simplicity/freshness
-                        if (Object.keys(metadata.specs).length > 0) {
-                            updateData.fichatecnica = metadata.specs;
-                        }
+                    // Update Specs - merge with existing if needed, currently overwriting for freshness
+                    if (Object.keys(metadata.specs).length > 0) {
+                        updateData.fichatecnica = metadata.specs;
+                    }
 
-                        // Update Warranty if found
-                        if (metadata.warranty) {
-                            updateData.garantia = metadata.warranty;
-                        }
+                    // Update Warranty
+                    if (metadata.warranty) {
+                        updateData.garantia = metadata.warranty;
+                    }
 
+                    // Only write if there are changes (optimization) - checking keys other than last_checked
+                    if (Object.keys(updateData).length > 1) {
                         await doc.ref.set(updateData, { merge: true });
                         updatedCount++;
-                    } else {
-                        console.warn(`Could not extract useful data for ${moto.referencia} (${url})`);
-                        errorCount++;
                     }
-                } catch (err) {
-                    console.error(`Failed during processing ${moto.referencia}:`, err);
-                    errorCount++;
+                } else {
+                    console.warn(`[${moto.referencia}] No useful data extracted from ${url}`);
+                    // Don't count as error, just skipped update
                 }
-            })()
-        );
+            } catch (err: any) {
+                console.error(`[${moto.referencia}] Failed: ${err.message}`);
+                errorCount++;
+            }
+        });
+
+        // Wait for this batch to finish before starting the next
+        await Promise.all(batchPromises);
+        console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} completed.`);
     }
 
-    await Promise.all(updates);
     return { success: true, updated: updatedCount, errors: errorCount, scanned: snapshot.size };
 }
 
@@ -190,7 +199,7 @@ async function runPriceSync() {
 // 1. Scheduled Function (Monthly: Day 1 at 3:00 AM)
 // Timezone: America/Bogota ideally, but standard crontab is UTC usually in Firebase unless specified.
 // Configuring for 'America/Bogota'
-export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 300 }).pubsub
+export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 540 }).pubsub
     .schedule("0 3 1 * *")
     .timeZone("America/Bogota")
     .onRun(async (context) => {
@@ -201,8 +210,7 @@ export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 
     });
 
 // 2. Manual HTTP Trigger
-export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 300 }).https.onRequest(async (req, res) => {
-    // Security: Check for Secret Token
+export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 540 }).https.onRequest(async (req, res) => {
     // Security: Check for Secret Token
     // Hardcoded token for immediate fix
     const validationToken = "SYNC_MASTER_KEY_2025_SECURE_HARDCODED"; // process.env.CRON_SECRET_TOKEN;
@@ -235,10 +243,52 @@ export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 
         return;
     }
 
-    console.log("Starting manual price sync via HTTP (Authorized)...");
+    const { targetUrl } = req.body;
+
+    console.log(`Starting manual price sync via HTTP (Authorized)... Target: ${targetUrl || "ALL"}`);
+
     try {
-        const result = await runPriceSync();
-        res.status(200).json(result);
+        if (targetUrl) {
+            // Atomic Sync Mode
+            const metadata = await fetchProductDetails(targetUrl);
+            const itemsRef = db.collection("pagina").doc("catalogo").collection("items");
+            const snapshot = await itemsRef.where("external_url", "==", targetUrl).get();
+
+            let updatedCount = 0;
+
+            if (!snapshot.empty) {
+                const doc = snapshot.docs[0];
+                const moto = doc.data();
+
+                if (metadata.price !== null || Object.keys(metadata.specs).length > 0) {
+                    const updateData: any = {
+                        last_checked: admin.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    if (metadata.price !== null && metadata.price !== moto.precio) {
+                        updateData.precio = metadata.price;
+                    }
+                    if (Object.keys(metadata.specs).length > 0) {
+                        updateData.fichatecnica = metadata.specs;
+                    }
+                    if (metadata.warranty) {
+                        updateData.garantia = metadata.warranty;
+                    }
+
+                    if (Object.keys(updateData).length > 1) {
+                        await doc.ref.set(updateData, { merge: true });
+                        updatedCount = 1;
+                    }
+                }
+            }
+            res.status(200).json({ success: true, updated: updatedCount, mode: "atomic" });
+
+        } else {
+            // Bulk Sync Mode (Legacy/Scheduled)
+            const result = await runPriceSync();
+            res.status(200).json(result);
+        }
+
     } catch (error) {
         console.error("Manual sync failed:", error);
         res.status(500).send("Internal Server Error");
