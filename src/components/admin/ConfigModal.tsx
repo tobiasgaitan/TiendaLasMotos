@@ -45,7 +45,10 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            style={{ zIndex: 99999 }}
+        >
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center p-6 border-b">
                     <h3 className="text-xl font-bold text-gray-800">
@@ -66,7 +69,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                 <input
                                     {...register("name", { required: true })}
                                     type="text"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 />
                             </div>
                             <div>
@@ -74,7 +77,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                 <input
                                     {...register("registrationCost.credit", { required: true, valueAsNumber: true })}
                                     type="number"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 />
                             </div>
                             <div>
@@ -82,7 +85,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                 <input
                                     {...register("documentationFee", { required: true, valueAsNumber: true })}
                                     type="number"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 />
                             </div>
                         </>
@@ -97,7 +100,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                     {...register("category", { required: true })}
                                     type="text"
                                     placeholder="Ej: Menos de 100 c.c."
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -106,7 +109,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                     <input
                                         {...register("price", { required: true, valueAsNumber: true })}
                                         type="number"
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                     />
                                 </div>
                                 <div>
@@ -114,7 +117,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                     <input
                                         {...register("year", { required: true, valueAsNumber: true })}
                                         type="number"
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                     />
                                 </div>
                             </div>
@@ -129,7 +132,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                 <input
                                     {...register("name", { required: true })}
                                     type="text"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -139,7 +142,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                         {...register("interestRate", { required: true, valueAsNumber: true })}
                                         type="number"
                                         step="0.01"
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                     />
                                 </div>
                                 <div>
@@ -149,7 +152,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData, type
                                         type="number"
                                         step="1"
                                         max="100"
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                     />
                                 </div>
                             </div>
