@@ -15,30 +15,35 @@ export function middleware(request: NextRequest) {
 
     // --- PATH DEFINITIONS ---
     const isMaintenancePage = pathname === '/maintenance'
-    const isAdminPath = pathname.startsWith('/admin')
-    const isLoginPath = pathname.startsWith('/login')
+
+    // Critical Fix: Explicitly define Login Path
+    const isLoginPage = pathname === '/admin/login';
+
+    // Critical Fix: Exclude Login Page AND config page (temp debug) from isAdminPath
+    const isAdminPath = pathname.startsWith('/admin') && !isLoginPage && pathname !== '/admin/config';
+
     const isStaticAsset = pathname.startsWith('/_next') || pathname.includes('.') || pathname.startsWith('/api')
 
     // --- ROUTING LOGIC ---
 
     // 1. BETA ENV: Redirect Admin to Production
-    // We want the Beta env to show the full commercial site, BUT redirect admin actions to Prod
-    // to avoid "Blocked Domain" auth errors and keep admin centralized.
-    if (isBeta && isAdminPath) {
+    if (isBeta && pathname.startsWith('/admin')) {
         return NextResponse.redirect(new URL('https://tiendalasmotos.com/admin', request.url))
     }
 
-
-
-    // --- AUTHENTICATION LOGIC (Applies globally where Admin is accessible) ---
-
     // Protect Admin Routes: If no session, go to login
     if (isAdminPath && !session) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        const loginUrl = new URL('/admin/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
     }
 
-    // Redirect Logged-in Users: If session exists and trying to access login, go to admin
-    if (isLoginPath && session) {
+    // Redirect Logged-in Users: If session exists and trying to access login, go to admin (or callbackUrl)
+    if (isLoginPage && session) {
+        const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
+        if (callbackUrl && callbackUrl.startsWith('/')) {
+            return NextResponse.redirect(new URL(callbackUrl, request.url));
+        }
         return NextResponse.redirect(new URL('/admin', request.url))
     }
 

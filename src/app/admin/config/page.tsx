@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { City, SoatRate, FinancialEntity } from "@/types/financial";
-import { Plus, Trash2, Save, Edit2 } from "lucide-react";
+import { Plus } from "lucide-react";
+import ConfigTable from "@/components/admin/ConfigTable";
+import ConfigModal from "@/components/admin/ConfigModal";
 
 export default function ConfigPage() {
     const [activeTab, setActiveTab] = useState<'cities' | 'soat' | 'financial'>('cities');
@@ -15,58 +17,113 @@ export default function ConfigPage() {
     const [soatRates, setSoatRates] = useState<SoatRate[]>([]);
     const [financialEntities, setFinancialEntities] = useState<FinancialEntity[]>([]);
 
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalType, setModalType] = useState<'city' | 'soat' | 'financial'>('city');
+    const [editingItem, setEditingItem] = useState<any>(null);
+
     // Fetch Data
+    /**
+     * Fetches configuration data from Firestore.
+     * @param showLoading - If true, triggers the page-level loading state. Defaults to true.
+     */
+    const fetchData = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
+        try {
+            const citiesSnapshot = await getDocs(collection(db, "financial_config/general/cities"));
+            setCities(citiesSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as City)));
+
+            const soatSnapshot = await getDocs(collection(db, "financial_config/general/tarifas_soat"));
+            setSoatRates(soatSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate)));
+
+            const financialSnapshot = await getDocs(collection(db, "financial_config/general/financieras"));
+            setFinancialEntities(financialSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity)));
+        } catch (error) {
+            console.error("Error fetching config:", error);
+        } finally {
+            if (showLoading) setLoading(false);
+        }
+    };
+
+    /**
+     * Initial data load.
+     */
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const citiesSnapshot = await getDocs(collection(db, "financial_config/general/cities"));
-                setCities(citiesSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as City)));
-
-                const soatSnapshot = await getDocs(collection(db, "financial_config/general/tarifas_soat"));
-                setSoatRates(soatSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate)));
-
-                const financialSnapshot = await getDocs(collection(db, "financial_config/general/financieras"));
-                setFinancialEntities(financialSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity)));
-            } catch (error) {
-                console.error("Error fetching config:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchData(true);
     }, []);
 
-    // -- CRUD Handlers (Simplified for brevity, would separate in real world) --
-
-    const handleAddCity = async () => {
-        const newCity: Omit<City, 'id'> = {
-            name: "Nueva Ciudad",
-            department: "Departamento",
-            registrationCost: { credit: 0, cash: 0 },
-            documentationFee: 0
-        };
-        const ref = await addDoc(collection(db, "financial_config/general/cities"), newCity);
-        setCities([...cities, { ...newCity, id: ref.id }]);
+    // Handlers
+    const handleOpenModal = (type: 'city' | 'soat' | 'financial', item?: any) => {
+        setModalType(type);
+        setEditingItem(item || null);
+        setIsModalOpen(true);
     };
 
-    const handleUpdateCity = async (id: string, data: Partial<City>) => {
-        await updateDoc(doc(db, "financial_config/general/cities", id), data);
-        setCities(cities.map(c => c.id === id ? { ...c, ...data } : c));
+    /**
+     * Saves a configuration item to Firestore.
+     * @param data - The data to save.
+     */
+    const handleSave = async (data: any) => {
+        let collectionName = "";
+        if (modalType === 'city') collectionName = "financial_config/general/cities";
+        if (modalType === 'soat') collectionName = "financial_config/general/tarifas_soat";
+        if (modalType === 'financial') collectionName = "financial_config/general/financieras";
+
+        try {
+            if (editingItem) {
+                await updateDoc(doc(db, collectionName, editingItem.id), data);
+            } else {
+                await addDoc(collection(db, collectionName), data);
+            }
+            // Await the fetch to ensure data is updated before concluding action
+            // Pass false to avoid unmounting the table (silent refresh)
+            await fetchData(false);
+        } catch (error) {
+            console.error("Error saving data:", error);
+            throw error; // Let modal handle error state
+        }
     };
 
-    const handleDeleteCity = async (id: string) => {
-        if (!confirm("Eliminar ciudad?")) return;
-        await deleteDoc(doc(db, "financial_config/general/cities", id));
-        setCities(cities.filter(c => c.id !== id));
+    const handleDelete = async (type: 'city' | 'soat' | 'financial', id: string) => {
+        if (!confirm("¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.")) return;
+
+        let collectionName = "";
+        if (type === 'city') collectionName = "financial_config/general/cities";
+        if (type === 'soat') collectionName = "financial_config/general/tarifas_soat";
+        if (type === 'financial') collectionName = "financial_config/general/financieras";
+
+        try {
+            await deleteDoc(doc(db, collectionName, id));
+            await fetchData(false); // Silent refresh
+        } catch (error) {
+            console.error("Error deleting:", error);
+            alert("Error al eliminar");
+        }
     };
 
-    // ... Similar handlers for SOAT and Financial would go here ...
-    // For the MVP of this task, I'll implement the UI structure and City editing fully.
+    // Columns Definitions
+    const cityColumns = [
+        { header: "Nombre", accessor: (c: City) => c.name },
+        { header: "Matrícula (Crédito)", accessor: (c: City) => `$${(c.registrationCost?.credit || 0).toLocaleString()}` },
+        { header: "Gastos Doc.", accessor: (c: City) => `$${(c.documentationFee || 0).toLocaleString()}` },
+    ];
+
+    const soatColumns = [
+        { header: "Categoría", accessor: (s: SoatRate) => s.category },
+        { header: "Año", accessor: (s: SoatRate) => s.year },
+        { header: "Precio", accessor: (s: SoatRate) => `$${(s.price || 0).toLocaleString()}` },
+    ];
+
+    const financialColumns = [
+        { header: "Entidad", accessor: (f: FinancialEntity) => f.name },
+        { header: "Tasa Mensual", accessor: (f: FinancialEntity) => `${f.interestRate}%` },
+        { header: "Cuota Inicial Min.", accessor: (f: FinancialEntity) => `${f.minDownPaymentPercentage}%` },
+        { header: "Trámites en Crédito", accessor: (f: FinancialEntity) => f.requiresProceduresInCredit ? "Sí" : "No" },
+    ];
 
     return (
         <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800">Cofiguración Financiera Global</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Parámetros financieras</h1>
 
             {/* Tabs */}
             <div className="flex space-x-1 bg-white p-1 rounded-xl shadow-sm w-fit">
@@ -75,8 +132,8 @@ export default function ConfigPage() {
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'text-gray-500 hover:bg-gray-100'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-500 hover:bg-gray-100'
                             }`}
                     >
                         {tab === 'cities' ? 'Ciudades & Trámites' : tab === 'soat' ? 'Tarifas SOAT' : 'Financieras'}
@@ -85,75 +142,57 @@ export default function ConfigPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-20">Cargando configuración...</div>
+                <div className="text-center py-20 text-gray-500">Cargando configuración...</div>
             ) : (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-semibold">
+                            {activeTab === 'cities' ? 'Gestión de Ciudades' : activeTab === 'soat' ? 'Tarifas SOAT' : 'Entidades Financieras'}
+                        </h3>
+                        <button
+                            onClick={() => handleOpenModal(activeTab === 'cities' ? 'city' : activeTab)}
+                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow-md shadow-green-200 transition-all active:scale-95"
+                        >
+                            <Plus size={18} /> Agregar Nuevo
+                        </button>
+                    </div>
 
-                    {/* CITIES EDITOR */}
                     {activeTab === 'cities' && (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-xl font-semibold">Gestión de Ciudades</h3>
-                                <button onClick={handleAddCity} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                                    <Plus size={18} /> Nueva Ciudad
-                                </button>
-                            </div>
-
-                            <div className="grid gap-4">
-                                {cities.map((city) => (
-                                    <div key={city.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-xl bg-gray-50 items-end">
-                                        <div>
-                                            <label className="text-xs text-gray-500 block mb-1">Nombre</label>
-                                            <input
-                                                value={city.name}
-                                                onChange={(e) => handleUpdateCity(city.id, { name: e.target.value })}
-                                                className="w-full px-3 py-2 border rounded-md"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-500 block mb-1">Matrícula (Crédito)</label>
-                                            <input
-                                                type="number"
-                                                value={city.registrationCost?.credit || 0}
-                                                onChange={(e) => handleUpdateCity(city.id, { registrationCost: { ...city.registrationCost, credit: Number(e.target.value) } })}
-                                                className="w-full px-3 py-2 border rounded-md"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-500 block mb-1">Matrícula (Contado)</label>
-                                            <input
-                                                type="number"
-                                                value={city.registrationCost?.cash || 0}
-                                                onChange={(e) => handleUpdateCity(city.id, { registrationCost: { ...city.registrationCost, cash: Number(e.target.value) } })}
-                                                className="w-full px-3 py-2 border rounded-md"
-                                            />
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <div className="flex-1">
-                                                <label className="text-xs text-gray-500 block mb-1">Gestión Doc.</label>
-                                                <input
-                                                    type="number"
-                                                    value={city.documentationFee || 0}
-                                                    onChange={(e) => handleUpdateCity(city.id, { documentationFee: Number(e.target.value) })}
-                                                    className="w-full px-3 py-2 border rounded-md"
-                                                />
-                                            </div>
-                                            <button onClick={() => handleDeleteCity(city.id)} className="text-red-500 p-2 hover:bg-red-50 rounded-md">
-                                                <Trash2 size={20} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <ConfigTable
+                            data={cities}
+                            columns={cityColumns}
+                            onEdit={(item) => handleOpenModal('city', item)}
+                            onDelete={(item) => handleDelete('city', item.id)}
+                        />
                     )}
 
-                    {/* Placeholders for other tabs (implementation would follow same pattern) */}
-                    {activeTab === 'soat' && <div className="text-gray-500 text-center py-10">Módulo de SOAT en construcción (Sigue el mismo patrón CRUD)</div>}
-                    {activeTab === 'financial' && <div className="text-gray-500 text-center py-10">Módulo Financiero en construcción (Sigue el mismo patrón CRUD)</div>}
+                    {activeTab === 'soat' && (
+                        <ConfigTable
+                            data={soatRates}
+                            columns={soatColumns}
+                            onEdit={(item) => handleOpenModal('soat', item)}
+                            onDelete={(item) => handleDelete('soat', item.id)}
+                        />
+                    )}
 
+                    {activeTab === 'financial' && (
+                        <ConfigTable
+                            data={financialEntities}
+                            columns={financialColumns}
+                            onEdit={(item) => handleOpenModal('financial', item)}
+                            onDelete={(item) => handleDelete('financial', item.id)}
+                        />
+                    )}
                 </div>
             )}
+
+            <ConfigModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSave}
+                initialData={editingItem}
+                type={modalType}
+            />
         </div>
     );
 }

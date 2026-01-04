@@ -16,15 +16,20 @@
                 "**/node_modules/**",
                 "package-lock.json"
             ],
-            "rewrites": [
-                {
-                    "source": "**",
-                    "destination": "/index.html"
-                }
-            ],
             "frameworksBackend": {
                 "region": "us-central1"
-            }
+            },
+            "headers": [
+                {
+                    "source": "**",
+                    "headers": [
+                        {
+                            "key": "Cross-Origin-Opener-Policy",
+                            "value": "same-origin-allow-popups"
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
