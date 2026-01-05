@@ -7,6 +7,7 @@ export interface City {
         credit: number;
     };
     documentationFee: number; // Costo gestión documental/tramites
+    isActive?: boolean;
 }
 
 export interface SoatRate {
@@ -43,16 +44,19 @@ export interface FinancialConfig {
 export interface MatrixRow {
     id: string; // e.g. "0-99", "electrical"
     label: string; // "0 - 99 cc", "Eléctrica"
+    category?: string; // e.g. "ELECTRICA", "MOTOCARRO" (Exact match)
+    minCC?: number; // For displacement based rows
+    maxCC?: number; // For displacement based rows
     soatPrice: number;
     // Costs per city/region context (using a record for flexibility or fixed keys if known)
     // We will use specific keys as per requirements: 
     // creditGeneral, creditSantaMarta, cashEnvigado, cashCienaga, cashZonaBananera, cashSantaMarta
     registrationCreditGeneral: number;
+    registrationCashSantaMarta: number;
     registrationCreditSantaMarta: number;
     registrationCashEnvigado: number;
     registrationCashCienaga: number;
     registrationCashZonaBananera: number;
-    registrationCashSantaMarta: number;
 }
 
 export interface FinancialMatrix {

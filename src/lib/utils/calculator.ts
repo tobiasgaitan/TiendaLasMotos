@@ -1,4 +1,5 @@
-import { Moto, City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types";
+import { Moto, City, SoatRate, FinancialEntity, FinancialMatrix, MatrixRow } from "@/types";
+import { CATEGORIES_OFFICIAL } from "@/lib/constants";
 
 export interface QuoteResult {
     vehiclePrice: number;
@@ -38,171 +39,176 @@ export const calculateSoat = (displacement: number, rates: SoatRate[]): number =
     return rate ? rate.price : 0;
 };
 
+// CONSTANTS REMOVED (Imported)
+
 /**
- * Calculates a full quote
+ * Calculates a full quote with Matrix Logic
  */
 export const calculateQuote = (
     moto: Moto,
     city: City,
     soatRates: SoatRate[],
     paymentMethod: 'credit' | 'cash',
-
     financialEntity?: FinancialEntity,
     months: number = 48,
     downPaymentInput: number = 0,
     financialMatrix?: FinancialMatrix
 ): QuoteResult => {
-    // 1. Fallback Rule: If no displacement, use 150cc
+    // 1. Determine Input Variables
     const displacement = moto.displacement || 150;
     const price = moto.precio;
     const specialAdjustment = moto.specialAdjustment || 0;
 
-    // --- NEW MATRIX LOGIC ---
-    // If matrix is missing, return 0 costs (safety fallback)
+    // Normalize categories
+    let categoriesToCheck: string[] = [];
+    if (moto.categories && moto.categories.length > 0) {
+        categoriesToCheck = moto.categories;
+    } else if (moto.category) {
+        categoriesToCheck = [moto.category];
+    } else {
+        categoriesToCheck = ["URBANA Y/O TRABAJO"]; // Default fallback
+    }
+
+    // 2. Logic to Find Best Matrix Row (Highest Cost)
+    let selectedMatrixRow: MatrixRow | undefined;
     let soatPrice = 0;
-    let registrationPrice = 0; // "Matrícula" value
-    let isElectric = moto.category === 'electrica';
-    let isMotocarro = moto.category === 'motocarro';
+    let registrationPrice = 0;
 
     if (financialMatrix) {
-        // Priority: Category > Displacement
-        let rowId = '';
+        // Determine Context Key (Column in Matrix)
+        const cityName = city.name.toLowerCase();
+        let contextKey: keyof MatrixRow = 'registrationCreditGeneral'; // Default column field name
 
-        if (isElectric) {
-            rowId = 'electrical';
-        } else if (isMotocarro) {
-            rowId = 'motocarro';
+        // Map City+Method to MatrixColumn
+        // Note: The MatrixRow interface has specific fields like 'registrationCreditSantaMarta', etc.
+        // We need to map our inputs to one of these fields.
+
+        if (paymentMethod === 'credit') {
+            if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
+            else contextKey = 'registrationCreditGeneral';
         } else {
-            // Displacement Logic
-            if (displacement < 100) rowId = '0-99';
-            else if (displacement < 125) rowId = '100-124';
-            else if (displacement <= 200) rowId = '125-200';
-            else rowId = 'gt-200';
+            // Cash
+            if (cityName.includes('santa marta')) contextKey = 'registrationCashSantaMarta';
+            else if (cityName.includes('envigado')) contextKey = 'registrationCashEnvigado';
+            else if (cityName.includes('ciénaga') || cityName.includes('cienaga')) contextKey = 'registrationCashCienaga';
+            else if (cityName.includes('zona bananera')) contextKey = 'registrationCashZonaBananera';
+            else contextKey = 'registrationCreditGeneral'; // Fallback for unmatched cash cities or use Envigado as generic cash? 
+            // Let's use Envigado as generic Cash base if not matched? 
+            // Or stick to Credit General as baseline?
+            // Given "Contado Envigado" is a specific option, likely the most common.
+            // But let's fallback to Credit General to avoid under-charging if unsure?
+            // Actually, if I don't match, I should probably use General.
         }
 
-        const row = financialMatrix.rows.find(r => r.id === rowId);
+        let maxCost = -1;
 
-        if (row) {
-            soatPrice = row.soatPrice;
+        categoriesToCheck.forEach(catRaw => {
+            const cat = catRaw.toUpperCase();
 
-            // Determine Registration Cost based on City Context + Payment Method
-            // For now, logic is tricky: Frontend passes 'city' object, but matrix has specific columns.
-            // Requirement says: "Categoría/Cilindrada" rows have values for:
-            // "Crédito (General)", "Crédito Santa Marta", "Contado Envigado", etc.
+            // Find Matching Rows
+            // 1. Exact Category Match (High Priority)
+            const specificMatch = financialMatrix.rows.find(r => r.category === cat);
 
-            // Heuristic for City Context based on City Name (normalization needed)
-            const cityName = city.name.toLowerCase().trim();
-            const isSantaMarta = cityName.includes('santa marta');
-            const isEnvigado = cityName.includes('envigado');
-            const isCienaga = cityName.includes('ciénaga') || cityName.includes('cienaga');
-            const isZonaBananera = cityName.includes('zona bananera');
+            // 2. Generic CC Match (If no specific category on row, or row expects displacement)
+            // Note: A row like "0-99" (minCC=0, maxCC=99) applies to ANY category that fits,UNLESS the category has a specific override.
+            // If we found a specific match (e.g. Electrical), we usually use it.
+            // But if we want "Highest Cost", we should check generic too?
+            // E.g. Electric (Cost 100) vs 0-99 (Cost 200). If logic requires Max, we scan all.
+            // But Electric usually implies 0 CC or valid CC.
+            // Let's check matching generic rows.
 
-            if (paymentMethod === 'credit') {
-                if (isSantaMarta) {
-                    registrationPrice = row.registrationCreditSantaMarta;
-                } else {
-                    registrationPrice = row.registrationCreditGeneral;
+            const genericMatches = financialMatrix.rows.filter(r =>
+                !r.category && // Only generic rows
+                (r.minCC !== undefined && r.maxCC !== undefined) &&
+                displacement >= r.minCC && displacement <= r.maxCC
+            );
+
+            const candidates = [];
+            if (specificMatch) candidates.push(specificMatch);
+            candidates.push(...genericMatches);
+
+            // Find max cost among candidates
+            candidates.forEach(row => {
+                // Access dynamic key safely
+                const cost = (row as any)[contextKey] as number;
+                if (typeof cost === 'number' && cost > maxCost) {
+                    maxCost = cost;
+                    selectedMatrixRow = row;
                 }
-            } else {
-                // CASH
-                if (isEnvigado) registrationPrice = row.registrationCashEnvigado;
-                else if (isCienaga) registrationPrice = row.registrationCashCienaga;
-                else if (isZonaBananera) registrationPrice = row.registrationCashZonaBananera;
-                else if (isSantaMarta) registrationPrice = row.registrationCashSantaMarta;
-                else {
-                    // Fallback for unknown city in Cash mode? 
-                    // Probably use General Credit or standard fallback?
-                    // User requirements only listed those specific columns. 
-                    // Let's assume General Credit value as a safety baseline or 0 if strictly strict.
-                    // Let's use Envigado (often cheapest/standard) or just CreditGeneral?
-                    // Let's use CreditGeneral as safe fallback if no column matches.
-                    registrationPrice = row.registrationCreditGeneral;
-                }
-            }
+            });
+        });
+
+        if (selectedMatrixRow) {
+            registrationPrice = (selectedMatrixRow as any)[contextKey] || 0;
+            soatPrice = selectedMatrixRow.soatPrice;
         }
-    } else {
-        // Legacy fallback calculation (if matrix not loaded yet)
+    }
+
+    // Fallback if Matrix didn't yield result (or matrix missing)
+    if (!selectedMatrixRow) {
         soatPrice = calculateSoat(displacement, soatRates);
         registrationPrice = city.registrationCost?.credit || 0;
     }
 
-    // --- IMPUESTO DE TIMBRE (MOTOCARROS > 125cc) ---
+    // 3. Impuesto de Timbre (Motocarros > 125cc)
     // Formula: (Precio * 1.5% / 12) * Math.ceil(meses_restantes) + 40000
-    // "Meses restantes" usually refers to current year remaining months? 
-    // Or is it related to SOAT logic? 
-    // Stamp tax is usually annual. 
-    // "meses_restantes": Assuming months remaining in current year + 1? 
-    // Let's standardly assume months remaining in the current year.
-    // e.g., if today is Jan 4, months remaining approx 12?
-    // Let's calculate real remaining months.
-    let stampTax = 0;
-    if (isMotocarro && displacement > 125) {
+    // Check if any category is 'MOTOCARRO...'
+    const isMotocarro = categoriesToCheck.some(c => c && c.toUpperCase().includes("MOTOCARRO"));
+
+    if (isMotocarro && displacement > 125 && paymentMethod === 'cash') {
         const now = new Date();
-        const endOfYear = new Date(now.getFullYear(), 11, 31);
-        // Calculate months diff
-        // Month is 0-indexed. Jan=0. Dec=11.
-        // Remainder = 11 - currentMonth + fraction? 
-        // Logic says "meses_restantes".
-        // Usually, if Jan: 12 months? or 11? 
-        // Standard transit logic is pro-rated.
-        // Let's use: (12 - currentMonth). e.g. Jan(0) => 12. Feb(1) => 11.
+        // Calculate remaining months including current month? 
+        // User formula says "meses_restantes". Typically if we are in Jan, 12 months remain?
+        // Let's assume standard tax logic: months from NOW until Dec 31.
+        // Jan=12, Feb=11... Dec=1.
         const remainingMonths = 12 - now.getMonth();
-        const roundedMonths = Math.ceil(remainingMonths);
+        const stampTax = ((price * 0.015) / 12) * remainingMonths + 40000;
 
-        stampTax = ((price * 0.015) / 12) * roundedMonths + 40000;
-
-        // Add to Registration Price? Or separate? 
-        // "Gestor de Matrículas y SOAT" ... "Impuesto de Timbre" is usually part of "Matrícula/Gastos".
-        // Let's add it to registrationPrice.
         registrationPrice += stampTax;
     }
 
     const documentationFee = city.documentationFee || 0;
 
-    // 3. Subtotal (Value of the deal before credit logic)
+    // 4. Subtotal
     const subtotal = price + soatPrice + registrationPrice + documentationFee + specialAdjustment;
 
-    // Credit Logic
-    let fngCost = 0;
+    // 5. Credit Calculations
     let total = subtotal;
     let loanAmount = 0;
     let monthlyPayment = 0;
     let lifeInsuranceValue = 0;
-    // ... rest of logic unchanged ... (re-pasting strictly what follows)
-
-    // ... (rest of function body) - wait, I need to match the replacement properly.
-    // I will replace the wrapper and initial logic, trusting I can reuse the rest.
-    // Actually, to be safe, I should try to replace the whole body or just the top part
-    // The previous tool output showed lines 1-144. I want to replace from line 49 to line 66 (approx) 
-    // and inject the new logic.
-
-    // Credit Logic Variables
-
-    // Actual Down Payment
-    const downPayment = downPaymentInput;
     let movableGuaranteeCost = 0;
+    const downPayment = downPaymentInput;
 
-    if (paymentMethod === 'credit' && financialEntity) {
-        // Defined Constants
-        const LIFE_INSURANCE_RATE = 0.1126 / 100; // 0.1126% Mes vencido sobre saldo
-        const MOVABLE_GUARANTEE_COST = 120000; // $120.000 Fixed
+    if (paymentMethod === 'credit') {
+        // defined inside or globally
+        const LIFE_INSURANCE_RATE = 0.1126 / 100; // 0.1126% MV
+        const MOVABLE_GUARANTEE_COST = 120000;
 
-        // Values to Finance
         movableGuaranteeCost = MOVABLE_GUARANTEE_COST;
+        const downPayment = downPaymentInput;
         const baseAmountToFinance = subtotal - downPayment;
 
-        // Guarantee is usually added to the loan amount or paid upfront? 
-        // Prompt says: "se suma al capital inicial financiado".
         loanAmount = baseAmountToFinance + movableGuaranteeCost;
 
-        // Monthly Payment Calculation with Life Insurance (PMT + Insurance)
-        // Rate is monthly percentage
-        const effectiveRate = financialEntity.interestRate || financialEntity.monthlyRate || 0;
+        // Fallback 2.5% if missing or if financialEntity is undefined
+        const effectiveRate = financialEntity?.interestRate || financialEntity?.monthlyRate || 2.5;
         const r = effectiveRate / 100;
         const n = months;
 
+        console.log("--- Credit Calculation Debug ---");
+        console.log("Moto Price:", price);
+        console.log("Registration:", registrationPrice);
+        console.log("Soat:", soatPrice);
+        console.log("Subtotal (Asset Value):", subtotal);
+        console.log("Down Payment:", downPayment);
+        console.log("Base Financed (P_base):", baseAmountToFinance);
+        console.log("Movable Guarantee:", movableGuaranteeCost);
+        console.log("Total Loan Amount (P):", loanAmount);
+        console.log("Rate (r):", effectiveRate, "%");
+        console.log("Months (n):", n);
+
         if (loanAmount > 0 && n > 0) {
-            // Base Amortization Payment
             let basePmt = 0;
             if (r > 0) {
                 basePmt = (loanAmount * r) / (1 - Math.pow(1 + r, -n));
@@ -210,9 +216,11 @@ export const calculateQuote = (
                 basePmt = loanAmount / n;
             }
 
-            // Life Insurance
             lifeInsuranceValue = loanAmount * LIFE_INSURANCE_RATE;
-            monthlyPayment = basePmt + lifeInsuranceValue;
+            monthlyPayment = Math.round(basePmt + lifeInsuranceValue);
+            console.log("Base PMT (Amort):", basePmt);
+            console.log("Life Insurance:", lifeInsuranceValue);
+            console.log("Total Monthly Payment:", monthlyPayment);
         }
 
         total = downPayment + (monthlyPayment * n);
@@ -228,13 +236,13 @@ export const calculateQuote = (
         total,
         downPayment,
         loanAmount,
-        fngCost,
+        fngCost: 0, // Not explicitly calculated here currently? Or part of something else? Keeping 0 as per previous code.
+        lifeInsuranceValue,
+        movableGuaranteeCost,
         monthlyPayment: paymentMethod === 'credit' ? monthlyPayment : 0,
         months: paymentMethod === 'credit' ? months : 0,
-        interestRate: paymentMethod === 'credit' ? (financialEntity?.interestRate || financialEntity?.monthlyRate) : 0,
+        interestRate: paymentMethod === 'credit' ? (financialEntity?.interestRate || 0) : 0,
         financialEntity: financialEntity?.name,
-        isCredit: paymentMethod === 'credit',
-        lifeInsuranceValue,
-        movableGuaranteeCost
+        isCredit: paymentMethod === 'credit'
     };
 };

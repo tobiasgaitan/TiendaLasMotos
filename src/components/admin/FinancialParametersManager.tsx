@@ -14,14 +14,9 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: '0-99',
         label: '0 - 99 cc',
-        soatPrice: 489400, // Approximate 2024 value, user provided specific table? 
-        // User didn't provide SOAT values in the table, only Registration. 
-        // Wait, the table provided has "Categoría/Cilindrada" then columns...
-        // The table columns are: Crédito (General), Crédito SM, Contado Envigado, etc.
-        // It seems the SOAT is usually separate, but the request says "Gestor de Matrículas y SOAT"
-        // and "Utilicen estos valores exactos...". The values shown look like Registration costs (Matrícula).
-        // Let's assume the columns provided are the Registration costs.
-        // SOAT needs to be editable too. I'll initialize with 0 if not provided or standard.
+        minCC: 0,
+        maxCC: 99,
+        soatPrice: 489400,
         registrationCreditGeneral: 660000,
         registrationCreditSantaMarta: 760000,
         registrationCashEnvigado: 530000,
@@ -32,6 +27,8 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: '100-124',
         label: '100 - 124 cc',
+        minCC: 100,
+        maxCC: 124,
         soatPrice: 678400,
         registrationCreditGeneral: 740000,
         registrationCreditSantaMarta: 840000,
@@ -43,6 +40,8 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: '125-200',
         label: '125 - 200 cc',
+        minCC: 125,
+        maxCC: 200,
         soatPrice: 678400,
         registrationCreditGeneral: 820000,
         registrationCreditSantaMarta: 920000,
@@ -54,6 +53,8 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: 'gt-200',
         label: 'Mayor a 200 cc',
+        minCC: 201,
+        maxCC: 99999,
         soatPrice: 822500,
         registrationCreditGeneral: 1020000,
         registrationCreditSantaMarta: 1120000,
@@ -65,7 +66,8 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: 'electrical',
         label: 'Eléctricas',
-        soatPrice: 0, // Usually lower
+        category: 'ELECTRICA',
+        soatPrice: 0,
         registrationCreditGeneral: 440000,
         registrationCreditSantaMarta: 540000,
         registrationCashEnvigado: 400000,
@@ -76,6 +78,12 @@ const INITIAL_ROWS: MatrixRow[] = [
     {
         id: 'motocarro',
         label: 'Motocarros',
+        category: 'MOTOCARRO Y/O MOTOCARGUERO',
+        minCC: 0,
+        maxCC: 99999, // Can have displacement but overrides CC cost logic?
+        // Actually, for Motocarro, we want to match this row.
+        // It has specific registration costs.
+        // But for Motocarro > 125cc, we ADD tax.
         soatPrice: 0,
         registrationCreditGeneral: 850000,
         registrationCreditSantaMarta: 950000,
