@@ -34,6 +34,34 @@
                     ]
                 }
             ]
+        },
+        {
+            "target": "tiendalasmotos-beta",
+            "source": ".",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**",
+                "package-lock.json"
+            ],
+            "frameworksBackend": {
+                "region": "us-central1"
+            },
+            "headers": [
+                {
+                    "source": "**",
+                    "headers": [
+                        {
+                            "key": "Cross-Origin-Opener-Policy",
+                            "value": "unsafe-none"
+                        },
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

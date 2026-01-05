@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Moto } from "@/types";
-import { City, SoatRate, FinancialEntity } from "@/types/financial";
+import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
-import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CreditSimulation } from "@/types";
 // import jsPDF from "jspdf"; // Will need to install: npm i jspdf jspdf-autotable
@@ -25,18 +25,35 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
     const [downPayment, setDownPayment] = useState<number>(0);
 
     const [ticket, setTicket] = useState<number | null>(null);
+    const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+
+    // Initial Data Fetch (Matrix)
+    useEffect(() => {
+        const fetchMatrix = async () => {
+            try {
+                const docRef = doc(db, 'config', 'financial_parameters');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    setMatrix(snap.data() as FinancialMatrix);
+                }
+            } catch (e) {
+                console.error("Error fetching matrix", e);
+            }
+        };
+        fetchMatrix();
+    }, []);
 
     // Default Down Payment (20%)
     useEffect(() => {
         if (!moto || downPayment > 0) return;
-        // Estimate base price roughly to set initial default
-        // We can't know exact subtotal yet without city, but we can approximate or wait for first quote result?
-        // Let's use useEffect on quote result?
-        // Risk: Infinite loop if setting downPayment triggers quote recalc.
-        // Better: Set it once when moto/city loads.
-        const base = moto.precio + (cities.find(c => c.id === selectedCityId)?.registrationCost.credit || 0);
+
+        // Safe access to legacy registration cost or 0
+        const city = cities.find(c => c.id === selectedCityId);
+        const regCost = city?.registrationCost?.credit || 0; // Fixed: Optional chaining
+
+        const base = moto.precio + regCost;
         setDownPayment(Math.floor(base * 0.20));
-    }, [moto.id, selectedCityId]);
+    }, [moto.id, selectedCityId, cities, downPayment]); // Added missing deps
 
     const [quote, setQuote] = useState<QuoteResult | null>(null);
 
@@ -55,11 +72,12 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             paymentMethod,
             paymentMethod === 'credit' ? financialEntity : undefined,
             months,
-            downPayment
+            downPayment,
+            matrix // Pass matrix
         );
 
         setQuote(result);
-    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, moto, cities, soatRates, financialEntities]);
+    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, moto, cities, soatRates, financialEntities, matrix]);
 
     if (!quote) return null;
 

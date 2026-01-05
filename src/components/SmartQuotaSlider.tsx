@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Moto } from "@/types";
-import { City, SoatRate, FinancialEntity } from "@/types/financial";
+import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface Props {
     motos: Moto[];
@@ -21,17 +23,34 @@ export default function SmartQuotaSlider({ motos, cities, soatRates, financialEn
     const [months, setMonths] = useState<number>(48);
     const [downPayment, setDownPayment] = useState<number>(0);
     const [quote, setQuote] = useState<QuoteResult | null>(null);
+    const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
 
     const selectedMoto = motos.find(m => m.id === selectedMotoId);
+
+    // Initial Data Fetch (Matrix)
+    useEffect(() => {
+        const fetchMatrix = async () => {
+            try {
+                const docRef = doc(db, 'config', 'financial_parameters');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    setMatrix(snap.data() as FinancialMatrix);
+                }
+            } catch (e) {
+                console.error("Error fetching matrix", e);
+            }
+        };
+        fetchMatrix();
+    }, []);
 
     // Update Default Down Payment (20%) when moto changes
     useEffect(() => {
         if (!selectedMoto || downPayment > 0) return;
-        const cityCost = cities.find(c => c.id === selectedCityId)?.registrationCost.credit || 0;
+        const cityCost = cities.find(c => c.id === selectedCityId)?.registrationCost?.credit || 0;
         const base = selectedMoto.precio + cityCost;
         setDownPayment(Math.floor(base * 0.20));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedMotoId, selectedCityId]); // Run once per moto/city change if downpayment is 0
+    }, [selectedMotoId, selectedCityId, cities, downPayment]); // Run once per moto/city change if downpayment is 0
 
     // Calculate Quote
     useEffect(() => {
@@ -49,11 +68,12 @@ export default function SmartQuotaSlider({ motos, cities, soatRates, financialEn
             paymentMethod,
             paymentMethod === 'credit' ? financialEntity : undefined,
             months,
-            downPayment
+            downPayment,
+            matrix // Pass matrix
         );
 
         setQuote(result);
-    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, selectedMoto, cities, soatRates, financialEntities]);
+    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, selectedMoto, cities, soatRates, financialEntities, matrix]);
 
     // HANDLERS
     const handleWhatsapp = () => {
