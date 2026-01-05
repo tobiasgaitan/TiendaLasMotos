@@ -24,7 +24,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     // Estado del formulario
     const [formData, setFormData] = useState({
-        category: 'motos',
+        category: 'urbana', // Default changed to specific type, was 'motos' generic
         brand: '',
         model: '',
         seoDescription: '',
@@ -44,7 +44,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             if (product) {
                 // MODO EDICIÓN: Cargar datos existentes
                 setFormData({
-                    category: product.category || 'motos',
+                    category: product.category || 'urbana',
                     brand: product.brand || '',
                     model: product.model || '',
                     seoDescription: product.seoDescription || '',
@@ -60,7 +60,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             } else {
                 // MODO CREACIÓN: Limpiar formulario
                 setFormData({
-                    category: 'motos',
+                    category: 'urbana',
                     brand: '',
                     model: '',
                     seoDescription: '',
@@ -136,11 +136,10 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 dataToSave.imagenUrl = formData.imageUrl;
             }
 
-            // Campos específicos de Motos
-            if (formData.category === 'motos') {
-                dataToSave.year = Number(formData.year);
-                dataToSave.external_url = formData.external_url;
-            }
+            // Campos específicos de Motos (Legacy check, now almost all are 'motos' in broad sense but have specific category)
+            // Ideally we save 'year' and 'external_url' for all categories.
+            dataToSave.year = Number(formData.year);
+            dataToSave.external_url = formData.external_url;
 
             if (product) {
                 // --- UPDATE ---
@@ -195,6 +194,22 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                                 currentImage={formData.imageUrl}
                                 onImageUploaded={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
                             />
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1">Categoría*</label>
+                            <select
+                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            >
+                                <option value="urbana">Urbana</option>
+                                <option value="deportiva">Deportiva</option>
+                                <option value="todoterreno">Todoterreno</option>
+                                <option value="scooter">Scooter</option>
+                                <option value="electrica">Eléctrica</option>
+                                <option value="motocarro">Motocarro / Motocarguero</option>
+                            </select>
                         </div>
 
                         <div>

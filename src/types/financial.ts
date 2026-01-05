@@ -3,7 +3,7 @@ export interface City {
     id: string;
     name: string;
     department: string;
-    registrationCost: {
+    registrationCost?: { // @deprecated - Moved to FinancialMatrix
         credit: number;
     };
     documentationFee: number; // Costo gestión documental/tramites
@@ -38,4 +38,24 @@ export interface FinancialConfig {
     fngRate: number; // Fondo Nacional de Garantías % (e.g. 5.5%)
     defaultMonths: number;
     baseInterestRate: number;
+}
+
+export interface MatrixRow {
+    id: string; // e.g. "0-99", "electrical"
+    label: string; // "0 - 99 cc", "Eléctrica"
+    soatPrice: number;
+    // Costs per city/region context (using a record for flexibility or fixed keys if known)
+    // We will use specific keys as per requirements: 
+    // creditGeneral, creditSantaMarta, cashEnvigado, cashCienaga, cashZonaBananera, cashSantaMarta
+    registrationCreditGeneral: number;
+    registrationCreditSantaMarta: number;
+    registrationCashEnvigado: number;
+    registrationCashCienaga: number;
+    registrationCashZonaBananera: number;
+    registrationCashSantaMarta: number;
+}
+
+export interface FinancialMatrix {
+    rows: MatrixRow[];
+    lastUpdated: string; // ISO Date
 }
