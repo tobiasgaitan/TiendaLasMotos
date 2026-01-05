@@ -211,7 +211,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities }
                         {quote.isCredit && (
                             <>
                                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
-                                    <span className="text-sm font-bold text-brand-blue">Cuota Aprox.</span>
+                                    <span className="text-sm font-bold text-slate-900">CUOTA APROX.</span>
                                     <span className="text-2xl font-extrabold text-slate-900">${quote.monthlyPayment?.toLocaleString()}</span>
                                 </div>
                                 <p className="text-xs text-slate-500 italic mt-1 text-right">* Valor aproximado sujeto a estudio de crédito</p>

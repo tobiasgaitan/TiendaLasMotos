@@ -363,7 +363,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                     {quote.isCredit && (
                         <>
                             <div className="flex justify-between text-brand-blue font-black mt-2 bg-blue-50 p-2 rounded-lg">
-                                <span className="text-blue-900 font-bold">Cuota Mensual Aprox.</span>
+                                <span className="text-slate-900 font-bold">CUOTA MENSUAL APROX.</span>
                                 <span className="text-slate-900 font-extrabold text-xl">${quote.monthlyPayment?.toLocaleString()}</span>
                             </div>
                             <p className="text-xs text-slate-500 italic mt-1 text-right">* Valor aproximado sujeto a estudio de crédito</p>
