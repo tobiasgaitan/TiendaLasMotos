@@ -23,12 +23,18 @@ export interface Product {
     external_url?: string;
     // New fields for Extended Management
     category?: string;
+    categories?: string[];
     seoDescription?: string;
     isVisible?: boolean;
     bonusAmount?: number;
     bonusEndDate?: string;
     year?: number;
     stock?: number;
+    referencia?: string;
+    displacement?: number;
+    frenosABS?: boolean;
+    promotionalPrice?: number;
+    description?: string;
 }
 
 /**
@@ -86,12 +92,18 @@ export function useInventory() {
 
                         // Extended Fields
                         category: data.category || 'motos',
+                        categories: data.categories || (data.category ? [data.category] : []), // Map from DB or fallback
                         seoDescription: data.seoDescription || '',
                         isVisible: data.isVisible !== undefined ? data.isVisible : true,
                         bonusAmount: Number(data.bonusAmount || 0),
                         bonusEndDate: data.bonusEndDate || '',
                         year: Number(data.year || new Date().getFullYear()),
-                        stock: Number(data.stock || 0)
+                        stock: Number(data.stock || 0),
+                        referencia: data.referencia || data.model || '',
+                        displacement: Number(data.displacement || 0),
+                        frenosABS: data.frenosABS || false,
+                        promotionalPrice: Number(data.promotionalPrice || 0),
+                        description: data.description || ''
                     };
                 }) as Product[];
 

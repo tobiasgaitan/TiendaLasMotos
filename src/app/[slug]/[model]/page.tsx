@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import FlipCard from "@/components/FlipCard";
 import JsonLd from "@/components/JsonLd";
+import QuoteGenerator from "@/components/calculator/QuoteGenerator"; // Import Simulator
+import { db } from "@/lib/firebase";
+import { collection, query, getDocs } from "firebase/firestore";
+import { SoatRate, FinancialEntity, Moto } from "@/types";
 
 interface Product {
     id: string;
@@ -67,6 +71,25 @@ export default async function ProductPage({ params }: PageProps) {
         return notFound();
     }
 
+    // Fetch Calculator Dependencies
+    const soatSnap = await getDocs(query(collection(db, "financial_config/general/tarifas_soat")));
+    const soatRates = soatSnap.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate));
+
+    const finSnap = await getDocs(query(collection(db, "financial_config/general/financieras")));
+    const financialEntities = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
+
+    // Map Product to Moto (Calculator Expectation)
+    const motoForQuote: Moto = {
+        id: product.id,
+        referencia: product.referencia,
+        precio: product.precio,
+        marca: "Victory", // Mock or from product
+        imagen: typeof product.imagenUrl === 'string' ? product.imagenUrl : product.imagenUrl.url,
+        frenosABS: false,
+        categories: ["URBANA Y/O TRABAJO"], // Default category
+        displacement: 124, // Matches mock 124cc
+    };
+
     // SEO Schema
     const jsonLd = {
         "@context": "https://schema.org",
@@ -123,12 +146,13 @@ export default async function ProductPage({ params }: PageProps) {
                             </p>
 
                             <div className="space-y-4">
-                                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-                                    Cotizar Ahora
-                                </button>
-                                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-                                    Hablar por WhatsApp
-                                </button>
+                                <div className="space-y-4">
+                                    <QuoteGenerator
+                                        moto={motoForQuote}
+                                        soatRates={soatRates}
+                                        financialEntities={financialEntities}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

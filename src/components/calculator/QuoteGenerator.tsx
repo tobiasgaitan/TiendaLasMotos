@@ -7,25 +7,29 @@ import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
 import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CreditSimulation } from "@/types";
-// import jsPDF from "jspdf"; // Will need to install: npm i jspdf jspdf-autotable
-// import autoTable from "jspdf-autotable";
 
 interface Props {
     moto: Moto;
-    cities: City[];
+    cities?: City[]; // Deprecated, keeping signature valid for now
     soatRates: SoatRate[];
     financialEntities: FinancialEntity[];
 }
 
-export default function QuoteGenerator({ moto, cities, soatRates, financialEntities }: Props) {
-    const [selectedCityId, setSelectedCityId] = useState<string>(cities[0]?.id || "");
-    const [paymentMethod, setPaymentMethod] = useState<'credit' | 'cash'>('credit');
+import { FINANCIAL_SCENARIOS } from "@/lib/constants";
+
+export default function QuoteGenerator({ moto, soatRates, financialEntities }: Props) {
+    const [selectedScenarioId, setSelectedScenarioId] = useState<string>(FINANCIAL_SCENARIOS[0].id);
     const [selectedFinancialId, setSelectedFinancialId] = useState<string>(financialEntities[0]?.id || "");
     const [months, setMonths] = useState<number>(48);
     const [downPayment, setDownPayment] = useState<number>(0);
-
+    const [downPaymentStr, setDownPaymentStr] = useState<string>(""); // Masked state
+    const [filterText, setFilterText] = useState(""); // Search State
     const [ticket, setTicket] = useState<number | null>(null);
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+
+    // Derived States
+    const activeScenario = FINANCIAL_SCENARIOS.find(s => s.id === selectedScenarioId) || FINANCIAL_SCENARIOS[0];
+    const isCredit = activeScenario.method === 'credit';
 
     // Initial Data Fetch (Matrix)
     useEffect(() => {
@@ -43,51 +47,87 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         fetchMatrix();
     }, []);
 
-    // Default Down Payment (20%)
+    // Default Down Payment (10%) - Reset on moto change
     useEffect(() => {
-        if (!moto || downPayment > 0) return;
+        if (moto) {
+            const def = Math.floor(moto.precio * 0.10);
+            setDownPayment(def);
+            setDownPaymentStr(def.toLocaleString('es-CO'));
+        }
+    }, [moto.id]);
 
-        // Safe access to legacy registration cost or 0
-        const city = cities.find(c => c.id === selectedCityId);
-        const regCost = city?.registrationCost?.credit || 0; // Fixed: Optional chaining
+    // Filtered Motos (Search Logic)
+    // If 'moto' prop is provided single, this might be redundant if this component is used for list too?
+    // Wait, QuoteGenerator takes a SINGLE 'moto' prop currently?
+    // Checking props... YES: export default function QuoteGenerator({ moto, ... }: Props)
+    // If it takes a single moto, then "Searchable Select" implies we want to SELECT from a list?
+    // The previous code didn't have a moto selector. It was fixed to 'moto'.
+    // BUT the user request says: "Optimización del Selector de Máquina... Buscador Integrado".
+    // This implies `QuoteGenerator` *SHOULD* allow selecting DIFFERENT motos, or `SmartQuotaSlider` (which has a list) is the target.
+    // However, I put `QuoteGenerator` on the Product Page where the moto is fixed?
+    // User request: "intervención inmediata en el componente del simulador (QuoteGenerator.tsx y SmartQuotaSlider.tsx)".
+    // `SmartQuotaSlider` DOES have a list `motos: Moto[]`. `QuoteGenerator` currently has `moto: Moto`.
+    // I should probably apply this search logic to `SmartQuotaSlider`. `QuoteGenerator` might NOT need a selector if it's for a specific moto?
+    // OR, should `QuoteGenerator` also learn to select?
+    // "Elige tu máquina" is in SmartQuotaSlider (Lines 119-134 of SmartQuotaSlider).
+    // QuoteGenerator (Lines 20) receives `moto`. It does NOT have a selector.
+    // Verify file content I viewed earlier...
+    // SmartQuotaSlider DOES have the selector.
+    // QuoteGenerator DOES NOT.
+    // I will apply the search logic to `SmartQuotaSlider` in the next step. 
+    // For `QuoteGenerator`, I will apply Contrast, Scenarios, and Slider fixes ONLY.
 
-        const base = moto.precio + regCost;
-        setDownPayment(Math.floor(base * 0.20));
-    }, [moto.id, selectedCityId, cities, downPayment]); // Added missing deps
-
+    // Changing Slider Max to 60
+    // Changing Text Colors
     const [quote, setQuote] = useState<QuoteResult | null>(null);
 
-    useEffect(() => {
-        if (!selectedCityId || !moto) return;
 
-        const city = cities.find(c => c.id === selectedCityId);
-        if (!city) return;
+    useEffect(() => {
+        if (!moto) return;
 
         const financialEntity = financialEntities.find(f => f.id === selectedFinancialId);
 
+        // Construct a Mock City object for the calculator logic
+        // The calculator needs { name: string, ... } to trigger "includes('Santa Marta')" etc.
+        const mockCity: City = {
+            id: activeScenario.id,
+            name: activeScenario.cityName,
+            department: 'Magdalena', // Placeholder
+            isActive: true,
+            documentationFee: 0 // Default for mock
+        };
+
+        console.log("Triggering Calculation with:", {
+            moto: moto.referencia,
+            price: moto.precio,
+            scenario: activeScenario.id,
+            financialEntity: financialEntity?.name || "None (Using Fallback)",
+            months,
+            downPayment
+        });
+
         const result = calculateQuote(
             moto,
-            city,
+            mockCity,
             soatRates,
-            paymentMethod,
-            paymentMethod === 'credit' ? financialEntity : undefined,
+            activeScenario.method,
+            isCredit ? financialEntity : undefined,
             months,
             downPayment,
-            matrix // Pass matrix
+            matrix
         );
 
         setQuote(result);
-    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, moto, cities, soatRates, financialEntities, matrix]);
+    }, [selectedScenarioId, selectedFinancialId, months, downPayment, moto, soatRates, financialEntities, matrix, activeScenario, isCredit]);
 
     if (!quote) return null;
 
-    // -- HANDLERS --
+    // -- HANDLERS (Same as before, updated to use activeScenario) --
 
     const saveSimulation = async (): Promise<number> => {
         if (!quote) return 0;
 
         try {
-            // 1. Get next ticket number
             const q = query(collection(db, "credit_simulations"), orderBy("ticketNumber", "desc"), limit(1));
             const querySnapshot = await getDocs(q);
             let nextTicket = 1000;
@@ -96,19 +136,18 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
                 nextTicket = (lastData.ticketNumber || 1000) + 1;
             }
 
-            // 2. Save Simulation
             const simData: Omit<CreditSimulation, 'id'> = {
                 ticketNumber: nextTicket,
                 createdAt: serverTimestamp() as any,
                 motoId: moto.id,
-                cityId: selectedCityId,
+                cityId: activeScenario.id, // Saving Scenario ID as CityId
                 financialEntityId: selectedFinancialId,
                 snapshot: {
                     motoPrice: quote.vehiclePrice,
                     registrationPrice: quote.registrationPrice,
                     soatPrice: quote.soatPrice,
                     interestRate: quote.interestRate || 0,
-                    lifeInsuranceRate: 0.1126, // Should come from config/constants
+                    lifeInsuranceRate: 0.1126,
                     movableGuaranteePrice: 120000,
                     specialAdjustment: quote.specialAdjustment
                 },
@@ -124,26 +163,21 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             await addDoc(collection(db, "credit_simulations"), simData);
             setTicket(nextTicket);
             return nextTicket;
-
         } catch (e) {
             console.error("Error saving simulation:", e);
-            return 0; // Fallback
+            return 0;
         }
     };
 
     const handleDownloadPDF = async () => {
         if (!quote) return;
         const ticketNum = await saveSimulation();
-
-        // Dynamic import to avoid SSR issues with jspdf
         const jsPDF = (await import('jspdf')).default;
         const autoTable = (await import('jspdf-autotable')).default;
 
         const doc = new jsPDF();
-
-        // Header
         doc.setFontSize(22);
-        doc.setTextColor(0, 56, 147); // Brand Blue
+        doc.setTextColor(0, 56, 147);
         doc.text("Tienda Las Motos", 14, 20);
 
         doc.setFontSize(10);
@@ -154,7 +188,6 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         doc.setTextColor(0, 0, 0);
         doc.text(`Cotización: ${moto.marca} ${moto.referencia}`, 14, 35);
 
-        // Table
         const tableData: any[] = [
             ["Concepto", "Valor"],
             ["Precio Moto", `$ ${quote.vehiclePrice.toLocaleString()}`],
@@ -167,7 +200,7 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         if (quote.isCredit) {
             tableData.push(
                 ["Garantia Mobiliaria", `$ ${quote.movableGuaranteeCost?.toLocaleString()}`],
-                ["Seguro de Vida (Est. Total)", `$ ${((quote.lifeInsuranceValue || 0) * (quote.months || 0)).toLocaleString()}`], // Show total estimated? Or monthly? Usually hidden in quota or shown as "Incluido"
+                ["Seguro de Vida (Est. Total)", `$ ${((quote.lifeInsuranceValue || 0) * (quote.months || 0)).toLocaleString()}`],
             );
         }
 
@@ -207,11 +240,10 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         if (!quote) return;
         const ticketNum = await saveSimulation();
 
-        const phone = "573008603210"; // Default commercial number or dynamic
+        const phone = "573008603210";
         let text = `Hola, me interesa la *${moto.marca} ${moto.referencia}*.\n`;
         text += `Ticket: *#${ticketNum}*\n\n`;
-        text += `*Ciudad:* ${cities.find(c => c.id === selectedCityId)?.name}\n`;
-        text += `*Modalidad:* ${paymentMethod === 'credit' ? 'Crédito' : 'Contado'}\n`;
+        text += `*Modalidad:* ${activeScenario.label}\n`;
         text += `*Precio Proyecto:* $${quote.subtotal.toLocaleString()}\n`;
 
         if (quote.isCredit) {
@@ -225,7 +257,6 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
         }
 
         text += `\nGeneré esta cotización en la página web. Quiero asesoría.`;
-
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
     };
 
@@ -236,60 +267,74 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             {/* CONTROLS */}
             <div className="space-y-4 mb-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad de Matrícula</label>
+                    <label className="block text-sm font-bold text-gray-900 mb-1">Lugar de Matrícula / Modalidad</label>
                     <select
-                        className="w-full p-2 border rounded-xl bg-gray-50"
-                        value={selectedCityId}
-                        onChange={(e) => setSelectedCityId(e.target.value)}
+                        className="w-full p-2 border rounded-xl bg-gray-50 font-bold text-gray-900"
+                        value={selectedScenarioId}
+                        onChange={(e) => setSelectedScenarioId(e.target.value)}
                     >
-                        {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {FINANCIAL_SCENARIOS.map(s => (
+                            <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
                     </select>
                 </div>
 
-                <div className="flex bg-gray-100 p-1 rounded-xl">
-                    <button
-                        onClick={() => setPaymentMethod('credit')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${paymentMethod === 'credit' ? 'bg-white shadow text-brand-blue' : 'text-gray-500'}`}
-                    >
-                        Crédito
-                    </button>
-                    <button
-                        onClick={() => setPaymentMethod('cash')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${paymentMethod === 'cash' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}
-                    >
-                        Contado
-                    </button>
-                </div>
-
-                {paymentMethod === 'credit' && (
+                {isCredit && (
                     <>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Entidad Financiera</label>
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <label className="block text-sm font-bold text-blue-900 mb-1">Entidad Financiera</label>
                             <select
-                                className="w-full p-2 border rounded-xl bg-gray-50"
+                                className="w-full p-2 border border-blue-200 rounded-xl bg-white font-bold text-gray-900"
                                 value={selectedFinancialId}
                                 onChange={(e) => setSelectedFinancialId(e.target.value)}
                             >
-                                {financialEntities.map(f => <option key={f.id} value={f.id}>{f.name} ({f.monthlyRate}%)</option>)}
+                                {financialEntities.map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} ({f.monthlyRate}%)</option>
+                                ))}
                             </select>
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial (Sugerido 20%)</label>
-                            <input
-                                type="number"
-                                className="w-full p-2 border rounded-xl bg-gray-50"
-                                value={downPayment}
-                                onChange={(e) => setDownPayment(Number(e.target.value))}
-                            />
+                            <label className="block text-sm font-bold text-gray-900 mb-1">Cuota Inicial Sugerida</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 pl-6 border rounded-xl bg-gray-50 font-bold text-gray-900"
+                                    value={downPaymentStr}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        const num = Number(val);
+                                        setDownPayment(num);
+                                        setDownPaymentStr(num > 0 ? num.toLocaleString('es-CO') : "");
+                                    }}
+                                    placeholder="0"
+                                />
+                            </div>
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Plazo: {months} meses</label>
+                            <div className="flex justify-between mb-1">
+                                <label className="text-sm font-bold text-gray-900">Plazo</label>
+                                <span className="text-sm font-bold text-brand-blue">{months} meses</span>
+                            </div>
                             <input
-                                type="range" min="12" max="72" step="12"
-                                className="w-full accent-brand-blue"
+                                type="range" min="12" max="60" step="12"
+                                className="w-full accent-brand-blue cursor-pointer"
                                 value={months}
                                 onChange={(e) => setMonths(Number(e.target.value))}
                             />
+                            <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>12</span>
+                                <span>24</span>
+                                <span>36</span>
+                                <span>48</span>
+                                <span>12</span>
+                                <span>24</span>
+                                <span>36</span>
+                                <span>48</span>
+                                <span>60</span>
+                            </div>
                         </div>
                     </>
                 )}
@@ -310,16 +355,19 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
                     <span className="font-medium">${quote.soatPrice.toLocaleString()}</span>
                 </div>
 
-                <div className="border-t pt-2 mt-2">
+                <div className="border-t border-gray-200 pt-3 mt-3">
                     <div className="flex justify-between text-lg font-bold text-gray-900">
                         <span>Total Proyecto</span>
                         <span>${quote.subtotal.toLocaleString()}</span>
                     </div>
                     {quote.isCredit && (
-                        <div className="flex justify-between text-brand-blue font-bold mt-1">
-                            <span>Cuota Mensual</span>
-                            <span>${quote.monthlyPayment?.toLocaleString()}</span>
-                        </div>
+                        <>
+                            <div className="flex justify-between text-brand-blue font-black mt-2 bg-blue-50 p-2 rounded-lg">
+                                <span className="text-blue-900 font-bold">Cuota Mensual Aprox.</span>
+                                <span className="text-slate-900 font-extrabold text-xl">${quote.monthlyPayment?.toLocaleString()}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 italic mt-1 text-right">* Valor aproximado sujeto a estudio de crédito</p>
+                        </>
                     )}
                 </div>
             </div>
@@ -328,15 +376,15 @@ export default function QuoteGenerator({ moto, cities, soatRates, financialEntit
             <div className="space-y-3">
                 <button
                     onClick={handleDownloadPDF}
-                    className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-colors flex justify-center gap-2"
+                    className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition-colors flex justify-center gap-2 items-center shadow-lg shadow-gray-200"
                 >
-                    📄 Descargar Cotización PDF
+                    <span>📄</span> Descargar Cotización PDF
                 </button>
                 <button
                     onClick={handleWhatsapp}
-                    className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex justify-center gap-2"
+                    className="w-full bg-[#25D366] text-white py-3.5 rounded-xl font-bold hover:bg-[#20bd5a] transition-colors flex justify-center gap-2 items-center shadow-lg shadow-green-100"
                 >
-                    💬 Enviar a mi Asesor
+                    <span>💬</span> Enviar a mi Asesor
                 </button>
             </div>
 

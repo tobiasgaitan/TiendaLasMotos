@@ -6,26 +6,46 @@ import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financ
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { FINANCIAL_SCENARIOS } from "@/lib/constants";
 
 interface Props {
     motos: Moto[];
-    cities: City[];
+    cities?: City[]; // Deprecated
     soatRates: SoatRate[];
     financialEntities: FinancialEntity[];
 }
 
-export default function SmartQuotaSlider({ motos, cities, soatRates, financialEntities }: Props) {
+export default function SmartQuotaSlider({ motos, soatRates, financialEntities }: Props) {
     // Default to first moto if available
     const [selectedMotoId, setSelectedMotoId] = useState<string>(motos[0]?.id || "");
-    const [selectedCityId, setSelectedCityId] = useState<string>(cities[0]?.id || "");
-    const [paymentMethod, setPaymentMethod] = useState<'credit' | 'cash'>('credit');
+    const [selectedScenarioId, setSelectedScenarioId] = useState<string>(FINANCIAL_SCENARIOS[0].id);
     const [selectedFinancialId, setSelectedFinancialId] = useState<string>(financialEntities[0]?.id || "");
     const [months, setMonths] = useState<number>(48);
     const [downPayment, setDownPayment] = useState<number>(0);
+    const [downPaymentStr, setDownPaymentStr] = useState<string>("");
     const [quote, setQuote] = useState<QuoteResult | null>(null);
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
 
+    // Search State
+    const [filterText, setFilterText] = useState("");
+
+    // Filtered Motos Logic
+    const filteredMotos = motos.filter(m =>
+        m.referencia.toLowerCase().includes(filterText.toLowerCase()) ||
+        m.marca.toLowerCase().includes(filterText.toLowerCase())
+    );
+
+    // Ensure selectedMotoId is valid in filtered list, or default to first filtered
+    useEffect(() => {
+        if (filteredMotos.length > 0 && !filteredMotos.find(m => m.id === selectedMotoId)) {
+            setSelectedMotoId(filteredMotos[0].id);
+        }
+    }, [filterText, filteredMotos]);
+
     const selectedMoto = motos.find(m => m.id === selectedMotoId);
+
+    const activeScenario = FINANCIAL_SCENARIOS.find(s => s.id === selectedScenarioId) || FINANCIAL_SCENARIOS[0];
+    const isCredit = activeScenario.method === 'credit';
 
     // Initial Data Fetch (Matrix)
     useEffect(() => {
@@ -43,45 +63,49 @@ export default function SmartQuotaSlider({ motos, cities, soatRates, financialEn
         fetchMatrix();
     }, []);
 
-    // Update Default Down Payment (20%) when moto changes
+    // Update Default Down Payment (10%) when moto changes
     useEffect(() => {
-        if (!selectedMoto || downPayment > 0) return;
-        const cityCost = cities.find(c => c.id === selectedCityId)?.registrationCost?.credit || 0;
-        const base = selectedMoto.precio + cityCost;
-        setDownPayment(Math.floor(base * 0.20));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedMotoId, selectedCityId, cities, downPayment]); // Run once per moto/city change if downpayment is 0
+        if (!selectedMoto) return;
+        // Always reset to 10% when moto changes
+        const def = Math.floor(selectedMoto.precio * 0.10);
+        setDownPayment(def);
+        setDownPaymentStr(def.toLocaleString('es-CO'));
+    }, [selectedMotoId]);
 
     // Calculate Quote
     useEffect(() => {
-        if (!selectedCityId || !selectedMoto) return;
-
-        const city = cities.find(c => c.id === selectedCityId);
-        if (!city) return;
+        if (!selectedMoto) return;
 
         const financialEntity = financialEntities.find(f => f.id === selectedFinancialId);
 
+        const mockCity: City = {
+            id: activeScenario.id,
+            name: activeScenario.cityName,
+            department: 'Magdalena',
+            isActive: true,
+            documentationFee: 0
+        };
+
         const result = calculateQuote(
             selectedMoto,
-            city,
+            mockCity,
             soatRates,
-            paymentMethod,
-            paymentMethod === 'credit' ? financialEntity : undefined,
+            activeScenario.method,
+            isCredit ? financialEntity : undefined,
             months,
             downPayment,
-            matrix // Pass matrix
+            matrix
         );
 
         setQuote(result);
-    }, [selectedCityId, paymentMethod, selectedFinancialId, months, downPayment, selectedMoto, cities, soatRates, financialEntities, matrix]);
+    }, [selectedScenarioId, selectedFinancialId, months, downPayment, selectedMoto, soatRates, financialEntities, matrix, activeScenario, isCredit]);
 
     // HANDLERS
     const handleWhatsapp = () => {
         if (!quote || !selectedMoto) return;
         const phone = "573008603210";
-        let text = `Hola, me interesa la *${selectedMoto.marca} ${selectedMoto.referencia}*.\n`;
-        text += `*Ciudad:* ${cities.find(c => c.id === selectedCityId)?.name}\n`;
-        text += `*Modalidad:* ${paymentMethod === 'credit' ? 'Crédito' : 'Contado'}\n`;
+        let text = `Hola, me interesa la *${selectedMoto.marca} ${selectedMoto.referencia}*.\n`; // fallback
+        text += `*Modalidad:* ${activeScenario.label}\n`;
         text += `*Precio Proyecto:* $${quote.subtotal.toLocaleString()}\n`;
 
         if (quote.isCredit) {
@@ -107,76 +131,71 @@ export default function SmartQuotaSlider({ motos, cities, soatRates, financialEn
 
             <div className="p-6 space-y-6">
                 {/* MOTO SELECTOR */}
+                {/* MOTO SELECTOR (Searchable) */}
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Elige tu Máquina</label>
+                    <input
+                        type="text"
+                        placeholder="Buscar moto..."
+                        className="w-full p-3 mb-2 border border-slate-300 rounded-xl bg-slate-50 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                    />
                     <select
                         className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
                         value={selectedMotoId}
-                        onChange={(e) => {
-                            setSelectedMotoId(e.target.value);
-                            setDownPayment(0); // Reset down payment suggestion
-                        }}
+                        onChange={(e) => setSelectedMotoId(e.target.value)}
                     >
-                        {motos.map(m => (
-                            <option key={m.id} value={m.id}>{m.referencia} - ${m.precio.toLocaleString()}</option>
+                        {filteredMotos.map(m => (
+                            <option key={m.id} value={m.id}>{m.referencia}</option>
                         ))}
                     </select>
                 </div>
 
-                {/* CITY & PAYMENT MODE */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ciudad</label>
-                        <select
-                            className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 text-sm"
-                            value={selectedCityId}
-                            onChange={(e) => setSelectedCityId(e.target.value)}
-                        >
-                            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                        <button
-                            onClick={() => setPaymentMethod('credit')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${paymentMethod === 'credit' ? 'bg-white shadow text-brand-blue' : 'text-slate-400'}`}
-                        >
-                            Crédito
-                        </button>
-                        <button
-                            onClick={() => setPaymentMethod('cash')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${paymentMethod === 'cash' ? 'bg-white shadow text-green-600' : 'text-slate-400'}`}
-                        >
-                            Contado
-                        </button>
-                    </div>
+                {/* SCENARIO SELECTOR */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-900 uppercase mb-1">Modalidad / Ciudad</label>
+                    <select
+                        className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-900"
+                        value={selectedScenarioId}
+                        onChange={(e) => setSelectedScenarioId(e.target.value)}
+                    >
+                        {FINANCIAL_SCENARIOS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
                 </div>
 
                 {/* CREDIT DETAILS */}
-                {paymentMethod === 'credit' && (
+                {isCredit && (
                     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cuota Inicial</label>
+                            <label className="block text-xs font-bold text-slate-900 uppercase mb-1">Cuota Inicial Sugerida</label>
                             <input
-                                type="number"
-                                className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 font-medium"
-                                value={downPayment}
-                                onChange={(e) => setDownPayment(Number(e.target.value))}
+                                type="text"
+                                className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 font-bold text-slate-900"
+                                value={downPaymentStr}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    const num = Number(val);
+                                    setDownPayment(num);
+                                    setDownPaymentStr(num > 0 ? num.toLocaleString('es-CO') : "");
+                                }}
+                                placeholder="0"
                             />
                         </div>
                         <div>
                             <div className="flex justify-between mb-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Plazo</label>
+                                <label className="text-xs font-bold text-slate-900 uppercase">Plazo</label>
                                 <span className="text-sm font-bold text-brand-blue">{months} Meses</span>
                             </div>
                             <input
-                                type="range" min="12" max="72" step="12"
+                                type="range" min="12" max="60" step="12"
                                 className="w-full accent-brand-blue h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                                 value={months}
                                 onChange={(e) => setMonths(Number(e.target.value))}
                             />
                             <div className="flex justify-between text-xs text-slate-400 mt-1">
                                 <span>12m</span>
-                                <span>72m</span>
+                                <span>60m</span>
                             </div>
                         </div>
                     </div>
@@ -190,10 +209,13 @@ export default function SmartQuotaSlider({ motos, cities, soatRates, financialEn
                             <span className="font-bold text-slate-700">${quote.vehiclePrice.toLocaleString()}</span>
                         </div>
                         {quote.isCredit && (
-                            <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
-                                <span className="text-sm font-bold text-brand-blue">Cuota Aprox.</span>
-                                <span className="text-2xl font-black text-brand-red">${quote.monthlyPayment?.toLocaleString()}</span>
-                            </div>
+                            <>
+                                <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
+                                    <span className="text-sm font-bold text-brand-blue">Cuota Aprox.</span>
+                                    <span className="text-2xl font-extrabold text-slate-900">${quote.monthlyPayment?.toLocaleString()}</span>
+                                </div>
+                                <p className="text-xs text-slate-500 italic mt-1 text-right">* Valor aproximado sujeto a estudio de crédito</p>
+                            </>
                         )}
                         {!quote.isCredit && (
                             <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">

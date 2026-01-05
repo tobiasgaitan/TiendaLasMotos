@@ -44,7 +44,8 @@ export interface Moto {
     last_checked?: any;
     bono?: Bono;
     displacement?: number; // Cilindraje en CC (Fallback 150cc if null)
-    category?: 'urbana' | 'deportiva' | 'todoterreno' | 'scooter' | 'electrica' | 'motocarro'; // New Classification
+    category?: string; // @deprecated use categories
+    categories?: string[]; // New multi-category support // New Classification
     specialAdjustment?: number; // Ajuste especial (bono o cargo extra)
 }
 

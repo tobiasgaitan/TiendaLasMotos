@@ -7,6 +7,9 @@ import { Product } from '@/lib/hooks/useInventory';
 import ImageUploader from './ImageUploader';
 import ModalWrapper from './admin/ModalWrapper';
 import { Loader2 } from 'lucide-react';
+import { CATEGORIES_OFFICIAL } from '@/lib/constants';
+
+// CONSTANTS (Imported)
 
 interface Props {
     product: Product | null;
@@ -24,7 +27,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     // Estado del formulario
     const [formData, setFormData] = useState({
-        category: 'urbana', // Default changed to specific type, was 'motos' generic
+        categories: [] as string[], // Changed from single category
+        category: '', // Legacy/Primary
         brand: '',
         model: '',
         seoDescription: '',
@@ -34,8 +38,13 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
         bonusEndDate: '',
         year: new Date().getFullYear(),
         external_url: '',
-        price: 0,
+        price: '', // Changed to string for input
         stock: 0,
+        referencia: '', // Added
+        promotionalPrice: '', // Added
+        displacement: '', // Added
+        description: '', // Added
+        frenosABS: false // Added
     });
 
     // 1. LÓGICA CRÍTICA DE INICIALIZACIÓN
@@ -44,7 +53,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             if (product) {
                 // MODO EDICIÓN: Cargar datos existentes
                 setFormData({
-                    category: product.category || 'urbana',
+                    categories: product.categories || (product.category ? [product.category] : []),
+                    category: product.category || '',
                     brand: product.brand || '',
                     model: product.model || '',
                     seoDescription: product.seoDescription || '',
@@ -54,13 +64,19 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     bonusEndDate: product.bonusEndDate || '',
                     year: product.year || new Date().getFullYear(),
                     external_url: product.external_url || '',
-                    price: product.price || 0,
+                    price: product.price?.toString() || '', // Convert to string
                     stock: product.stock || 0,
+                    referencia: product.referencia || '',
+                    promotionalPrice: product.promotionalPrice?.toString() || '',
+                    displacement: product.displacement?.toString() || '',
+                    description: product.description || '',
+                    frenosABS: product.frenosABS || false
                 });
             } else {
                 // MODO CREACIÓN: Limpiar formulario
                 setFormData({
-                    category: 'urbana',
+                    categories: [],
+                    category: '',
                     brand: '',
                     model: '',
                     seoDescription: '',
@@ -70,8 +86,13 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     bonusEndDate: '',
                     year: new Date().getFullYear(),
                     external_url: '',
-                    price: 0,
+                    price: '',
                     stock: 0,
+                    referencia: '',
+                    promotionalPrice: '',
+                    displacement: '',
+                    description: '',
+                    frenosABS: false
                 });
             }
         }
@@ -103,6 +124,21 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             .replace(/[^\w-]+/g, '');
     };
 
+    const toggleCategory = (cat: string) => {
+        setFormData(prev => {
+            const exists = prev.categories.includes(cat);
+            const newCats = exists
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat];
+
+            return {
+                ...prev,
+                categories: newCats,
+                category: newCats[0] || '' // Sync legacy field to first selection
+            };
+        });
+    };
+
     /**
      * Guarda los cambios (CREAR o EDITAR) en Firestore.
      */
@@ -113,7 +149,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             const precioLimpio = Number(formData.price.toString().replace(/[^0-9]/g, ''));
 
             const dataToSave: any = {
-                category: formData.category,
+                categories: formData.categories,
+                category: formData.categories[0] || '', // Legacy Support
                 brand: formData.brand,
                 model: formData.model,
                 seoDescription: formData.seoDescription,
@@ -198,18 +235,22 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
                         <div>
                             <label className="text-xs text-gray-500 block mb-1">Categoría*</label>
-                            <select
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            >
-                                <option value="urbana">Urbana</option>
-                                <option value="deportiva">Deportiva</option>
-                                <option value="todoterreno">Todoterreno</option>
-                                <option value="scooter">Scooter</option>
-                                <option value="electrica">Eléctrica</option>
-                                <option value="motocarro">Motocarro / Motocarguero</option>
-                            </select>
+                            <label className="text-xs text-gray-500 block mb-1">Categorías</label>
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                {CATEGORIES_OFFICIAL.map(cat => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => toggleCategory(cat)}
+                                        className={`text-[10px] px-2 py-2 rounded-md border transition-colors ${formData.categories.includes(cat)
+                                            ? 'bg-blue-600 text-white border-blue-600'
+                                            : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500'
+                                            }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div>
@@ -245,7 +286,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
                     {/* DERECHA */}
                     <div className="space-y-5">
-                        <div><label className="text-xs text-blue-300 block mb-1">Precio Compra</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} /></div>
+                        <div><label className="text-xs text-blue-300 block mb-1">Precio Compra</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} /></div>
                         <div><label className="text-xs text-blue-300 block mb-1">Año</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} /></div>
                         <div><label className="text-xs text-gray-500 block mb-1">Stock Disponible</label><input type="number" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} /></div>
 
