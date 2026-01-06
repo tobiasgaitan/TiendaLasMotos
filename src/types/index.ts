@@ -16,6 +16,13 @@ export interface Lead {
     origen?: "WEB_BETA";
     estado?: string;
 
+    // Intelligent Routing / Profiling
+    edad?: number;
+    ingresos_mensuales?: string; // Range e.g. "1-2 SMMLV"
+    actividad_economica?: string; // "Empleado", "Independiente"
+    reportado_datacredito?: boolean;
+    eligibility_status?: 'Eligible' | 'Rejected' | 'Conditional';
+
     // Future AI Integration
     informe_ia?: {
         resumen: string;        // Detailed explanation

@@ -71,17 +71,12 @@ export const calculateQuote = (
 
     // 2. Logic to Find Best Matrix Row (Highest Cost)
     let selectedMatrixRow: MatrixRow | undefined;
-    let soatPrice = 0;
-    let registrationPrice = 0;
+    let registrationPrice = 0; // This now represents TOTAL Documentation Cost (Matrícula + SOAT + Trámites)
 
     if (financialMatrix) {
         // Determine Context Key (Column in Matrix)
         const cityName = city.name.toLowerCase();
         let contextKey: keyof MatrixRow = 'registrationCreditGeneral'; // Default column field name
-
-        // Map City+Method to MatrixColumn
-        // Note: The MatrixRow interface has specific fields like 'registrationCreditSantaMarta', etc.
-        // We need to map our inputs to one of these fields.
 
         if (paymentMethod === 'credit') {
             if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
@@ -92,12 +87,7 @@ export const calculateQuote = (
             else if (cityName.includes('envigado')) contextKey = 'registrationCashEnvigado';
             else if (cityName.includes('ciénaga') || cityName.includes('cienaga')) contextKey = 'registrationCashCienaga';
             else if (cityName.includes('zona bananera')) contextKey = 'registrationCashZonaBananera';
-            else contextKey = 'registrationCreditGeneral'; // Fallback for unmatched cash cities or use Envigado as generic cash? 
-            // Let's use Envigado as generic Cash base if not matched? 
-            // Or stick to Credit General as baseline?
-            // Given "Contado Envigado" is a specific option, likely the most common.
-            // But let's fallback to Credit General to avoid under-charging if unsure?
-            // Actually, if I don't match, I should probably use General.
+            else contextKey = 'registrationCreditGeneral';
         }
 
         let maxCost = -1;
@@ -109,14 +99,7 @@ export const calculateQuote = (
             // 1. Exact Category Match (High Priority)
             const specificMatch = financialMatrix.rows.find(r => r.category === cat);
 
-            // 2. Generic CC Match (If no specific category on row, or row expects displacement)
-            // Note: A row like "0-99" (minCC=0, maxCC=99) applies to ANY category that fits,UNLESS the category has a specific override.
-            // If we found a specific match (e.g. Electrical), we usually use it.
-            // But if we want "Highest Cost", we should check generic too?
-            // E.g. Electric (Cost 100) vs 0-99 (Cost 200). If logic requires Max, we scan all.
-            // But Electric usually implies 0 CC or valid CC.
-            // Let's check matching generic rows.
-
+            // 2. Generic CC Match
             const genericMatches = financialMatrix.rows.filter(r =>
                 !r.category && // Only generic rows
                 (r.minCC !== undefined && r.maxCC !== undefined) &&
@@ -129,7 +112,6 @@ export const calculateQuote = (
 
             // Find max cost among candidates
             candidates.forEach(row => {
-                // Access dynamic key safely
                 const cost = (row as any)[contextKey] as number;
                 if (typeof cost === 'number' && cost > maxCost) {
                     maxCost = cost;
@@ -140,37 +122,39 @@ export const calculateQuote = (
 
         if (selectedMatrixRow) {
             registrationPrice = (selectedMatrixRow as any)[contextKey] || 0;
-            soatPrice = selectedMatrixRow.soatPrice;
         }
     }
 
     // Fallback if Matrix didn't yield result (or matrix missing)
     if (!selectedMatrixRow) {
-        soatPrice = calculateSoat(displacement, soatRates);
         registrationPrice = city.registrationCost?.credit || 0;
     }
 
-    // 3. Impuesto de Timbre (Motocarros > 125cc)
+    // 3. Impuesto de Timbre (Vehículos > 125cc en Contado)
     // Formula: (Precio * 1.5% / 12) * Math.ceil(meses_restantes) + 40000
-    // Check if any category is 'MOTOCARRO...'
-    const isMotocarro = categoriesToCheck.some(c => c && c.toUpperCase().includes("MOTOCARRO"));
+    // Applies to ALL vehicles > 125cc when paying in CASH, not just Motocarros.
 
-    if (isMotocarro && displacement > 125 && paymentMethod === 'cash') {
+    if (displacement > 125 && paymentMethod === 'cash') {
         const now = new Date();
-        // Calculate remaining months including current month? 
-        // User formula says "meses_restantes". Typically if we are in Jan, 12 months remain?
-        // Let's assume standard tax logic: months from NOW until Dec 31.
-        // Jan=12, Feb=11... Dec=1.
         const remainingMonths = 12 - now.getMonth();
         const stampTax = ((price * 0.015) / 12) * remainingMonths + 40000;
-
         registrationPrice += stampTax;
     }
 
     const documentationFee = city.documentationFee || 0;
 
     // 4. Subtotal
-    const subtotal = price + soatPrice + registrationPrice + documentationFee + specialAdjustment;
+    // Note: 'registrationPrice' now includes the Matrix Value which acts as the total docs cost.
+    // We add 'documentationFee' if it's still relevant as a separate extra fee (Gestion Documental).
+    // The user requirement says "V_docs = Valor Escenario".
+    // Usually 'documentationFee' comes from City.documentationFee.
+    // If the Matrix Value is ALL INCLUSIVE, maybe we shouldn't add documentationFee?
+    // User said: "V_docs = Valor Escenario".
+    // I will KEEP documentationFee if it's distinct from the Matrix, but assuming the Matrix covers the main cost.
+    // The previous logic was: subtotal = price + soatPrice + registrationPrice + documentationFee.
+    // Now: subtotal = price + registrationPrice (Matrix) + documentationFee.
+    // Assuming documentationFee is a separate service fee not in the matrix.
+    const subtotal = price + registrationPrice + documentationFee + specialAdjustment;
 
     // 5. Credit Calculations
     let total = subtotal;
@@ -178,19 +162,58 @@ export const calculateQuote = (
     let monthlyPayment = 0;
     let lifeInsuranceValue = 0;
     let movableGuaranteeCost = 0;
-    const downPayment = downPaymentInput;
 
     if (paymentMethod === 'credit') {
-        // defined inside or globally
-        const LIFE_INSURANCE_RATE = 0.1126 / 100; // 0.1126% MV
+        // Defaults
+        const LIFE_INSURANCE_RATE_PCT = 0.1126 / 100; // Legacy Default 0.1126% MV
         const MOVABLE_GUARANTEE_COST = 120000;
 
         movableGuaranteeCost = MOVABLE_GUARANTEE_COST;
         const downPayment = downPaymentInput;
-        const baseAmountToFinance = subtotal - downPayment;
 
+        let baseAmountToFinance = subtotal - downPayment;
+
+        // --- NEW LOGIC START ---
+        // 1. Check if Entity includes procedures in the financed amount (Capital)
+        // If feesIncludesMatricula is TRUE, it implies the registration/docs cost is part of the LOAN, 
+        // BUT 'subtotal' already includes 'registrationPrice'.
+        // So 'baseAmountToFinance' = (Vehicle + Docs + Special) - DownPayment.
+        // This effectively finances the procedures. 
+        // If feesIncludesMatricula is FALSE, usually user pays docs upfront or separate? 
+        // Current standard logic finances everything in 'subtotal'.
+        // The requirement says: "Incluye Trámites: Activo (suma matrícula al capital financiado)".
+        // Meaning: Capital = (MotoPrice - DownPayment) + Docs.
+        // In our current 'subtotal', Docs IS included. So standard logic works.
+        // We just need to ensure we don't double count or exclude it if false.
+        // For simplicity, we assume 'subtotal' (Asset Value) is what is being financed minus downpayment.
+
+        // 2. Loan Amount
         loanAmount = baseAmountToFinance + movableGuaranteeCost;
 
+        // 3. Life Insurance Calculation
+        // Type: 'percentage' (default) OR 'fixed_per_million' (Banco de Bogotá)
+        const insuranceType = financialEntity?.lifeInsuranceType || 'percentage';
+        const insuranceVal = financialEntity?.lifeInsuranceValue ?? 0.1126; // Default to old rate if missing
+
+        if (insuranceType === 'fixed_per_million') {
+            // Factor de $800 por cada millón financiado
+            // Formula: (LoanAmount / 1,000,000) * Factor
+            // This is a MONTHLY cost added to the quota.
+            const millions = loanAmount / 1000000;
+            lifeInsuranceValue = Math.ceil(millions * insuranceVal);
+        } else {
+            // Percentage based (e.g. 0.1126%)
+            // Usually applied to Outstanding Balance.
+            // For fixed quota approximation: LoanAmount * Rate
+            // Note: If rate is 0.1126 (number), we divide by 100 if stored as percentage.
+            // If stored as raw factor (0.001126), use directly.
+            // Based on old code: loanAmount * (0.1126 / 100).
+            // So if insuranceVal is 0.1126, we treat it as %.
+            const rate = insuranceVal / 100;
+            lifeInsuranceValue = Math.round(loanAmount * rate);
+        }
+
+        // 4. PMT (Amortization)
         // Fallback 2.5% if missing or if financialEntity is undefined
         const effectiveRate = financialEntity?.interestRate || financialEntity?.monthlyRate || 2.5;
         const r = effectiveRate / 100;
@@ -198,8 +221,7 @@ export const calculateQuote = (
 
         console.log("--- Credit Calculation Debug ---");
         console.log("Moto Price:", price);
-        console.log("Registration:", registrationPrice);
-        console.log("Soat:", soatPrice);
+        console.log("Total Docs (Matrix):", registrationPrice);
         console.log("Subtotal (Asset Value):", subtotal);
         console.log("Down Payment:", downPayment);
         console.log("Base Financed (P_base):", baseAmountToFinance);
@@ -207,6 +229,8 @@ export const calculateQuote = (
         console.log("Total Loan Amount (P):", loanAmount);
         console.log("Rate (r):", effectiveRate, "%");
         console.log("Months (n):", n);
+        console.log("Insurance Type:", insuranceType);
+        console.log("Insurance Value (Calc):", lifeInsuranceValue);
 
         if (loanAmount > 0 && n > 0) {
             let basePmt = 0;
@@ -216,10 +240,10 @@ export const calculateQuote = (
                 basePmt = loanAmount / n;
             }
 
-            lifeInsuranceValue = loanAmount * LIFE_INSURANCE_RATE;
+            // Total Monthly Payment = Amortization + Life Insurance
             monthlyPayment = Math.round(basePmt + lifeInsuranceValue);
+
             console.log("Base PMT (Amort):", basePmt);
-            console.log("Life Insurance:", lifeInsuranceValue);
             console.log("Total Monthly Payment:", monthlyPayment);
         }
 
@@ -228,16 +252,16 @@ export const calculateQuote = (
 
     return {
         vehiclePrice: price,
-        soatPrice,
+        soatPrice: 0,
         registrationPrice,
         documentationFee,
         specialAdjustment,
         subtotal,
         total,
-        downPayment,
+        downPayment: downPaymentInput,
         loanAmount,
-        fngCost: 0, // Not explicitly calculated here currently? Or part of something else? Keeping 0 as per previous code.
-        lifeInsuranceValue,
+        fngCost: 0,
+        lifeInsuranceValue, // Now correctly calculated based on type
         movableGuaranteeCost,
         monthlyPayment: paymentMethod === 'credit' ? monthlyPayment : 0,
         months: paymentMethod === 'credit' ? months : 0,

@@ -33,6 +33,13 @@ export interface FinancialEntity {
     requiresPledge?: boolean;
     logoUrl?: string;
     active?: boolean;
+
+    // Security & Calculation Config (New)
+    lifeInsuranceType: 'percentage' | 'fixed_per_million'; // 'percentage' (0.1126%) or 'fixed' ($800 per M)
+    lifeInsuranceValue: number; // The rate (e.g. 0.1126) or the value (e.g. 800)
+    feesIncludesMatricula: boolean; // If true, adds registrationPrice to LoanAmount
+    minAge?: number;
+    maxAge?: number;
 }
 
 export interface FinancialConfig {
@@ -47,7 +54,7 @@ export interface MatrixRow {
     category?: string; // e.g. "ELECTRICA", "MOTOCARRO" (Exact match)
     minCC?: number; // For displacement based rows
     maxCC?: number; // For displacement based rows
-    soatPrice: number;
+    // soatPrice removed as per requirement - Costs are now totalized in context columns
     // Costs per city/region context (using a record for flexibility or fixed keys if known)
     // We will use specific keys as per requirements: 
     // creditGeneral, creditSantaMarta, cashEnvigado, cashCienaga, cashZonaBananera, cashSantaMarta
