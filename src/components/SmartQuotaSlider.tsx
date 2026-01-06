@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Moto, Lead } from "@/types";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
@@ -34,7 +34,11 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     });
 
     // Routing Logic
-    const routingResult = routeFinancialEntities(userProfile, allFinancialEntities);
+    // Memoize input for routing to prevent unstable object references if allFinancialEntities changes reference
+    const routingResult = useMemo(() => {
+        return routeFinancialEntities(userProfile, allFinancialEntities);
+    }, [userProfile, allFinancialEntities]);
+
     const availableEntities = routingResult.suitableEntities;
 
     // Use availableEntities for selection. If none, fall back to empty or handle error.
