@@ -191,7 +191,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         const tableData: any[] = [
             ["Concepto", "Valor"],
             ["Precio Moto", `$ ${quote.vehiclePrice.toLocaleString()}`],
-            ["SOAT + Runt", `$ ${quote.soatPrice.toLocaleString()}`],
+            ["Matrícula + SOAT + Trámites", `$ ${quote.registrationPrice.toLocaleString()}`],
             ["Matrícula", `$ ${quote.registrationPrice.toLocaleString()}`],
             ["Gestión Documental", `$ ${quote.documentationFee.toLocaleString()}`],
             ["Ajuste Especial", `$ ${quote.specialAdjustment.toLocaleString()}`],
@@ -346,13 +346,10 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                     <span className="text-gray-500">Precio Moto</span>
                     <span className="font-medium">${quote.vehiclePrice.toLocaleString()}</span>
                 </div>
+
                 <div className="flex justify-between">
-                    <span className="text-gray-500">Matrícula + Trámites</span>
+                    <span className="text-gray-500">Valor Trámites (Incluye SOAT)</span>
                     <span className="font-medium">${(quote.registrationPrice + quote.documentationFee).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-gray-500">SOAT</span>
-                    <span className="font-medium">${quote.soatPrice.toLocaleString()}</span>
                 </div>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
@@ -386,6 +383,10 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 >
                     <span>💬</span> Enviar a mi Asesor
                 </button>
+
+                <p className="text-[10px] text-center text-slate-400 leading-tight pt-2">
+                    La información presentada es un cálculo aproximado (cumple con las condiciones de la Ley 546 de 1999) basado en la información suministrada y no constituye compromiso de otorgamiento de crédito.
+                </p>
             </div>
 
         </div>

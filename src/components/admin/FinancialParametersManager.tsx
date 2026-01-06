@@ -16,7 +16,6 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '0 - 99 cc',
         minCC: 0,
         maxCC: 99,
-        soatPrice: 489400,
         registrationCreditGeneral: 660000,
         registrationCreditSantaMarta: 760000,
         registrationCashEnvigado: 530000,
@@ -29,7 +28,6 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '100 - 124 cc',
         minCC: 100,
         maxCC: 124,
-        soatPrice: 678400,
         registrationCreditGeneral: 740000,
         registrationCreditSantaMarta: 840000,
         registrationCashEnvigado: 605000,
@@ -42,7 +40,6 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '125 - 200 cc',
         minCC: 125,
         maxCC: 200,
-        soatPrice: 678400,
         registrationCreditGeneral: 820000,
         registrationCreditSantaMarta: 920000,
         registrationCashEnvigado: 605000,
@@ -55,7 +52,6 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: 'Mayor a 200 cc',
         minCC: 201,
         maxCC: 99999,
-        soatPrice: 822500,
         registrationCreditGeneral: 1020000,
         registrationCreditSantaMarta: 1120000,
         registrationCashEnvigado: 1040000,
@@ -67,7 +63,6 @@ const INITIAL_ROWS: MatrixRow[] = [
         id: 'electrical',
         label: 'Eléctricas',
         category: 'ELECTRICA',
-        soatPrice: 0,
         registrationCreditGeneral: 440000,
         registrationCreditSantaMarta: 540000,
         registrationCashEnvigado: 400000,
@@ -80,11 +75,7 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: 'Motocarros',
         category: 'MOTOCARRO Y/O MOTOCARGUERO',
         minCC: 0,
-        maxCC: 99999, // Can have displacement but overrides CC cost logic?
-        // Actually, for Motocarro, we want to match this row.
-        // It has specific registration costs.
-        // But for Motocarro > 125cc, we ADD tax.
-        soatPrice: 0,
+        maxCC: 99999,
         registrationCreditGeneral: 850000,
         registrationCreditSantaMarta: 950000,
         registrationCashEnvigado: 650000,
@@ -170,7 +161,7 @@ export default function FinancialParametersManager() {
                     <thead className="text-xs uppercase bg-gray-800 text-gray-400">
                         <tr>
                             <th className="px-4 py-4 rounded-tl-xl sticky left-0 bg-gray-800 z-10">Categoría / Cilindrada</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700">Valor SOAT</th>
+
                             <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">Crédito (General)</th>
                             <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">Crédito (Sta Marta)</th>
                             <th className="px-4 py-4 text-center border-l border-gray-700">Contado (Envigado)</th>
@@ -186,15 +177,7 @@ export default function FinancialParametersManager() {
                                     {row.label}
                                 </td>
 
-                                {/* SOAT */}
-                                <td className="p-2 border-r border-gray-700">
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50"
-                                        value={row.soatPrice}
-                                        onChange={(e) => updateCell(idx, 'soatPrice', Number(e.target.value))}
-                                    />
-                                </td>
+
 
                                 {/* CREDIT GENERAL */}
                                 <td className="p-2 border-r border-gray-700 bg-blue-900/5">
@@ -265,7 +248,7 @@ export default function FinancialParametersManager() {
                 <h4 className="font-bold mb-2 flex items-center gap-2">ℹ️ Notas Importantes</h4>
                 <ul className="list-disc pl-5 space-y-1">
                     <li>La <strong>Categoría</strong> tiene prioridad sobre el cilindraje (ej: Eléctricas siempre usan la fila de eléctricas).</li>
-                    <li>Para <strong>Motocarros &gt; 125cc</strong>, el sistema calculará automáticamente el Impuesto de Timbre además del valor base.</li>
+                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calculará automáticamente el Impuesto de Timbre además del valor base.</li>
                     <li>Los valores de Crédito aplican automáticamente cuando se selecciona un método de financiación.</li>
                 </ul>
             </div>
