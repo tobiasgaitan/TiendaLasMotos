@@ -18,7 +18,7 @@ interface Props {
 
 export default function SmartQuotaSlider({ motos, soatRates, financialEntities: allFinancialEntities }: Props) {
     // Default to first moto if available
-    const [selectedMotoId, setSelectedMotoId] = useState<string>(motos[0]?.id || "");
+    const [selectedMotoId, setSelectedMotoId] = useState<string>(motos?.[0]?.id || "");
     const [selectedScenarioId, setSelectedScenarioId] = useState<string>(FINANCIAL_SCENARIOS[0].id);
 
     // User Contact State
@@ -42,7 +42,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     const [selectedFinancialId, setSelectedFinancialId] = useState<string>("");
 
     useEffect(() => {
-        if (availableEntities.length > 0) {
+        if (availableEntities && availableEntities.length > 0) {
             // retain selection if still available
             if (!availableEntities.find(e => e.id === selectedFinancialId)) {
                 setSelectedFinancialId(availableEntities[0].id);

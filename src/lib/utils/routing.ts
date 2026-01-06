@@ -42,6 +42,15 @@ export const routeFinancialEntities = (
     const suitable: FinancialEntity[] = [];
     const rejected: FinancialEntity[] = [];
 
+    if (!availableEntities || availableEntities.length === 0) {
+        return {
+            suitableEntities: [],
+            rejectedEntities: [],
+            reason: "No hay entidades financieras disponibles en el sistema.",
+            status: 'Rejected'
+        };
+    }
+
     availableEntities.forEach(entity => {
         let isEligible = true;
 

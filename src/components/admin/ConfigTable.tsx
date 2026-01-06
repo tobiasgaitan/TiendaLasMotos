@@ -20,7 +20,7 @@ export default function ConfigTable<T extends { id: string }>({
     onEdit,
     onDelete
 }: ConfigTableProps<T>) {
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
         return <div className="p-8 text-center text-gray-500 bg-white rounded-xl border border-dashed">No hay registros aún.</div>;
     }
 
