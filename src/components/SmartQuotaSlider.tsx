@@ -373,7 +373,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         )}
                         {quote.isCredit && ((quote.registrationPrice > 0) || (quote.vGestion && quote.vGestion > 0)) && (
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 text-xs">{(quote.vGestion && quote.vGestion > 0) ? "+ Documentos y Gestión" : "+ Trámites (Financiado)"}</span>
+                                <span className="text-slate-500 text-xs">+ Documentos y Gestión</span>
                                 <span className="font-bold text-slate-700 text-xs">${((quote.registrationPrice || 0) + (quote.vGestion || 0)).toLocaleString()}</span>
                             </div>
                         )}
@@ -399,7 +399,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                 )}
                                 <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Cuota Base Crédito</span>
-                                    <span>${((quote.monthlyPayment || 0) - quote.lifeInsuranceValue - quote.unemploymentInsuranceCost).toLocaleString()}</span>
+                                    <span>${((quote.monthlyPayment || 0) - quote.lifeInsuranceValue - quote.unemploymentInsuranceCost - (quote.coverageMonthlyComponent || 0)).toLocaleString()}</span>
                                 </div>
                             </>
                         )}
@@ -408,7 +408,12 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         {quote.isCredit && (
                             <>
                                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
-                                    <span className="text-sm font-bold text-slate-900">CUOTA TOTAL APROX.</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-slate-900">CUOTA MES 1-12</span>
+                                        {quote.coverageMonthlyComponent && quote.coverageMonthlyComponent > 0 && (
+                                            <span className="text-[10px] text-slate-500 font-normal">Mes 13+: ${((quote.monthlyPayment || 0) - quote.coverageMonthlyComponent).toLocaleString()}</span>
+                                        )}
+                                    </div>
                                     <span className="text-2xl font-extrabold text-slate-900">${quote.monthlyPayment?.toLocaleString()}</span>
                                 </div>
                             </>
