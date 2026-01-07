@@ -23,12 +23,10 @@ export default function SimulatorPage() {
     const [loading, setLoading] = useState(true);
 
     // --- CITY DEFINITIONS (Derived from Financial Matrix Logic) ---
+    // [FIX] User requested strict filter: Only 'Crédito (Sta Marta)' and 'Crédito (General)' for Simulator.
     const OFFICIAL_CITIES: City[] = [
-        { id: 'santa-marta', name: 'Santa Marta', department: 'Magdalena', documentationFee: 0 },
-        { id: 'envigado', name: 'Envigado', department: 'Antioquia', documentationFee: 0 },
-        { id: 'cienaga', name: 'Ciénaga', department: 'Magdalena', documentationFee: 0 },
-        { id: 'zona-bananera', name: 'Zona Bananera', department: 'Magdalena', documentationFee: 0 },
-        { id: 'general', name: 'Otras Ciudades (General)', department: 'Nacional', documentationFee: 0 },
+        { id: 'santa-marta', name: 'Santa Marta (Crédito)', department: 'Magdalena', documentationFee: 0 },
+        { id: 'general', name: 'Otras Ciudades / General (Crédito)', department: 'Nacional', documentationFee: 0 },
     ];
 
     // --- DATA FETCHED FROM FIRESTORE ---
