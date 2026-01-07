@@ -56,6 +56,26 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 };
             }
 
+            // 4. SPECS MAPPING (Critical for Financial Matrix)
+            // Displacement: Try 'cilindraje' (string/number), 'cc', 'displacement'
+            let finalDisplacement = 0;
+            const rawDisplacement = data["cilindraje"] || data["cc"] || data["displacement"];
+            if (rawDisplacement) {
+                // Remove 'cc', 'cm3', spaces, then parse
+                const clean = String(rawDisplacement).toLowerCase().replace(/cc|cm3| |-|\./g, '');
+                finalDisplacement = Number(clean) || 0;
+            }
+
+            // Categories: Try 'categories' array, or 'categoria' string, or 'category'
+            let finalCategories: string[] = [];
+            if (Array.isArray(data["categories"])) {
+                finalCategories = data["categories"];
+            } else if (data["categoria"] || data["category"]) {
+                finalCategories = [data["categoria"] || data["category"]];
+            } else if (data["clase"]) { // Fallback legacy
+                finalCategories = [data["clase"]];
+            }
+
             return {
                 id: doc.id,
                 referencia: finalReferencia,
@@ -63,7 +83,10 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 marca: data["Marca-de-la-moto"] || data["marca"] || "Genérico",
                 imagen: finalImage,
                 frenosABS: data["frenosABS"] === "Si",
-                bono: finalBono
+                bono: finalBono,
+                displacement: finalDisplacement, // Critical for Matrix
+                categories: finalCategories,     // Critical for Matrix
+                category: finalCategories[0]     // Compatibility
             };
         });
 
