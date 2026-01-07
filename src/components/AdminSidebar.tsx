@@ -122,6 +122,16 @@ export default function AdminSidebar() {
                     <p>Prospectos</p>
                 </Link>
 
+                <Link
+                    href="/admin/simulador"
+                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors border border-blue-600/30"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-brand-yellow">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5d-2.9-5.05a9 9 0 01-1.88-3.4M6 9a9 9 0 1112.72 8.707" />
+                    </svg>
+                    <p>Simulador Crédito</p>
+                </Link>
+
 
 
                 <div className="hidden h-auto w-full grow rounded-md bg-gray-900 md:block"></div>

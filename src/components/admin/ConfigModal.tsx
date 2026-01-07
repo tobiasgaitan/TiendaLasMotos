@@ -38,7 +38,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
             name: "",
             interestRate: 0,
             minDownPaymentPercentage: 0,
-            includeDocsInCapital: true, // Consolidated Flag
+            financeDocsAndSoat: true, // Unified Default
             lifeInsuranceType: 'percentage',
             lifeInsuranceValue: 0.1126,
             // New Fields
@@ -48,9 +48,6 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
             manualOverride: false,
             brillaManagementRate: 0,
             coverageRate: 0,
-            brillaManagementRate: 0,
-            coverageRate: 0,
-
             minAge: 18,
             maxAge: 75
         };
@@ -115,7 +112,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                             placeholder="Ej. 5"
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
-                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre (Moto + Trámites)</p>
+                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre ($P_1$)</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Cobertura de Acceso (%)</label>
@@ -126,7 +123,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                             placeholder="Ej. 4"
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
-                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre Valor Moto</p>
+                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre ($P_2$)</p>
                     </div>
                 </div>
 
@@ -182,7 +179,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 {/* UNEMPLOYMENT INSURANCE & FNG */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">% FNG (Capital)</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">% FNG / Otros Seguros</label>
                         <input
                             {...register("fngRate", { valueAsNumber: true })}
                             type="number"
@@ -190,7 +187,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                             placeholder="Ej. 10"
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
-                        <p className="text-[10px] text-gray-500 mt-1">Se suma al Capital Financiado</p>
+                        <p className="text-[10px] text-gray-500 mt-1">Se suma al Capital Base</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Seguro Desempleo (Mensual)</label>
@@ -217,15 +214,15 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 <div className="space-y-2 pt-2 border-t border-gray-700">
                     <div className="flex items-center gap-2">
                         <input
-                            {...register("includeDocsInCapital")}
+                            {...register("financeDocsAndSoat")}
                             type="checkbox"
                             id="docReq"
                             className="w-4 h-4 rounded accent-green-500"
                         />
                         <label htmlFor="docReq" className="text-sm text-gray-300">
-                            Financiar Trámites (Matrícula)
+                            Financiar Matrícula y SOAT
                             <span className="block text-xs text-gray-500">
-                                Suma el valor de trámites al capital total (P)
+                                Suma el valor de matrícula de la Matriz al capital base ($P_1$)
                             </span>
                         </label>
                     </div>

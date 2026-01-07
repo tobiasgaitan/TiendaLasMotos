@@ -22,6 +22,7 @@
         "nodemailer": "^7.0.12"
     },
     "devDependencies": {
+        "@types/markdown-it": "^14.1.2",
         "@types/node": "^18.19.130",
         "firebase-functions-test": "^3.1.0",
         "typescript": "^5.9.3"

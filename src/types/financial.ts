@@ -39,7 +39,7 @@ export interface FinancialEntity {
     lifeInsuranceValue: number; // The rate (e.g. 0.1126) or the value (e.g. 800)
 
     // Unified Document Financing Flag
-    includeDocsInCapital: boolean; // "Financiar Trámites (Matrícula)": If true, adds registrationPrice to Capital
+    financeDocsAndSoat?: boolean; // [NEW] "Financiar Matrícula y SOAT" (Updated from includeDocsInCapital)
 
     // New Financial Charges
     fngRate?: number; // % FNG (Fondo Nacional de Garantías)
@@ -53,7 +53,10 @@ export interface FinancialEntity {
     brillaManagementRate?: number; // % 'Gestión Crédito Brilla' (Calculated on Base + Docs)
     coverageRate?: number; // % 'Cobertura de Acceso' (Calculated on Moto Price)
 
-    // Deprecated
+    // Deprecated (Removed from UI, kept for legacy type safety if needed, but marked optional/deprecated)
+    /** @deprecated use financeDocsAndSoat */
+    includeDocsInCapital?: boolean;
+    /** @deprecated */
     feesIncludesMatricula?: boolean;
     requiresProceduresInCredit?: boolean;
     minAge?: number;
