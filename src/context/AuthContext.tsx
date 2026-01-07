@@ -35,7 +35,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let mounted = true;
+
+        // Safety timeout: If Firebase auth takes too long (e.g. network issues), force loading to false to allow access as guest
+        const safetyTimeout = setTimeout(() => {
+            if (mounted && loading) {
+                console.warn("Firebase Auth timed out. Defaulting to guest.");
+                setLoading(false);
+            }
+        }, 8000); // 8 seconds timeout
+
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (!mounted) return;
+            // Clear timeout if auth flow activates
+            clearTimeout(safetyTimeout);
+
             setLoading(true);
             if (currentUser) {
                 setUser(currentUser);
@@ -48,27 +62,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     );
                     const querySnapshot = await getDocs(q);
 
-                    if (!querySnapshot.empty) {
+                    if (!querySnapshot.empty && mounted) {
                         // Assuming email is unique and we take the first match
                         const userDoc = querySnapshot.docs[0].data();
                         setRole(userDoc.rol || "guest");
-                    } else {
+                    } else if (mounted) {
                         // User exists in Auth but not in our DB
                         setRole("guest");
                     }
                 } catch (error) {
                     console.error("Error fetching user role:", error);
-                    setRole("guest");
+                    if (mounted) setRole("guest");
                 }
             } else {
-                setUser(null);
-                setRole(null);
+                if (mounted) {
+                    setUser(null);
+                    setRole(null);
+                }
             }
-            setLoading(false);
+            if (mounted) setLoading(false);
         });
 
         // Cleanup subscription
-        return () => unsubscribe();
+        return () => {
+            mounted = false;
+            clearTimeout(safetyTimeout);
+            unsubscribe();
+        };
     }, []);
 
     const logout = async () => {

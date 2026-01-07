@@ -209,6 +209,9 @@ export const scheduledSync = functions.runWith({ memory: "1GB", timeoutSeconds: 
         return null;
     });
 
+// [NEW] Usury Rate Bot
+export * from './usuryRateBot';
+
 // 2. Manual HTTP Trigger
 export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 540 }).https.onRequest(async (req, res) => {
     // Security: Check for Secret Token

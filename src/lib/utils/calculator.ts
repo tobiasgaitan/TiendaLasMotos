@@ -7,14 +7,19 @@ export interface QuoteResult {
     registrationPrice: number;
     documentationFee: number;
     specialAdjustment: number;
-    subtotal: number; // Before credit specific costs
+    subtotal: number; // Total Deal Value (Price + Docs)
     total: number;
     // Credit specific
     downPayment: number;
-    loanAmount: number;
+    loanAmount: number; // Total Financed ($P$)
+    // Charges Breakdown
     fngCost: number;
     lifeInsuranceValue: number;
     movableGuaranteeCost: number;
+    unemploymentInsuranceCost: number; // [NEW] Seg. Desempleo
+    vGestion?: number; // [NEW] Valor Gestión (Brilla)
+    vCobertura?: number; // [NEW] Valor Cobertura (Brilla)
+
     monthlyPayment?: number;
     months?: number;
     interestRate?: number;
@@ -42,7 +47,24 @@ export const calculateSoat = (displacement: number, rates: SoatRate[]): number =
 // CONSTANTS REMOVED (Imported)
 
 /**
- * Calculates a full quote with Matrix Logic
+ * Calculates a full quote with Matrix Logic and Layered Capitalization.
+ * 
+ * Implements "Layered Capitalization" logic:
+ * 1. Base Capital = (Price + SpecialAdj) - DownPayment + [Docs if financed] + [Movable Guarantee] + [FNG]
+ * 2. Administrative Layers (Brilla):
+ *    - vGestion: % on (Price + Docs)
+ *    - vCobertura: % on Price
+ * 3. Final Loan Amount (P_final) = Base Capital + vGestion + vCobertura
+ * 
+ * @param moto - Moto object containing price and displacement.
+ * @param city - City object for context.
+ * @param soatRates - Array of SOAT rates.
+ * @param paymentMethod - 'credit' or 'cash'.
+ * @param financialEntity - Configuration of the selected financial entity.
+ * @param months - Term in months.
+ * @param downPaymentInput - Initial down payment amount.
+ * @param financialMatrix - Matrix configuration for documentation fees.
+ * @returns QuoteResult object with full breakdown.
  */
 export const calculateQuote = (
     moto: Moto,
@@ -162,75 +184,102 @@ export const calculateQuote = (
     let monthlyPayment = 0;
     let lifeInsuranceValue = 0;
     let movableGuaranteeCost = 0;
+    let fngCost = 0; // Fondo Nacional de Garantías
+    let unemploymentInsuranceCost = 0; // Seguro Desempleo
+    let vGestion = 0; // [NEW] Valor Gestión (Brilla)
+    let vCobertura = 0; // [NEW] Valor Cobertura (Brilla)
 
     if (paymentMethod === 'credit') {
-        // Defaults
-        const LIFE_INSURANCE_RATE_PCT = 0.1126 / 100; // Legacy Default 0.1126% MV
+        const entity = financialEntity;
+
+        // --- 1. Base Logic & Variables ---
+        // 'subtotal' currently includes registrationPrice.
+        const assetPrice = price + specialAdjustment;
+        const docsTotal = registrationPrice + documentationFee;
+
+        // "Financiar Trámites": If true, we add docsTotal to the Base Capital
+        const includeDocs = entity?.includeDocsInCapital ?? true; // Default true if legacy
+
+        // --- 2. Calculate BASE Capital (P_base) ---
+        // P_base = (Moto - CuotaInicial) + [Docs] + [FixedCharges]
+        let capitalBase = assetPrice - downPaymentInput;
+
+        if (includeDocs) {
+            capitalBase += docsTotal;
+        }
+
+        // Movable Guarantee ($120,000 fixed)
         const MOVABLE_GUARANTEE_COST = 120000;
-
         movableGuaranteeCost = MOVABLE_GUARANTEE_COST;
-        const downPayment = downPaymentInput;
 
-        let baseAmountToFinance = subtotal - downPayment;
+        capitalBase += movableGuaranteeCost;
 
-        // --- NEW LOGIC START ---
-        // 1. Check if Entity includes procedures in the financed amount (Capital)
-        // If feesIncludesMatricula is TRUE, it implies the registration/docs cost is part of the LOAN, 
-        // BUT 'subtotal' already includes 'registrationPrice'.
-        // So 'baseAmountToFinance' = (Vehicle + Docs + Special) - DownPayment.
-        // This effectively finances the procedures. 
-        // If feesIncludesMatricula is FALSE, usually user pays docs upfront or separate? 
-        // Current standard logic finances everything in 'subtotal'.
-        // The requirement says: "Incluye Trámites: Activo (suma matrícula al capital financiado)".
-        // Meaning: Capital = (MotoPrice - DownPayment) + Docs.
-        // In our current 'subtotal', Docs IS included. So standard logic works.
-        // We just need to ensure we don't double count or exclude it if false.
-        // For simplicity, we assume 'subtotal' (Asset Value) is what is being financed minus downpayment.
+        // --- 3. Calculate FNG (Fondo Nacional de Garantías) ---
+        // FNG is usually % of the financed amount.
+        // Assuming FNG is part of the Base before Admin Fees or calculated on this base.
+        // Standard: FNG adds to the capital.
+        if (entity?.fngRate && entity.fngRate > 0) {
+            fngCost = Math.round(capitalBase * (entity.fngRate / 100));
+            capitalBase += fngCost;
+        }
 
-        // 2. Loan Amount
-        loanAmount = baseAmountToFinance + movableGuaranteeCost;
+        // --- 4. Special "Administrative" Layers (Brilla Model) ---
 
-        // 3. Life Insurance Calculation
-        // Type: 'percentage' (default) OR 'fixed_per_million' (Banco de Bogotá)
-        const insuranceType = financialEntity?.lifeInsuranceType || 'percentage';
-        const insuranceVal = financialEntity?.lifeInsuranceValue ?? 0.1126; // Default to old rate if missing
+        // A. Gestión Crédito (V_gestion)
+        // Formula: (Precio Moto + Trámites Matriz) * Factor Gestión
+        // Note: Trámites Matriz is 'registrationPrice'. 'documentationFee' is extra?
+        // Let's use (assetPrice + docsTotal) as the base for this, as per "Precio Moto + Trámites Matriz"
+        // If brillaManagementRate is 0, this is 0.
+        // let vGestion = 0; // Already declared above
+        if (entity?.brillaManagementRate && entity.brillaManagementRate > 0) {
+            const baseForGestion = assetPrice + docsTotal;
+            vGestion = Math.round(baseForGestion * (entity.brillaManagementRate / 100));
+        }
+
+        // B. Cobertura de Acceso (V_cobertura)
+        // Formula: Precio Moto * Factor Cobertura
+        // let vCobertura = 0; // Already declared above
+        if (entity?.coverageRate && entity.coverageRate > 0) {
+            vCobertura = Math.round(assetPrice * (entity.coverageRate / 100));
+        }
+
+        // --- 5. Final Capital (P_final) ---
+        // P_final = P_base + V_gestion + V_cobertura
+        const pFinal = capitalBase + vGestion + vCobertura;
+
+        // Loan Amount is P_final
+        loanAmount = pFinal;
+
+        // --- 6. Life Insurance ---
+        // Calculated on the GRAND TOTAL (loanAmount / P_final).
+        const insuranceType = entity?.lifeInsuranceType || 'percentage';
+        const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
 
         if (insuranceType === 'fixed_per_million') {
-            // Factor de $800 por cada millón financiado
-            // Formula: (LoanAmount / 1,000,000) * Factor
-            // This is a MONTHLY cost added to the quota.
+            // Factor/Million (e.g. 800 per M)
             const millions = loanAmount / 1000000;
             lifeInsuranceValue = Math.ceil(millions * insuranceVal);
         } else {
-            // Percentage based (e.g. 0.1126%)
-            // Usually applied to Outstanding Balance.
-            // For fixed quota approximation: LoanAmount * Rate
-            // Note: If rate is 0.1126 (number), we divide by 100 if stored as percentage.
-            // If stored as raw factor (0.001126), use directly.
-            // Based on old code: loanAmount * (0.1126 / 100).
-            // So if insuranceVal is 0.1126, we treat it as %.
+            // Percentage (e.g. 0.1126%)
             const rate = insuranceVal / 100;
             lifeInsuranceValue = Math.round(loanAmount * rate);
         }
 
-        // 4. PMT (Amortization)
-        // Fallback 2.5% if missing or if financialEntity is undefined
-        const effectiveRate = financialEntity?.interestRate || financialEntity?.monthlyRate || 2.5;
+        // --- 7. Unemployment Insurance (Mensual) ---
+        if (entity?.unemploymentInsuranceValue && entity.unemploymentInsuranceValue > 0) {
+            if (entity.unemploymentInsuranceType === 'percentage_monthly') {
+                const uRate = entity.unemploymentInsuranceValue / 100;
+                unemploymentInsuranceCost = Math.round(loanAmount * uRate);
+            } else {
+                // Fixed Value
+                unemploymentInsuranceCost = entity.unemploymentInsuranceValue;
+            }
+        }
+
+        // --- 6. Amortization (PMT) ---
+        const effectiveRate = entity?.interestRate || entity?.monthlyRate || 2.5;
         const r = effectiveRate / 100;
         const n = months;
-
-        console.log("--- Credit Calculation Debug ---");
-        console.log("Moto Price:", price);
-        console.log("Total Docs (Matrix):", registrationPrice);
-        console.log("Subtotal (Asset Value):", subtotal);
-        console.log("Down Payment:", downPayment);
-        console.log("Base Financed (P_base):", baseAmountToFinance);
-        console.log("Movable Guarantee:", movableGuaranteeCost);
-        console.log("Total Loan Amount (P):", loanAmount);
-        console.log("Rate (r):", effectiveRate, "%");
-        console.log("Months (n):", n);
-        console.log("Insurance Type:", insuranceType);
-        console.log("Insurance Value (Calc):", lifeInsuranceValue);
 
         if (loanAmount > 0 && n > 0) {
             let basePmt = 0;
@@ -240,14 +289,19 @@ export const calculateQuote = (
                 basePmt = loanAmount / n;
             }
 
-            // Total Monthly Payment = Amortization + Life Insurance
-            monthlyPayment = Math.round(basePmt + lifeInsuranceValue);
-
-            console.log("Base PMT (Amort):", basePmt);
-            console.log("Total Monthly Payment:", monthlyPayment);
+            // Total Monthly Payment = Amortization + Life Insurance + Unemployment
+            monthlyPayment = Math.round(basePmt + lifeInsuranceValue + unemploymentInsuranceCost);
         }
 
-        total = downPayment + (monthlyPayment * n);
+        // Total Cost for User
+        total = downPaymentInput + (monthlyPayment * n);
+
+        // If Docs NOT financed, user implies paying them upfront?
+        // Standard logic: Total = DownPayment + (Installments).
+        // If docs are separate (Cash), they should be added to the "Upfront Payment".
+        // But 'total' usually reflects the Credit Projection.
+        // We will leave 'total' as the Financed Deal Total.
+        // However, 'QuoteResult.subtotal' remains the Project Cost.
     }
 
     return {
@@ -260,10 +314,14 @@ export const calculateQuote = (
         total,
         downPayment: downPaymentInput,
         loanAmount,
-        fngCost: 0,
+        fngCost,
         lifeInsuranceValue, // Now correctly calculated based on type
         movableGuaranteeCost,
+        unemploymentInsuranceCost, // NEW
+        vGestion: paymentMethod === 'credit' ? vGestion : 0,
+        vCobertura: paymentMethod === 'credit' ? vCobertura : 0,
         monthlyPayment: paymentMethod === 'credit' ? monthlyPayment : 0,
+
         months: paymentMethod === 'credit' ? months : 0,
         interestRate: paymentMethod === 'credit' ? (financialEntity?.interestRate || 0) : 0,
         financialEntity: financialEntity?.name,

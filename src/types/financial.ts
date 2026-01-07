@@ -24,7 +24,7 @@ export interface FinancialEntity {
     name: string;
     interestRate: number; // Monthly interest rate %
     minDownPaymentPercentage: number; // % Cuota inicial minima
-    requiresProceduresInCredit: boolean; // Includes procedures in credit?
+
 
     // Legacy/Optional fields
     monthlyRate?: number;
@@ -34,10 +34,28 @@ export interface FinancialEntity {
     logoUrl?: string;
     active?: boolean;
 
-    // Security & Calculation Config (New)
+    // Security & Calculation Config (Updated)
     lifeInsuranceType: 'percentage' | 'fixed_per_million'; // 'percentage' (0.1126%) or 'fixed' ($800 per M)
     lifeInsuranceValue: number; // The rate (e.g. 0.1126) or the value (e.g. 800)
-    feesIncludesMatricula: boolean; // If true, adds registrationPrice to LoanAmount
+
+    // Unified Document Financing Flag
+    includeDocsInCapital: boolean; // "Financiar Trámites (Matrícula)": If true, adds registrationPrice to Capital
+
+    // New Financial Charges
+    fngRate?: number; // % FNG (Fondo Nacional de Garantías)
+    unemploymentInsuranceType?: 'percentage_monthly' | 'fixed_monthly';
+    unemploymentInsuranceValue?: number; // Rate or Fix Value
+
+    // [NEW] Global Dynamic Rates Flags
+    manualOverride?: boolean; // If true, disable auto-update on 1st of month
+
+    // [NEW] Brilla / Special Model Charges
+    brillaManagementRate?: number; // % 'Gestión Crédito Brilla' (Calculated on Base + Docs)
+    coverageRate?: number; // % 'Cobertura de Acceso' (Calculated on Moto Price)
+
+    // Deprecated
+    feesIncludesMatricula?: boolean;
+    requiresProceduresInCredit?: boolean;
     minAge?: number;
     maxAge?: number;
 }
