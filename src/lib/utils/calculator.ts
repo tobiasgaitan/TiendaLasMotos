@@ -116,25 +116,36 @@ export const calculateQuote = (
             // 1. Specific Category Match
             const specificMatch = financialMatrix.rows.find(r => r.category && r.category.toUpperCase() === cat);
 
-            // 2. Generic Displacement Match (if row has NO category)
+            // 2. Generic Displacement Match (Fallback)
+            // [FIX] Relaxed filter: If no specific category match, look for ANY row covering the CC range.
+            // valid generic rows might have no category OR be labeled 'General'.
+            // We prioritize rows with NO category or 'GENERAL' if multiple exist, but strictly we just want *a* match.
             const genericMatches = financialMatrix.rows.filter(r =>
-                !r.category && // Only generic rows
                 r.minCC !== undefined &&
                 r.maxCC !== undefined &&
                 displacement >= r.minCC &&
                 displacement <= r.maxCC
             );
 
-            const candidates = [specificMatch, ...genericMatches].filter(Boolean) as MatrixRow[];
-
-            candidates.forEach(row => {
-                // Access dynamic key safely
-                const cost = (row as any)[contextKey] as number;
-                if (typeof cost === 'number' && cost > maxCost) {
-                    maxCost = cost;
-                    registrationPrice = cost;
+            // Prioritize Specific -> Then Generic
+            if (specificMatch) {
+                const val = (specificMatch as any)[contextKey] as number;
+                if (typeof val === 'number' && val > maxCost) {
+                    maxCost = val;
+                    registrationPrice = val;
                 }
-            });
+            } else if (genericMatches.length > 0) {
+                // If no specific match, verify if any generic match applies
+                // We take the one with the highest cost to be safe, or just the first one.
+                // let's iterate them.
+                genericMatches.forEach(row => {
+                    const val = (row as any)[contextKey] as number;
+                    if (typeof val === 'number' && val > maxCost) {
+                        maxCost = val;
+                        registrationPrice = val;
+                    }
+                });
+            }
         });
     }
     if (registrationPrice === 0) registrationPrice = city.registrationCost?.credit || 0; // Fallback
