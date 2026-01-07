@@ -22,15 +22,24 @@ import { getCatalogoMotos } from '@/lib/firestore';
 export default function SimulatorPage() {
     const [loading, setLoading] = useState(true);
 
+    // --- CITY DEFINITIONS (Derived from Financial Matrix Logic) ---
+    const OFFICIAL_CITIES: City[] = [
+        { id: 'santa-marta', name: 'Santa Marta', department: 'Magdalena', documentationFee: 0 },
+        { id: 'envigado', name: 'Envigado', department: 'Antioquia', documentationFee: 0 },
+        { id: 'cienaga', name: 'Ciénaga', department: 'Magdalena', documentationFee: 0 },
+        { id: 'zona-bananera', name: 'Zona Bananera', department: 'Magdalena', documentationFee: 0 },
+        { id: 'general', name: 'Otras Ciudades (General)', department: 'Nacional', documentationFee: 0 },
+    ];
+
     // --- DATA FETCHED FROM FIRESTORE ---
-    const [cities, setCities] = useState<City[]>([]);
+    const [cities, setCities] = useState<City[]>(OFFICIAL_CITIES);
     const [soatRates, setSoatRates] = useState<SoatRate[]>([]);
     const [financialEntities, setFinancialEntities] = useState<FinancialEntity[]>([]);
     const [motos, setMotos] = useState<Moto[]>([]);
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
 
     // --- USER INPUTS ---
-    const [selectedCityId, setSelectedCityId] = useState<string>('');
+    const [selectedCityId, setSelectedCityId] = useState<string>(OFFICIAL_CITIES[0].id);
     const [selectedEntityId, setSelectedEntityId] = useState<string>('');
     const [selectedMotoId, setSelectedMotoId] = useState<string>('');
 
@@ -46,35 +55,31 @@ export default function SimulatorPage() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [citiesSnap, soatSnap, finSnap, matrixSnap] = await Promise.all([
-                    getDocs(collection(db, 'financial_config/general/cities')),
+                // REMOVED: Legacy cities collection fetch
+                const [soatSnap, finSnap, matrixSnap] = await Promise.all([
                     getDocs(collection(db, 'financial_config/general/tarifas_soat')),
                     getDocs(collection(db, 'financial_config/general/financieras')),
-                    getDocs(collection(db, 'config')) // Assuming 'financial_parameters' is in 'config' collection based on other files
+                    getDocs(collection(db, 'config'))
                 ]);
 
                 // Basic Mapping
-                const cList = citiesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City));
                 const sList = soatSnap.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate));
                 const fList = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
 
-                // Matrix Fetch Logic (Need to be precise on path based on previous findings)
-                // In SmartQuotaSlider: doc(db, 'config', 'financial_parameters')
-                // Let's do that specifically:
+                // Matrix Fetch Logic
                 const matrixDoc = matrixSnap.docs.find(d => d.id === 'financial_parameters');
                 const mData = matrixDoc ? (matrixDoc.data() as FinancialMatrix) : undefined;
 
                 // Motos Fetch
                 const mList = await getCatalogoMotos();
 
-                setCities(cList);
+                setCities(OFFICIAL_CITIES); // Use constant
                 setSoatRates(sList);
                 setFinancialEntities(fList);
                 setMotos(mList);
                 setMatrix(mData);
 
                 // Defaults
-                if (cList.length > 0) setSelectedCityId(cList[0].id);
                 if (fList.length > 0) setSelectedEntityId(fList[0].id);
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
