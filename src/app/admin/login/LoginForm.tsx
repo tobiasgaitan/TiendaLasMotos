@@ -2,49 +2,70 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { Loader2, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { auth, db } from '@/lib/firebase';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
 
 export default function LoginForm() {
     const router = useRouter();
+    const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
-    // Login State
+    // Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-
-    // Reset State
-    const [showReset, setShowReset] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
-
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // Cookie setting is handled by onAuthStateChanged listener in page or middleware usually, 
-            // but here we just wait for redirect or trigger server action if needed. 
-            // For client-side auth, Next.js routing will handle it if we redirect.
-            // Actually, we usually need to set a session cookie for Middleware. 
-            // Assuming existing auth persistence or 'admin-auth' logic handles it.
-            // Let's stick to standard Client Auth -> Redirect for now.
-
-            // Force strict redirect
             window.location.href = '/admin/simulador';
         } catch (err: any) {
             console.error(err);
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-                setError('Credenciales incorrectas.');
-            } else if (err.code === 'auth/too-many-requests') {
-                setError('Demasiados intentos. Intenta más tarde.');
-            } else {
-                setError('Error al iniciar sesión.');
+            handleAuthError(err);
+            setLoading(false);
+        }
+    };
+
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        if (password.length < 8) {
+            setError('La contraseña debe tener al menos 8 caracteres.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // 1. Check Whitelist in Firestore
+            const emailKey = email.toLowerCase().trim();
+            const whitelistRef = doc(db, 'sys_admin_users', emailKey);
+            const whitelistSnap = await getDoc(whitelistRef);
+
+            if (!whitelistSnap.exists() || !whitelistSnap.data()?.active) {
+                setError('Este correo no está autorizado para acceder. Contacta al SuperAdmin.');
+                setLoading(false);
+                return;
             }
+
+            // 2. Create Auth User
+            await createUserWithEmailAndPassword(auth, email, password);
+            setSuccessMsg('Cuenta activada correctamente. Ingresando...');
+            setTimeout(() => {
+                window.location.href = '/admin/simulador';
+            }, 1000);
+
+        } catch (err: any) {
+            console.error(err);
+            handleAuthError(err);
             setLoading(false);
         }
     };
@@ -61,74 +82,28 @@ export default function LoginForm() {
 
         try {
             await sendPasswordResetEmail(auth, resetEmail);
-            setSuccessMsg('Se ha enviado un correo de recuperación. Revisa tu bandeja.');
-            setTimeout(() => setShowReset(false), 3000);
+            setSuccessMsg('Se ha enviado un correo de recuperación.');
+            setTimeout(() => setMode('login'), 3000);
         } catch (err: any) {
-            console.error(err);
-            if (err.code === 'auth/user-not-found') {
-                setError('No existe cuenta con este correo.');
-            } else {
-                setError('Error enviando correo de recuperación.');
-            }
+            handleAuthError(err);
         } finally {
             setLoading(false);
         }
     };
 
-    if (showReset) {
-        return (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900">Recuperar Acceso</h2>
-                    <p className="text-gray-500 mt-2">Te enviaremos un link a tu correo.</p>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" /> {error}
-                    </div>
-                )}
-                {successMsg && (
-                    <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" /> {successMsg}
-                    </div>
-                )}
-
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                            <input
-                                type="email"
-                                value={resetEmail}
-                                onChange={(e) => setResetEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all text-black bg-white"
-                                placeholder="admin@ejemplo.com"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                    >
-                        {loading ? <Loader2 className="animate-spin" /> : 'Enviar Enlace'}
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => { setShowReset(false); setError(''); }}
-                        className="w-full text-gray-500 text-sm hover:underline"
-                    >
-                        Volver al Login
-                    </button>
-                </form>
-            </div>
-        );
-    }
+    const handleAuthError = (err: any) => {
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+            setError('Credenciales incorrectas.');
+        } else if (err.code === 'auth/user-not-found') {
+            setError('Usuario no encontrado.');
+        } else if (err.code === 'auth/email-already-in-use') {
+            setError('Este correo ya está registrado. Intenta iniciar sesión.');
+        } else if (err.code === 'auth/weak-password') {
+            setError('La contraseña es muy débil.');
+        } else {
+            setError('Error de autenticación: ' + err.message);
+        }
+    };
 
     return (
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-8 animate-in fade-in zoom-in duration-300">
@@ -143,57 +118,98 @@ export default function LoginForm() {
                 </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo Corporativo</label>
-                    <div className="relative">
-                        <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            {successMsg && (
+                <div className="p-4 bg-green-50 text-green-600 text-sm rounded-lg flex items-center gap-2 border border-green-100">
+                    <CheckCircle size={16} /> {successMsg}
+                </div>
+            )}
+
+            {mode === 'reset' ? (
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Correo Electrónico</label>
                         <input
                             type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all text-black bg-white"
-                            placeholder="usuario@dominio.com"
                             required
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
+                            placeholder="nombre@tudominio.com"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
                         />
                     </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                    <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all text-black bg-white"
-                            placeholder="••••••••"
-                            required
-                            minLength={8}
-                        />
-                    </div>
-                    <div className="flex justify-end mt-1">
-                        <button
-                            type="button"
-                            onClick={() => { setShowReset(true); setError(''); setResetEmail(email); }}
-                            className="text-xs text-brand-blue hover:underline font-medium"
-                        >
-                            ¿Olvidaste tu contraseña?
-                        </button>
-                    </div>
-                </div>
-
-                <div className="pt-2">
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform active:scale-95"
+                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : 'Iniciar Sesión'}
+                        {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Enviar Enlace'}
                     </button>
-                </div>
-            </form>
+                    <button
+                        type="button"
+                        onClick={() => setMode('login')}
+                        className="w-full text-sm text-gray-500 hover:text-gray-900 py-2"
+                    >
+                        Volver al Login
+                    </button>
+                </form>
+            ) : (
+                <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Correo Electrónico</label>
+                        <input
+                            type="email"
+                            required
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
+                            placeholder="admin@tudominio.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Contraseña</label>
+                        <input
+                            type="password"
+                            required
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        {mode === 'register' && <p className="text-xs text-brand-blue">Mínimo 8 caracteres</p>}
+                    </div>
+
+                    {mode === 'login' && (
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setMode('reset')}
+                                className="text-sm text-brand-blue hover:underline font-medium"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </button>
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+                    >
+                        {loading ? <Loader2 className="animate-spin" /> : mode === 'login' ? 'Iniciar Sesión' : 'Activar Cuenta'}
+                    </button>
+
+                    <div className="text-center pt-2">
+                        <button
+                            type="button"
+                            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                            className="text-sm text-gray-500 hover:text-gray-900 font-medium"
+                        >
+                            {mode === 'login' ? '¿Primera vez? Activa tu cuenta aquí' : '¿Ya tienes cuenta? Inicia Sesión'}
+                        </button>
+                    </div>
+                </form>
+            )}
 
             <div className="text-center border-t border-gray-100 pt-4">
                 <p className="text-xs text-gray-400">
