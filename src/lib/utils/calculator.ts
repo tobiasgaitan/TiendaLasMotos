@@ -102,13 +102,33 @@ export const calculateQuote = (
         }
 
         // Category Matching
-        let categoriesToCheck = moto.categories?.length ? moto.categories : (moto.category ? [moto.category] : ["URBANA Y/O TRABAJO"]);
+        // [FIX] Ensure valid array of categories to check.
+        // Fallback to "URBANA Y/O TRABAJO" (Generic) if no category is present.
+        let categoriesToCheck = (moto.categories?.length)
+            ? moto.categories
+            : (moto.category ? [moto.category] : ["URBANA Y/O TRABAJO"]);
+
         let maxCost = -1;
+
         categoriesToCheck.forEach(catRaw => {
-            const cat = catRaw.toUpperCase();
-            const specificMatch = financialMatrix.rows.find(r => r.category === cat);
-            const genericMatches = financialMatrix.rows.filter(r => !r.category && r.minCC !== undefined && r.maxCC !== undefined && displacement >= r.minCC && displacement <= r.maxCC);
-            [specificMatch, ...genericMatches].filter(Boolean).forEach(row => {
+            const cat = catRaw.trim().toUpperCase();
+
+            // 1. Specific Category Match
+            const specificMatch = financialMatrix.rows.find(r => r.category && r.category.toUpperCase() === cat);
+
+            // 2. Generic Displacement Match (if row has NO category)
+            const genericMatches = financialMatrix.rows.filter(r =>
+                !r.category && // Only generic rows
+                r.minCC !== undefined &&
+                r.maxCC !== undefined &&
+                displacement >= r.minCC &&
+                displacement <= r.maxCC
+            );
+
+            const candidates = [specificMatch, ...genericMatches].filter(Boolean) as MatrixRow[];
+
+            candidates.forEach(row => {
+                // Access dynamic key safely
                 const cost = (row as any)[contextKey] as number;
                 if (typeof cost === 'number' && cost > maxCost) {
                     maxCost = cost;
@@ -153,13 +173,23 @@ export const calculateQuote = (
         // It is usually a % of the BASE or financed amount. Let's assume % of (Moto + Docs - Down).
 
         let p1_base = assetPrice - downPaymentInput;
-        if (financeDocs) p1_base += docsTotal;
+        // [FIX] Docs should be ADDED to base if financed. 
+        // Logic: If 'financeDocs' is true, we add docsTotal to the loan principal.
+        // If false, user pays docs upfront? Or it's just not part of capital?
+        // Usually: P_financed = Price - Down + Docs (if financed).
+        if (financeDocs) {
+            p1_base += docsTotal;
+        }
 
-        const MOVABLE_GUARANTEE_COST = 120000;
-        movableGuaranteeCost = MOVABLE_GUARANTEE_COST;
-        p1_base += movableGuaranteeCost;
+        // [FIX] Removed static "Phantom" Charge of 120k (MOVABLE_GUARANTEE_COST) as per user request.
+        // It should ONLY be applied if explicitly configured in entity parameters if needed.
+        // For now, we strictly follow the Entity configuration.
 
         // FNG Calculation (on the current base)
+        if (entity?.fngRate && entity.fngRate > 0) {
+            fngCost = Math.round(p1_base * (entity.fngRate / 100));
+            p1_base += fngCost;
+        }
         if (entity?.fngRate && entity.fngRate > 0) {
             fngCost = Math.round(p1_base * (entity.fngRate / 100));
             p1_base += fngCost;
