@@ -127,25 +127,18 @@ export const calculateQuote = (
                 displacement <= r.maxCC
             );
 
-            // Prioritize Specific -> Then Generic
-            if (specificMatch) {
-                const val = (specificMatch as any)[contextKey] as number;
+            // [FIX] Unify Loop: Validate ALL candidates. 
+            // If specific match exists but has Cost=0, we MUST rely on the Generic match.
+            // Using max() logic across all candidates ensures we get a value > 0 if one exists.
+            const candidates = [specificMatch, ...genericMatches].filter(Boolean) as MatrixRow[];
+
+            candidates.forEach(row => {
+                const val = (row as any)[contextKey] as number;
                 if (typeof val === 'number' && val > maxCost) {
-                    maxCost = val;
+                    maxCost = val; // Keeps the highest valid cost found
                     registrationPrice = val;
                 }
-            } else if (genericMatches.length > 0) {
-                // If no specific match, verify if any generic match applies
-                // We take the one with the highest cost to be safe, or just the first one.
-                // let's iterate them.
-                genericMatches.forEach(row => {
-                    const val = (row as any)[contextKey] as number;
-                    if (typeof val === 'number' && val > maxCost) {
-                        maxCost = val;
-                        registrationPrice = val;
-                    }
-                });
-            }
+            });
         });
     }
     if (registrationPrice === 0) registrationPrice = city.registrationCost?.credit || 0; // Fallback
