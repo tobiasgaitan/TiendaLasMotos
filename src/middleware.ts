@@ -40,6 +40,8 @@ export function middleware(request: NextRequest) {
     }
 
     // Redirect Logged-in Users: If session exists and trying to access login, go to admin (or callbackUrl)
+    // DISABLED: Preventing infinite loop if Client SDK disagrees with Cookie.
+    /*
     if (isLoginPage && session) {
         const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
         if (callbackUrl && callbackUrl.startsWith('/')) {
@@ -47,6 +49,7 @@ export function middleware(request: NextRequest) {
         }
         return NextResponse.redirect(new URL('/admin', request.url))
     }
+    */
 
     return NextResponse.next()
 }
