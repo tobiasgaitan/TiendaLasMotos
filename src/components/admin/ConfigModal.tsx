@@ -38,9 +38,19 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
             name: "",
             interestRate: 0,
             minDownPaymentPercentage: 0,
-            requiresProceduresInCredit: true,
+            includeDocsInCapital: true, // Consolidated Flag
             lifeInsuranceType: 'percentage',
             lifeInsuranceValue: 0.1126,
+            // New Fields
+            fngRate: 0,
+            unemploymentInsuranceType: 'fixed_monthly',
+            unemploymentInsuranceValue: 0,
+            manualOverride: false,
+            brillaManagementRate: 0,
+            coverageRate: 0,
+            brillaManagementRate: 0,
+            coverageRate: 0,
+
             minAge: 18,
             maxAge: 75
         };
@@ -64,12 +74,23 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Tasa de Interés (% MV)</label>
-                        <input
-                            {...register("interestRate", { required: true, valueAsNumber: true })}
-                            type="number"
-                            step="0.01"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                        <div className="flex gap-2">
+                            <input
+                                {...register("interestRate", { required: true, valueAsNumber: true })}
+                                type="number"
+                                step="0.01"
+                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                            <div className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg px-2" title="Manual Override: Prevent Auto-Update">
+                                <input
+                                    {...register("manualOverride")}
+                                    type="checkbox"
+                                    id="override"
+                                    className="w-4 h-4 accent-red-500"
+                                />
+                                <label htmlFor="override" className="text-[10px] text-gray-400 font-bold cursor-pointer">LOCK</label>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">% Cuota Inicial Mínima</label>
@@ -80,6 +101,32 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                             max="100"
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
+                    </div>
+                </div>
+
+                {/* --- SPECIAL MODEL CHARGES (Brilla/Other) --- */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Gestión Crédito Brilla (%)</label>
+                        <input
+                            {...register("brillaManagementRate", { valueAsNumber: true })}
+                            type="number"
+                            step="0.01"
+                            placeholder="Ej. 5"
+                            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre (Moto + Trámites)</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Cobertura de Acceso (%)</label>
+                        <input
+                            {...register("coverageRate", { valueAsNumber: true })}
+                            type="number"
+                            step="0.01"
+                            placeholder="Ej. 4"
+                            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">Calculado sobre Valor Moto</p>
                     </div>
                 </div>
 
@@ -105,20 +152,23 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                     </div>
                 </div>
 
-                {/* INSURANCE CONFIG */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* INSURANCE CONFIG HEADER */}
+                <div className="text-xs font-bold text-gray-500 uppercase mt-4 mb-2">Seguros y Cargos Adicionales</div>
+
+                {/* LIFE INSURANCE */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Tipo Seguro Vida</label>
                         <select
                             {...register("lifeInsuranceType")}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         >
-                            <option value="percentage">Porcentaje (%)</option>
+                            <option value="percentage">Porcentaje (% MV)</option>
                             <option value="fixed_per_million">Fijo por Millón ($)</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Valor Seguro</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Valor Seguro Vida</label>
                         <input
                             {...register("lifeInsuranceValue", { required: true, valueAsNumber: true })}
                             type="number"
@@ -126,29 +176,58 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                             title="Si es %, usa 0.1126. Si es fijo, usa 800."
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
-                        <p className="text-[10px] text-gray-500 mt-1">Ej: 0.1126 para % | 800 para Fijo</p>
+                    </div>
+                </div>
+
+                {/* UNEMPLOYMENT INSURANCE & FNG */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">% FNG (Capital)</label>
+                        <input
+                            {...register("fngRate", { valueAsNumber: true })}
+                            type="number"
+                            step="0.01"
+                            placeholder="Ej. 10"
+                            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">Se suma al Capital Financiado</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Seguro Desempleo (Mensual)</label>
+                        <div className="flex gap-2">
+                            <select
+                                {...register("unemploymentInsuranceType")}
+                                className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white w-1/2 text-xs"
+                            >
+                                <option value="fixed_monthly">Valor ($)</option>
+                                <option value="percentage_monthly">% Cuota</option>
+                            </select>
+                            <input
+                                {...register("unemploymentInsuranceValue", { valueAsNumber: true })}
+                                type="number"
+                                step="0.01"
+                                placeholder="0"
+                                className="w-1/2 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* TOGGLES */}
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-2 border-t border-gray-700">
                     <div className="flex items-center gap-2">
                         <input
-                            {...register("requiresProceduresInCredit")}
+                            {...register("includeDocsInCapital")}
                             type="checkbox"
-                            id="procReq"
+                            id="docReq"
                             className="w-4 h-4 rounded accent-green-500"
                         />
-                        <label htmlFor="procReq" className="text-sm text-gray-300">Sumar costo de trámites al crédito</label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <input
-                            {...register("feesIncludesMatricula")}
-                            type="checkbox"
-                            id="feesInc"
-                            className="w-4 h-4 rounded accent-green-500"
-                        />
-                        <label htmlFor="feesInc" className="text-sm text-gray-300">Incluye Matrícula en Monto Financiado (Flag)</label>
+                        <label htmlFor="docReq" className="text-sm text-gray-300">
+                            Financiar Trámites (Matrícula)
+                            <span className="block text-xs text-gray-500">
+                                Suma el valor de trámites al capital total (P)
+                            </span>
+                        </label>
                     </div>
                 </div>
 

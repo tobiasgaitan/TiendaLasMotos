@@ -365,16 +365,41 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                             <span className="text-slate-500">Valor Moto</span>
                             <span className="font-bold text-slate-700">${quote.vehiclePrice.toLocaleString()}</span>
                         </div>
+                        {quote.isCredit && quote.fngCost > 0 && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 text-xs">+ Fondo Garantías (FNG - Financiado)</span>
+                                <span className="font-bold text-slate-700 text-xs">${quote.fngCost.toLocaleString()}</span>
+                            </div>
+                        )}
+                        {quote.isCredit && ((quote.registrationPrice > 0) || (quote.vGestion && quote.vGestion > 0)) && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 text-xs">{(quote.vGestion && quote.vGestion > 0) ? "+ Documentos y Gestión" : "+ Trámites (Financiado)"}</span>
+                                <span className="font-bold text-slate-700 text-xs">${((quote.registrationPrice || 0) + (quote.vGestion || 0)).toLocaleString()}</span>
+                            </div>
+                        )}
+                        {quote.isCredit && quote.vCobertura && quote.vCobertura > 0 && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 text-xs">+ Otros Cargos (Cobertura)</span>
+                                <span className="font-bold text-slate-700 text-xs">${quote.vCobertura.toLocaleString()}</span>
+                            </div>
+                        )}
                         {/* BREAKDOWN */}
                         {quote.isCredit && (
                             <>
+
                                 <div className="flex justify-between items-center text-xs text-slate-400">
-                                    <span>Seguro Vida (Est. Mes)</span>
+                                    <span>Seguro Vida (Mensual)</span>
                                     <span>${quote.lifeInsuranceValue.toLocaleString()}</span>
                                 </div>
+                                {quote.unemploymentInsuranceCost > 0 && (
+                                    <div className="flex justify-between items-center text-xs text-slate-400">
+                                        <span>Seguro Desempleo (Mensual)</span>
+                                        <span>${quote.unemploymentInsuranceCost.toLocaleString()}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Cuota Base Crédito</span>
-                                    <span>${((quote.monthlyPayment || 0) - quote.lifeInsuranceValue).toLocaleString()}</span>
+                                    <span>${((quote.monthlyPayment || 0) - quote.lifeInsuranceValue - quote.unemploymentInsuranceCost).toLocaleString()}</span>
                                 </div>
                             </>
                         )}
