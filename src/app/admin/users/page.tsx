@@ -50,7 +50,9 @@ export default function UsersPage() {
         setSaving(true);
         try {
             const emailKey = formData.email.toLowerCase().trim();
-            const docRef = doc(db, 'sys_admin_users', emailKey);
+            // Use existing ID if editing, otherwise new email key
+            const docId = editingUser ? editingUser.id : emailKey;
+            const docRef = doc(db, 'sys_admin_users', docId);
 
             await setDoc(docRef, {
                 name: formData.name,
@@ -84,7 +86,13 @@ export default function UsersPage() {
     const openModal = (user?: AdminUser) => {
         if (user) {
             setEditingUser(user);
-            setFormData({ name: user.name, email: user.email, role: user.role as string, active: user.active });
+            // Ensure values are never undefined to prevent 'uncontrolled' input warning/state blocking
+            setFormData({
+                name: user.name || '',
+                email: user.email || '',
+                role: (user.role || 'admin') as string,
+                active: user.active ?? true
+            });
         } else {
             setEditingUser(null);
             resetForm();
