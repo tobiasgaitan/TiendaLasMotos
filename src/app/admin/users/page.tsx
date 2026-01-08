@@ -17,6 +17,7 @@ interface AdminUser {
 export default function UsersPage() {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [pageError, setPageError] = useState(''); // Error Boundary State
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modal State
@@ -34,6 +35,7 @@ export default function UsersPage() {
             setUsers(list);
         } catch (error) {
             console.error(error);
+            setPageError("Error cargando usuarios. Intenta recargar.");
         } finally {
             setLoading(false);
         }
@@ -92,12 +94,18 @@ export default function UsersPage() {
     const resetForm = () => setFormData({ name: '', email: '', role: 'admin', active: true });
 
     const filteredUsers = users.filter(u =>
-        u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchTerm.toLowerCase())
+        (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
+            {pageError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong className="font-bold">Error: </strong>
+                    <span className="block sm:inline">{pageError}</span>
+                </div>
+            )}
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
@@ -142,17 +150,17 @@ export default function UsersPage() {
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-brand-blue font-bold">
-                                            {user.name.charAt(0)}
+                                            {(user.name || '?').charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{user.name}</p>
-                                            <p className="text-sm text-gray-500">{user.email}</p>
+                                            <p className="font-medium text-gray-900">{user.name || 'Sin Nombre'}</p>
+                                            <p className="text-sm text-gray-500">{user.email || 'Sin Correo'}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
-                                            user.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                        user.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                                         }`}>
                                         {user.role}
                                     </span>
