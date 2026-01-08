@@ -61,7 +61,8 @@ export default function UsersPage() {
             }, { merge: true });
 
             setIsModalOpen(false);
-            fetchUsers();
+            await fetchUsers(); // Await refresh explicitly
+            alert("Usuario guardado correctamente"); // Simple success feedback as requested
             resetForm();
         } catch (error) {
             alert("Error guardando usuario");
@@ -253,7 +254,7 @@ export default function UsersPage() {
 
                             <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                                <button type="submit" disabled={saving} className="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold shadow-lg">
+                                <button type="submit" disabled={saving} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-lg transition-colors">
                                     {saving ? 'Guardando...' : 'Guardar Usuario'}
                                 </button>
                             </div>
