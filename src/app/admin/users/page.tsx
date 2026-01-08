@@ -93,10 +93,13 @@ export default function UsersPage() {
 
     const resetForm = () => setFormData({ name: '', email: '', role: 'admin', active: true });
 
-    const filteredUsers = users.filter(u =>
-        (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(u => {
+        if (!u) return false;
+        const name = u.name?.toLowerCase() ?? '';
+        const email = u.email?.toLowerCase() ?? '';
+        const search = (searchTerm ?? '').toLowerCase();
+        return name.includes(search) || email.includes(search);
+    });
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -150,11 +153,11 @@ export default function UsersPage() {
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-brand-blue font-bold">
-                                            {(user.name || '?').charAt(0)}
+                                            {(user.name ?? '?').charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{user.name || 'Sin Nombre'}</p>
-                                            <p className="text-sm text-gray-500">{user.email || 'Sin Correo'}</p>
+                                            <p className="font-medium text-gray-900">{user.name ?? 'Sin Nombre'}</p>
+                                            <p className="text-sm text-gray-500">{user.email ?? 'Sin Correo'}</p>
                                         </div>
                                     </div>
                                 </td>
