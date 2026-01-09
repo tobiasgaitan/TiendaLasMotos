@@ -84,11 +84,13 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
 
     useEffect(() => {
         if (!moto) return;
+        if (!matrix) return; // Wait for matrix to load to avoid wrong calculations? Or use default?
+        // Better to wait or show loader, but for now we can attempt with fallback if calc handles undefined matrix (it does).
+        // However, to ensure $760k is shown, we need matrix.
 
         const financialEntity = financialEntities.find(f => f.id === selectedFinancialId);
 
         // Construct a Mock City object for the calculator logic
-        // The calculator needs { name: string, ... } to trigger "includes('Santa Marta')" etc.
         const mockCity: City = {
             id: activeScenario.id,
             name: activeScenario.cityName,
@@ -96,15 +98,6 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             isActive: true,
             documentationFee: 0 // Default for mock
         };
-
-        console.log("Triggering Calculation with:", {
-            moto: moto.referencia,
-            price: moto.precio,
-            scenario: activeScenario.id,
-            financialEntity: financialEntity?.name || "None (Using Fallback)",
-            months,
-            downPayment
-        });
 
         const result = calculateQuote(
             moto,
@@ -114,7 +107,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             isCredit ? financialEntity : undefined,
             months,
             downPayment,
-            matrix
+            matrix // STRICTLY PASSING THE FETCHED MATRIX
         );
 
         setQuote(result);
