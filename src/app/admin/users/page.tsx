@@ -91,7 +91,7 @@ export default function UsersPage() {
                 name: user.name || '',
                 email: user.email || '',
                 role: (user.role || 'admin') as string,
-                active: user.active ?? true
+                active: user.active === true // Strict check: undefined/false -> false
             });
         } else {
             setEditingUser(null);
@@ -216,7 +216,7 @@ export default function UsersPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
                                 <input
                                     required
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-blue outline-none"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-blue outline-none text-slate-900 bg-white"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -228,7 +228,7 @@ export default function UsersPage() {
                                     type="email"
                                     required
                                     disabled={!!editingUser} // ID cannot change
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-blue outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-blue outline-none disabled:bg-gray-100 disabled:text-gray-500 text-slate-900 bg-white"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
@@ -239,7 +239,7 @@ export default function UsersPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                                     <select
-                                        className="w-full px-4 py-2 border rounded-lg outline-none"
+                                        className="w-full px-4 py-2 border rounded-lg outline-none text-slate-900 bg-white"
                                         value={formData.role}
                                         onChange={e => setFormData({ ...formData, role: e.target.value })}
                                     >
