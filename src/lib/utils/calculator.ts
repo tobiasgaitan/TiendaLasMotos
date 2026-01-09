@@ -26,6 +26,7 @@ export interface QuoteResult {
     interestRate?: number;
     financialEntity?: string;
     isCredit: boolean;
+    matchIdentifier?: string; // [NEW] Traceability
 }
 
 /**
@@ -82,6 +83,7 @@ export const calculateQuote = (
     const price = moto.precio;
     const specialAdjustment = moto.specialAdjustment || 0;
     let registrationPrice = 0;
+    let matchIdentifier = 'NO_MATRIX';
 
     // --- Matrix Lookup Logic (Strict & Filtered) ---
     if (financialMatrix) {
@@ -145,6 +147,7 @@ export const calculateQuote = (
 
         // Apply Value if Match Found
         if (bestMatch) {
+            matchIdentifier = bestMatch.id; // Capture ID
             const val = (bestMatch as any)[contextKey] as number;
             if (typeof val === 'number') {
                 registrationPrice = val;
@@ -313,6 +316,7 @@ export const calculateQuote = (
         months: paymentMethod === 'credit' ? months : 0,
         interestRate: paymentMethod === 'credit' ? (financialEntity?.interestRate || 0) : 0,
         financialEntity: financialEntity?.name,
-        isCredit: paymentMethod === 'credit'
+        isCredit: paymentMethod === 'credit',
+        matchIdentifier
     };
 };

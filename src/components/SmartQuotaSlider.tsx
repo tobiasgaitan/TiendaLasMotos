@@ -218,9 +218,14 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
     return (
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
-            <div className="bg-brand-blue p-6 text-white text-center">
+            <div className="bg-brand-blue p-6 text-white text-center relative">
                 <h3 className="text-2xl font-bold uppercase tracking-wide">Simula tu Crédito</h3>
                 <p className="text-blue-100 text-sm opacity-80">Elige tu moto y plan de pago ideal</p>
+                {quote?.matchIdentifier && (
+                    <div className="absolute top-2 right-2 bg-black/30 px-2 py-1 rounded text-[10px] font-mono opacity-70 hover:opacity-100">
+                        Matrix: {quote.matchIdentifier}
+                    </div>
+                )}
             </div>
 
             <div className="p-6 space-y-6">
