@@ -82,7 +82,7 @@ export default function SimulatorPage() {
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
                     setPrice(mList[0].precio);
-                    setDownPayment(Math.floor(mList[0].precio * 0.10)); // Default 10%
+                    setDownPayment(Math.floor(mList[0].precio * 0.15)); // Default 15%
                 }
 
                 setLoading(false);
