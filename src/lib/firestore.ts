@@ -61,9 +61,17 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
             let finalDisplacement = 0;
             const rawDisplacement = data["cilindraje"] || data["cc"] || data["displacement"];
             if (rawDisplacement) {
-                // Remove 'cc', 'cm3', spaces, then parse
-                const clean = String(rawDisplacement).toLowerCase().replace(/cc|cm3| |-|\./g, '');
-                finalDisplacement = Number(clean) || 0;
+                // [FIX] Improved Parsing Logic for Decimals (e.g. "124.8 cm3")
+                // 1. Convert to string and lower case
+                let clean = String(rawDisplacement).toLowerCase();
+                // 2. Remove common units FIRST to avoid keeping digits like '3' from 'cm3'
+                clean = clean.replace(/cc|cm3|cm|c\.c\.|l/g, '');
+                // 3. Replace comma with dot for consistency
+                clean = clean.replace(/,/g, '.');
+                // 4. Remove everything that is NOT a digit or a dot
+                clean = clean.replace(/[^0-9.]/g, '');
+                // 5. Parse float
+                finalDisplacement = parseFloat(clean) || 0;
             }
 
             // Categories: Try 'categories' array, or 'categoria' string, or 'category'

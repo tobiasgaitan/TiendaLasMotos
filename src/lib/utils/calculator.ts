@@ -76,10 +76,21 @@ export const calculateQuote = (
     financialEntity?: FinancialEntity,
     months: number = 48,
     downPaymentInput: number = 0,
-    financialMatrix?: FinancialMatrix
+    financialMatrix?: FinancialMatrix,
+    isExempt: boolean = false
 ): QuoteResult => {
     // 1. Determine Input Variables & Matrix Price
-    const displacement = moto.displacement || 0; // Don't default to 150, allow 0 for <99cc matching
+    let displacement = 0;
+    if (moto.displacement) {
+        if (typeof moto.displacement === 'number') {
+            displacement = moto.displacement;
+        } else {
+            // Parsing Logic: "124,8 cm3" -> 124.8
+            let raw = String(moto.displacement).toLowerCase();
+            raw = raw.replace(/cc|cm3|cm|c\.c\.|l/g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            displacement = parseFloat(raw) || 0;
+        }
+    }
     const price = moto.precio;
     const specialAdjustment = moto.specialAdjustment || 0;
     let registrationPrice = 0;
@@ -163,6 +174,12 @@ export const calculateQuote = (
         const now = new Date();
         const remainingMonths = 12 - now.getMonth();
         registrationPrice += ((price * 0.015) / 12) * remainingMonths + 40000;
+    }
+
+    // --- MANUAL OVERRIDE (EXEMPTION) ---
+    if (isExempt) {
+        registrationPrice = 0;
+        matchIdentifier = 'Exento Manual (Check Activo)';
     }
 
     const documentationFee = city.documentationFee || 0;

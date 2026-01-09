@@ -30,10 +30,95 @@ async function fetchProductDetails(url: string): Promise<ProductMetadata> {
         const specs: Record<string, string> = {};
         let warranty: string | null = null;
 
-        // --- 1. Price Extraction ---
-        const metaPrice = $('meta[property="product:price:amount"]').attr("content");
-        if (metaPrice) {
-            price = parseFloat(metaPrice);
+        // --- 0. VTEX STATE STRATEGY (Best for SPA hydration) ---
+        const startMarker = '<template data-type="json" data-varname="__STATE__">';
+        const endMarker = '</template>';
+        const content = data; // axios response data
+        const startIndex = content.indexOf(startMarker);
+
+        if (startIndex !== -1) {
+            const contentStart = startIndex + startMarker.length;
+            const endIndex = content.indexOf(endMarker, contentStart);
+            if (endIndex !== -1) {
+                let stateContent = content.substring(contentStart, endIndex);
+
+                // Remove <script> tags wrapper if present
+                const scriptStart = stateContent.indexOf('<script>');
+                if (scriptStart !== -1) {
+                    const scriptEnd = stateContent.indexOf('</script>');
+                    if (scriptEnd !== -1) {
+                        stateContent = stateContent.substring(scriptStart + 8, scriptEnd);
+                    }
+                }
+
+                try {
+                    const state = JSON.parse(stateContent);
+
+                    // Find Main Product Key
+                    const productKey = Object.keys(state).find(k => k.startsWith('Product:') && state[k].productName);
+
+                    if (productKey) {
+                        const product = state[productKey];
+
+                        // 1. Price
+                        // Usually found in Price check, but let's look for known props or items
+                        // Often items[0].sellers[0].commertialOffer.Price
+                        if (product.items && Array.isArray(product.items) && product.items.length > 0) {
+                            const itemRef = product.items[0];
+                            const itemObj = state[itemRef.id];
+                            if (itemObj && itemObj.sellers && itemObj.sellers.length > 0) {
+                                const sellerRef = itemObj.sellers[0];
+                                const sellerObj = state[sellerRef.id];
+                                if (sellerObj && sellerObj.commertialOffer) {
+                                    const offerRef = sellerObj.commertialOffer;
+                                    const offerObj = state[offerRef.id];
+                                    if (offerObj && offerObj.Price) {
+                                        price = offerObj.Price;
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Specs via 'properties' (Normalized Refs)
+                        if (product.properties && Array.isArray(product.properties)) {
+                            product.properties.forEach((ref: any) => {
+                                const propObj = state[ref.id];
+                                if (propObj && propObj.name && propObj.values && propObj.values.json) {
+                                    const val = propObj.values.json[0];
+                                    if (val) specs[propObj.name] = val;
+                                }
+                            });
+                        }
+
+                        // 3. Specs via 'specificationGroups'
+                        if (product.specificationGroups && Array.isArray(product.specificationGroups)) {
+                            product.specificationGroups.forEach((groupRef: any) => {
+                                const groupObj = state[groupRef.id];
+                                if (groupObj && groupObj.specifications && Array.isArray(groupObj.specifications)) {
+                                    groupObj.specifications.forEach((specRef: any) => {
+                                        const specObj = state[specRef.id];
+                                        if (specObj && specObj.name && specObj.values && specObj.values.json) {
+                                            const val = specObj.values.json[0];
+                                            if (val) specs[specObj.name] = val;
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing VTEX __STATE__", e);
+                }
+            }
+        }
+
+        // Fallback or override if not found above
+        // --- 1. Price Extraction (Meta tags backup) ---
+        if (!price) {
+            const metaPrice = $('meta[property="product:price:amount"]').attr("content");
+            if (metaPrice) {
+                price = parseFloat(metaPrice);
+            }
         }
 
         if (!price || isNaN(price)) {
@@ -295,5 +380,82 @@ export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 
     } catch (error) {
         console.error("Manual sync failed:", error);
         res.status(500).send("Internal Server Error");
+    }
+});
+
+// 3. Urgent DB Fix Endpoint (Temporary)
+export const fixDatabase23 = functions.runWith({ timeoutSeconds: 540 }).https.onRequest(async (req, res) => {
+    // Basic Auth Check
+    const token = req.query.token as string;
+    if (token !== "URGENT_FIX_2025") {
+        res.status(403).send("Unauthorized");
+        return;
+    }
+
+    // Hardcoded Recovery Data
+    const RECOVERY_DATA = [
+        { name: 'ADVANCE R 125', id_ref: 'advance_r_125', url: 'https://www.auteco.com.co/moto-victory-advance-r-125/p', cc: 124, warranty: '24 meses o 24.000 km' },
+        { name: 'AGILITY FUSION TRAKKU', id_ref: 'agility_fusion_trakku', url: 'https://www.auteco.com.co/moto-kymco-agility-fusion-trakku/p?skuId=21130162', cc: 124.6, warranty: '12 meses o 20.000 km' },
+        { name: 'APACHE 160 CARBURADA ABS', id_ref: 'apache_160_carburada_abs', url: 'https://www.auteco.com.co/apache-rtr-160-4v-xconnect-abs/p?skuId=21135507', cc: 159.7, warranty: '24 meses o 24.000 km' },
+        { name: 'BET ABS', id_ref: 'bet_abs', url: 'https://www.auteco.com.co/moto-victory-bet-abs/p', cc: 149.2, warranty: '24 meses o 24.000 km' },
+        { name: 'COOL JOY', id_ref: 'cool_joy', url: 'https://www.auteco.com.co/moto-electrica-starker-cooljoy/p', cc: 0, warranty: '12 meses' }, // Electric
+        { name: 'ECOMAD', id_ref: 'ecomad', url: 'https://www.auteco.com.co/patineta-electrica-velocifero-ecomad/p', cc: 0, warranty: '12 meses' }, // Electric
+        { name: 'IQUBE', id_ref: 'iqube', url: 'https://www.auteco.com.co/moto-electrica-tvs-iqube/p?skuId=21133890', cc: 0, warranty: '24 meses' }, // Electric
+        { name: 'NINJA 500', id_ref: 'ninja_500', url: 'https://www.auteco.com.co/kawasaki-ninja-500/p?skuId=21135427', cc: 451, warranty: '12 meses o 20.000 km' },
+        { name: 'NITRO 125 TRAKKU', id_ref: 'nitro_125_trakku', url: 'https://www.auteco.com.co/moto-victory-nitro-125-trakku/p', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'NTORQ 125 XCONNECT FI', id_ref: 'ntorq_125_xconnect_fi', url: 'https://www.auteco.com.co/moto-tvs-ntorq-125-xconnect-fi/p?skuId=21135498', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'RAIDER 125', id_ref: 'raider_125', url: 'https://www.auteco.com.co/moto-tvs-raider-125/p?skuId=21135480', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'RAIDER 125 FI', id_ref: 'raider_125_fi', url: 'https://www.auteco.com.co/moto-tvs-raider-125-fi/p?skuId=21135502', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'RONIN 225 TD', id_ref: 'ronin_225_td', url: 'https://www.auteco.com.co/moto-tvs-ronin-225-td/p?skuId=21108520', cc: 225.9, warranty: '24 meses o 24.000 km' },
+        { name: 'STAR KIDS', id_ref: 'star_kids', url: 'https://www.auteco.com.co/moto-electrica-starker-star-kids/p?skuId=21116561', cc: 0, warranty: '6 meses' },
+        { name: 'STAR KIDS PRO', id_ref: 'star_kids_pro', url: 'https://www.auteco.com.co/moto-electrica-starker-star-kids-pro/p?skuId=21011740', cc: 0, warranty: '6 meses' },
+        { name: 'SWITCH 125', id_ref: 'switch_125', url: 'https://www.auteco.com.co/moto-victory-switch-125/p', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'SWITCH 125 TK', id_ref: 'switch_125_tk', url: 'https://www.auteco.com.co/moto-victory-switch-125-tk/p', cc: 124.8, warranty: '24 meses o 24.000 km' },
+        { name: 'TNT 25N', id_ref: 'tnt_25n', url: 'https://www.auteco.com.co/moto-benelli-tnt-25n/p', cc: 249, warranty: '12 meses o 20.000 km' },
+        { name: 'TRICARGO 300', id_ref: 'tricargo_300', url: 'https://www.auteco.com.co/motocarro-ceronte-tricargo-300/p', cc: 272, warranty: '6 meses o 6.000 km' },
+        { name: 'TRK 251', id_ref: 'trk_251', url: 'https://www.auteco.com.co/moto-benelli-trk-251/p', cc: 249, warranty: '12 meses o 20.000 km' },
+        { name: 'VERSYS 300 ABS', id_ref: 'versys_300_abs', url: 'https://www.auteco.com.co/moto-kawasaki-versys-300-abs/p?skuId=21130346', cc: 296, warranty: '12 meses o 20.000 km' },
+        { name: 'VOLTA 350', id_ref: 'volta_350', url: 'https://www.auteco.com.co/patineta-electrica-starker-volta-350/p', cc: 0, warranty: '6 meses' },
+        { name: 'Z500', id_ref: 'z500', url: 'https://www.auteco.com.co/kawasaki-z500/p?skuId=21135415', cc: 451, warranty: '12 meses o 20.000 km' }
+    ];
+
+    try {
+        const itemsRef = db.collection('pagina').doc('catalogo').collection('items');
+        // Fetch ALL items to ensure we find targets even if naming is slightly off
+        const snapshot = await itemsRef.get();
+        const results: any[] = [];
+        let updatedCount = 0;
+
+        for (const target of RECOVERY_DATA) {
+            const docFound = snapshot.docs.find(d => {
+                const data = d.data();
+                const ref = (data.referencia || '').toLowerCase().trim();
+                const name = (data.name || '').toLowerCase().trim();
+                const targetName = target.name.toLowerCase().trim();
+
+                // Fuzzy match similar to script strategy
+                return ref === targetName || name === targetName || ref.includes(target.id_ref.replace(/_/g, ' '));
+            });
+
+            if (docFound) {
+                const updatePayload: any = {
+                    displacement: target.cc, // Direct number injection
+                    external_url: target.url,
+                    garantia: target.warranty,
+                    last_updated_manual: admin.firestore.FieldValue.serverTimestamp(),
+                    manual_fix_23: true
+                };
+
+                await docFound.ref.set(updatePayload, { merge: true });
+                results.push({ id: docFound.id, name: target.name, status: 'UPDATED', cc: target.cc });
+                updatedCount++;
+            } else {
+                results.push({ name: target.name, status: 'NOT_FOUND_IN_DB' });
+            }
+        }
+        res.json({ success: true, updated: updatedCount, details: results });
+    } catch (e: any) {
+        console.error("Fix failure", e);
+        res.status(500).send(e.message);
     }
 });

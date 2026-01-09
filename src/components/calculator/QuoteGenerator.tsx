@@ -26,6 +26,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
     const [filterText, setFilterText] = useState(""); // Search State
     const [ticket, setTicket] = useState<number | null>(null);
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+    const [isExempt, setIsExempt] = useState(false); // [NEW] Manual Exemption
 
     // Derived States
     const activeScenario = FINANCIAL_SCENARIOS.find(s => s.id === selectedScenarioId) || FINANCIAL_SCENARIOS[0];
@@ -47,7 +48,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         fetchMatrix();
     }, []);
 
-    // Default Down Payment (10%) - Reset on moto change
+    // Default Down Payment (15%) - Reset on moto change
     useEffect(() => {
         if (moto) {
             const def = Math.floor(moto.precio * 0.15);
@@ -107,11 +108,12 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             isCredit ? financialEntity : undefined,
             months,
             downPayment,
-            matrix // STRICTLY PASSING THE FETCHED MATRIX
+            matrix,
+            isExempt // STRICTLY PASSING EXEMPTION FLAG
         );
 
         setQuote(result);
-    }, [selectedScenarioId, selectedFinancialId, months, downPayment, moto, soatRates, financialEntities, matrix, activeScenario, isCredit]);
+    }, [selectedScenarioId, selectedFinancialId, months, downPayment, moto, soatRates, financialEntities, matrix, activeScenario, isCredit, isExempt]);
 
     if (!quote) return null;
 
@@ -340,9 +342,26 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                     <span className="font-medium">${quote.vehiclePrice.toLocaleString()}</span>
                 </div>
 
-                <div className="flex justify-between">
-                    <span className="text-gray-500">Valor Trámites (Incluye SOAT)</span>
-                    <span className="font-medium">${(quote.registrationPrice + quote.documentationFee).toLocaleString()}</span>
+                <div className="flex flex-col gap-1">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Valor Trámites (Incluye SOAT)</span>
+                        <span className="font-medium">${(quote.registrationPrice + quote.documentationFee).toLocaleString()}</span>
+                    </div>
+                    {/* MANUAL EXEMPTION CHECKBOX */}
+                    <label className="flex items-center gap-2 text-xs text-blue-800 cursor-pointer self-end bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={isExempt}
+                            onChange={(e) => setIsExempt(e.target.checked)}
+                            className="rounded text-brand-blue focus:ring-brand-blue"
+                        />
+                        <span className="font-bold">Exento de Matrícula</span>
+                    </label>
+                    {isExempt && (
+                        <div className="text-[10px] text-right font-mono text-slate-500 opacity-70">
+                            Fila: {quote.matchIdentifier}
+                        </div>
+                    )}
                 </div>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">

@@ -63,6 +63,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     const [quote, setQuote] = useState<QuoteResult | null>(null);
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
     const [isSaving, setIsSaving] = useState(false);
+    const [isExempt, setIsExempt] = useState(false); // [NEW] Manual Exemption
 
     // Search State
     const [filterText, setFilterText] = useState("");
@@ -104,7 +105,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     // Update Default Down Payment (10%) when moto changes
     useEffect(() => {
         if (!selectedMoto) return;
-        // Always reset to 10% when moto changes
+        // Always reset to 15% when moto changes
         const def = Math.floor(selectedMoto.precio * 0.15);
         setDownPayment(def);
         setDownPaymentStr(def.toLocaleString('es-CO'));
@@ -137,11 +138,12 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             isCredit ? financialEntity : undefined,
             months,
             downPayment,
-            matrix
+            matrix,
+            isExempt // STRICTLY PASSING EXEMPTION FLAG
         );
 
         setQuote(result);
-    }, [selectedScenarioId, selectedFinancialId, months, downPayment, selectedMoto, soatRates, availableEntities, matrix, activeScenario, isCredit]);
+    }, [selectedScenarioId, selectedFinancialId, months, downPayment, selectedMoto, soatRates, availableEntities, matrix, activeScenario, isCredit, isExempt]);
 
     // HANDLERS
 
@@ -376,10 +378,21 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                 <span className="font-bold text-slate-700 text-xs">${quote.fngCost.toLocaleString()}</span>
                             </div>
                         )}
-                        {quote.isCredit && ((quote.registrationPrice > 0) || (quote.vGestion && quote.vGestion > 0)) && (
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 text-xs">+ Documentos y Gestión</span>
-                                <span className="font-bold text-slate-700 text-xs">${((quote.registrationPrice || 0) + (quote.vGestion || 0)).toLocaleString()}</span>
+                        {quote.isCredit && ((quote.registrationPrice > 0) || (quote.vGestion && quote.vGestion > 0) || isExempt) && (
+                            <div className="flex flex-col gap-1">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-500 text-xs">+ Documentos y Gestión</span>
+                                    <span className="font-bold text-slate-700 text-xs">${((quote.registrationPrice || 0) + (quote.vGestion || 0)).toLocaleString()}</span>
+                                </div>
+                                <label className="flex items-center gap-1 self-end">
+                                    <input
+                                        type="checkbox"
+                                        checked={isExempt}
+                                        onChange={(e) => setIsExempt(e.target.checked)}
+                                        className="h-3 w-3 text-brand-blue rounded border-slate-300 focus:ring-brand-blue"
+                                    />
+                                    <span className="text-[10px] text-brand-blue font-bold uppercase cursor-pointer">Exento de Matrícula</span>
+                                </label>
                             </div>
                         )}
                         {quote.isCredit && quote.vCobertura && quote.vCobertura > 0 && (
