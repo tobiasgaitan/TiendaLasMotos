@@ -78,7 +78,7 @@ export const calculateQuote = (
     financialMatrix?: FinancialMatrix
 ): QuoteResult => {
     // 1. Determine Input Variables & Matrix Price
-    const displacement = moto.displacement || 150;
+    const displacement = moto.displacement || 0; // Don't default to 150, allow 0 for <99cc matching
     const price = moto.precio;
     const specialAdjustment = moto.specialAdjustment || 0;
     let registrationPrice = 0;
