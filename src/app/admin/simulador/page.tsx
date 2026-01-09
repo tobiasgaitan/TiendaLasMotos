@@ -100,7 +100,7 @@ export default function SimulatorPage() {
         if (m) {
             setPrice(m.precio);
             // Optional: Reset Down Payment percentage? Keeping it manual is better for testing unless changed.
-            setDownPayment(Math.floor(m.precio * 0.10));
+            setDownPayment(Math.floor(m.precio * 0.15));
         }
     }, [selectedMotoId, motos]);
 
@@ -277,6 +277,12 @@ export default function SimulatorPage() {
                                         <div className="flex justify-between text-blue-300">
                                             <span>(+) Trámites y Matrícula</span>
                                             <span className="font-mono">{formatCurrency(quote.registrationPrice)}</span>
+                                        </div>
+                                        {/* Traceability Label (User Requested) */}
+                                        <div className="flex justify-end -mt-2 mb-1">
+                                            <span className="text-[10px] text-gray-500 font-mono bg-gray-900/50 px-1 rounded border border-gray-700">
+                                                Fila: {quote.matchIdentifier || 'N/A'} (CC: {motos.find(m => m.id === selectedMotoId)?.displacement})
+                                            </span>
                                         </div>
                                         {quote.isCredit && quote.fngCost > 0 && (
                                             <div className="flex justify-between text-yellow-300">
