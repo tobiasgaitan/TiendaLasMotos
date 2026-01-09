@@ -125,23 +125,21 @@ export const calculateQuote = (
         if (!foundSpecific) {
             // [FIX] Strict Filter: We only look for rows that DO NOT have a specific category 
             // OR have category explicitly set to 'GENERAL'.
-            // This prevents "Motocarro" (0-9999 cc) from being picked up for a normal bike.
-            const genericMatches = financialMatrix.rows.filter(r => {
-                const isGenericRow = !r.category || r.category.toUpperCase() === 'GENERAL';
-                const inRange = displacement >= (r.minCC || 0) && displacement <= (r.maxCC || 99999);
-                return isGenericRow && inRange;
-            });
+            const validGenericRows = financialMatrix.rows.filter(r =>
+                !r.category || r.category.toUpperCase() === 'GENERAL'
+            );
 
-            // If multiple generic ranges match (unlikely if matrix is good, but possible), 
-            // we pick the one with the smallest range to be most specific? 
-            // Or just the first one? Let's assume the first valid one is fine, or sort by id.
-            // Actually, let's take the one with the *highest* cost to be safe? 
-            // No, the bug was picking the highest cost (Motocarro). 
-            // Let's rely on finding the *correct* range.
+            // [FIX] Best Fit Algorithm:
+            // Filter rows where displacement >= minCC.
+            // Sort by minCC DESCENDING. Pick the first one.
+            // This handles "gaps" by snapping to the closest lower bound that covers it (effectively "Floor" logic for brackets).
 
-            if (genericMatches.length > 0) {
-                // We pick the first one. Usually there's only one valid generic range per CC.
-                bestMatch = genericMatches[0];
+            const candidates = validGenericRows.filter(r => displacement >= (r.minCC || 0));
+            // Sort by minCC desc
+            candidates.sort((a, b) => (b.minCC || 0) - (a.minCC || 0));
+
+            if (candidates.length > 0) {
+                bestMatch = candidates[0];
             }
         }
 
