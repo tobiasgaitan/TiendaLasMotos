@@ -83,13 +83,12 @@ export const calculateQuote = (
     const specialAdjustment = moto.specialAdjustment || 0;
     let registrationPrice = 0;
 
-    // --- Matrix Lookup Logic (Simplified for brevity as it was correct in previous view) ---
-    // Assuming contextKey logic is preserved or re-implemented here. 
-    // To minimize code churn, I will trust the previous context logic was okay, 
-    // but I must re-implement it to ensure all variables are available.
+    // --- Matrix Lookup Logic (Strict & Filtered) ---
     if (financialMatrix) {
         const cityName = city.name.toLowerCase();
         let contextKey: keyof MatrixRow = 'registrationCreditGeneral';
+
+        // Context Key Mapping
         if (paymentMethod === 'credit') {
             if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
             else contextKey = 'registrationCreditGeneral';
@@ -102,46 +101,61 @@ export const calculateQuote = (
         }
 
         // Category Matching
-        // [FIX] Ensure valid array of categories to check.
-        // Fallback to "URBANA Y/O TRABAJO" (Generic) if no category is present.
         let categoriesToCheck = (moto.categories?.length)
             ? moto.categories
             : (moto.category ? [moto.category] : ["URBANA Y/O TRABAJO"]);
 
-        let maxCost = -1;
+        let bestMatch: MatrixRow | undefined;
+        let foundSpecific = false;
 
-        categoriesToCheck.forEach(catRaw => {
+        // 1. Try to find a Specific Category Match
+        // We iterate through moto categories and check if any row in matrix matches EXACTLY
+        for (const catRaw of categoriesToCheck) {
             const cat = catRaw.trim().toUpperCase();
-
-            // 1. Specific Category Match
             const specificMatch = financialMatrix.rows.find(r => r.category && r.category.toUpperCase() === cat);
 
-            // 2. Generic Displacement Match (Fallback)
-            // [FIX] Relaxed filter: If no specific category match, look for ANY row covering the CC range.
-            // valid generic rows might have no category OR be labeled 'General'.
-            // We prioritize rows with NO category or 'GENERAL' if multiple exist, but strictly we just want *a* match.
-            const genericMatches = financialMatrix.rows.filter(r =>
-                r.minCC !== undefined &&
-                r.maxCC !== undefined &&
-                displacement >= r.minCC &&
-                displacement <= r.maxCC
-            );
+            if (specificMatch) {
+                bestMatch = specificMatch;
+                foundSpecific = true;
+                break; // Stop if we find a specific category match (Priority 1)
+            }
+        }
 
-            // [FIX] Unify Loop: Validate ALL candidates. 
-            // If specific match exists but has Cost=0, we MUST rely on the Generic match.
-            // Using max() logic across all candidates ensures we get a value > 0 if one exists.
-            const candidates = [specificMatch, ...genericMatches].filter(Boolean) as MatrixRow[];
-
-            candidates.forEach(row => {
-                const val = (row as any)[contextKey] as number;
-                if (typeof val === 'number' && val > maxCost) {
-                    maxCost = val; // Keeps the highest valid cost found
-                    registrationPrice = val;
-                }
+        // 2. Generic Displacement Match (Fallback) ONLY if no specific match found
+        if (!foundSpecific) {
+            // [FIX] Strict Filter: We only look for rows that DO NOT have a specific category 
+            // OR have category explicitly set to 'GENERAL'.
+            // This prevents "Motocarro" (0-9999 cc) from being picked up for a normal bike.
+            const genericMatches = financialMatrix.rows.filter(r => {
+                const isGenericRow = !r.category || r.category.toUpperCase() === 'GENERAL';
+                const inRange = displacement >= (r.minCC || 0) && displacement <= (r.maxCC || 99999);
+                return isGenericRow && inRange;
             });
-        });
+
+            // If multiple generic ranges match (unlikely if matrix is good, but possible), 
+            // we pick the one with the smallest range to be most specific? 
+            // Or just the first one? Let's assume the first valid one is fine, or sort by id.
+            // Actually, let's take the one with the *highest* cost to be safe? 
+            // No, the bug was picking the highest cost (Motocarro). 
+            // Let's rely on finding the *correct* range.
+
+            if (genericMatches.length > 0) {
+                // We pick the first one. Usually there's only one valid generic range per CC.
+                bestMatch = genericMatches[0];
+            }
+        }
+
+        // Apply Value if Match Found
+        if (bestMatch) {
+            const val = (bestMatch as any)[contextKey] as number;
+            if (typeof val === 'number') {
+                registrationPrice = val;
+            }
+        }
     }
-    if (registrationPrice === 0) registrationPrice = city.registrationCost?.credit || 0; // Fallback
+
+    // [Legacy Fallback REMOVED] - 
+    // if (registrationPrice === 0) registrationPrice = city.registrationCost?.credit || 0; 
 
     // Timbre Tax
     if (displacement > 125 && paymentMethod === 'cash') {
