@@ -105,7 +105,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     useEffect(() => {
         if (!selectedMoto) return;
         // Always reset to 10% when moto changes
-        const def = Math.floor(selectedMoto.precio * 0.10);
+        const def = Math.floor(selectedMoto.precio * 0.15);
         setDownPayment(def);
         setDownPaymentStr(def.toLocaleString('es-CO'));
     }, [selectedMotoId]);
