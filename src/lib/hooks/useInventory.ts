@@ -35,6 +35,7 @@ export interface Product {
     frenosABS?: boolean;
     promotionalPrice?: number;
     description?: string;
+    exemptRegistration?: boolean;
 }
 
 /**
@@ -103,7 +104,8 @@ export function useInventory() {
                         displacement: Number(data.displacement || 0),
                         frenosABS: data.frenosABS || false,
                         promotionalPrice: Number(data.promotionalPrice || 0),
-                        description: data.description || ''
+                        description: data.description || '',
+                        exemptRegistration: data.exemptRegistration === true || data.exentoMatricula === true
                     };
                 }) as Product[];
 

@@ -24,10 +24,9 @@ export default function SimulatorPage() {
 
     // --- CITY DEFINITIONS (Derived from Financial Matrix Logic) ---
     // [FIX] User requested strict filter: Only 'Crédito (Sta Marta)' and 'Crédito (General)' for Simulator.
-    const OFFICIAL_CITIES: City[] = [
-        { id: 'santa-marta', name: 'Santa Marta (Crédito)', department: 'Magdalena', documentationFee: 0 },
-        { id: 'general', name: 'Otras Ciudades / General (Crédito)', department: 'Nacional', documentationFee: 0 },
-    ];
+    // --- CITY DEFINITIONS (Dynamic) ---
+    // [UPDATED] Substituted constant with empty init state, explicitly typed.
+    const OFFICIAL_CITIES: City[] = []; // Deprecated concept, used for init if needed but we prefer fetching.
 
     // --- DATA FETCHED FROM FIRESTORE ---
     const [cities, setCities] = useState<City[]>(OFFICIAL_CITIES);
@@ -37,7 +36,7 @@ export default function SimulatorPage() {
     const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
 
     // --- USER INPUTS ---
-    const [selectedCityId, setSelectedCityId] = useState<string>(OFFICIAL_CITIES[0].id);
+    const [selectedCityId, setSelectedCityId] = useState<string>('');
     const [selectedEntityId, setSelectedEntityId] = useState<string>('');
     const [selectedMotoId, setSelectedMotoId] = useState<string>('');
 
@@ -45,6 +44,7 @@ export default function SimulatorPage() {
     const [price, setPrice] = useState<number>(0);
     const [downPayment, setDownPayment] = useState<number>(0);
     const [months, setMonths] = useState<number>(48);
+    const [isExempt, setIsExempt] = useState<boolean>(false); // [NEW] Manual Exemption
 
     // --- COMPUTED STATE ---
     const [quote, setQuote] = useState<QuoteResult | null>(null);
@@ -54,15 +54,17 @@ export default function SimulatorPage() {
         const loadData = async () => {
             try {
                 // REMOVED: Legacy cities collection fetch
-                const [soatSnap, finSnap, matrixSnap] = await Promise.all([
+                const [soatSnap, finSnap, matrixSnap, sedesSnap] = await Promise.all([
                     getDocs(collection(db, 'financial_config/general/tarifas_soat')),
                     getDocs(collection(db, 'financial_config/general/financieras')),
-                    getDocs(collection(db, 'config'))
+                    getDocs(collection(db, 'config')),
+                    getDocs(collection(db, 'config/general/sedes')) // [NEW] Fetch Sedes
                 ]);
 
                 // Basic Mapping
                 const sList = soatSnap.docs.map(d => ({ id: d.id, ...d.data() } as SoatRate));
                 const fList = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
+                const cList = sedesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City)); // [NEW] Map Sedes
 
                 // Matrix Fetch Logic
                 const matrixDoc = matrixSnap.docs.find(d => d.id === 'financial_parameters');
@@ -71,13 +73,16 @@ export default function SimulatorPage() {
                 // Motos Fetch
                 const mList = await getCatalogoMotos();
 
-                setCities(OFFICIAL_CITIES); // Use constant
+                setCities(cList); // [UPDATED] Use dynamic list
                 setSoatRates(sList);
                 setFinancialEntities(fList);
                 setMotos(mList);
                 setMatrix(mData);
 
                 // Defaults
+                if (cList.length > 0) setSelectedCityId(cList[0].id);
+                // Ensure filtered entity logic is respected on init in render/effect, but we can set default here if needed
+                // It's better to let effect handle update or select first one after filtering
                 if (fList.length > 0) setSelectedEntityId(fList[0].id);
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
@@ -94,6 +99,29 @@ export default function SimulatorPage() {
         loadData();
     }, []);
 
+    // [NEW] FILTERED FINANCIAL ENTITIES
+    // Logic: If selected city has specific IDs enabled, show only those.
+    // If list is empty or undefined, show ALL (Fallback mode).
+    const filteredFinancialEntities = useMemo(() => {
+        const city = cities.find(c => c.id === selectedCityId);
+        if (!city || !city.financialEntitiesIds || city.financialEntitiesIds.length === 0) {
+            return financialEntities; // Show all if no config
+        }
+        return financialEntities.filter(f => city.financialEntitiesIds?.includes(f.id));
+    }, [selectedCityId, cities, financialEntities]);
+
+    // Auto-select first entity if current selection becomes invalid
+    useEffect(() => {
+        if (filteredFinancialEntities.length > 0) {
+            const currentIsValid = filteredFinancialEntities.find(f => f.id === selectedEntityId);
+            if (!currentIsValid) {
+                setSelectedEntityId(filteredFinancialEntities[0].id);
+            }
+        } else {
+            setSelectedEntityId('');
+        }
+    }, [filteredFinancialEntities, selectedEntityId]);
+
     // Update Price when Moto Changes
     useEffect(() => {
         const m = motos.find(mt => mt.id === selectedMotoId);
@@ -101,6 +129,13 @@ export default function SimulatorPage() {
             setPrice(m.precio);
             // Optional: Reset Down Payment percentage? Keeping it manual is better for testing unless changed.
             setDownPayment(Math.floor(m.precio * 0.15));
+
+            // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
+            const isPatineta = m.category?.toUpperCase() === 'PATINETA'
+                || m.referencia.toUpperCase().includes('PATINETA')
+                || m.referencia.toUpperCase().includes('ECOMAD')
+                || m.exemptRegistration === true; // [NEW] Persistent Flag Check
+            setIsExempt(isPatineta);
         }
     }, [selectedMotoId, motos]);
 
@@ -128,12 +163,13 @@ export default function SimulatorPage() {
             entity,
             months,
             downPayment,
-            matrix
+            matrix,
+            isExempt // Pass exemption flag
         );
 
         setQuote(res);
 
-    }, [selectedMotoId, selectedCityId, selectedEntityId, price, downPayment, months, motos, cities, financialEntities, soatRates, matrix]);
+    }, [selectedMotoId, selectedCityId, selectedEntityId, price, downPayment, months, motos, cities, financialEntities, soatRates, matrix, isExempt]);
 
 
     // --- HELPERS ---
@@ -201,7 +237,7 @@ export default function SimulatorPage() {
                                 value={selectedEntityId}
                                 onChange={(e) => setSelectedEntityId(e.target.value)}
                             >
-                                {financialEntities.map(e => (
+                                {filteredFinancialEntities.map(e => (
                                     <option key={e.id} value={e.id}>{e.name} ({e.interestRate}%)</option>
                                 ))}
                             </select>
@@ -274,9 +310,21 @@ export default function SimulatorPage() {
                                             <span>(-) Cuota Inicial</span>
                                             <span className="font-mono">{formatCurrency(quote.downPayment)}</span>
                                         </div>
-                                        <div className="flex justify-between text-blue-300">
+                                        <div className="flex justify-between text-blue-300 items-center">
                                             <span>(+) Trámites y Matrícula</span>
-                                            <span className="font-mono">{formatCurrency(quote.registrationPrice)}</span>
+                                            <div className="flex flex-col items-end">
+                                                <span className="font-mono">{formatCurrency(quote.registrationPrice)}</span>
+                                                {/* CHECKBOX UI */}
+                                                <label className="flex items-center gap-1 mt-1 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isExempt}
+                                                        onChange={(e) => setIsExempt(e.target.checked)}
+                                                        className="w-3 h-3 text-brand-blue rounded border-gray-500 bg-gray-700 focus:ring-brand-blue"
+                                                    />
+                                                    <span className="text-[10px] text-brand-blue font-bold uppercase hover:text-blue-400 transition-colors">Exento</span>
+                                                </label>
+                                            </div>
                                         </div>
                                         {/* Traceability Label (User Requested) */}
                                         <div className="flex justify-end -mt-2 mb-1">
@@ -284,12 +332,14 @@ export default function SimulatorPage() {
                                                 Fila: {quote.matchIdentifier || 'N/A'} (CC: {motos.find(m => m.id === selectedMotoId)?.displacement})
                                             </span>
                                         </div>
-                                        {quote.isCredit && quote.fngCost > 0 && (
-                                            <div className="flex justify-between text-yellow-300">
-                                                <span>(+) FNG / Garantías</span>
-                                                <span className="font-mono">{formatCurrency(quote.fngCost)}</span>
-                                            </div>
-                                        )}
+                                        {
+                                            quote.isCredit && quote.fngCost > 0 && (
+                                                <div className="flex justify-between text-yellow-300">
+                                                    <span>(+) FNG / Garantías</span>
+                                                    <span className="font-mono">{formatCurrency(quote.fngCost)}</span>
+                                                </div>
+                                            )
+                                        }
                                         <div className="border-t border-gray-700 pt-2 flex justify-between font-bold text-white text-base">
                                             <span>Capital Base ($P_1$)</span>
                                             <span>{formatCurrency(quote.loanAmount - (quote.vGestion || 0) - (quote.vCobertura || 0))}</span>
@@ -299,11 +349,11 @@ export default function SimulatorPage() {
                                                 So p1_base = loanAmount - vGestion - vCobertura. 
                                             */}
                                         </div>
-                                    </div>
-                                </div>
+                                    </div >
+                                </div >
 
                                 {/* CARD 2: FINANCIAL WATERFALL */}
-                                <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden">
+                                < div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden" >
                                     <div className="absolute top-0 right-0 bg-gray-700 px-3 py-1 rounded-bl-xl text-xs font-bold text-gray-300 border-b border-l border-gray-600">
                                         Motor de Cálculo Oficial
                                     </div>
@@ -368,11 +418,11 @@ export default function SimulatorPage() {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </div >
+                            </div >
 
                             {/* BLOCK B: PROJECTION */}
-                            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                            < div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden" >
                                 <div className="bg-gray-700/50 px-6 py-3 border-b border-gray-700 flex justify-between items-center">
                                     <h4 className="text-white text-sm font-bold uppercase">Proyección de Pagos</h4>
                                     <div className="flex items-center gap-2">
@@ -436,18 +486,21 @@ export default function SimulatorPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                            </div >
                         </>
-                    )}
+                    )
+                    }
 
-                    {!quote && !loading && (
-                        <div className="flex flex-col items-center justify-center p-10 bg-gray-800 rounded-xl border border-gray-700 border-dashed text-gray-500">
-                            <span className="text-4xl mb-2">🤔</span>
-                            <p>Selecciona una moto y entidad para iniciar la simulación.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                    {
+                        !quote && !loading && (
+                            <div className="flex flex-col items-center justify-center p-10 bg-gray-800 rounded-xl border border-gray-700 border-dashed text-gray-500">
+                                <span className="text-4xl mb-2">🤔</span>
+                                <p>Selecciona una moto y entidad para iniciar la simulación.</p>
+                            </div>
+                        )
+                    }
+                </div >
+            </div >
+        </div >
     );
 }

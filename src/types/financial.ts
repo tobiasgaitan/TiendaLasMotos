@@ -8,6 +8,7 @@ export interface City {
     };
     documentationFee: number; // Costo gestión documental/tramites
     isActive?: boolean;
+    financialEntitiesIds?: string[]; // IDs of enabled financial entities for this city
 }
 
 export interface SoatRate {

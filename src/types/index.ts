@@ -54,6 +54,7 @@ export interface Moto {
     category?: string; // @deprecated use categories
     categories?: string[]; // New multi-category support // New Classification
     specialAdjustment?: number; // Ajuste especial (bono o cargo extra)
+    exemptRegistration?: boolean; // [NEW] Manual Exemption Persistent Flag
 }
 
 export interface CreditSimulation {

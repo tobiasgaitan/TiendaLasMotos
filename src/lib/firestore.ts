@@ -94,7 +94,8 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 bono: finalBono,
                 displacement: finalDisplacement, // Critical for Matrix
                 categories: finalCategories,     // Critical for Matrix
-                category: finalCategories[0]     // Compatibility
+                category: finalCategories[0],     // Compatibility
+                exemptRegistration: data["exemptRegistration"] === true || data["exentoMatricula"] === true // Support both naming conventions
             };
         });
 
