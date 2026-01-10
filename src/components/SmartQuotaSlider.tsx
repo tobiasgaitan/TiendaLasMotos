@@ -109,7 +109,16 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         const def = Math.floor(selectedMoto.precio * 0.15);
         setDownPayment(def);
         setDownPaymentStr(def.toLocaleString('es-CO'));
-    }, [selectedMotoId]);
+
+        // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
+        const isPatineta = selectedMoto.category?.toUpperCase() === 'PATINETA'
+            || selectedMoto.referencia.toUpperCase().includes('PATINETA')
+            || selectedMoto.referencia.toUpperCase().includes('ECOMAD')
+            || selectedMoto.exemptRegistration === true; // [NEW] Persistent Flag Check
+
+        setIsExempt(isPatineta);
+
+    }, [selectedMotoId, selectedMoto]);
 
     // Calculate Quote
     useEffect(() => {

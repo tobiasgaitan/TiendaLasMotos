@@ -44,7 +44,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
         promotionalPrice: '', // Added
         displacement: '', // Added
         description: '', // Added
-        frenosABS: false // Added
+        frenosABS: false, // Added
+        exemptRegistration: false // [NEW]
     });
 
     // 1. LÓGICA CRÍTICA DE INICIALIZACIÓN
@@ -70,7 +71,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     promotionalPrice: product.promotionalPrice?.toString() || '',
                     displacement: product.displacement?.toString() || '',
                     description: product.description || '',
-                    frenosABS: product.frenosABS || false
+                    frenosABS: product.frenosABS || false,
+                    exemptRegistration: product.exemptRegistration || false
                 });
             } else {
                 // MODO CREACIÓN: Limpiar formulario
@@ -92,7 +94,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     promotionalPrice: '',
                     displacement: '',
                     description: '',
-                    frenosABS: false
+                    frenosABS: false,
+                    exemptRegistration: false
                 });
             }
         }
@@ -161,7 +164,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
                 referencia: formData.model,
-                fechaActualizacion: new Date().toISOString()
+                fechaActualizacion: new Date().toISOString(),
+                exemptRegistration: formData.exemptRegistration // [NEW] Save Persistent Flag
             };
 
             // Lógica Condicional para Imagen:
@@ -278,9 +282,21 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                             />
                             <p className="text-[10px] text-gray-400 mt-1"> *Necesario para sincronización de precios.</p>
                         </div>
-                        <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700">
-                            <span className="text-sm text-gray-300">¿Visible en Web?</span>
-                            <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />
+                        <div className="flex gap-4">
+                            <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700 flex-1">
+                                <span className="text-sm text-gray-300">¿Visible en Web?</span>
+                                <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />
+                            </div>
+                            {/* [NEW] Permanent Exemption Checkbox */}
+                            <div className="flex items-center justify-between bg-blue-900/20 p-3 rounded-lg border border-blue-800 flex-1">
+                                <span className="text-sm text-blue-200 font-bold">Exenta Matrícula</span>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.exemptRegistration}
+                                    onChange={(e) => setFormData({ ...formData, exemptRegistration: e.target.checked })}
+                                    className="w-5 h-5 accent-blue-500"
+                                />
+                            </div>
                         </div>
                     </div>
 

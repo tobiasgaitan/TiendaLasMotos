@@ -54,6 +54,13 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             const def = Math.floor(moto.precio * 0.15);
             setDownPayment(def);
             setDownPaymentStr(def.toLocaleString('es-CO'));
+
+            // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
+            const isPatineta = moto.category?.toUpperCase() === 'PATINETA'
+                || moto.referencia.toUpperCase().includes('PATINETA')
+                || moto.referencia.toUpperCase().includes('ECOMAD')
+                || moto.exemptRegistration === true; // [NEW] Persistent Flag Check
+            setIsExempt(isPatineta);
         }
     }, [moto.id]);
 
