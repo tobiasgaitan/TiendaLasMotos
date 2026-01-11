@@ -8,6 +8,7 @@ import { City, SoatRate, FinancialEntity, FinancialMatrix } from '@/types/financ
 import { calculateQuote, QuoteResult } from '@/lib/utils/calculator';
 import { Loader2 } from 'lucide-react';
 import { getCatalogoMotos } from '@/lib/firestore';
+import { NumericFormat } from 'react-number-format'; // V15.2
 
 /**
  * Simulador de Crédito - Interfaz Administrativa
@@ -249,24 +250,19 @@ export default function SimulatorPage() {
                         <div className="mb-4">
                             <label className="block text-xs font-bold text-brand-yellow uppercase mb-1">Precio Vehículo (Editable)</label>
                             <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-400">$</span>
-                                <input
-                                    type="text"
-                                    className="w-full bg-gray-900 border border-gray-500 text-white text-sm rounded-lg pl-7 p-2.5 font-bold focus:ring-brand-yellow focus:border-brand-yellow"
-                                    value={price === 0 ? '' : price.toLocaleString('es-CO')}
-                                    onChange={(e) => {
-                                        // AGGRESSIVE CLEANING V15.1
-                                        // 1. Remove ALL non-numeric characters (dots, commas, spaces, letters)
-                                        const raw = e.target.value;
-                                        const sanitized = raw.replace(/[^0-9]/g, '');
-
-                                        // 2. Parse as Base-10 Integer (Prevent Floats/Decimals)
-                                        const integerVal = parseInt(sanitized, 10);
-
-                                        // 3. Update State
-                                        setPrice(isNaN(integerVal) ? 0 : integerVal);
+                                {/* V15.2: NumericFormat for Strict Integer Handling */}
+                                <NumericFormat
+                                    value={price}
+                                    onValueChange={(values) => {
+                                        setPrice(values.floatValue || 0);
                                     }}
-                                    placeholder="0"
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    prefix="$ "
+                                    className="w-full bg-gray-900 border border-gray-500 text-white text-sm rounded-lg p-2.5 font-bold focus:ring-brand-yellow focus:border-brand-yellow"
+                                    placeholder="$ 0"
+                                    allowNegative={false}
+                                    decimalScale={0} // No decimals allowed
                                 />
                             </div>
                         </div>
@@ -275,17 +271,19 @@ export default function SimulatorPage() {
                         <div className="mb-4">
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Cuota Inicial</label>
                             <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-400">$</span>
-                                <input
-                                    type="text"
-                                    className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg pl-7 p-2.5 focus:ring-brand-blue focus:border-brand-blue"
-                                    value={downPayment === 0 ? '' : downPayment.toLocaleString('es-CO')}
-                                    onChange={(e) => {
-                                        // Regex Parser
-                                        const cleanVal = e.target.value.replace(/[^0-9]/g, '');
-                                        setDownPayment(Number(cleanVal));
+                                {/* V15.2: NumericFormat for Strict Integer Handling */}
+                                <NumericFormat
+                                    value={downPayment}
+                                    onValueChange={(values) => {
+                                        setDownPayment(values.floatValue || 0);
                                     }}
-                                    placeholder="0"
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    prefix="$ "
+                                    className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
+                                    placeholder="$ 0"
+                                    allowNegative={false}
+                                    decimalScale={0}
                                 />
                             </div>
                         </div>
