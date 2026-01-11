@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -9,6 +9,7 @@ import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-re
 
 export default function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -24,8 +25,17 @@ export default function LoginForm() {
         setLoading(true);
         setError('');
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            window.location.href = '/admin/simulador';
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+            // [CRITICAL] Force Token Refresh to ensure Claims (SUPERADMIN) are applied instantly
+            await userCredential.user.getIdTokenResult(true);
+
+            // [FIX] Read Callback URL or default
+            const callbackUrl = searchParams.get('callbackUrl') || '/admin/simulador';
+
+            console.log("Login Success. Redirecting to:", callbackUrl);
+            window.location.href = callbackUrl; // Force hard navigation to refresh middleware state
+
         } catch (err: any) {
             console.error(err);
             handleAuthError(err);
@@ -57,7 +67,11 @@ export default function LoginForm() {
             }
 
             // 2. Create Auth User
-            await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+            // Force Refresh
+            await userCredential.user.getIdTokenResult(true);
+
             setSuccessMsg('Cuenta activada correctamente. Ingresando...');
             setTimeout(() => {
                 window.location.href = '/admin/simulador';
