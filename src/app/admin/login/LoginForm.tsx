@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
+import { createSession } from '@/app/actions/auth';
 
 export default function LoginForm() {
     const router = useRouter();
@@ -28,12 +29,15 @@ export default function LoginForm() {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
             // [CRITICAL] Force Token Refresh to ensure Claims (SUPERADMIN) are applied instantly
-            await userCredential.user.getIdTokenResult(true);
+            const tokenResult = await userCredential.user.getIdTokenResult(true);
+
+            // [NEW] Create Server Session Cookie
+            await createSession(tokenResult.token);
 
             // [FIX] Read Callback URL or default
             const callbackUrl = searchParams.get('callbackUrl') || '/admin/simulador';
 
-            console.log("Login Success. Redirecting to:", callbackUrl);
+            console.log("Login Success. Server Session Created. Redirecting to:", callbackUrl);
             window.location.href = callbackUrl; // Force hard navigation to refresh middleware state
 
         } catch (err: any) {
