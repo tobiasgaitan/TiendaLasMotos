@@ -82,9 +82,10 @@ export default function LoginForm() {
 
         try {
             await sendPasswordResetEmail(auth, resetEmail);
-            setSuccessMsg('Se ha enviado un correo de recuperación.');
-            setTimeout(() => setMode('login'), 3000);
+            setSuccessMsg('Se ha enviado un correo de recuperación. Revisa tu bandeja de entrada (y Spam).');
+            setTimeout(() => setMode('login'), 5000);
         } catch (err: any) {
+            console.error(err);
             handleAuthError(err);
         } finally {
             setLoading(false);
@@ -105,61 +106,67 @@ export default function LoginForm() {
         }
     };
 
+    // Estilos hardcoded para garantizar visibilidad ante fallo de tailwind config
+    const inputStyle = "w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-[#1a1a1a] bg-white placeholder-gray-500 font-medium";
+    const buttonStyle = "w-full bg-[#003893] hover:bg-[#002a6e] text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 text-base";
+
     return (
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-8 animate-in fade-in zoom-in duration-300">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 space-y-8 animate-in fade-in zoom-in duration-300">
             <div className="text-center">
-                <h1 className="text-3xl font-black text-brand-blue tracking-tight">TiendaMotos</h1>
-                <p className="text-gray-500 mt-2">Acceso Administrativo Seguro</p>
+                <h1 className="text-4xl font-black text-[#003893] tracking-tight">TiendaMotos</h1>
+                <p className="text-gray-600 mt-2 font-medium">Acceso Administrativo Seguro</p>
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 animate-pulse">
-                    <AlertCircle className="w-4 h-4" /> {error}
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm flex items-center gap-2 animate-pulse border border-red-200">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" /> <span className="font-medium">{error}</span>
                 </div>
             )}
 
             {successMsg && (
-                <div className="p-4 bg-green-50 text-green-600 text-sm rounded-lg flex items-center gap-2 border border-green-100">
-                    <CheckCircle size={16} /> {successMsg}
+                <div className="p-4 bg-green-50 text-green-700 text-sm rounded-lg flex items-center gap-2 border border-green-200">
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" /> <span className="font-medium">{successMsg}</span>
                 </div>
             )}
 
             {mode === 'reset' ? (
-                <form onSubmit={handleResetPassword} className="space-y-4">
+                <form onSubmit={handleResetPassword} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Correo Electrónico</label>
+                        <label className="text-sm font-bold text-gray-800">Tu Correo Registrado</label>
                         <input
                             type="email"
                             required
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
-                            placeholder="nombre@tudominio.com"
+                            className={inputStyle}
+                            placeholder="ejemplo@correo.com"
                             value={resetEmail}
                             onChange={(e) => setResetEmail(e.target.value)}
                         />
                     </div>
+
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
+                        className={buttonStyle}
                     >
-                        {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Enviar Enlace'}
+                        {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Enviar Enlace de Recuperación'}
                     </button>
+
                     <button
                         type="button"
                         onClick={() => setMode('login')}
-                        className="w-full text-sm text-gray-500 hover:text-gray-900 py-2"
+                        className="w-full text-sm text-gray-600 hover:text-[#003893] py-2 font-semibold transition-colors"
                     >
-                        Volver al Login
+                        ← Volver al Login
                     </button>
                 </form>
             ) : (
-                <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4">
+                <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Correo Electrónico</label>
+                        <label className="text-sm font-bold text-gray-800">Correo Electrónico</label>
                         <input
                             type="email"
                             required
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
+                            className={inputStyle}
                             placeholder="admin@tudominio.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -167,24 +174,24 @@ export default function LoginForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Contraseña</label>
+                        <label className="text-sm font-bold text-gray-800">Contraseña</label>
                         <input
                             type="password"
                             required
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all"
+                            className={inputStyle}
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        {mode === 'register' && <p className="text-xs text-brand-blue">Mínimo 8 caracteres</p>}
+                        {mode === 'register' && <p className="text-xs text-blue-600 font-medium">Mínimo 8 caracteres</p>}
                     </div>
 
                     {mode === 'login' && (
-                        <div className="flex justify-end">
+                        <div className="flex justify-end pt-1">
                             <button
                                 type="button"
                                 onClick={() => setMode('reset')}
-                                className="text-sm text-brand-blue hover:underline font-medium"
+                                className="text-sm text-[#003893] hover:underline font-bold"
                             >
                                 ¿Olvidaste tu contraseña?
                             </button>
@@ -194,16 +201,16 @@ export default function LoginForm() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+                        className={buttonStyle}
                     >
                         {loading ? <Loader2 className="animate-spin" /> : mode === 'login' ? 'Iniciar Sesión' : 'Activar Cuenta'}
                     </button>
 
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-4">
                         <button
                             type="button"
                             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                            className="text-sm text-gray-500 hover:text-gray-900 font-medium"
+                            className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
                         >
                             {mode === 'login' ? '¿Primera vez? Activa tu cuenta aquí' : '¿Ya tienes cuenta? Inicia Sesión'}
                         </button>
@@ -211,9 +218,9 @@ export default function LoginForm() {
                 </form>
             )}
 
-            <div className="text-center border-t border-gray-100 pt-4">
-                <p className="text-xs text-gray-400">
-                    Sistema protegido. IP y Accesos monitoreados.
+            <div className="text-center border-t border-gray-100 pt-6">
+                <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                    <Shield className="w-3 h-3" /> Sistema protegido.
                 </p>
             </div>
         </div>
