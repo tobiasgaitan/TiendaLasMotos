@@ -314,6 +314,13 @@ export const calculateQuote = (
         // We approximate total by (monthlyPayment * months) which overestimates if coverage stops at 12.
         // Correct Total = DownPayment + (BasePmt + Ins)*months + V_cobertura
         total = downPaymentInput + ((basePmt + lifeInsuranceValue + unemploymentInsuranceCost) * n) + vCobertura;
+
+        // [STRICT RULE] If entity does NOT finance docs, we must FORCE registrationPrice to 0 in results logic
+        // to avoid confusion in the UI Waterfalls.
+        // Compliance: "Lógica Excluyente de Trámites".
+        if (!financeDocs) {
+            registrationPrice = 0;
+        }
     }
 
     return {
