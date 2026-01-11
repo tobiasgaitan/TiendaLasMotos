@@ -221,11 +221,15 @@ export const calculateQuote = (
         // It should ONLY be applied if explicitly configured in entity parameters if needed.
         // For now, we strictly follow the Entity configuration.
 
-        // FNG Calculation (on the current base)
-        if (entity?.fngRate && entity.fngRate > 0) {
-            fngCost = Math.round(p1_base * (entity.fngRate / 100));
-            p1_base += fngCost;
-        }
+
+        // FNG Calculation
+        // Requirement Crediorbe: 20.66% del Neto (Precio - Inicial)
+        // Current Code: `p1_base` starts as (Price - Down).
+        // If financeDocs is TRUE, p1_base adds Docs.
+        // If financeDocs is FALSE (Crediorbe default), p1_base IS (Price - Down).
+        // configured fngRate (20.66) is applied to p1_base.
+        // So the logic holds: FNG = 20.66% * (Price - Initial).
+
         if (entity?.fngRate && entity.fngRate > 0) {
             fngCost = Math.round(p1_base * (entity.fngRate / 100));
             p1_base += fngCost;

@@ -78,7 +78,8 @@ export const updateUsuryRates = functions.runWith({ memory: "512MB" }).pubsub
             console.log(`Converted Rate (M.V.): ${mvPercent}%`);
 
             // 3. Update Financial Entities
-            const snapshot = await db.collection("financial_entities").get();
+            // [FIX] Update path to match Frontend: financial_config/general/financieras
+            const snapshot = await db.collection("financial_config").doc("general").collection("financieras").get();
             const batch = db.batch();
             let updatedCount = 0;
 

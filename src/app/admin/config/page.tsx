@@ -66,6 +66,34 @@ export default function ConfigPage() {
         }
     };
 
+    /**
+     * Seeds Crediorbe Defaults matching requirements V10.0
+     */
+    const handleSeedCrediorbe = async () => {
+        if (!confirm("¿Desea instalar la configuración por defecto de Crediorbe?")) return;
+
+        const data = {
+            name: "Crediorbe",
+            interestRate: 2.3, // Placeholder
+            syncedWithUsura: true,
+            manualOverride: false,
+
+            // Requirements V10.0
+            fngRate: 20.66,
+            lifeInsuranceType: 'percentage',
+            lifeInsuranceValue: 0.1126,
+            financeDocsAndSoat: false, // "Dejar desmarcado por defecto"
+
+            minDownPaymentPercentage: 10, // Standard default
+            minAge: 18,
+            maxAge: 75,
+            active: true
+        };
+
+        await handleSave(data);
+        alert("Crediorbe instalada correctamente.");
+    };
+
     const handleDelete = async (id: string) => {
         if (!confirm("¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.")) return;
 
@@ -80,11 +108,22 @@ export default function ConfigPage() {
         }
     };
 
+    /**
+     * Column definitions for the Financial Entities table.
+     * Uses `financeDocsAndSoat` as the primary source of truth for "Trámites".
+     */
     const financialColumns = [
         { header: "Entidad", accessor: (f: FinancialEntity) => f.name },
         { header: "Tasa Mensual", accessor: (f: FinancialEntity) => `${f.interestRate}%` },
         { header: "Cuota Inicial Min.", accessor: (f: FinancialEntity) => `${f.minDownPaymentPercentage}%` },
-        { header: "Trámites en Crédito", accessor: (f: FinancialEntity) => f.requiresProceduresInCredit ? "Sí" : "No" },
+        {
+            header: "Trámites en Crédito",
+            accessor: (f: FinancialEntity) => {
+                // Priority: New Flag (financeDocsAndSoat) -> Legacy Flag (requiresProceduresInCredit)
+                const val = f.financeDocsAndSoat ?? f.requiresProceduresInCredit ?? false;
+                return val ? "Sí" : "No";
+            }
+        },
     ];
 
     return (
@@ -107,6 +146,15 @@ export default function ConfigPage() {
                             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-md transition-all active:scale-95 font-medium"
                         >
                             <Plus size={18} /> Agregar Financiera
+                        </button>
+                    </div>
+
+                    <div className="mb-4 flex justify-end">
+                        <button
+                            onClick={handleSeedCrediorbe}
+                            className="text-xs text-blue-400 hover:text-blue-300 underline"
+                        >
+                            Instalar Defaults Crediorbe (V10.0)
                         </button>
                     </div>
 
