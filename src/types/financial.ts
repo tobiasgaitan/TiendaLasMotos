@@ -49,6 +49,7 @@ export interface FinancialEntity {
 
     // [NEW] Global Dynamic Rates Flags
     manualOverride?: boolean; // If true, disable auto-update on 1st of month
+    syncedWithUsura?: boolean; // [NEW] UI Flag to indicate this entity follows Usura Rate
 
     // [NEW] Brilla / Special Model Charges
     brillaManagementRate?: number; // % 'Gestión Crédito Brilla' (Calculated on Base + Docs)

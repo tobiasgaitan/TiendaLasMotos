@@ -12,6 +12,15 @@ interface ConfigModalProps {
     initialData?: any;
 }
 
+/**
+ * Modal component for editing or creating financial configuration entities.
+ * handles form state, validation, and submission to Firestore.
+ * 
+ * @param isOpen - Visibility state of the modal.
+ * @param onClose - Handler to close the modal.
+ * @param onSave - Async handler to save the form data.
+ * @param initialData - Optional data for editing an existing entity.
+ */
 export default function ConfigModal({ isOpen, onClose, onSave, initialData }: ConfigModalProps) {
     const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
     const type = 'financial'; // Forced type
@@ -46,6 +55,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
             unemploymentInsuranceType: 'fixed_monthly',
             unemploymentInsuranceValue: 0,
             manualOverride: false,
+            syncedWithUsura: false,
             brillaManagementRate: 0,
             coverageRate: 0,
             minAge: 18,
@@ -78,6 +88,17 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                                 step="0.01"
                                 className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             />
+                            {/* [FIX] Synced With Usura Toggle */}
+                            <div className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg px-2" title="Sincronizar con Tasa de Usura (Superfinanciera)">
+                                <input
+                                    {...register("syncedWithUsura")}
+                                    type="checkbox"
+                                    id="syncedWithUsura"
+                                    className="w-4 h-4 accent-blue-500"
+                                />
+                                <label htmlFor="syncedWithUsura" className="text-[10px] text-blue-400 font-bold cursor-pointer">AUTO</label>
+                            </div>
+
                             <div className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg px-2" title="Manual Override: Prevent Auto-Update">
                                 <input
                                     {...register("manualOverride")}
