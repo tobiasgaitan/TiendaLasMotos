@@ -98,6 +98,13 @@ export default function SedesPage() {
                 toast.success("Sede creada");
             }
             setIsModalOpen(false);
+            setEditingSede(null); // Ensure editing state is cleared
+            setFormData({
+                name: '',
+                department: '',
+                documentationFee: 0,
+                financialEntitiesIds: []
+            });
             fetchData(); // Refresh
         } catch (error) {
             console.error(error);

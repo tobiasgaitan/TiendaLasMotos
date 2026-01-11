@@ -17,7 +17,7 @@ service cloud.firestore {
     match /imported_tables/{document=**} { allow read: if request.auth != null; }
     match /configuracion/{document=**} { allow read: if request.auth != null; }
     match /settings/{document=**} { allow read: if true; }
-    match /config/{document=**} { allow read: if true; }
+    match /config/{document=**} { allow read: if true; allow write: if request.auth.token.role == 'SUPERADMIN'; }
     match /panel/{document=**} { allow read: if request.auth != null; }
     match /tables/{document=**} { allow read: if request.auth != null; }
     

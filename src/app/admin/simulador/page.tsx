@@ -251,10 +251,15 @@ export default function SimulatorPage() {
                             <div className="relative">
                                 <span className="absolute left-3 top-2.5 text-gray-400">$</span>
                                 <input
-                                    type="number"
+                                    type="text"
                                     className="w-full bg-gray-900 border border-gray-500 text-white text-sm rounded-lg pl-7 p-2.5 font-bold focus:ring-brand-yellow focus:border-brand-yellow"
-                                    value={price}
-                                    onChange={(e) => setPrice(Number(e.target.value))}
+                                    value={price === 0 ? '' : price.toLocaleString('es-CO')}
+                                    onChange={(e) => {
+                                        // Regex Parser: Remove everything except numbers
+                                        const cleanVal = e.target.value.replace(/[^0-9]/g, '');
+                                        setPrice(Number(cleanVal));
+                                    }}
+                                    placeholder="0"
                                 />
                             </div>
                         </div>
@@ -265,10 +270,15 @@ export default function SimulatorPage() {
                             <div className="relative">
                                 <span className="absolute left-3 top-2.5 text-gray-400">$</span>
                                 <input
-                                    type="number"
+                                    type="text"
                                     className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg pl-7 p-2.5 focus:ring-brand-blue focus:border-brand-blue"
-                                    value={downPayment}
-                                    onChange={(e) => setDownPayment(Number(e.target.value))}
+                                    value={downPayment === 0 ? '' : downPayment.toLocaleString('es-CO')}
+                                    onChange={(e) => {
+                                        // Regex Parser
+                                        const cleanVal = e.target.value.replace(/[^0-9]/g, '');
+                                        setDownPayment(Number(cleanVal));
+                                    }}
+                                    placeholder="0"
                                 />
                             </div>
                         </div>
