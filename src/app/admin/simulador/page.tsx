@@ -255,9 +255,16 @@ export default function SimulatorPage() {
                                     className="w-full bg-gray-900 border border-gray-500 text-white text-sm rounded-lg pl-7 p-2.5 font-bold focus:ring-brand-yellow focus:border-brand-yellow"
                                     value={price === 0 ? '' : price.toLocaleString('es-CO')}
                                     onChange={(e) => {
-                                        // Regex Parser: Remove everything except numbers
-                                        const cleanVal = e.target.value.replace(/[^0-9]/g, '');
-                                        setPrice(Number(cleanVal));
+                                        // AGGRESSIVE CLEANING V15.1
+                                        // 1. Remove ALL non-numeric characters (dots, commas, spaces, letters)
+                                        const raw = e.target.value;
+                                        const sanitized = raw.replace(/[^0-9]/g, '');
+
+                                        // 2. Parse as Base-10 Integer (Prevent Floats/Decimals)
+                                        const integerVal = parseInt(sanitized, 10);
+
+                                        // 3. Update State
+                                        setPrice(isNaN(integerVal) ? 0 : integerVal);
                                     }}
                                     placeholder="0"
                                 />
