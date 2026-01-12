@@ -23,7 +23,8 @@ export default function BudgetToBikePage() {
 
     // Fetch Inventory
     useEffect(() => {
-        const q = query(collection(db, "inventory"), where("active", "==", true));
+        // [FIX] Correct path to real catalogue
+        const q = query(collection(db, "pagina", "catalogo", "items"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const motos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Moto));
             setAllMotos(motos);
