@@ -3,180 +3,208 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
-
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+    LayoutDashboard,
+    Calculator,
+    Search,
+    Settings,
+    Users,
+    FileText,
+    Tag,
+    LogOut,
+    ChevronDown,
+    ChevronRight,
+    MapPin,
+    Building2,
+    CreditCard
+} from "lucide-react";
 import { deleteSession } from "@/app/admin/login/actions";
 
-/**
- * Componente de barra lateral (Sidebar) para el panel administrativo.
- * 
- * - Muestra estadísticas del usuario actual (Foto, Nombre, Rol).
- * - Maneja el cierre de sesión usando AuthContext.
- * - Navegación a Inventario y Prospectos.
- */
 export default function AdminSidebar() {
     const { user, role, loading, logout } = useAuth();
+    const pathname = usePathname();
+
+    // State for Collapsible Groups
+    const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
+        simuladores: true,  // Default Open
+        config: false
+    });
+
+    const toggleGroup = (key: string) => {
+        setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
     const handleLogout = async () => {
         try {
-            // 1. Client-side Firebase Logout
             await logout();
-
-            // 2. Server-side Cookie Deletion
             await deleteSession();
-
-            // 3. FORCE HARD RELOAD to clear React state and prevent black screen
             window.location.href = '/admin/login';
         } catch (error) {
             console.error("Logout failed", error);
-            // Fallback
             window.location.href = '/admin/login';
         }
     };
 
+    // Helper to check active state
+    const isActive = (path: string) => pathname === path;
+
     return (
-        <div className="flex h-full flex-col px-3 py-4 md:px-2">
-            {/* Título / Logo */}
+        <div className="flex h-full flex-col px-3 py-4 md:px-2 bg-slate-950 text-slate-300 border-r border-slate-800">
+            {/* Logo */}
             <Link
-                className="mb-2 flex h-20 items-end justify-start rounded-md bg-blue-600 p-4"
+                className="mb-6 flex items-center justify-center rounded-xl bg-blue-600 p-4 shadow-lg shadow-blue-900/20"
                 href="/"
             >
-                <div className="w-32 text-white md:w-40">
-                    <span className="text-xl font-bold">TiendaMotos</span>
+                <div className="text-white font-bold text-xl tracking-tight">
+                    TiendaMotos
                 </div>
             </Link>
 
-            {/* User Profile Section */}
-            <div className="mb-4 flex flex-col items-center justify-center rounded-md bg-gray-900 p-4 border border-gray-800">
+            {/* Profile Card */}
+            <div className="mb-6 flex items-center gap-3 rounded-xl bg-slate-900 p-3 border border-slate-800">
                 {loading ? (
-                    <p className="text-sm text-gray-400">Cargando...</p>
+                    <div className="animate-pulse h-10 w-10 rounded-full bg-slate-700" />
                 ) : user ? (
-                    <div className="flex flex-col items-center gap-2 text-center">
-                        {user.photoURL ? (
-                            <Image
-                                src={user.photoURL}
-                                alt={user.displayName || "Usuario"}
-                                width={48}
-                                height={48}
-                                className="rounded-full border-2 border-blue-500"
-                            />
-                        ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-700 text-xl font-bold text-gray-300 border-2 border-gray-600">
-                                {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
-                            </div>
-                        )}
-                        <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-white">
-                                {user.displayName || user.email}
+                    <>
+                        <div className="relative h-10 w-10 shrink-0">
+                            {user.photoURL ? (
+                                <Image
+                                    src={user.photoURL}
+                                    alt="Profile"
+                                    fill
+                                    className="rounded-full object-cover border border-slate-600"
+                                />
+                            ) : (
+                                <div className="h-full w-full rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                                    {user.displayName?.charAt(0) || "U"}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="truncate text-sm font-semibold text-white">
+                                {user.displayName || "Usuario"}
                             </span>
-                            <span className="text-xs font-mono text-blue-400 uppercase tracking-wider bg-blue-900/30 px-2 py-0.5 rounded-full mt-1">
-                                {role || "Invitado"}
+                            <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">
+                                {role || "ADMIN"}
                             </span>
                         </div>
-                    </div>
+                    </>
                 ) : (
-                    <p className="text-sm text-gray-500">No autenticado</p>
+                    <span className="text-xs text-slate-500">No session</span>
                 )}
             </div>
 
-            {/* Enlaces de Navegación */}
-            <div className="flex grow flex-col space-y-2">
-                <Link
-                    href="/admin/config"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                    </svg>
-                    <p>Entidades Financieras</p>
-                </Link>
+            {/* Navigation */}
+            <nav className="flex-1 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
 
-                <Link
-                    href="/admin/financial-parameters"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
-                    </svg>
-                    <p>Matrículas y SOAT</p>
-                </Link>
+                {/* --- GROUP: SIMULADORES --- */}
+                <div className="space-y-1">
+                    <button
+                        onClick={() => toggleGroup('simuladores')}
+                        className="w-full flex items-center justify-between p-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Calculator className="w-5 h-5 text-emerald-500 group-hover:text-emerald-400" />
+                            <span>Simuladores</span>
+                        </div>
+                        {openGroups['simuladores'] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
 
-                <Link
-                    href="/admin/sedes"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    <p>Sedes / Ciudades</p>
-                </Link>
+                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['simuladores'] ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <Link
+                            href="/admin/simulador"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/simulador') ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Simulador Crédito
+                        </Link>
+                        <Link
+                            href="/admin/presupuesto"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/presupuesto') ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Buscador Presupuesto
+                        </Link>
+                    </div>
+                </div>
 
+                <div className="my-2 border-t border-slate-800/50" />
+
+                {/* --- SINGLE ITEMS --- */}
                 <Link
                     href="/admin/inventory"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors"
+                    className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/inventory') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                 >
-                    {/* SVG Icon: Tag/Inventory style */}
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-                    </svg>
-                    <p>Inventario</p>
+                    <Tag className="w-5 h-5" />
+                    Inventario
                 </Link>
+
                 <Link
                     href="/admin/prospectos"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors"
+                    className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/prospectos') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                 >
-                    {/* SVG Icon: Clipboard/List style */}
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                    </svg>
-                    <p>Prospectos</p>
+                    <Users className="w-5 h-5" />
+                    Prospectos
                 </Link>
 
-                <Link
-                    href="/admin/simulador"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors border border-blue-600/30"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-brand-yellow">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5d-2.9-5.05a9 9 0 01-1.88-3.4M6 9a9 9 0 1112.72 8.707" />
-                    </svg>
-                    <p>Simulador Crédito</p>
-                </Link>
+                <div className="my-2 border-t border-slate-800/50" />
 
-                {/* USER CONFIG */}
-                <Link
-                    href="/admin/users"
-                    className="flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors border border-purple-600/30 text-purple-200"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                    </svg>
-                    <p>Config. Usuarios</p>
-                </Link>
+                {/* --- GROUP: CONFIGURACIÓN DEL SISTEMA --- */}
+                <div className="space-y-1">
+                    <button
+                        onClick={() => toggleGroup('config')}
+                        className="w-full flex items-center justify-between p-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Settings className="w-5 h-5 text-purple-500 group-hover:text-purple-400" />
+                            <span>Configuración Sistema</span>
+                        </div>
+                        {openGroups['config'] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
 
+                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['config'] ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <Link
+                            href="/admin/config"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/config') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <Building2 className="w-4 h-4" />
+                            Entidades
+                        </Link>
+                        <Link
+                            href="/admin/financial-parameters"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/financial-parameters') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Matrículas / SOAT
+                        </Link>
+                        <Link
+                            href="/admin/sedes"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/sedes') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <MapPin className="w-4 h-4" />
+                            Sedes / Ciudades
+                        </Link>
+                        <Link
+                            href="/admin/users"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/users') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <Users className="w-4 h-4" />
+                            Config. Usuarios
+                        </Link>
+                    </div>
+                </div>
 
+            </nav>
 
-                <div className="hidden h-auto w-full grow rounded-md bg-gray-900 md:block"></div>
-
-                {/* Botón Salir */}
+            {/* Logout Button */}
+            <div className="mt-auto pt-4 border-t border-slate-800">
                 <button
                     onClick={handleLogout}
-                    className="mt-auto flex h-[48px] w-full items-center justify-start gap-2 rounded-md bg-gray-800 p-3 text-sm font-medium text-white transition-colors hover:bg-red-600 hover:text-white"
+                    className="w-full flex items-center gap-3 p-3 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-all group"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        stroke="currentColor"
-                        className="w-6 h-6"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-                        />
-                    </svg>
+                    <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     <span>Cerrar Sesión</span>
                 </button>
             </div>
