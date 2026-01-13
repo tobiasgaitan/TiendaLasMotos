@@ -8,6 +8,9 @@ import { FinancialEntity } from "@/types/financial";
 import { calculateMaxLoan } from "@/lib/utils/reverseCalculator";
 import { Loader2, DollarSign, Wallet, AlertCircle, ChevronDown } from "lucide-react";
 
+import Link from "next/link";
+import Image from "next/image";
+
 export default function BudgetToBikePage() {
     const [loading, setLoading] = useState(true);
     const [allMotos, setAllMotos] = useState<Moto[]>([]);
@@ -32,7 +35,46 @@ export default function BudgetToBikePage() {
                 // A. Inventory
                 const q = query(collection(db, "pagina", "catalogo", "items"));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const motos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Moto));
+                    const motos: Moto[] = snapshot.docs.map(doc => {
+                        const data = doc.data();
+
+                        // MAPPING LOGIC (Mirrored from firestore.ts)
+
+                        // Image Handling
+                        let finalImage = "";
+                        if (typeof data["imagenUrl"] === 'string') {
+                            finalImage = data["imagenUrl"];
+                        } else if (data["imagenUrl"] && typeof data["imagenUrl"] === 'object') {
+                            finalImage = data["imagenUrl"].url || "";
+                        }
+
+                        // Reference
+                        const finalReferencia = data["referencia"] || data["model"] || "Sin referencia";
+
+                        // Brand
+                        const finalMarca = data["Marca-de-la-moto"] || data["marca"] || "Genérico";
+
+                        // Displacement
+                        let finalDisplacement = 0;
+                        const rawDisplacement = data["cilindraje"] || data["cc"] || data["displacement"];
+                        if (rawDisplacement) {
+                            let clean = String(rawDisplacement).toLowerCase();
+                            clean = clean.replace(/cc|cm3|cm|c\.c\.|l/g, '');
+                            clean = clean.replace(/,/g, '.');
+                            clean = clean.replace(/[^0-9.]/g, '');
+                            finalDisplacement = parseFloat(clean) || 0;
+                        }
+
+                        return {
+                            id: doc.id,
+                            ...data,
+                            referencia: finalReferencia,
+                            marca: finalMarca,
+                            imagen: finalImage,
+                            displacement: finalDisplacement,
+                            precio: Number(data["precio"]) || 0,
+                        } as Moto;
+                    });
                     setAllMotos(motos);
                 });
 
@@ -158,24 +200,31 @@ export default function BudgetToBikePage() {
                         </p>
                     </div>
 
-                    {/* Entity Selector */}
-                    <div className="w-full md:w-72 bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center relative">
-                        <div className="absolute left-3 text-slate-500 pointer-events-none">
-                            <BankIcon />
-                        </div>
-                        <select
-                            value={selectedEntityId}
-                            onChange={(e) => handleEntityChange(e.target.value)}
-                            className="w-full bg-transparent text-white font-medium py-3 pl-10 pr-4 outline-none appearance-none cursor-pointer hover:bg-slate-800/50 rounded-lg transition-colors"
-                        >
-                            {entities.map(ent => (
-                                <option key={ent.id} value={ent.id} className="bg-slate-900 text-white">
-                                    {ent.name}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="absolute right-3 text-slate-500 pointer-events-none">
-                            <ChevronDown className="w-4 h-4" />
+                    {/* Entity Selector (Always Rendered) */}
+                    <div className="w-full md:w-72 space-y-1">
+                        <label className="text-xs text-slate-500 font-bold ml-1 uppercase tracking-wider">Entidad Financiera</label>
+                        <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center relative shadow-lg">
+                            <div className="absolute left-3 text-emerald-500 pointer-events-none">
+                                <BankIcon />
+                            </div>
+                            <select
+                                value={selectedEntityId}
+                                onChange={(e) => handleEntityChange(e.target.value)}
+                                className="w-full bg-transparent text-white font-medium py-3 pl-10 pr-4 outline-none appearance-none cursor-pointer hover:bg-slate-800/50 rounded-lg transition-colors"
+                            >
+                                {entities.length > 0 ? (
+                                    entities.map(ent => (
+                                        <option key={ent.id} value={ent.id} className="bg-slate-900 text-white">
+                                            {ent.name} - {ent.interestRate}% NMV
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option className="bg-slate-900 text-slate-400">Cargando financieras...</option>
+                                )}
+                            </select>
+                            <div className="absolute right-3 text-slate-500 pointer-events-none">
+                                <ChevronDown className="w-4 h-4" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -243,7 +292,7 @@ export default function BudgetToBikePage() {
                     <div className="space-y-6 text-center md:text-left">
                         <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
                             <h3 className="text-slate-400 uppercase text-xs font-bold tracking-widest">
-                                Parámetros de {selectedEntity?.name || "la Entidad"}
+                                Condiciones: {selectedEntity?.name || "..."}
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -257,10 +306,9 @@ export default function BudgetToBikePage() {
                             </div>
                         </div>
                         <p className="text-xs text-slate-500 italic">
-                            * Valores aproximados. La cuota inicial real depende de la moto y costos de matrícula de tu ciudad.
+                            * La cuota inicial sugerida incluye el 10% del valor de la moto + trámites de matrícula.
                         </p>
                     </div>
-
                 </div>
 
                 {/* Smart Gallery */}
@@ -280,22 +328,23 @@ export default function BudgetToBikePage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {visibleMotos.map((moto) => (
                                 <div key={moto.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-blue-500/50 transition-all hover:shadow-2xl group flex flex-col">
-                                    {/* IMAGE HEADER */}
+                                    {/* IMAGE HEADER - STRICT FALLBACK & NEXT IMAGE */}
                                     <div className="aspect-[4/3] bg-white relative overflow-hidden flex items-center justify-center p-4">
                                         {moto.imagen ? (
-                                            <img
-                                                src={moto.imagen}
-                                                alt={moto.referencia}
-                                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                                                onError={(e) => {
-                                                    // STRICT: Hide image, Show Fallback Div. No external png links.
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                                }}
-                                            />
+                                            <div className="relative w-full h-full">
+                                                <Image
+                                                    src={moto.imagen}
+                                                    alt={moto.referencia}
+                                                    fill
+                                                    className="object-contain group-hover:scale-105 transition-transform duration-500"
+                                                    priority={true}
+                                                    unoptimized={true}
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                                />
+                                            </div>
                                         ) : null}
 
-                                        {/* Fallback Element (Hidden by default unless Img fails or is missing) */}
+                                        {/* Fallback Element - Shown if no image (Next Image doesn't throw onError easily, but we check moto.imagen above) */}
                                         <div className={`absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 ${moto.imagen ? 'hidden' : ''}`}>
                                             <BikeIcon className="w-16 h-16 opacity-20 text-slate-900" />
                                             <span className="text-xs font-bold uppercase mt-2 text-slate-900/30">{moto.marca}</span>
@@ -323,8 +372,8 @@ export default function BudgetToBikePage() {
 
                                             {/* BADGE: INICIAL ESTIMADA */}
                                             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
-                                                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wide mb-1">
-                                                    Inicial Estimada
+                                                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wide mb-1 flex justify-between">
+                                                    <span>Inicial Estimada</span>
                                                 </p>
                                                 <div className="text-xl font-bold text-emerald-300">
                                                     {formatCurrency(moto.requiredInitial)}
