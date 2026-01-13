@@ -19,7 +19,8 @@ export interface Product {
     model: string;
     price: number;
     status: 'Activo' | 'Inactivo';
-    imageUrl?: string;
+    // Standardized Image Field
+    imagen_url?: string;
     external_url?: string;
     // New fields for Extended Management
     category?: string;
@@ -86,8 +87,8 @@ export function useInventory() {
                         price: Number(data.price || data.precio || 0),
                         // Estado por defecto
                         status: data.status || 'Activo',
-                        // Manejo de imagen (acepta string o la estructura del bot) - Input Validation
-                        imageUrl: typeof data.imagenUrl === 'string' ? data.imagenUrl : (data.imagenUrl?.url || ''),
+                        // ESTÁNDAR: imagen_url
+                        imagen_url: data.imagen_url || '',
                         // Link del bot
                         external_url: data.external_url,
 

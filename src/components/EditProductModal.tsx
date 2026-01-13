@@ -33,7 +33,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
         model: '',
         seoDescription: '',
         isVisible: true,
-        imageUrl: '',
+        imagen_url: '',
         bonusAmount: 0,
         bonusEndDate: '',
         year: new Date().getFullYear(),
@@ -60,7 +60,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     model: product.model || '',
                     seoDescription: product.seoDescription || '',
                     isVisible: product.isVisible !== undefined ? product.isVisible : true,
-                    imageUrl: product.imageUrl || '',
+                    imagen_url: product.imagen_url || '',
                     bonusAmount: product.bonusAmount || 0,
                     bonusEndDate: product.bonusEndDate || '',
                     year: product.year || new Date().getFullYear(),
@@ -83,7 +83,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     model: '',
                     seoDescription: '',
                     isVisible: true,
-                    imageUrl: '',
+                    imagen_url: '',
                     bonusAmount: 0,
                     bonusEndDate: '',
                     year: new Date().getFullYear(),
@@ -170,11 +170,11 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
             // Lógica Condicional para Imagen:
             if (product) {
-                if (formData.imageUrl !== product.imageUrl) {
-                    dataToSave.imagenUrl = formData.imageUrl;
+                if (formData.imagen_url !== product.imagen_url) {
+                    dataToSave.imagen_url = formData.imagen_url;
                 }
             } else {
-                dataToSave.imagenUrl = formData.imageUrl;
+                dataToSave.imagen_url = formData.imagen_url;
             }
 
             // Campos específicos de Motos (Legacy check, now almost all are 'motos' in broad sense but have specific category)
@@ -232,8 +232,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                             <label className="text-sm font-medium text-gray-300 mb-2 block">Imagen Principal</label>
                             <ImageUploader
-                                currentImage={formData.imageUrl}
-                                onImageUploaded={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
+                                currentImage={formData.imagen_url}
+                                onImageUploaded={(url) => setFormData(prev => ({ ...prev, imagen_url: url }))}
                             />
                         </div>
 

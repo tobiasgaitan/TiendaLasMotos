@@ -45,22 +45,22 @@ export default function MotoCard({ moto }: MotoCardProps) {
 
     return (
         <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-brand-blue/20 hover:border-brand-blue/30 transition-all duration-300 group flex flex-col h-full">
-            <div className="relative aspect-square w-full bg-slate-100">
-                {moto.imagen ? (
-                    <Image
-                        src={moto.imagen}
+            <div className="relative h-48 mb-4 bg-gray-100 rounded-lg overflow-hidden group-hover:scale-[1.02] transition-transform">
+                {/* Imagen Principal */}
+                {moto.imagen_url ? (
+                    <img
+                        src={moto.imagen_url}
                         alt={moto.referencia}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="w-full h-full object-contain mix-blend-multiply"
+                        loading="lazy"
                     />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-slate-400">
-                        Sin imagen
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                        <span className="text-xs">Sin Imagen</span>
                     </div>
                 )}
 
-                {/* Badges overlay */}
+                {/* Badge de "Entregas Inmediata" o similar si existiera logic */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                     {moto.marca && (
                         <span className="bg-brand-blue/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium">

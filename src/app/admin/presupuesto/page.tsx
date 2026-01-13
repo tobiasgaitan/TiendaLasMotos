@@ -41,18 +41,10 @@ export default function BudgetToBikePage() {
                         // MAPPING LOGIC (Mirrored from firestore.ts)
 
                         // Image Handling
-                        let finalImage = "";
-                        // Primary: imagenUrl (String or Object)
-                        if (typeof data["imagenUrl"] === 'string') {
-                            finalImage = data["imagenUrl"];
-                        } else if (data["imagenUrl"] && typeof data["imagenUrl"] === 'object') {
-                            finalImage = data["imagenUrl"].url || "";
-                        }
-                        // Fallback: imageUrl (Legacy/English) or just 'image'
-                        if (!finalImage) {
-                            if (typeof data["imageUrl"] === 'string') finalImage = data["imageUrl"];
-                            else if (typeof data["image"] === 'string') finalImage = data["image"];
-                        }
+                        // Image Handling (Standardized)
+                        // The migration script ensures 'imagen_url' is populated.
+                        // We keep a minimal fallback just in case of race conditions during deployment.
+                        const finalImage = data["imagen_url"] || data["imagenUrl"] || "";
 
                         // Reference
                         const finalReferencia = data["referencia"] || data["model"] || "Sin referencia";
@@ -76,7 +68,7 @@ export default function BudgetToBikePage() {
                             ...data,
                             referencia: finalReferencia,
                             marca: finalMarca,
-                            imagen: finalImage,
+                            imagen_url: finalImage,
                             displacement: finalDisplacement,
                             precio: Number(data["precio"]) || 0,
                         } as Moto;
@@ -336,10 +328,10 @@ export default function BudgetToBikePage() {
                                 <div key={moto.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-blue-500/50 transition-all hover:shadow-2xl group flex flex-col">
                                     {/* IMAGE HEADER - STRICT FALLBACK & NEXT IMAGE */}
                                     <div className="aspect-[4/3] bg-white relative overflow-hidden flex items-center justify-center p-4">
-                                        {moto.imagen ? (
+                                        {moto.imagen_url ? (
                                             <div className="relative w-full h-full">
                                                 <Image
-                                                    src={moto.imagen}
+                                                    src={moto.imagen_url}
                                                     alt={moto.referencia}
                                                     fill
                                                     className="object-contain group-hover:scale-105 transition-transform duration-500"
@@ -351,7 +343,7 @@ export default function BudgetToBikePage() {
                                         ) : null}
 
                                         {/* Fallback Element - Shown if no image (Next Image doesn't throw onError easily, but we check moto.imagen above) */}
-                                        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 ${moto.imagen ? 'hidden' : ''}`}>
+                                        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 ${moto.imagen_url ? 'hidden' : ''}`}>
                                             <BikeIcon className="w-16 h-16 opacity-20 text-slate-900" />
                                             <span className="text-xs font-bold uppercase mt-2 text-slate-900/30">{moto.marca}</span>
                                         </div>
