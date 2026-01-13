@@ -150,34 +150,25 @@ export default function BudgetToBikePage() {
     const visibleMotos = useMemo(() => {
         if (!calculation || !allMotos.length) return [];
 
+        // Dynamic Entity Percentage (Strict Nullish check for 0 support)
+        // If undefined/null -> default to 10. If 0 -> use 0.
+        const entityPct = selectedEntity?.minDownPaymentPercentage ?? 10;
+
         return allMotos
             .map(moto => {
                 const docsCost = getDocsCost(moto);
-                const tenPercent = moto.precio * 0.10;
-                const requiredInitial = tenPercent + docsCost;
+                const initialFromPrice = moto.precio * (entityPct / 100);
 
-                // Logic: 
-                // BikePrice <= MaxLoan + RequiredInitial? 
-                // If user has MORE initial than required, they can obviously buy it.
-                // But the "Required Initial" displayed is the RULE (10% + Docs).
-                // Actually, the user's PURCHASE POWER = MaxLoan + UserInitial.
-                // If BikePrice <= PurchasePower, they can buy it. 
-                // WAITING... The user request says:
-                // "Filtro de Galería: Una moto aparece si su precio cumple: Precio Moto <= Cupo Préstamo + CI(Sug)"
-                // Where CI(Sug) = 10% + Docs.
-
-                // Let's interpret strict User Request:
-                // We calculate the Max Loan available (Cupo Préstamo).
-                // We calculate the CI required for THIS specific bike (0.10 * Price + Docs).
-                // If BikePrice <= MaxLoan + CI, then it's feasible (because the bank covers the rest).
+                // Formula: CI = (% Entity * Price) + Docs
+                const requiredInitial = initialFromPrice + docsCost;
 
                 const isFeasible = moto.precio <= (calculation.maxLoanAmount + requiredInitial);
 
-                return { ...moto, requiredInitial, isFeasible };
+                return { ...moto, requiredInitial, isFeasible, entityPct };
             })
             .filter(m => m.isFeasible)
             .sort((a, b) => b.precio - a.precio);
-    }, [allMotos, calculation, matrixRows]); // Re-run if matrix or calculation changes
+    }, [allMotos, calculation, matrixRows, selectedEntity]); // Added selectedEntity dependency
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -256,23 +247,7 @@ export default function BudgetToBikePage() {
                             </p>
                         </div>
 
-                        {/* Initial Payment Display (Disabled Input concept? Or just extra info?)
-                            Wait, user wants to input Initial Payment? 
-                            The user request says: "La cuota inicial sugerida...". 
-                            But in previous turn, we had an input.
-                            If logic is "Bike <= Loan + SuggestedInitial", then user input is irrelevant for the filter?
-                            Actually, usually users HAVE some initial. 
-                            If the user has MORE initial than Suggested, they can buy better bikes.
-                            However, the REQUEST asks for specific logic:
-                            "Filtro: Precio <= Cupo + CI(Formula)".
-                            This implies the filter is based on the THEORETICAL capability if they pay the standard initial.
-                            I will keep the input just in case, but rely on the Formula for the "Required Initial" display.
-                            Actually, let's keep it simple. The filter relies on the BANK LOAN LIMIT.
-                            The BANK LOAN LIMIT is fixed by Daily Budget.
-                            The REQUIRED INITIAL is variable per bike.
-                            So filter is strictly: Is (Price - RequiredInitial) <= MaxLoan?
-                            Yes, that's equivalent to Price <= MaxLoan + RequiredInitial.
-                        */}
+                        {/* Initial Payment Display (Disabled Input logic kept for context but not main driver) */}
                         <div className="p-4 bg-emerald-900/10 border border-emerald-900/30 rounded-lg">
                             <h4 className="text-emerald-400 font-bold mb-1 flex items-center gap-2">
                                 <Wallet className="w-4 h-4" /> Cupo de Crédito Estimado
@@ -304,7 +279,7 @@ export default function BudgetToBikePage() {
                             </div>
                         </div>
                         <p className="text-xs text-slate-500 italic">
-                            * La cuota inicial sugerida incluye el 10% del valor de la moto + trámites de matrícula.
+                            * El análisis usa la política real de la entidad seleccionada. {selectedEntity?.minDownPaymentPercentage === 0 ? "¡Esta entidad permite financiar el 100% de la moto!" : `Requiere ${selectedEntity?.minDownPaymentPercentage ?? 10}% de inicial.`}
                         </p>
                     </div>
                 </div>
@@ -324,7 +299,7 @@ export default function BudgetToBikePage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {visibleMotos.map((moto) => (
+                            {visibleMotos.map((moto: any) => (
                                 <div key={moto.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-blue-500/50 transition-all hover:shadow-2xl group flex flex-col">
                                     {/* IMAGE HEADER - STRICT FALLBACK & NEXT IMAGE */}
                                     <div className="aspect-[4/3] bg-white relative overflow-hidden flex items-center justify-center p-4">
@@ -368,18 +343,33 @@ export default function BudgetToBikePage() {
                                                 <span className="font-bold text-white">{formatCurrency(moto.precio)}</span>
                                             </div>
 
-                                            {/* BADGE: INICIAL ESTIMADA */}
-                                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
-                                                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wide mb-1 flex justify-between">
-                                                    <span>Inicial Estimada</span>
-                                                </p>
-                                                <div className="text-xl font-bold text-emerald-300">
-                                                    {formatCurrency(moto.requiredInitial)}
+                                            {/* BADGE: INICIAL ESTIMADA INTELIGENTE */}
+                                            {moto.entityPct === 0 ? (
+                                                <div className="bg-purple-500/10 border border-purple-500/40 rounded-lg p-3 relative overflow-hidden">
+                                                    <div className="absolute inset-0 bg-purple-500/5 animate-pulse"></div>
+                                                    <p className="text-[10px] text-purple-300 uppercase font-black tracking-wide mb-1 flex justify-between relative z-10">
+                                                        <span>¡OFERTA BRUTAL!</span>
+                                                    </p>
+                                                    <div className="text-xl font-black text-purple-200 relative z-10">
+                                                        {formatCurrency(moto.requiredInitial)}
+                                                    </div>
+                                                    <p className="text-[10px] text-purple-300/80 mt-1 relative z-10 font-bold">
+                                                        ¡INICIAL $0! (Solo Trámites)
+                                                    </p>
                                                 </div>
-                                                <p className="text-[10px] text-emerald-600/60 mt-1">
-                                                    (10% Moto) + Trámite Crédito General
-                                                </p>
-                                            </div>
+                                            ) : (
+                                                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                                                    <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wide mb-1 flex justify-between">
+                                                        <span>Inicial Estimada</span>
+                                                    </p>
+                                                    <div className="text-xl font-bold text-emerald-300">
+                                                        {formatCurrency(moto.requiredInitial)}
+                                                    </div>
+                                                    <p className="text-[10px] text-emerald-600/60 mt-1">
+                                                        ({moto.entityPct}% Moto) + Trámite Crédito
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
