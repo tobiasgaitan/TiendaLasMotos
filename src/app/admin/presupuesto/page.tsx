@@ -42,10 +42,16 @@ export default function BudgetToBikePage() {
 
                         // Image Handling
                         let finalImage = "";
+                        // Primary: imagenUrl (String or Object)
                         if (typeof data["imagenUrl"] === 'string') {
                             finalImage = data["imagenUrl"];
                         } else if (data["imagenUrl"] && typeof data["imagenUrl"] === 'object') {
                             finalImage = data["imagenUrl"].url || "";
+                        }
+                        // Fallback: imageUrl (Legacy/English) or just 'image'
+                        if (!finalImage) {
+                            if (typeof data["imageUrl"] === 'string') finalImage = data["imageUrl"];
+                            else if (typeof data["image"] === 'string') finalImage = data["image"];
                         }
 
                         // Reference
