@@ -45,7 +45,7 @@ export interface Moto {
     referencia: string;
     precio: number;
     marca: string;
-    imagen: string;
+    imagen_url: string;
     frenosABS: boolean;
     external_url?: string;
     last_checked?: any;

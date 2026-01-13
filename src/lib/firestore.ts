@@ -16,14 +16,15 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
             // Si existe 'referencia', úsala. Si no, usa 'model'. Fallback final: "Sin referencia".
             const finalReferencia = data["referencia"] || data["model"] || "Sin referencia";
 
-            // 2. IMAGEN HÍBRIDA
-            // Soporta string directo (nuevo) o objeto { url: string } (legacy)
-            let finalImage = "";
-            if (typeof data["imagenUrl"] === 'string') {
-                finalImage = data["imagenUrl"];
-            } else if (data["imagenUrl"] && typeof data["imagenUrl"] === 'object') {
-                finalImage = data["imagenUrl"].url || "";
-            }
+            /**
+             * 2. NORMALIZACIÓN DE IMÁGENES
+             * Estrategia de Migración (Enero 2026):
+             * Se ha estandarizado todo el inventario para usar 'imagen_url' como única fuente de verdad.
+             * El script de migración eliminó 'imagenUrl', 'imageUrl', 'image', 'foto'.
+             * 
+             * @see src/scripts/migrate-images.ts
+             */
+            const finalImage = data["imagen_url"] || "";
 
             // 3. BONUS MAPPING (Legacy vs New Root Fields)
             let finalBono: Bono | undefined = undefined;
@@ -89,7 +90,7 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 referencia: finalReferencia,
                 precio: Number(data["precio"]) || 0,
                 marca: data["Marca-de-la-moto"] || data["marca"] || "Genérico",
-                imagen: finalImage,
+                imagen_url: finalImage,
                 frenosABS: data["frenosABS"] === "Si",
                 bono: finalBono,
                 displacement: finalDisplacement, // Critical for Matrix

@@ -79,11 +79,11 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
 // ==========================================
 
 // Schema completo para la edición del producto
-// Incluye la CORRECCIÓN DE IMAGEN y todos los campos del modal
+// Incluye la CORRECCIÓN DE IMAGEN (Estándar: imagen_url)
 const productSchema = z.object({
     motoId: z.string(),
-    // IMPORTANTE: Aquí validamos la URL de la imagen (la remolacha)
-    imagenUrl: z.string().optional(),
+    // ESTÁNDAR: imagen_url (snake_case)
+    imagen_url: z.string().optional(),
     precio: z.coerce.number().min(0),
     marca: z.string().optional(),
     modelo: z.string().optional(),
@@ -100,7 +100,7 @@ const productSchema = z.object({
 /**
  * saveProduct (Antiguo updateMotoAction)
  * Función maestra para guardar cambios desde el panel de administración.
- * Soluciona el problema de mapeo de imagenUrl.
+ * AHORA: Usa exclusivamente imagen_url
  */
 export async function saveProduct(data: z.infer<typeof productSchema>) {
     // 1. Validar Sesión (Seguridad)
@@ -119,7 +119,7 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
     }
 
     try {
-        const { motoId, precio, imagenUrl, marca, modelo, anio, isVisible, bono } = validated.data;
+        const { motoId, precio, imagen_url, marca, modelo, anio, isVisible, bono } = validated.data;
 
         // Configuración de fecha para last_updated (Zona horaria Colombia aprox)
         const offset = 5 * 60 * 60 * 1000; //-5 UTC
@@ -135,10 +135,10 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
             last_updated: colTime
         };
 
-        // --- LA CORRECCIÓN CLAVE ---
-        // Si recibimos una URL de imagen nueva, la guardamos en 'imagenUrl' (el campo Legacy)
-        if (imagenUrl && imagenUrl.length > 0) {
-            updatePayload.imagenUrl = imagenUrl;
+        // --- ESTANDARIZACIÓN ---
+        // Guardamos 'imagen_url' explícitamente
+        if (imagen_url && imagen_url.length > 0) {
+            updatePayload.imagen_url = imagen_url;
         }
 
         // Mapeo de campos opcionales (solo actualizamos si existen)
