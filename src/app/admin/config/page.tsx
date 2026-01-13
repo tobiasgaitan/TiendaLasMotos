@@ -149,12 +149,40 @@ export default function ConfigPage() {
                         </button>
                     </div>
 
-                    <div className="mb-4 flex justify-end">
+                    <div className="mb-4 flex flex-col md:flex-row justify-end items-end gap-2">
                         <button
                             onClick={handleSeedCrediorbe}
                             className="text-xs text-blue-400 hover:text-blue-300 underline"
                         >
                             Instalar Defaults Crediorbe (V10.0)
+                        </button>
+
+                        <button
+                            onClick={async () => {
+                                if (!confirm("⚠ ¿Ejecutar SANEAMIENTO MAESTRO (V23.0)?\n\nEsto convertirá marcas/referencias a MAYÚSCULAS y limpiará cilindrajes en TODO el inventario.")) return;
+
+                                const toast = document.createElement('div');
+                                toast.innerText = "⏳ Ejecutando saneamiento...";
+                                toast.style.cssText = "position:fixed;top:20px;right:20px;background:blue;color:white;padding:10px;z-index:9999;border-radius:8px;";
+                                document.body.appendChild(toast);
+
+                                try {
+                                    const { normalizeInventory } = await import('@/app/actions/inventory-normalization');
+                                    const res = await normalizeInventory();
+                                    if (res.success) {
+                                        alert(`✅ Saneamiento Completado.\nItems Procesados: ${res.processed}\nItems Actualizados: ${res.updated}`);
+                                    } else {
+                                        alert("❌ Error: " + res.error);
+                                    }
+                                } catch (e) {
+                                    alert("Error invocando action: " + e);
+                                } finally {
+                                    document.body.removeChild(toast);
+                                }
+                            }}
+                            className="text-xs text-emerald-400 hover:text-emerald-300 underline font-bold border border-emerald-500/30 p-2 rounded-lg hover:bg-emerald-500/10 transition-all"
+                        >
+                            ⚡ EJECUTAR SANEAMIENTO (V23.0)
                         </button>
                     </div>
 
