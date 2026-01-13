@@ -1,55 +1,143 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Moto } from "@/types";
+import { FinancialEntity } from "@/types/financial";
 import { calculateMaxLoan } from "@/lib/utils/reverseCalculator";
-import { Loader2, DollarSign, Wallet, AlertCircle } from "lucide-react";
+import { Loader2, DollarSign, Wallet, AlertCircle, ChevronDown } from "lucide-react";
 
 export default function BudgetToBikePage() {
     const [loading, setLoading] = useState(true);
     const [allMotos, setAllMotos] = useState<Moto[]>([]);
 
-    // -- Inputs --
-    // Daily budget in COP. Range example: 10,000 - 50,000
-    const [dailyBudget, setDailyBudget] = useState<number>(15000);
+    // Financial Data
+    const [entities, setEntities] = useState<any[]>([]);
+    const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+    const [selectedEntity, setSelectedEntity] = useState<any>(null);
+    const [matrixRows, setMatrixRows] = useState<any[]>([]); // For Registration Costs
 
-    // Initial Down Payment
+    // -- Inputs --
+    const [dailyBudget, setDailyBudget] = useState<number>(15000);
     const [initialPayment, setInitialPayment] = useState<number>(0);
 
     // -- Calculated State --
     const [calculation, setCalculation] = useState<any>(null);
 
-    // Fetch Inventory
+    // 1. Initial Data Fetch
     useEffect(() => {
-        // [FIX] Correct path to real catalogue
-        const q = query(collection(db, "pagina", "catalogo", "items"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const motos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Moto));
-            setAllMotos(motos);
-            setLoading(false);
-        });
-        return () => unsubscribe();
+        const loadData = async () => {
+            try {
+                // A. Inventory
+                const q = query(collection(db, "pagina", "catalogo", "items"));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const motos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Moto));
+                    setAllMotos(motos);
+                });
+
+                // B. Financial Entities
+                const entSnap = await getDocs(collection(db, "financial_config/general/financieras"));
+                const entList = entSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
+                setEntities(entList);
+
+                // Select Crediorbe by default or first available
+                const defaultEnt = entList.find(e => e.name.toLowerCase().includes('crediorbe')) || entList[0];
+                if (defaultEnt) {
+                    setSelectedEntityId(defaultEnt.id);
+                    setSelectedEntity(defaultEnt);
+                }
+
+                // C. Financial Parameters (Registration Costs)
+                const matrixDoc = await getDoc(doc(db, 'config', 'financial_parameters'));
+                if (matrixDoc.exists()) {
+                    setMatrixRows(matrixDoc.data().rows || []);
+                }
+
+                setLoading(false);
+                return () => unsubscribe();
+            } catch (error) {
+                console.error("Error initializing:", error);
+                setLoading(false);
+            }
+        };
+
+        loadData();
     }, []);
 
-    // Real-time Calculation
-    useEffect(() => {
-        // Crediorbe Defaults: 48 months standard for max capacity analysis
-        const result = calculateMaxLoan(dailyBudget, initialPayment, 48);
-        setCalculation(result);
-    }, [dailyBudget, initialPayment]);
+    // 2. Handle Entity Change
+    const handleEntityChange = (id: string) => {
+        const ent = entities.find(e => e.id === id);
+        if (ent) {
+            setSelectedEntityId(id);
+            setSelectedEntity(ent);
+        }
+    };
 
-    // Filter Logic "Smart Gallery"
+    // 3. Real-time Calculation (Budget -> Max Loan)
+    useEffect(() => {
+        if (!selectedEntity) return;
+
+        // Use Entity Parameters
+        const result = calculateMaxLoan(
+            dailyBudget,
+            initialPayment,
+            48,
+            selectedEntity.interestRate || 2.3,
+            selectedEntity.fngRate || 0,
+            selectedEntity.lifeInsuranceValue || 0.1126
+        );
+        setCalculation(result);
+    }, [dailyBudget, initialPayment, selectedEntity]);
+
+
+    // 4. Helper: Get Registration Cost
+    const getDocsCost = (moto: Moto): number => {
+        if (!matrixRows.length) return 800000; // Fallback
+
+        let row;
+        const cc = moto.displacement || 150;
+
+        // Find row by CC range
+        // Note: Logic simplification, assuming no "Electrical" or "Motocarro" specific overrides for now unless strictly needed
+        row = matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc);
+
+        // Use "Crédito General" column (fallback to ~750k if missing)
+        return row ? (row.registrationCreditGeneral || 750000) : 750000;
+    };
+
+    // 5. Intelligent Filter Logic
     const visibleMotos = useMemo(() => {
         if (!calculation || !allMotos.length) return [];
 
-        // Filter: Price <= Max Bike Price
-        // Sort: Price Descending (Show best bikes first)
         return allMotos
-            .filter(m => m.precio <= calculation.maxBikePrice)
+            .map(moto => {
+                const docsCost = getDocsCost(moto);
+                const tenPercent = moto.precio * 0.10;
+                const requiredInitial = tenPercent + docsCost;
+
+                // Logic: 
+                // BikePrice <= MaxLoan + RequiredInitial? 
+                // If user has MORE initial than required, they can obviously buy it.
+                // But the "Required Initial" displayed is the RULE (10% + Docs).
+                // Actually, the user's PURCHASE POWER = MaxLoan + UserInitial.
+                // If BikePrice <= PurchasePower, they can buy it. 
+                // WAITING... The user request says:
+                // "Filtro de Galería: Una moto aparece si su precio cumple: Precio Moto <= Cupo Préstamo + CI(Sug)"
+                // Where CI(Sug) = 10% + Docs.
+
+                // Let's interpret strict User Request:
+                // We calculate the Max Loan available (Cupo Préstamo).
+                // We calculate the CI required for THIS specific bike (0.10 * Price + Docs).
+                // If BikePrice <= MaxLoan + CI, then it's feasible (because the bank covers the rest).
+
+                const isFeasible = moto.precio <= (calculation.maxLoanAmount + requiredInitial);
+
+                return { ...moto, requiredInitial, isFeasible };
+            })
+            .filter(m => m.isFeasible)
             .sort((a, b) => b.precio - a.precio);
-    }, [allMotos, calculation]);
+    }, [allMotos, calculation, matrixRows]); // Re-run if matrix or calculation changes
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -59,22 +147,44 @@ export default function BudgetToBikePage() {
         <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
             <div className="max-w-6xl mx-auto space-y-8">
 
-                {/* Header */}
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                        Buscador por Presupuesto
-                    </h1>
-                    <p className="text-slate-400">
-                        Define cuánto puedes pagar diario y te decimos qué moto puedes llevar.
-                    </p>
+                {/* Header & Entity Selector */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-center md:text-left space-y-2">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                            Buscador Inteligente
+                        </h1>
+                        <p className="text-slate-400 text-sm max-w-md">
+                            Encuentra tu moto ideal basada en tu bolsillo y las políticas reales de financiación.
+                        </p>
+                    </div>
+
+                    {/* Entity Selector */}
+                    <div className="w-full md:w-72 bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center relative">
+                        <div className="absolute left-3 text-slate-500 pointer-events-none">
+                            <BankIcon />
+                        </div>
+                        <select
+                            value={selectedEntityId}
+                            onChange={(e) => handleEntityChange(e.target.value)}
+                            className="w-full bg-transparent text-white font-medium py-3 pl-10 pr-4 outline-none appearance-none cursor-pointer hover:bg-slate-800/50 rounded-lg transition-colors"
+                        >
+                            {entities.map(ent => (
+                                <option key={ent.id} value={ent.id} className="bg-slate-900 text-white">
+                                    {ent.name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-3 text-slate-500 pointer-events-none">
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Calculator Control Panel */}
                 <div className="bg-slate-900 rounded-2xl p-6 md:p-8 shadow-xl border border-slate-800 grid md:grid-cols-2 gap-12 items-center">
-
-                    {/* INPUTS COLUMN */}
+                    {/* INPUTS */}
                     <div className="space-y-8">
-                        {/* Daily Budget Slider */}
+                        {/* Daily Budget */}
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <label className="text-lg font-medium text-blue-300 flex items-center gap-2">
@@ -94,69 +204,71 @@ export default function BudgetToBikePage() {
                                 onChange={(e) => setDailyBudget(Number(e.target.value))}
                                 className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
                             />
-                            <div className="flex justify-between text-xs text-slate-500 font-mono">
-                                <span>$10k</span>
-                                <span>$60k</span>
-                            </div>
                             <p className="text-sm text-slate-400 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
-                                Un pago diario de <b>{formatCurrency(dailyBudget)}</b> equivale a una
-                                cuota mensual aprox. de <b className="text-emerald-400">{formatCurrency(dailyBudget * 30)}</b>
+                                Un pago diario de <b>{formatCurrency(dailyBudget)}</b>
                             </p>
                         </div>
 
-                        {/* Initial Payment Input */}
-                        <div className="space-y-3">
-                            <label className="text-lg font-medium text-emerald-300 flex items-center gap-2">
-                                <Wallet className="w-5 h-5" />
-                                Cuota Inicial Disponible
-                            </label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                <input
-                                    type="number"
-                                    value={initialPayment === 0 ? '' : initialPayment}
-                                    onChange={(e) => setInitialPayment(Number(e.target.value))}
-                                    placeholder="0"
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 pl-8 py-4 text-xl font-bold focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder:text-slate-700"
-                                />
-                            </div>
+                        {/* Initial Payment Display (Disabled Input concept? Or just extra info?)
+                            Wait, user wants to input Initial Payment? 
+                            The user request says: "La cuota inicial sugerida...". 
+                            But in previous turn, we had an input.
+                            If logic is "Bike <= Loan + SuggestedInitial", then user input is irrelevant for the filter?
+                            Actually, usually users HAVE some initial. 
+                            If the user has MORE initial than Suggested, they can buy better bikes.
+                            However, the REQUEST asks for specific logic:
+                            "Filtro: Precio <= Cupo + CI(Formula)".
+                            This implies the filter is based on the THEORETICAL capability if they pay the standard initial.
+                            I will keep the input just in case, but rely on the Formula for the "Required Initial" display.
+                            Actually, let's keep it simple. The filter relies on the BANK LOAN LIMIT.
+                            The BANK LOAN LIMIT is fixed by Daily Budget.
+                            The REQUIRED INITIAL is variable per bike.
+                            So filter is strictly: Is (Price - RequiredInitial) <= MaxLoan?
+                            Yes, that's equivalent to Price <= MaxLoan + RequiredInitial.
+                        */}
+                        <div className="p-4 bg-emerald-900/10 border border-emerald-900/30 rounded-lg">
+                            <h4 className="text-emerald-400 font-bold mb-1 flex items-center gap-2">
+                                <Wallet className="w-4 h-4" /> Cupo de Crédito Estimado
+                            </h4>
+                            <p className="text-3xl font-bold text-white">
+                                {calculation ? formatCurrency(calculation.maxLoanAmount) : "..."}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-2">
+                                Este es el dinero que {selectedEntity?.name} te prestaría basado en tu pago diario.
+                            </p>
                         </div>
                     </div>
 
-                    {/* RESULTS COLUMN (The "Magic" Number) */}
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 relative overflow-hidden text-center space-y-2">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500"></div>
-
-                        <h3 className="text-slate-400 uppercase tracking-wider text-sm font-semibold">Tu Capacidad de Compra</h3>
-
-                        <div className="py-2">
-                            <span className="text-5xl md:text-6xl font-black text-white tracking-tight drop-shadow-lg">
-                                {calculation ? formatCurrency(calculation.maxBikePrice) : "..."}
-                            </span>
+                    {/* DYNAMIC METRICS */}
+                    <div className="space-y-6 text-center md:text-left">
+                        <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                            <h3 className="text-slate-400 uppercase text-xs font-bold tracking-widest">
+                                Parámetros de {selectedEntity?.name || "la Entidad"}
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-slate-500 text-xs">Tasa Mensual</p>
+                                    <p className="text-xl font-bold text-white">{selectedEntity?.interestRate}%</p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 text-xs text-right">FNG / Aval</p>
+                                    <p className="text-xl font-bold text-white text-right">{selectedEntity?.fngRate}%</p>
+                                </div>
+                            </div>
                         </div>
-
-                        <div className="text-sm text-slate-500 space-y-1">
-                            <p>Préstamo Máximo (Banco): {calculation ? formatCurrency(calculation.maxLoanAmount) : "..."}</p>
-                            <p>+ Tu Inicial: {formatCurrency(initialPayment)}</p>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-start gap-2 text-xs text-slate-500 text-left">
-                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-blue-500" />
-                            <p>
-                                Cálculos basados en las condiciones de <b>Crediorbe</b> (Tasa 1.87% NMV, FNG 20.66%).
-                                Valores aproximados para perfilamiento. Trámites de matrícula no incluidos en financiación.
-                            </p>
-                        </div>
+                        <p className="text-xs text-slate-500 italic">
+                            * Valores aproximados. La cuota inicial real depende de la moto y costos de matrícula de tu ciudad.
+                        </p>
                     </div>
 
                 </div>
 
                 {/* Smart Gallery */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-3">
-                        Motos a tu alcance
+                        Motos Disponibles
                         <span className="text-sm font-normal bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full border border-blue-500/30">
-                            {visibleMotos.length} Disponibles
+                            {visibleMotos.length}
                         </span>
                     </h2>
 
@@ -167,29 +279,59 @@ export default function BudgetToBikePage() {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {visibleMotos.map((moto) => (
-                                <div key={moto.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-slate-600 transition-all hover:shadow-2xl hover:-translate-y-1 group">
-                                    <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
-                                        <img
-                                            src={moto.imagen || "/placeholder-moto.png"}
-                                            alt={moto.referencia}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                        <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur px-2 py-1 rounded text-xs font-mono border border-slate-700">
+                                <div key={moto.id} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-blue-500/50 transition-all hover:shadow-2xl group flex flex-col">
+                                    {/* IMAGE HEADER */}
+                                    <div className="aspect-[4/3] bg-white relative overflow-hidden flex items-center justify-center p-4">
+                                        {moto.imagen ? (
+                                            <img
+                                                src={moto.imagen}
+                                                alt={moto.referencia}
+                                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                                                onError={(e) => {
+                                                    // STRICT: Hide image, Show Fallback Div. No external png links.
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                }}
+                                            />
+                                        ) : null}
+
+                                        {/* Fallback Element (Hidden by default unless Img fails or is missing) */}
+                                        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 ${moto.imagen ? 'hidden' : ''}`}>
+                                            <BikeIcon className="w-16 h-16 opacity-20 text-slate-900" />
+                                            <span className="text-xs font-bold uppercase mt-2 text-slate-900/30">{moto.marca}</span>
+                                        </div>
+
+                                        <div className="absolute top-2 right-2 bg-slate-900/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider text-white border border-slate-700">
                                             {moto.marca}
                                         </div>
                                     </div>
-                                    <div className="p-4 space-y-3">
+
+                                    {/* CONTENT */}
+                                    <div className="p-5 flex-1 flex flex-col space-y-4">
                                         <div>
-                                            <h3 className="font-bold text-lg leading-tight group-hover:text-blue-400 transition-colors">
+                                            <h3 className="font-bold text-lg leading-tight text-white group-hover:text-blue-400 transition-colors">
                                                 {moto.referencia}
                                             </h3>
-                                            <p className="text-slate-400 text-sm">{moto.displacement || 150} cc</p>
+                                            <p className="text-slate-400 text-sm mt-1">{moto.displacement || 150} cc</p>
                                         </div>
 
-                                        <div className="pt-3 border-t border-slate-800 flex justify-between items-end">
-                                            <div className="text-xs text-slate-500">Precio de Lista</div>
-                                            <div className="text-xl font-bold text-emerald-400">
-                                                {formatCurrency(moto.precio)}
+                                        <div className="pt-4 border-t border-slate-800 space-y-3 mt-auto">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-slate-500">Precio</span>
+                                                <span className="font-bold text-white">{formatCurrency(moto.precio)}</span>
+                                            </div>
+
+                                            {/* BADGE: INICIAL ESTIMADA */}
+                                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                                                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wide mb-1">
+                                                    Inicial Estimada
+                                                </p>
+                                                <div className="text-xl font-bold text-emerald-300">
+                                                    {formatCurrency(moto.requiredInitial)}
+                                                </div>
+                                                <p className="text-[10px] text-emerald-600/60 mt-1">
+                                                    (10% Moto) + Trámite Crédito General
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -197,16 +339,67 @@ export default function BudgetToBikePage() {
                             ))}
 
                             {visibleMotos.length === 0 && (
-                                <div className="col-span-full py-12 text-center bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
-                                    <p className="text-slate-400 text-lg">No encontramos motos para este presupuesto.</p>
-                                    <p className="text-slate-500 text-sm mt-2">Intenta subir un poco tu pago diario o aumentar tu cuota inicial.</p>
+                                <div className="col-span-full py-16 text-center bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+                                    <BikeIcon className="w-16 h-16 text-slate-700 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-white">No encontramos motos disponibles</h3>
+                                    <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto">
+                                        Con un pago diario de {formatCurrency(dailyBudget)}, el banco te prestaría aprox. <span className="text-blue-400 font-bold">{calculation ? formatCurrency(calculation.maxLoanAmount) : '...'}</span>.
+                                        Intenta aumentar tu presupuesto diario.
+                                    </p>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
-
             </div>
         </div>
     );
 }
+
+// ICONS
+function BankIcon(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M3 21h18" />
+            <path d="M5 21v-7" />
+            <path d="M19 21v-7" />
+            <path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3H4z" />
+            <path d="M12 2v4" />
+        </svg>
+    )
+}
+
+function BikeIcon(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <circle cx="18.5" cy="17.5" r="3.5" />
+            <circle cx="5.5" cy="17.5" r="3.5" />
+            <circle cx="15" cy="5" r="1" />
+            <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
+        </svg>
+    )
+}
+
+

@@ -28,50 +28,72 @@
  * 4. Max Bike Price = Cn (since Docs are 0) + DownPayment
  */
 
-export interface ReverseBudgetResult {
-    maxLoanAmount: number; // The Net Capital the bank lends for the bike
-    maxBikePrice: number;  // Max Loan + Initial
-    totalFinanced: number; // The gross loan (including FNG)
-    monthlyPaymentEstimated: number; // Should match target budget closely
-}
-
+/**
+ * Reverse Calculation for Purchasing Power
+ * 
+ * @param dailyBudget - User's daily budget (e.g., 10000)
+ * @param initialPayment - User's available down payment
+ * @param months - Loan term (default 48)
+ * @param interestRate - Monthly Interest Rate (NMV) e.g., 2.3
+ * @param fngRate - FNG Percentage e.g., 20.66
+ * @param insuranceRate - Life Insurance Rate e.g., 0.1126
+ *
+ * @returns Object with maxLoanAmount and maxBikePrice
+ */
 export const calculateMaxLoan = (
     dailyBudget: number,
     initialPayment: number,
-    months: number = 48
-): ReverseBudgetResult => {
+    months: number = 48,
+    interestRate: number = 2.3, // Default if not provided
+    fngRate: number = 20.66,    // Default if not provided
+    insuranceRate: number = 0.1126 // Default if not provided
+) => {
+    // 1. Monthly Budget
+    const monthlyBudget = dailyBudget * 30;
 
-    // 1. Constants (Crediorbe)
-    const INTEREST_RATE = 0.0187; // 1.87%
-    const FNG_RATE = 0.2066;      // 20.66%
-    const INSURANCE_RATE = 0.001126; // 0.1126%
+    // 2. Reverse Annuity Formula
+    // PMT = Loan * [ r(1+r)^n ] / [ (1+r)^n - 1 ]
+    // Loan = PMT * [ (1+r)^n - 1 ] / [ r(1+r)^n ]
 
-    // 2. Determine Functional Monthly Budget
-    const targetMonthlyPayment = dailyBudget * 30;
+    // Adjust PMT to remove Life Insurance component roughly in reverse
+    // Approx: TotalPMT = (Loan * AmortFactor) + (Loan * InsuranceRate)
+    // TotalPMT = Loan * (AmortFactor + InsuranceRate)
+    // Loan = TotalPMT / (AmortFactor + InsuranceRate)
 
-    // 3. Calculate Factors
-    // Amortization Factor: The cost per $1 unit of loan
-    const amortFactor = (INTEREST_RATE) / (1 - Math.pow(1 + INTEREST_RATE, -months));
+    const r = interestRate / 100;
+    const n = months;
 
-    // Total Cost Factor per $1 of GROSS loan
-    const totalFactor = amortFactor + INSURANCE_RATE;
+    let amortFactor = 0;
+    if (r > 0 && n > 0) {
+        amortFactor = (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    } else {
+        amortFactor = 1 / n;
+    }
 
-    // 4. Reverse Solve for Total Financed Amount (Pf)
-    // Pf = Target / Factor
-    const totalFinanced = Math.floor(targetMonthlyPayment / totalFactor);
+    const insFactor = insuranceRate / 100;
 
-    // 5. Reverse Solve for Net Capital (Cn)
-    // Pf = Cn * (1 + FNG_RATE)  =>  Cn = Pf / (1 + FNG_RATE)
-    const netCapital = Math.floor(totalFinanced / (1 + FNG_RATE));
+    // Gross Loan (amount strictly for capital + fees financed)
+    const totalLoanSupported = monthlyBudget / (amortFactor + insFactor);
 
-    // 6. Calculate Max Bike Price
-    // Since Docs are $0: Bike Price = Net Capital + Initial
-    const maxBikePrice = netCapital + initialPayment;
+    // 3. Remove FNG
+    // TotalLoan = NetLoan + (NetLoan * FngRate)
+    // TotalLoan = NetLoan * (1 + FngRate)
+    // NetLoan = TotalLoan / (1 + FngRate)
+
+    const fngMultiplier = 1 + (fngRate / 100);
+    const netLoanAmount = totalLoanSupported / fngMultiplier;
+
+    // Purchasing Power (Bike Price Capability)
+    // Convention: Max Bike Price = Net Loan + Initial Payment
+    // *Note: Registration costs are usually separate or part of 'Initial' in this simplified model.
+    const maxBikePrice = netLoanAmount + initialPayment;
 
     return {
-        maxLoanAmount: netCapital,
-        maxBikePrice: maxBikePrice,
-        totalFinanced: totalFinanced,
-        monthlyPaymentEstimated: targetMonthlyPayment
+        maxLoanAmount: Math.round(netLoanAmount), // This is the bank money for the BIKE
+        maxBikePrice: Math.round(maxBikePrice),
+        details: {
+            monthlyBudget,
+            fngCost: Math.round(totalLoanSupported - netLoanAmount)
+        }
     };
 };
