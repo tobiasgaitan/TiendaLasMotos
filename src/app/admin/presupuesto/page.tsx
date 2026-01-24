@@ -42,8 +42,8 @@ export default function BudgetToBikePage() {
 
                         // Image Handling
                         // Image Handling (Standardized)
-                        // The migration script ensures 'imagen_url' is populated.
-                        // We keep a minimal fallback just in case of race conditions during deployment.
+                        // V23.1: Primary field is 'imagen_url'
+                        // Legacy fallback to 'imagenUrl' for pre-V23.1 data (backward compatibility)
                         const finalImage = data["imagen_url"] || data["imagenUrl"] || "";
 
                         // Reference

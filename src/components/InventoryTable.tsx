@@ -47,7 +47,7 @@ export default function InventoryTable({ products, onEdit }: Props) {
                 <table className="w-full text-left text-gray-300">
                     <thead className="text-xs uppercase bg-gray-800 text-gray-400">
                         <tr>
-                            <th className="px-4 py-3 w-[80px]">Foto</th>
+                            <th className="px-4 py-3 w-[80px]">Imagen</th>
                             <th className="px-4 py-3">Modelo / Marca</th>
                             <th className="px-4 py-3">Precio</th>
                             <th className="px-4 py-3 text-right">Acción</th>

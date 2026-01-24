@@ -23,7 +23,8 @@ export default function FlipCard({ product }: FlipCardProps) {
 
     const toggleFlip = () => setIsFlipped(!isFlipped);
 
-    const imageUrl = typeof product.imagenUrl === "string" ? product.imagenUrl : product.imagenUrl?.url || "/placeholder.png";
+    // V23.1: Use consistent naming (imagenUrl) to match schema
+    const imagenUrl = typeof product.imagenUrl === "string" ? product.imagenUrl : product.imagenUrl?.url || "/placeholder.png";
 
     return (
         <div className="relative group w-full h-[500px] perspective-1000 cursor-pointer" onClick={(e) => {
@@ -42,7 +43,7 @@ export default function FlipCard({ product }: FlipCardProps) {
                 <div className="absolute inset-0 backface-hidden bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden flex flex-col">
                     <div className="relative h-64 w-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
                         <Image
-                            src={imageUrl}
+                            src={imagenUrl}
                             alt={product.referencia}
                             width={400}
                             height={300}

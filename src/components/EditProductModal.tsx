@@ -144,6 +144,11 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
     /**
      * Guarda los cambios (CREAR o EDITAR) en Firestore.
+     * 
+     * @remarks V23.1 Schema Enforcement:
+     * - Uppercases `marca` and `modelo` for consistency
+     * - Uses `imagen_url` as single source of truth
+     * - Ensures `referencia` matches uppercased `modelo`
      */
     const handleSave = async () => {
         setIsSaving(true);
@@ -151,11 +156,17 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
             // LIMPIEZA AGRESIVA: Precio
             const precioLimpio = Number(formData.price.toString().replace(/[^0-9]/g, ''));
 
+            // ✅ V23.1 UPPERCASE ENFORCEMENT
+            const marcaUppercase = formData.brand.toUpperCase().trim();
+            const modeloUppercase = formData.model.toUpperCase().trim();
+
             const dataToSave: any = {
                 categories: formData.categories,
                 category: formData.categories[0] || '', // Legacy Support
-                brand: formData.brand,
-                model: formData.model,
+                brand: marcaUppercase,  // ✅ V23.1 Normalized
+                model: modeloUppercase, // ✅ V23.1 Normalized
+                marca: marcaUppercase,  // ✅ Explicit field for compatibility
+                modelo: modeloUppercase, // ✅ Explicit field for compatibility
                 seoDescription: formData.seoDescription,
                 isVisible: formData.isVisible,
                 price: precioLimpio, // precio en DB
@@ -163,7 +174,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 stock: Number(formData.stock),
                 bonusAmount: Number(formData.bonusAmount),
                 bonusEndDate: formData.bonusEndDate,
-                referencia: formData.model,
+                referencia: modeloUppercase, // ✅ V23.1 Normalized (was formData.model)
                 fechaActualizacion: new Date().toISOString(),
                 exemptRegistration: formData.exemptRegistration // [NEW] Save Persistent Flag
             };
@@ -192,9 +203,9 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                 const newId = generateId(formData.model);
 
                 dataToSave.fechaCreacion = new Date().toISOString();
-                dataToSave.nombre = formData.model;
-                dataToSave.referencia = formData.model;
-                dataToSave.marca = formData.brand;
+                dataToSave.nombre = modeloUppercase; // ✅ V23.1 Normalized
+                dataToSave.referencia = modeloUppercase; // ✅ Already set above, but explicit here
+                dataToSave.marca = marcaUppercase; // ✅ Already set above, but explicit here
                 dataToSave.status = 'Activo';
 
                 const ref = doc(db, "pagina", "catalogo", "items", newId);
