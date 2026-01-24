@@ -84,7 +84,7 @@ export default async function ProductPage({ params }: PageProps) {
         referencia: product.referencia,
         precio: product.precio,
         marca: "Victory", // Mock or from product
-        imagen: typeof product.imagenUrl === 'string' ? product.imagenUrl : product.imagenUrl.url,
+        imagen_url: typeof product.imagenUrl === 'string' ? product.imagenUrl : product.imagenUrl.url,
         frenosABS: false,
         categories: ["URBANA Y/O TRABAJO"], // Default category
         displacement: 124, // Matches mock 124cc
