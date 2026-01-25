@@ -30,6 +30,8 @@ import { LeadModalProvider } from "@/context/LeadModalContext";
 import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
 import SmartFooter from "@/components/SmartFooter";
+import TopBar from "@/components/TopBar";
+import Navbar from "@/components/Navbar";
 
 export default function RootLayout({
   children,
@@ -40,6 +42,13 @@ export default function RootLayout({
    * Root Layout Component
    * Configures the global HTML structure, fonts, and providers (Auth, LeadModal).
    * This layout wraps all pages in the application.
+   * 
+   * Navigation Structure:
+   * - TopBar: Dynamic contact bar with WhatsApp integration
+   * - Navbar: Main navigation with logo, links, and CTA button
+   * - Children: Page content
+   * - LeadForm: Global modal for lead capture
+   * - SmartFooter: Global footer with dynamic content
    */
   return (
     <html lang="en">
@@ -48,6 +57,8 @@ export default function RootLayout({
       >
         <LeadModalProvider>
           <AuthProvider>
+            <TopBar />
+            <Navbar />
             {children}
             <LeadForm />
             <SmartFooter />
