@@ -36,7 +36,7 @@
             ]
         },
         {
-            "target": "tiendalasmotos-beta",
+            "target": "beta",
             "source": ".",
             "ignore": [
                 "firebase.json",
