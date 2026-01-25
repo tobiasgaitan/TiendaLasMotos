@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react'; // [NEW] Import useState
 import Image from 'next/image';
 import { Moto } from '@/types';
 import { useLeadModal } from '@/context/LeadModalContext';
@@ -10,6 +11,7 @@ interface MotoCardProps {
 
 export default function MotoCard({ moto }: MotoCardProps) {
     const { openModal } = useLeadModal();
+    const [imageError, setImageError] = useState(false); // [NEW] Track image load error
 
     /**
      * Formats price to Colombian Peso (COP) without decimals.
@@ -45,18 +47,20 @@ export default function MotoCard({ moto }: MotoCardProps) {
 
     return (
         <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-brand-blue/20 hover:border-brand-blue/30 transition-all duration-300 group flex flex-col h-full">
-            <div className="relative h-48 mb-4 bg-gray-100 rounded-lg overflow-hidden group-hover:scale-[1.02] transition-transform">
+            <div className="relative h-48 mb-4 bg-slate-50 rounded-lg overflow-hidden group-hover:scale-[1.02] transition-transform">
                 {/* Imagen Principal */}
-                {moto.imagen_url ? (
+                {moto.imagen_url && !imageError ? (
                     <img
                         src={moto.imagen_url}
                         alt={moto.referencia}
-                        className="w-full h-full object-contain mix-blend-multiply"
+                        className="w-full h-full object-contain mix-blend-multiply p-2"
                         loading="lazy"
+                        onError={() => setImageError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                        <span className="text-xs">Sin Imagen</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
+                        <span className="text-4xl mb-2">🏍️</span>
+                        <span className="text-xs font-bold uppercase">Sin Imagen</span>
                     </div>
                 )}
 
