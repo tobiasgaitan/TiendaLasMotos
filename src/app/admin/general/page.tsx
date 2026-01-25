@@ -28,7 +28,7 @@ export default function GeneralConfigPage() {
     // Default values
     const [formData, setFormData] = useState<GeneralConfig>({
         phone: "",
-        email: "conexion@tiendalasmotos.com.co",
+        email: "conexion@tiendalasmotos.com",
         facebookUrl: "",
         instagramUrl: "",
         twitterUrl: "",
@@ -125,7 +125,7 @@ export default function GeneralConfigPage() {
                                     <input
                                         type="email"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors placeholder:text-gray-600"
-                                        placeholder="conexion@tiendalasmotos.com.co"
+                                        placeholder="conexion@tiendalasmotos.com"
                                         value={formData.email || ''}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     />
