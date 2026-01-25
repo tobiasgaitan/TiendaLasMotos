@@ -29,6 +29,7 @@ export const metadata: Metadata = {
 import { LeadModalProvider } from "@/context/LeadModalContext";
 import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
+import SmartFooter from "@/components/SmartFooter";
 
 export default function RootLayout({
   children,
@@ -49,6 +50,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <LeadForm />
+            <SmartFooter />
           </AuthProvider>
         </LeadModalProvider>
       </body>

@@ -105,10 +105,7 @@ export default async function Home() {
                 </section>
             </main>
 
-            {/* FOOTER */}
-            <footer className="bg-brand-blue text-white py-10 text-center text-sm border-t border-blue-900 pb-24 md:pb-10">
-                <p>&copy; {new Date().getFullYear()} TiendaLasMotos.com. Todos los derechos reservados.</p>
-            </footer>
+            {/* FOOTER - Moved to Global Layout */}
 
             {/* STICKY ACTION BAR (Mobile Only) */}
             <StickyBar />

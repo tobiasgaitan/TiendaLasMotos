@@ -7,9 +7,6 @@ import { City, FinancialEntity } from '@/types/financial';
 import { Plus, Loader2, MapPin, Trash2, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Reusing modal wrapper concept or inline modal for simplicity as per implementation plan
-// We will create an inline modal here to manage Sede + Financial Entities
-
 export default function SedesPage() {
     const [loading, setLoading] = useState(true);
     const [sedes, setSedes] = useState<City[]>([]);
@@ -25,6 +22,7 @@ export default function SedesPage() {
         name: '',
         department: '',
         documentationFee: 0,
+        googleMapsUrl: '',
         financialEntitiesIds: []
     });
 
@@ -33,7 +31,7 @@ export default function SedesPage() {
         setLoading(true);
         try {
             const [sedesSnap, finSnap] = await Promise.all([
-                getDocs(collection(db, 'config/general/sedes')), // Using specific subcollection logical for config
+                getDocs(collection(db, 'config/general/sedes')),
                 getDocs(collection(db, 'financial_config/general/financieras'))
             ]);
 
@@ -65,6 +63,7 @@ export default function SedesPage() {
                 name: '',
                 department: '',
                 documentationFee: 0,
+                googleMapsUrl: '',
                 financialEntitiesIds: []
             });
         }
@@ -98,14 +97,15 @@ export default function SedesPage() {
                 toast.success("Sede creada");
             }
             setIsModalOpen(false);
-            setEditingSede(null); // Ensure editing state is cleared
+            setEditingSede(null);
             setFormData({
                 name: '',
                 department: '',
                 documentationFee: 0,
+                googleMapsUrl: '',
                 financialEntitiesIds: []
             });
-            fetchData(); // Refresh
+            fetchData();
         } catch (error) {
             console.error(error);
             toast.error("Error guardando sede");
@@ -173,6 +173,13 @@ export default function SedesPage() {
                                         ${sede.documentationFee?.toLocaleString()}
                                     </span>
                                 </div>
+                                {sede.googleMapsUrl && (
+                                    <div className="text-sm">
+                                        <a href={sede.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline flex items-center gap-1">
+                                            <MapPin size={12} /> Ver en Mapa
+                                        </a>
+                                    </div>
+                                )}
 
                                 <div>
                                     <p className="text-xs font-bold text-gray-500 uppercase mb-2">Financieras Habilitadas</p>
@@ -237,6 +244,16 @@ export default function SedesPage() {
                                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
                                     value={formData.documentationFee}
                                     onChange={e => setFormData({ ...formData, documentationFee: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Link Google Maps (Opcional)</label>
+                                <input
+                                    type="url"
+                                    className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
+                                    value={formData.googleMapsUrl || ''}
+                                    onChange={e => setFormData({ ...formData, googleMapsUrl: e.target.value })}
+                                    placeholder="https://maps.app.goo.gl/..."
                                 />
                             </div>
 
