@@ -55,8 +55,8 @@ export default function PrivacyPolicyPage() {
                         Para ejercer sus derechos de habeas data, puede contactarnos a través del correo electrónico legal habilitado:
                     </p>
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100 inline-block">
-                        <a href="mailto:conexion@tiendalasmotos.com.co" className="text-blue-700 font-bold hover:underline">
-                            conexion@tiendalasmotos.com.co
+                        <a href="mailto:conexion@tiendalasmotos.com" className="text-blue-700 font-bold hover:underline">
+                            conexion@tiendalasmotos.com
                         </a>
                     </div>
                 </div>

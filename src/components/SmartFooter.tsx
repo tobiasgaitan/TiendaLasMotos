@@ -54,7 +54,7 @@ export default function SmartFooter() {
         fetchFooterData();
     }, []);
 
-    const email = config?.email || "conexion@tiendalasmotos.com.co";
+    const email = config?.email || "conexion@tiendalasmotos.com";
     const year = new Date().getFullYear();
 
     return (
