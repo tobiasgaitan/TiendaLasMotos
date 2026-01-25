@@ -48,10 +48,10 @@ export default function MotoCard({ moto }: MotoCardProps) {
     return (
         <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-brand-blue/20 hover:border-brand-blue/30 transition-all duration-300 group flex flex-col h-full">
             <div className="relative h-48 mb-4 bg-slate-50 rounded-lg overflow-hidden group-hover:scale-[1.02] transition-transform">
-                {/* Imagen Principal */}
-                {moto.imagen_url && !imageError ? (
+                {/* Imagen Principal - HOTFIX V27.4: Check both snake_case and camelCase */}
+                {(moto.imagen_url || (moto as any).imagenUrl) && !imageError ? (
                     <img
-                        src={moto.imagen_url}
+                        src={moto.imagen_url || (moto as any).imagenUrl}
                         alt={moto.referencia}
                         className="w-full h-full object-contain mix-blend-multiply p-2"
                         loading="lazy"
