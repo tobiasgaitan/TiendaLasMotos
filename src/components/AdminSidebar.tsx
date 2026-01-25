@@ -18,7 +18,8 @@ import {
     ChevronRight,
     MapPin,
     Building2,
-    CreditCard
+    CreditCard,
+    Globe
 } from "lucide-react";
 import { deleteSession } from "@/app/admin/login/actions";
 
@@ -192,6 +193,13 @@ export default function AdminSidebar() {
                         >
                             <Users className="w-4 h-4" />
                             Config. Usuarios
+                        </Link>
+                        <Link
+                            href="/admin/general"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/general') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <Globe className="w-4 h-4" />
+                            Información General
                         </Link>
                     </div>
                 </div>
