@@ -75,6 +75,19 @@ export function useInventory() {
                 const productsData = snapshot.docs.map(doc => {
                     const data = doc.data();
 
+                    /**
+                     * POLYMORPHIC EXTRACTOR V27.15
+                     * Safely extracts a URL string from mixed data types (String | Object).
+                     */
+                    const extractUrl = (value: any): string | null => {
+                        if (!value) return null;
+                        if (typeof value === 'string') return value;
+                        if (typeof value === 'object') {
+                            return value.url || value.secure_url || null; // Handle standard 'url' or Cloudinary 'secure_url'
+                        }
+                        return null;
+                    };
+
                     // 2. Mapeo Inteligente (Defensa contra nombres distintos)
                     // Maintainability: This mapping layer decouples the frontend interface from DB schema variations.
                     return {
@@ -87,8 +100,12 @@ export function useInventory() {
                         price: Number(data.price || data.precio || 0),
                         // Estado por defecto
                         status: data.status || 'Activo',
-                        // ESTÁNDAR: imagen_url
-                        imagen_url: data.imagen_url || '',
+                        // ESTÁNDAR: imagen_url (Normalización Agresiva V27.15 via Extractor)
+                        imagen_url: extractUrl(data.imagen_url) ||
+                            extractUrl(data.imagenUrl) ||
+                            extractUrl(data.imagen) ||
+                            extractUrl(data.foto) ||
+                            '',
                         // Link del bot
                         external_url: data.external_url,
 

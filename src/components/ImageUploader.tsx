@@ -10,6 +10,12 @@ interface Props {
 
 export default function ImageUploader({ currentImage, onImageUploaded }: Props) {
     const [uploading, setUploading] = useState(false);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+    // Reset local state when prop changes
+    if (currentImage && imageSrc && imageSrc !== '/placeholder-moto.png' && imageSrc !== currentImage) {
+        setImageSrc(null);
+    }
 
     // DEBUG: Verificamos si llega la URL
     console.log("ImageUploader recibió:", currentImage);
@@ -46,11 +52,13 @@ export default function ImageUploader({ currentImage, onImageUploaded }: Props) 
                     <>
                         {/* Usamos unimg normal (no next/image) temporalmente para descartar problemas de configuración de dominios, o next/image con unfill configurado */}
                         <Image
-                            src={currentImage}
+                            src={imageSrc || currentImage}
                             alt="Preview"
                             fill
+                            unoptimized={true}
                             className="object-contain p-2"
                             sizes="(max-width: 768px) 100vw, 50vw"
+                            onError={() => setImageSrc('/placeholder-moto.png')} // Fallback visual
                         />
 
                         {/* Overlay de cambio */}

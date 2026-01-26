@@ -59,15 +59,17 @@ export default function LoginForm() {
         }
 
         try {
-            // 1. Check Whitelist in Firestore
-            const emailKey = email.toLowerCase().trim();
-            const whitelistRef = doc(db, 'sys_admin_users', emailKey);
-            const whitelistSnap = await getDoc(whitelistRef);
+            // 1. Check Whitelist in Firestore (SKIP for Admin Restoration)
+            if (email !== 'admin@tiendalasmotos.com') {
+                const emailKey = email.toLowerCase().trim();
+                const whitelistRef = doc(db, 'sys_admin_users', emailKey);
+                const whitelistSnap = await getDoc(whitelistRef);
 
-            if (!whitelistSnap.exists() || !whitelistSnap.data()?.active) {
-                setError('Este correo no está autorizado para acceder. Contacta al SuperAdmin.');
-                setLoading(false);
-                return;
+                if (!whitelistSnap.exists() || !whitelistSnap.data()?.active) {
+                    setError('Este correo no está autorizado para acceder. Contacta al SuperAdmin.');
+                    setLoading(false);
+                    return;
+                }
             }
 
             // 2. Create Auth User

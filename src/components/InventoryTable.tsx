@@ -59,13 +59,13 @@ export default function InventoryTable({ products, onEdit }: Props) {
                                 {/* Foto */}
                                 <td className="px-4 py-3">
                                     <div className="relative h-12 w-12 bg-gray-800 rounded border border-gray-700 overflow-hidden flex-shrink-0">
-                                        {product.imagen_url ? (
+                                        {(product.imagen_url) ? (
                                             <Image
                                                 src={product.imagen_url}
+                                                unoptimized={true}
                                                 alt="Moto"
-                                                width={48}
-                                                height={48}
-                                                className="object-cover w-full h-full"
+                                                fill
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <div className="flex items-center justify-center h-full w-full text-[10px] text-gray-500">N/A</div>
