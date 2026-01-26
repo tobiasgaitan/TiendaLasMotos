@@ -210,9 +210,9 @@ export default function Navbar() {
                                     </div>
                                 </div>
 
-                                {/* Option B: Budget Calculator - NOW POINTS TO CATALOG (TEMP) */}
+                                {/* Option B: Budget Calculator - NOW POINTS TO BUSCADOR */}
                                 <Link
-                                    href="/catalogo"
+                                    href="/buscador"
                                     onClick={() => setCtaModalOpen(false)}
                                     className="block w-full p-4 rounded-xl border-2 border-slate-100 hover:border-green-500 hover:bg-green-50 transition-all group text-left"
                                 >
