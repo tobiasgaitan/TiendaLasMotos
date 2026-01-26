@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Calculator } from "lucide-react";
 
 /**
@@ -27,6 +27,7 @@ export default function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [ctaModalOpen, setCtaModalOpen] = useState(false);
     const pathname = usePathname();
+    const router = useRouter();
 
     /**
      * Navigation links configuration.
@@ -106,6 +107,7 @@ export default function Navbar() {
                         <button
                             onClick={openCtaModal}
                             className="hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-slate-900 font-bold py-2.5 px-6 rounded-full transition-all hover:scale-105 shadow-[0_0_20px_rgba(251,146,60,0.4)] active:scale-95 cursor-pointer"
+                            title="Calcula tu Cuota"
                         >
                             <Calculator className="w-4 h-4" />
                             CALCULA TU CUOTA
@@ -185,11 +187,13 @@ export default function Navbar() {
                             </p>
 
                             <div className="space-y-4">
-                                {/* Option A: Catalog */}
-                                <Link
-                                    href="/catalogo"
-                                    onClick={() => setCtaModalOpen(false)}
-                                    className="block w-full p-4 rounded-xl border-2 border-slate-100 hover:border-brand-blue hover:bg-blue-50 transition-all group text-left"
+                                {/* Option A: Catalog - NOW POINTS TO BUDGET SIMULATOR */}
+                                <div
+                                    onClick={() => {
+                                        setCtaModalOpen(false);
+                                        router.push('/presupuesto');
+                                    }}
+                                    className="block w-full p-4 rounded-xl border-2 border-slate-100 hover:border-brand-blue hover:bg-blue-50 transition-all group text-left cursor-pointer"
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-brand-blue group-hover:scale-110 transition-transform">
@@ -204,11 +208,11 @@ export default function Navbar() {
                                             </p>
                                         </div>
                                     </div>
-                                </Link>
+                                </div>
 
-                                {/* Option B: Budget Calculator */}
+                                {/* Option B: Budget Calculator - NOW POINTS TO CATALOG (TEMP) */}
                                 <Link
-                                    href="/presupuesto"
+                                    href="/catalogo"
                                     onClick={() => setCtaModalOpen(false)}
                                     className="block w-full p-4 rounded-xl border-2 border-slate-100 hover:border-green-500 hover:bg-green-50 transition-all group text-left"
                                 >
