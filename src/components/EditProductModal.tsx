@@ -60,7 +60,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     model: product.model || '',
                     seoDescription: product.seoDescription || '',
                     isVisible: product.isVisible !== undefined ? product.isVisible : true,
-                    imagen_url: product.imagen_url || '',
+                    imagen_url: product.imagen_url || (product as any).imagenUrl || (product as any).imagen || (product as any).foto || '',
                     bonusAmount: product.bonusAmount || 0,
                     bonusEndDate: product.bonusEndDate || '',
                     year: product.year || new Date().getFullYear(),

@@ -291,13 +291,13 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 <div className="bg-slate-100 p-1 rounded-xl flex relative">
                     <button
                         onClick={() => setSaleMode('credit')}
-                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-all z-10 ${isCredit ? 'bg-white shadow-md text-brand-blue' : 'text-gray-600 hover:text-gray-900'}`}
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-all z-10 ${isCredit ? 'bg-white shadow-md text-brand-blue' : '!text-black hover:text-gray-900 bg-slate-200'}`}
                     >
                         Financiación
                     </button>
                     <button
                         onClick={() => setSaleMode('cash')}
-                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-all z-10 ${!isCredit ? 'bg-white shadow-md text-green-700' : 'text-gray-600 hover:text-gray-900'}`}
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-all z-10 ${!isCredit ? 'bg-white shadow-md text-green-700' : '!text-black hover:text-gray-900 bg-slate-200'}`}
                     >
                         De Contado
                     </button>
@@ -507,6 +507,6 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 </p>
 
             </div>
-        </div>
+        </div >
     );
 }

@@ -17,14 +17,24 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
             const finalReferencia = data["referencia"] || data["model"] || "Sin referencia";
 
             /**
-             * 2. NORMALIZACIÓN DE IMÁGENES
-             * Estrategia de Migración (Enero 2026):
-             * Se ha estandarizado todo el inventario para usar 'imagen_url' como única fuente de verdad.
-             * El script de migración eliminó 'imagenUrl', 'imageUrl', 'image', 'foto'.
-             * 
-             * @see src/scripts/migrate-images.ts
+             * 2. NORMALIZACIÓN DE IMÁGENES (Polymorphic Extractor - V27.15)
+             * Maneja strings directos y objetos Legacy de Firebase/Cloudinary.
              */
-            const finalImage = data["imagen_url"] || "";
+            const extractUrl = (value: any): string | null => {
+                if (!value) return null;
+                if (typeof value === 'string') return value;
+                if (typeof value === 'object') {
+                    // Soporte para objetos {url: '...'} o {secure_url: '...'}
+                    return value.url || value.secure_url || null;
+                }
+                return null;
+            };
+
+            const finalImage = extractUrl(data["imagen_url"]) ||
+                extractUrl(data["imagenUrl"]) ||
+                extractUrl(data["imagen"]) ||
+                extractUrl(data["foto"]) ||
+                "";
 
             // 3. BONUS MAPPING (Legacy vs New Root Fields)
             let finalBono: Bono | undefined = undefined;

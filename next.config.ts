@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     // SAFEST Path for now: Keep unoptimized: true but comment out output: export.
     unoptimized: true,
+    domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com', 'auteco.com.co', 'images.unsplash.com'],
     remotePatterns: [
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com', port: '', pathname: '/**' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
@@ -24,6 +25,9 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+  generateBuildId: async () => {
+    return 'v27.7-nocache-' + new Date().getTime();
   },
 };
 
