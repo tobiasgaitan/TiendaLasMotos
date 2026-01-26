@@ -45,24 +45,32 @@ export default function MotoCard({ moto }: MotoCardProps) {
 
     const showBonus = hasActiveBonus();
 
+    const extractUrl = (value: any): string | null => {
+        if (!value) return null;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object') {
+            return value.url || value.secure_url || null;
+        }
+        return null;
+    };
+
+    const imageUrl = extractUrl(moto.imagen_url) ||
+        extractUrl((moto as any).imagenUrl) ||
+        extractUrl((moto as any).foto) ||
+        '/placeholder.png';
+
     return (
         <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-brand-blue/20 hover:border-brand-blue/30 transition-all duration-300 group flex flex-col h-full">
             <div className="relative h-48 mb-4 bg-slate-50 rounded-lg overflow-hidden group-hover:scale-[1.02] transition-transform">
-                {/* Imagen Principal - HOTFIX V27.4: Check both snake_case and camelCase */}
-                {(moto.imagen_url || (moto as any).imagenUrl) && !imageError ? (
-                    <img
-                        src={moto.imagen_url || (moto as any).imagenUrl}
-                        alt={moto.referencia}
-                        className="w-full h-full object-contain mix-blend-multiply p-2"
-                        loading="lazy"
-                        onError={() => setImageError(true)}
-                    />
-                ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
-                        <span className="text-4xl mb-2">🏍️</span>
-                        <span className="text-xs font-bold uppercase">Sin Imagen</span>
-                    </div>
-                )}
+                {/* Imagen Principal - NUCLEAR PATCH V27.19: Polymorphic Extraction & Unoptimized */}
+                <Image
+                    src={imageError ? '/placeholder.png' : imageUrl}
+                    alt={moto.referencia}
+                    fill
+                    className="object-contain mix-blend-multiply p-2"
+                    unoptimized={true}
+                    onError={() => setImageError(true)}
+                />
 
                 {/* Badge de "Entregas Inmediata" o similar si existiera logic */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
@@ -93,6 +101,8 @@ export default function MotoCard({ moto }: MotoCardProps) {
                 <h3 className="text-xl font-bold text-slate-900 mb-1 tracking-tight truncate">
                     {moto.referencia}
                 </h3>
+                {/* DEBUG: Visualizar estructura real de BD en producción */}
+
 
                 <div className="mt-auto pt-4 flex items-center justify-between">
                     <span className="text-lg font-black text-brand-red">
