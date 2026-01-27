@@ -13,7 +13,7 @@ import { Menu, X, Calculator } from "lucide-react";
  * 
  * Layout:
  * - Left: Tienda Las Motos logo (links to /)
- * - Center: Navigation links (Inicio, Catálogo, Financiación, Sedes)
+ * - Center: Navigation links (Inicio, Catálogo, Financiación, Blog, Sedes)
  * - Right: Prominent "CALCULA TU CUOTA" CTA button
  * 
  * Mobile Behavior:
@@ -37,6 +37,7 @@ export default function Navbar() {
         { label: "Inicio", href: "/" },
         { label: "Catálogo", href: "/catalogo" },
         { label: "Financiación", href: "/financiacion" },
+        { label: "Blog", href: "/blog" },
         { label: "Sedes", href: "/sedes" },
     ];
 
