@@ -1,205 +1,324 @@
 import type { Metadata } from "next";
-import { collection, getDocs, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { FinancialEntity } from "@/types/financial";
-import { Calculator, TrendingUp, Shield, Clock } from "lucide-react";
-import Link from "next/link";
+import Script from "next/script";
 
 export const metadata: Metadata = {
-    title: "Financiación de Motos | Tienda Las Motos",
-    description: "Opciones de financiación flexibles para tu moto. Trabaja con las mejores entidades financieras de Colombia. Aprobación rápida y tasas competitivas.",
-    keywords: "financiación motos, crédito moto Colombia, préstamo moto, cuotas moto",
+    title: "Guía Definitiva: Cómo Sacar tu Moto a Crédito en Magdalena y La Guajira con Auteco Las Motos",
+    description: "Financia tu moto Auteco en Santa Marta, Riohacha y Zona Bananera. Crédito fácil para reportados e independientes con solo el 10% de inicial. Más de 14 aliados financieros.",
+    keywords: "financiación motos Magdalena, crédito moto Santa Marta, préstamo moto Riohacha, financiar moto Zona Bananera, crédito moto sin codeudor, primer crédito moto, Cupo Brilla, Addi, ProgreSER, Sistecrédito, Galgo, Crediorbe",
 };
 
 export const revalidate = 3600; // Revalidate every hour
 
 /**
- * Financiacion Page
+ * Financiacion Page - SEO Optimized for Magdalena and La Guajira
  * 
- * Displays financing information and options for motorcycle purchases.
- * Shows partner financial entities and benefits of financing with Tienda Las Motos.
+ * Comprehensive financing guide targeting local positioning in Santa Marta,
+ * Riohacha, and Zona Bananera. Includes strategic allies, requirements by
+ * profile, and FAQ section with structured data for enhanced SEO.
  * 
- * @returns {Promise<JSX.Element>} The financing page
+ * @returns {JSX.Element} The SEO-optimized financing page
  */
-export default async function FinanciacionPage() {
-    // Fetch financial entities to display partners
-    const finSnap = await getDocs(query(collection(db, "financial_config/general/financieras")));
-    const financialEntities = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
+export default function FinanciacionPage() {
+    // JSON-LD structured data for SEO
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Guía Definitiva: Cómo Sacar tu Moto a Crédito en Magdalena y La Guajira",
+        "description": "Financia tu moto Auteco en Santa Marta, Riohacha y Zona Bananera. Crédito fácil para reportados e independientes con solo el 10% de inicial.",
+        "author": {
+            "@type": "Organization",
+            "name": "Auteco Las Motos",
+            "url": "https://tiendalasmotos.com"
+        },
+        "mainEntity": {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "¿El estudio de crédito tiene algún costo?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No. En Auteco Las Motos el estudio es totalmente gratuito y no te compromete a nada."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "¿Necesito un codeudor o fiador?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No es estrictamente necesario. En la mayoría de los casos, la aprobación depende únicamente de tu perfil."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "¿Puedo sacar la moto si es mi primer crédito?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Absolutamente. Contamos con líneas especializadas para quienes están iniciando su vida crediticia."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "¿Cómo funciona el crédito Brilla (Gas)?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Si tienes servicio de Gases del Caribe, puedes usar tu cupo disponible para financiar la moto y pagarla en la factura del gas."
+                    }
+                }
+            ]
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            {/* Hero Section */}
-            <section className="bg-gradient-to-r from-brand-blue to-blue-800 text-white py-20 px-4">
-                <div className="container mx-auto max-w-4xl text-center">
-                    <h1 className="text-4xl md:text-6xl font-black mb-6 uppercase tracking-tight">
-                        Financiación <span className="text-brand-yellow">A Tu Medida</span>
+        <>
+            {/* JSON-LD Structured Data */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify(structuredData)
+                }}
+            />
+
+            <div className="min-h-screen bg-white">
+                {/* Main Content Container */}
+                <article className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+                    {/* H1 Title */}
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                        Guía Definitiva: Cómo Sacar tu Moto a Crédito en Magdalena y La Guajira con Auteco Las Motos
                     </h1>
-                    <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed mb-8">
-                        Cumple tu sueño de tener moto propia con nuestras opciones de financiación flexibles.
-                        Trabajamos con las mejores entidades del país.
-                    </p>
-                    <Link
-                        href="/presupuesto"
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-slate-900 font-bold py-4 px-8 rounded-full transition-all hover:scale-105 shadow-[0_0_30px_rgba(251,146,60,0.5)]"
-                    >
-                        <Calculator className="w-5 h-5" />
-                        CALCULA TU CUOTA
-                    </Link>
-                </div>
-            </section>
 
-            {/* Benefits Section */}
-            <section className="py-16 px-4">
-                <div className="container mx-auto max-w-6xl">
-                    <h2 className="text-3xl md:text-4xl font-bold text-center text-brand-blue mb-12">
-                        Ventajas de Financiar Con Nosotros
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-brand-yellow/10 rounded-full flex items-center justify-center mb-4">
-                                <Clock className="w-7 h-7 text-brand-blue" />
-                            </div>
-                            <h3 className="font-bold text-xl mb-3 text-slate-900">Aprobación Rápida</h3>
-                            <p className="text-slate-600 leading-relaxed">
-                                Proceso ágil y sin complicaciones. Obtén respuesta en minutos y llévate tu moto el mismo día.
-                            </p>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-brand-yellow/10 rounded-full flex items-center justify-center mb-4">
-                                <TrendingUp className="w-7 h-7 text-brand-blue" />
-                            </div>
-                            <h3 className="font-bold text-xl mb-3 text-slate-900">Tasas Competitivas</h3>
-                            <p className="text-slate-600 leading-relaxed">
-                                Trabajamos con múltiples entidades financieras para ofrecerte las mejores tasas del mercado.
-                            </p>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-brand-yellow/10 rounded-full flex items-center justify-center mb-4">
-                                <Shield className="w-7 h-7 text-brand-blue" />
-                            </div>
-                            <h3 className="font-bold text-xl mb-3 text-slate-900">Seguridad Total</h3>
-                            <p className="text-slate-600 leading-relaxed">
-                                Proceso transparente y seguro. Todas nuestras alianzas están reguladas y certificadas.
-                            </p>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                            <div className="w-14 h-14 bg-brand-yellow/10 rounded-full flex items-center justify-center mb-4">
-                                <span className="text-3xl">🤝</span>
-                            </div>
-                            <h3 className="font-bold text-xl mb-3 text-slate-900">Asesoría Experta</h3>
-                            <p className="text-slate-600 leading-relaxed">
-                                Te acompañamos en cada paso. Nuestro equipo te ayuda a elegir la mejor opción para ti.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Financial Partners Section */}
-            {financialEntities.length > 0 && (
-                <section className="py-16 px-4 bg-white">
-                    <div className="container mx-auto max-w-6xl">
-                        <h2 className="text-3xl md:text-4xl font-bold text-center text-brand-blue mb-4">
-                            Nuestros Aliados Financieros
-                        </h2>
-                        <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
-                            Trabajamos con las entidades financieras más confiables de Colombia para ofrecerte múltiples opciones.
+                    {/* Introduction */}
+                    <div className="prose prose-lg max-w-none mb-12">
+                        <p className="text-lg text-gray-700 leading-relaxed">
+                            En el Caribe, la moto no es solo transporte; es la herramienta que mueve la economía en Santa Marta, Riohacha y la Zona Bananera. En Auteco Las Motos (tiendalasmotos.com), entendemos que para muchos jóvenes y trabajadores independientes, esta es su primera experiencia financiera. Por eso, hemos simplificado el proceso para que estrenar sea tan fácil como presentar tu cédula.
                         </p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {financialEntities.map((entity) => (
-                                <div
-                                    key={entity.id}
-                                    className="bg-slate-50 rounded-lg p-6 flex items-center justify-center border border-slate-200 hover:border-brand-blue hover:shadow-md transition-all"
-                                >
-                                    <span className="font-bold text-lg text-slate-700">
-                                        {entity.name}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
                     </div>
-                </section>
-            )}
 
-            {/* How It Works Section */}
-            <section className="py-16 px-4 bg-slate-100">
-                <div className="container mx-auto max-w-4xl">
-                    <h2 className="text-3xl md:text-4xl font-bold text-center text-brand-blue mb-12">
-                        ¿Cómo Funciona?
-                    </h2>
-                    <div className="space-y-6">
-                        <div className="flex gap-4 items-start">
-                            <div className="flex-shrink-0 w-10 h-10 bg-brand-yellow rounded-full flex items-center justify-center font-bold text-slate-900">
-                                1
+                    {/* Section: Ecosistema de Financiación */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                            El Ecosistema de Financiación más Grande de la Región
+                        </h2>
+                        <p className="text-lg text-gray-700 leading-relaxed">
+                            Una de las mayores ventajas de Auteco Las Motos es que no dependemos de un solo banco. Contamos con una red de más de 14 aliados financieros que nos permiten encontrar una solución para cada perfil, incluso si no tienes historial crediticio.
+                        </p>
+                    </section>
+
+                    {/* Section: Strategic Allies Table */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+                            Nuestros Aliados Estratégicos
+                        </h2>
+                        
+                        {/* Table Container - Responsive with horizontal scroll on mobile */}
+                        <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-100">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                                            Aliado Financiero
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                                            Ventaja Principal
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                                            Requisitos Clave
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    <tr className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Cupo Brilla
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Financiación a través del recibo del gas natural.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Cédula + 2 recibos del gas pagos.
+                                        </td>
+                                    </tr>
+                                    <tr className="bg-gray-50 hover:bg-gray-100">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Addi
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Proceso 100% virtual y aprobación en minutos.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Solo cédula, WhatsApp y correo.
+                                        </td>
+                                    </tr>
+                                    <tr className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            ProgreSER
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Financia hasta el 100% de la moto más los documentos.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Solo con la cédula, sin codeudor.
+                                        </td>
+                                    </tr>
+                                    <tr className="bg-gray-50 hover:bg-gray-100">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Sistecrédito
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Crédito rápido, seguro y sin cuota de manejo.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Aprobación en minutos solo con la cédula.
+                                        </td>
+                                    </tr>
+                                    <tr className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Galgo
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Especialistas en perfiles independientes y delivery.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Proceso digital sin ir a una oficina.
+                                        </td>
+                                    </tr>
+                                    <tr className="bg-gray-50 hover:bg-gray-100">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Banco de Bogotá
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Respaldo bancario con plazos de hasta 84 meses.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Tasas competitivas según perfil.
+                                        </td>
+                                    </tr>
+                                    <tr className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Crediorbe
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Políticas flexibles para primer crédito y reportados.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Cédula y correo electrónico.
+                                        </td>
+                                    </tr>
+                                    <tr className="bg-gray-50 hover:bg-gray-100">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            Soluciones Integrales
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Opciones personalizadas para la región Caribe.
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            Estudio ágil y presencial.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    {/* Section: Initial Payment */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                            ¿Cuánto dinero necesito para empezar?
+                        </h2>
+                        <p className="text-lg text-gray-700 leading-relaxed">
+                            Aunque existen planes que financian el total del vehículo, en Auteco Las Motos recomendamos contar con una cuota inicial de al menos el 10% del valor de la motocicleta. Este aporte no solo facilita la aprobación de tu crédito si no tienes historial, sino que también reduce el valor de tus cuotas mensuales y los intereses totales a pagar.
+                        </p>
+                    </section>
+
+                    {/* Section: Requirements by Profile */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+                            Requisitos por Perfil en Magdalena y La Guajira
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                                    Trabajadores o Pensionados
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    Copia de la cédula al 150%, correo electrónico y estar atento al celular para autorizar el estudio.
+                                </p>
                             </div>
-                            <div>
-                                <h3 className="font-bold text-xl mb-2 text-slate-900">Elige Tu Moto</h3>
-                                <p className="text-slate-600">
-                                    Explora nuestro catálogo y selecciona el modelo que más te guste.
+
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                                    Independientes sin Historial
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    Solo con tu cédula y correo electrónico iniciamos el estudio que demora aproximadamente 20 minutos.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                                    Personas Reportadas
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    ¡Sí tenemos crédito para ti! Es fundamental presentar la cédula y contar con el 10% de cuota inicial obligatoria.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                                    Extranjeros
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    Debes presentar tu Permiso por Protección Temporal (PPT) o PEP y pasaporte vigente, junto con tu dirección de residencia en Colombia.
                                 </p>
                             </div>
                         </div>
+                    </section>
 
-                        <div className="flex gap-4 items-start">
-                            <div className="flex-shrink-0 w-10 h-10 bg-brand-yellow rounded-full flex items-center justify-center font-bold text-slate-900">
-                                2
+                    {/* Section: FAQ */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+                            Preguntas Frecuentes (FAQ) - Lo que todos quieren saber
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="border-b border-gray-200 pb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    ¿El estudio de crédito tiene algún costo?
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    No. En Auteco Las Motos el estudio es totalmente gratuito y no te compromete a nada.
+                                </p>
                             </div>
-                            <div>
-                                <h3 className="font-bold text-xl mb-2 text-slate-900">Calcula Tu Cuota</h3>
-                                <p className="text-slate-600">
-                                    Usa nuestro simulador para ver cuánto pagarías mensualmente con diferentes opciones.
+
+                            <div className="border-b border-gray-200 pb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    ¿Necesito un codeudor o fiador para que me aprueben?
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    No es estrictamente necesario. En la mayoría de los casos, la aprobación depende únicamente de tu perfil y no requerimos de terceros.
+                                </p>
+                            </div>
+
+                            <div className="border-b border-gray-200 pb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    ¿Puedo sacar la moto si es mi primer crédito?
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    Absolutamente. Contamos con líneas especializadas para quienes están iniciando su vida crediticia. Cumplir con tus cuotas en Auteco te abrirá las puertas de los bancos en el futuro.
+                                </p>
+                            </div>
+
+                            <div className="pb-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    ¿Cómo funciona lo del recibo del gas (Brilla)?
+                                </h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    Si eres titular o arrendatario en un predio con servicio de Gases del Caribe, puedes usar tu cupo disponible para financiar la moto y pagarla mensualmente en la factura del gas.
                                 </p>
                             </div>
                         </div>
-
-                        <div className="flex gap-4 items-start">
-                            <div className="flex-shrink-0 w-10 h-10 bg-brand-yellow rounded-full flex items-center justify-center font-bold text-slate-900">
-                                3
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-xl mb-2 text-slate-900">Solicita Tu Crédito</h3>
-                                <p className="text-slate-600">
-                                    Contacta con nosotros y te ayudamos a completar el proceso de aprobación.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4 items-start">
-                            <div className="flex-shrink-0 w-10 h-10 bg-brand-yellow rounded-full flex items-center justify-center font-bold text-slate-900">
-                                4
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-xl mb-2 text-slate-900">¡Disfruta Tu Moto!</h3>
-                                <p className="text-slate-600">
-                                    Una vez aprobado, llévate tu moto y empieza a disfrutar de la libertad sobre dos ruedas.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Final CTA */}
-            <section className="py-16 px-4 bg-gradient-to-r from-brand-blue to-blue-800 text-white">
-                <div className="container mx-auto text-center max-w-3xl">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                        ¿Listo Para Empezar?
-                    </h2>
-                    <p className="text-lg text-blue-100 mb-8">
-                        Calcula tu cuota en segundos y descubre lo fácil que es tener tu moto propia.
-                    </p>
-                    <Link
-                        href="/presupuesto"
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-slate-900 font-bold py-4 px-8 rounded-full transition-all hover:scale-105 shadow-[0_0_30px_rgba(251,146,60,0.5)]"
-                    >
-                        <Calculator className="w-5 h-5" />
-                        CALCULA TU CUOTA AHORA
-                    </Link>
-                </div>
-            </section>
-        </div>
+                    </section>
+                </article>
+            </div>
+        </>
     );
 }
