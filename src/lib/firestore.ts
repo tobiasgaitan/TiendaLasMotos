@@ -106,7 +106,8 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 displacement: finalDisplacement, // Critical for Matrix
                 categories: finalCategories,     // Critical for Matrix
                 category: finalCategories[0],     // Compatibility
-                exemptRegistration: data["exemptRegistration"] === true || data["exentoMatricula"] === true // Support both naming conventions
+                exemptRegistration: data["exemptRegistration"] === true || data["exentoMatricula"] === true, // Support both naming conventions
+                external_url: data["external_url"] || undefined // Critical for Catalog Sync
             };
         });
 

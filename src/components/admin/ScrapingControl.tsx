@@ -24,7 +24,17 @@ export default function ScrapingControl() {
             const itemsToSync = await getSyncList();
 
             if (!itemsToSync || itemsToSync.length === 0) {
-                setLogs([{ id: 'init', ref: 'System', status: 'skipped', msg: 'No items with external_url found.' }]);
+                // Enhanced Error Message with Diagnostic Info
+                const allMotos = await import('@/lib/firestore').then(m => m.getCatalogoMotos());
+                const totalCount = allMotos.length;
+                const configuredCount = itemsToSync?.length || 0;
+
+                setLogs([{
+                    id: 'init',
+                    ref: 'Sistema',
+                    status: 'skipped',
+                    msg: `Hay ${totalCount} motos, pero ${configuredCount} tienen URL configurada. Por favor agrega el link en EDITAR.`
+                }]);
                 setLoading(false);
                 return;
             }
