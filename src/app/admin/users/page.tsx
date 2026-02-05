@@ -62,9 +62,30 @@ export default function UsersPage() {
                 createdAt: editingUser?.createdAt || new Date().toISOString()
             }, { merge: true });
 
+            // Send invitation email for new users
+            if (!editingUser) {
+                try {
+                    const { httpsCallable } = await import('firebase/functions');
+                    const { functions } = await import('@/lib/firebase');
+                    const sendInvitation = httpsCallable(functions, 'sendUserInvitation');
+
+                    await sendInvitation({
+                        name: formData.name,
+                        email: emailKey,
+                        role: formData.role
+                    });
+
+                    alert(`Usuario creado exitosamente.\n\n✅ Invitación enviada a ${emailKey}`);
+                } catch (emailError: any) {
+                    console.error('Error sending invitation:', emailError);
+                    alert(`Usuario creado exitosamente.\n\n⚠️ Sin embargo, hubo un problema al enviar el correo de invitación.\nPor favor, notifica manualmente al usuario: ${emailKey}`);
+                }
+            } else {
+                alert("Usuario actualizado correctamente");
+            }
+
             setIsModalOpen(false);
             await fetchUsers(); // Await refresh explicitly
-            alert("Usuario guardado correctamente"); // Simple success feedback as requested
             resetForm();
         } catch (error) {
             alert("Error guardando usuario");
