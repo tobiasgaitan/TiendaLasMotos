@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Timestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { toast } from 'sonner';
 
 /**
  * Estructura de una nota interna en el historial del prospecto.
@@ -26,6 +27,7 @@ export interface Prospect {
     status?: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'DISCARDED'; // Main status field
     ai_summary?: string;
     notes?: Note[];
+    human_help_requested?: boolean; // Bot handoff status
     [key: string]: any;
 }
 
@@ -60,12 +62,14 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
     const [newNote, setNewNote] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [notesHistory, setNotesHistory] = useState<Note[]>([]);
+    const [humanHelpActive, setHumanHelpActive] = useState(false);
 
     // Sync local state when prospect opens
     useEffect(() => {
         if (prospect) {
             setCurrentStatus(prospect.status || 'PENDING');
             setNotesHistory(prospect.notes || []);
+            setHumanHelpActive(prospect.human_help_requested || false);
         }
     }, [prospect]);
 
@@ -107,6 +111,64 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
         } catch (error) {
             console.error("Error adding note:", error);
             alert("Error al agregar nota");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    /**
+     * Reactivates the bot by calling the backend API and updating Firestore.
+     * Toggles the human_help_requested flag.
+     */
+    const handleBotReactivation = async () => {
+        if (!prospect) return;
+
+        const newHelpStatus = !humanHelpActive;
+        setIsSaving(true);
+
+        try {
+            // 1. Call Backend API to reset handoff
+            const response = await fetch('https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/reset-handoff', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Admin-API-Key': 'moto_master_2026'
+                },
+                body: JSON.stringify({
+                    phone: prospect.celular,
+                    status: newHelpStatus
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+
+            // 2. Update Firestore
+            const prospectRef = doc(db, 'prospectos', prospect.id);
+            await updateDoc(prospectRef, {
+                human_help_requested: newHelpStatus
+            });
+
+            // 3. Update local state
+            setHumanHelpActive(newHelpStatus);
+
+            // 4. Show success feedback
+            if (newHelpStatus) {
+                toast.success('✋ Modo Humano Activado', {
+                    description: 'El bot está silenciado para este cliente.'
+                });
+            } else {
+                toast.success('🤖 Bot Reactivado', {
+                    description: 'El bot volverá a responder automáticamente.'
+                });
+            }
+
+        } catch (error) {
+            console.error("Error toggling bot status:", error);
+            toast.error('Error al cambiar estado del bot', {
+                description: error instanceof Error ? error.message : 'Verifica tu conexión e intenta nuevamente.'
+            });
         } finally {
             setIsSaving(false);
         }
@@ -172,6 +234,41 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     {config.label}
                                 </button>
                             ))}
+                        </div>
+                    </section>
+
+                    {/* Bot Status Section */}
+                    <section>
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Estado del Bot</h3>
+                        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">{humanHelpActive ? '✋' : '🤖'}</span>
+                                    <div>
+                                        <p className="font-bold text-white">
+                                            {humanHelpActive ? 'Modo Humano Activo' : 'Bot Activo'}
+                                        </p>
+                                        <p className="text-sm text-gray-400">
+                                            {humanHelpActive
+                                                ? 'El bot está silenciado. Un humano debe responder.'
+                                                : 'El bot responde automáticamente a este cliente.'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleBotReactivation}
+                                    disabled={isSaving}
+                                    className={`
+                                        px-4 py-2 rounded-lg font-medium transition-all
+                                        ${humanHelpActive
+                                            ? 'bg-green-600 hover:bg-green-500 text-white'
+                                            : 'bg-amber-600 hover:bg-amber-500 text-white'}
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                    `}
+                                >
+                                    {isSaving ? 'Guardando...' : (humanHelpActive ? 'Reactivar Bot' : 'Solicitar Humano')}
+                                </button>
+                            </div>
                         </div>
                     </section>
 

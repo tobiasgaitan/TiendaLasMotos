@@ -193,6 +193,7 @@ export default function ProspectsPage() {
                                     <th className="p-4 font-medium">Fecha</th>
                                     <th className="p-4 font-medium">Cliente</th>
                                     <th className="p-4 font-medium">Interés</th>
+                                    <th className="p-4 font-medium text-center">Bot</th>
                                     <th className="p-4 font-medium text-center">Estado</th>
                                     <th className="p-4 font-medium text-right">Acciones</th>
                                 </tr>
@@ -222,6 +223,16 @@ export default function ProspectsPage() {
                                         {/* INTERÉS */}
                                         <td className="p-4 text-gray-300">
                                             {lead.motoInteres || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
+                                        </td>
+
+                                        {/* BOT STATUS */}
+                                        <td className="p-4 text-center">
+                                            <span
+                                                className="text-2xl"
+                                                title={lead.human_help_requested ? 'Modo Humano Activo' : 'Bot Activo'}
+                                            >
+                                                {lead.human_help_requested ? '✋' : '🤖'}
+                                            </span>
                                         </td>
 
                                         {/* ESTADO */}
