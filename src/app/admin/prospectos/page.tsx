@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { toast } from 'sonner';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 
 // Status Configuration Map (Must match Modal)
@@ -29,6 +30,7 @@ export default function ProspectsPage() {
     const [currentFilter, setCurrentFilter] = useState<string>('ALL');
     const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -105,6 +107,66 @@ export default function ProspectsPage() {
     const handleRowClick = (lead: Prospect) => {
         setSelectedProspect(lead);
         setIsModalOpen(true);
+    };
+
+    /**
+     * Toggles the bot status for a specific prospect.
+     * Updates both the backend runtime state and Firestore persistence.
+     * Uses optimistic UI: the switch flips immediately, rolls back on error.
+     *
+     * @param e - Click event (stopped to prevent row modal from opening)
+     * @param lead - The prospect whose bot status is being toggled
+     */
+    const handleBotToggle = async (e: React.MouseEvent, lead: Prospect) => {
+        e.stopPropagation();
+        if (togglingId) return; // Prevent concurrent toggles
+
+        const newHelpStatus = !lead.human_help_requested;
+        setTogglingId(lead.id);
+
+        try {
+            // 1. Backend API sync (runtime bot state)
+            const response = await fetch(
+                'https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/reset-handoff',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-API-Key': 'moto_master_2026'
+                    },
+                    body: JSON.stringify({
+                        phone: lead.celular,
+                        status: newHelpStatus
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+
+            // 2. Persist to Firestore
+            const prospectRef = doc(db, 'prospectos', lead.id);
+            await updateDoc(prospectRef, { human_help_requested: newHelpStatus });
+
+            // 3. Feedback
+            if (newHelpStatus) {
+                toast.warning('✋ Modo Humano Activado', {
+                    description: 'El bot está silenciado para este cliente.'
+                });
+            } else {
+                toast.success('🤖 Bot Reactivado', {
+                    description: 'El bot volverá a responder automáticamente.'
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling bot status:', error);
+            toast.error('Error al cambiar estado del bot', {
+                description: error instanceof Error ? error.message : 'Verifica tu conexión.'
+            });
+        } finally {
+            setTogglingId(null);
+        }
     };
 
     const getStatusBadge = (status?: string) => {
@@ -225,14 +287,28 @@ export default function ProspectsPage() {
                                             {lead.motoInteres || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
                                         </td>
 
-                                        {/* BOT STATUS */}
+                                        {/* BOT STATUS — Interactive Toggle */}
                                         <td className="p-4 text-center">
-                                            <span
-                                                className="text-2xl"
-                                                title={lead.human_help_requested ? 'Modo Humano Activo' : 'Bot Activo'}
+                                            <button
+                                                onClick={(e) => handleBotToggle(e, lead)}
+                                                disabled={togglingId === lead.id}
+                                                className="inline-flex items-center gap-2 group/toggle disabled:opacity-50 disabled:cursor-wait"
+                                                title={lead.human_help_requested ? 'Modo Humano — Click para reactivar bot' : 'Bot Activo — Click para pausar'}
                                             >
-                                                {lead.human_help_requested ? '✋' : '🤖'}
-                                            </span>
+                                                {/* CSS Toggle Track */}
+                                                <div className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${!lead.human_help_requested ? 'bg-green-500' : 'bg-orange-500'
+                                                    }`}>
+                                                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${!lead.human_help_requested ? 'translate-x-5' : 'translate-x-0'
+                                                        }`} />
+                                                </div>
+                                                {/* Status Badge */}
+                                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${!lead.human_help_requested
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-orange-500/20 text-orange-400'
+                                                    }`}>
+                                                    {!lead.human_help_requested ? 'IA' : 'Humano'}
+                                                </span>
+                                            </button>
                                         </td>
 
                                         {/* ESTADO */}
