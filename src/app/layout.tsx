@@ -1,24 +1,20 @@
-import type { Metadata, Viewport } from "next"; // <--- Agregamos 'Viewport' aquí
-import { Inter, Roboto_Mono } from "next/font/google"; // <--- Cambiado a fuentes estándar compatibles
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const interSans = Inter({
-  variable: "--font-geist-sans", // Mantenemos la variable para no romper CSS global
-  subsets: ["latin"],
-});
+/**
+ * System font stacks — eliminates build-time network dependency on fonts.gstatic.com.
+ * Uses the same CSS variable names (--font-geist-sans, --font-geist-mono)
+ * to maintain compatibility with any downstream CSS references.
+ */
+const SYSTEM_SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const SYSTEM_MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
-const robotoMono = Roboto_Mono({
-  variable: "--font-geist-mono", // Mantenemos la variable
-  subsets: ["latin"],
-});
-
-// --- ESTA ES LA PIEZA QUE FALTABA ---
-// Le dice al navegador: "Usa el ancho real del dispositivo y escala al 100%"
+// Viewport: ancho real del dispositivo, escala 100%
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Opcional: evita zoom accidental en inputs en móviles
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -39,19 +35,18 @@ export default function RootLayout({
 }>) {
   /**
    * Root Layout Component
-   * Configures the global HTML structure, fonts, and providers (Auth, LeadModal).
-   * This layout wraps all pages in the application.
-   * 
-   * Navigation Structure:
-   * - NavigationWrapper: Handles conditional rendering of TopBar and Navbar (hides on /admin)
-   * - Children: Page content
-   * - LeadForm: Global modal for lead capture
-   * - SmartFooter: Global footer with dynamic content
+   * Configures the global HTML structure, system fonts, and providers (Auth, LeadModal).
+   * Font stacks are applied via inline CSS variables to avoid next/font/google build-time fetch.
    */
   return (
     <html lang="en">
       <body
-        className={`${interSans.variable} ${robotoMono.variable} antialiased bg-slate-50 text-slate-900`}
+        className="antialiased bg-slate-50 text-slate-900"
+        style={{
+          fontFamily: SYSTEM_SANS,
+          '--font-geist-sans': SYSTEM_SANS,
+          '--font-geist-mono': SYSTEM_MONO,
+        } as React.CSSProperties}
       >
         <LeadModalProvider>
           <AuthProvider>
