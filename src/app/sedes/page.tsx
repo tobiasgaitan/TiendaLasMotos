@@ -5,21 +5,19 @@ import { City } from "@/types/financial";
 import { MapPin, Phone, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic'; // ⚡ BYPASS BUILD PRERENDERING
+
 export const metadata: Metadata = {
     title: "Nuestras Sedes | Tienda Las Motos",
     description: "Encuentra la sede de Tienda Las Motos más cercana a ti. Visítanos en nuestras ubicaciones en Colombia.",
     keywords: "sedes Tienda Las Motos, ubicaciones motos Colombia, puntos de venta motos",
 };
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 3600;
 
 /**
  * Sedes Page (Public)
- * 
- * Displays all active locations/sedes of Tienda Las Motos.
- * Shows location details with Google Maps integration.
- * 
- * @returns {Promise<JSX.Element>} The sedes page
+ * ...
  */
 export default async function SedesPage() {
     // Fetch active sedes from Firestore

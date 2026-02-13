@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic'; // ⚡ BYPASS BUILD PRERENDERING
+
 // Mock Data
 const CITIES = ["bogota", "medellin", "cali", "barranquilla", "cartagena", "santa-marta"];
 const CATEGORIES = ["urbanas", "deportivas", "scooter", "touring", "enduro"];
