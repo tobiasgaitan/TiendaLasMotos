@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // ⚡ URGENT: Fix for Cloud Build (No creds at build time)
+
 import { MetadataRoute } from 'next';
 import { db } from '@/lib/firebase-admin';
 
@@ -5,9 +7,9 @@ import { db } from '@/lib/firebase-admin';
  * Sitemap dinámico para TiendaLasMotos.
  *
  * ⚡ PERFORMANCE & SAFETY:
+ * - force-dynamic: Ensures execution ONLY at runtime, never during build.
  * - Fail-Safe: Static routes are defined outside the try/catch and returned on ANY error.
  * - Limit 50: Strict limit to prevent timeouts.
- * - Logging: Explicit start/end and error logging.
  */
 
 const BASE_URL = 'https://tiendalasmotos.com';
