@@ -2,21 +2,19 @@ import { getCatalogoMotos } from "@/lib/firestore";
 import MotoCard from "@/components/MotoCard";
 import type { Metadata } from "next";
 
+export const dynamic = 'force-dynamic'; // ⚡ BYPASS BUILD PRERENDERING
+
 export const metadata: Metadata = {
     title: "Catálogo de Motos | Tienda Las Motos",
     description: "Explora nuestro catálogo completo de motocicletas. Encuentra la moto perfecta para ti con las mejores marcas y modelos del mercado.",
     keywords: "motos Colombia, catálogo motos, comprar moto, motos nuevas, motocicletas",
 };
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 3600;
 
 /**
  * Catalogo Page
- * 
- * Displays the complete motorcycle catalog with all available models.
- * Features grid layout with MotoCard components for each motorcycle.
- * 
- * @returns {Promise<JSX.Element>} The catalog page
+ * ...
  */
 export default async function CatalogoPage() {
     const motos = await getCatalogoMotos();
