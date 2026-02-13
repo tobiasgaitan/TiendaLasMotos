@@ -29,6 +29,11 @@ ${urlElements}
 }
 
 export async function GET() {
+    // 🛑 BUILD-TIME CHECK: Return empty response during build to prevent Firebase init
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return new NextResponse(null, { status: 204 });
+    }
+
     console.log('🗺️ Generating sitemap.xml via Route Handler...');
     let urls = [...STATIC_URLS];
 
