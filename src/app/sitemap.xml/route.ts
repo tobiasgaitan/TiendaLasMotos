@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/firebase'; // ⚡ Use Client SDK (Safe for build)
+import { collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic'; // ⚡ FORCE RUNTIME EXECUTION
 
@@ -29,25 +31,27 @@ ${urlElements}
 }
 
 export async function GET() {
-    // 🛑 BUILD-TIME CHECK: Return empty response during build to prevent Firebase init
+    // 🛑 BUILD-TIME CHECK: Return empty response during build to prevent ANY calls
     if (process.env.NEXT_PHASE === 'phase-production-build') {
         return new NextResponse(null, { status: 204 });
     }
 
-    console.log('🗺️ Generating sitemap.xml via Route Handler...');
+    console.log('🗺️ Generating sitemap.xml via Route Handler (Client SDK)...');
     let urls = [...STATIC_URLS];
 
     try {
-        console.log('🔄 Loading Firebase Admin dynamically...');
-        // ⚡ DYNAMIC IMPORT to strictly avoid build-time init
-        const { db } = await import('@/lib/firebase-admin');
+        console.log('🔌 Connecting to Firestore (Client Mode)...');
 
-        console.log('🔌 Connecting to Firestore...');
-        const snapshot = await db.collection('pagina/catalogo/items')
-            .orderBy('updated_at', 'desc')
-            .limit(50)
-            .select('slug', 'updated_at', 'categories', 'category', 'categoria')
-            .get();
+        // Use Client SDK Query
+        // Note: select() is not available in Client SDK exactly like Admin, 
+        // but we just fetch the docs and map them. Bandwidth is slightly higher but safer for build.
+        const q = query(
+            collection(db, 'pagina/catalogo/items'),
+            orderBy('updated_at', 'desc'),
+            limit(50)
+        );
+
+        const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
             console.log(`✅ Fetched ${snapshot.size} items.`);
@@ -64,6 +68,20 @@ export async function GET() {
 
                 const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
 
+                // Robust Date
+                // Client SDK returns Timestamp objects slightly differently sometimes, checking generic check
+                let lastModified = new Date();
+                if (data.updated_at) {
+                    if (data.updated_at instanceof Timestamp) {
+                        lastModified = data.updated_at.toDate();
+                    } else if (typeof data.updated_at.toDate === 'function') {
+                        lastModified = data.updated_at.toDate();
+                    } else {
+                        const parsedDate = new Date(data.updated_at);
+                        if (!isNaN(parsedDate.getTime())) lastModified = parsedDate;
+                    }
+                }
+
                 urls.push({
                     loc: `${BASE_URL}/${categorySlug}/${slug}`,
                     priority: '0.8',
@@ -75,7 +93,7 @@ export async function GET() {
     } catch (error) {
         console.error('🚨 Sitemap generation failed. Returning static XML only.');
         if (error instanceof Error) console.error(error.message);
-        // Fallback to static URLs only
+        // No crash, just static routes
     }
 
     const xml = generateXml(urls);
