@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ⚡ DOCKER SUPPORT: Required for lightweight container images
+  output: 'standalone',
+
   images: {
     remotePatterns: [
       {
@@ -42,6 +44,8 @@ const nextConfig: NextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  // Ensure we don't try to access FS for map files in prod if not needed
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
