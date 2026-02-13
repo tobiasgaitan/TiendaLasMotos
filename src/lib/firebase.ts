@@ -37,7 +37,7 @@ try {
     functions = getFunctions(app);
 
 } catch (error) {
-    console.warn("⚠️ [Firebase Client] Initialization failed. Using MOCKS for build safety.");
+    console.warn("⚠️ [Firebase Client] Initialization failed. Using SOPHISTICATED MOCKS for build safety.");
 
     // Create a safe Mock App
     app = {
@@ -46,17 +46,34 @@ try {
         automaticDataCollectionEnabled: false,
     } as unknown as FirebaseApp;
 
-    // Mock DB with stubbed methods to prevent crashes if 'collection()' is called
-    db = {
-        type: 'firestore',
-        app: app,
-        toJSON: () => ({}),
-    } as unknown as Firestore;
+    // 🎭 SOPHISTICATED PROXY MOCK FOR DB
+    // This allows ANY property access (like .type, .app, .toJSON, ._delegate) to succeed.
+    // It captures calls to collection() and returns another Proxy, recursively.
 
-    // IMPORTANT: In the modular SDK, methods like 'collection(db, ...)' might inspect 'db'.
-    // We cannot easily mock the module exports themselves (getDocs, collection, etc.) from here.
-    // BUT we can make 'db' look like a valid Firestore instance to pass basics checks.
-    // The real protection is 'export const dynamic = "force-dynamic"' in the pages.
+    const createRecursiveMock = (name: string): any => {
+        return new Proxy(() => { }, {
+            get(_target, prop) {
+                if (prop === 'type') return 'firestore';
+                if (prop === 'app') return app;
+                if (prop === 'toJSON') return () => ({});
+                // Return query snapshot mock for getDocs
+                if (prop === 'docs') return [];
+                if (prop === 'empty') return true;
+                if (prop === 'size') return 0;
+                if (prop === 'forEach') return () => { };
+                if (prop === 'map') return () => [];
+
+                // Recursively return more mocks
+                return createRecursiveMock(`${name}.${String(prop)}`);
+            },
+            apply(_target, _thisArg, _argArray) {
+                // If called as a function (e.g. collection(db, 'foo')), return a mock object
+                return createRecursiveMock(`${name}()`);
+            }
+        });
+    }
+
+    db = createRecursiveMock('db') as unknown as Firestore;
 
     auth = {} as Auth;
     storage = {} as FirebaseStorage;
