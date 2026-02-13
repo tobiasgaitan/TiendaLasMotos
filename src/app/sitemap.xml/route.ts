@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase'; // ⚡ Use Client SDK (Safe for build)
-import { collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic'; // ⚡ FORCE RUNTIME EXECUTION
 
@@ -31,20 +31,42 @@ ${urlElements}
 }
 
 export async function GET() {
-    // 🛑 BUILD-TIME CHECK: Return empty response during build to prevent ANY calls
+    // 🛑 BUILD-TIME CHECK
     if (process.env.NEXT_PHASE === 'phase-production-build') {
         return new NextResponse(null, { status: 204 });
     }
 
-    console.log('🗺️ Generating sitemap.xml via Route Handler (Client SDK)...');
+    console.log('🗺️ Generating sitemap.xml via Route Handler (Isolated Client SDK)...');
     let urls = [...STATIC_URLS];
 
     try {
-        console.log('🔌 Connecting to Firestore (Client Mode)...');
+        // 🔒 ROBUST LOCAL INITIALIZATION
+        // Do NOT import from @/lib/firebase to avoid build-time top-level execution errors.
+        // Initialize locally only when this function actually runs.
 
-        // Use Client SDK Query
-        // Note: select() is not available in Client SDK exactly like Admin, 
-        // but we just fetch the docs and map them. Bandwidth is slightly higher but safer for build.
+        let db;
+
+        const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+        };
+
+        // Check for minimal config presence to avoid 'invalid config' crash
+        if (!firebaseConfig.projectId) {
+            console.warn('⚠️ Missing Project ID in env. Using static routes only.');
+            throw new Error('Missing Firebase Config');
+        }
+
+        const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        db = getFirestore(app);
+
+        console.log('🔌 Connecting to Firestore (Isolated)...');
+
         const q = query(
             collection(db, 'pagina/catalogo/items'),
             orderBy('updated_at', 'desc'),
@@ -57,8 +79,6 @@ export async function GET() {
             console.log(`✅ Fetched ${snapshot.size} items.`);
             snapshot.forEach(doc => {
                 const data = doc.data();
-
-                // Robust Fallbacks
                 const slug = data.slug || doc.id;
 
                 let category = 'general';
@@ -68,8 +88,6 @@ export async function GET() {
 
                 const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
 
-                // Robust Date
-                // Client SDK returns Timestamp objects slightly differently sometimes, checking generic check
                 let lastModified = new Date();
                 if (data.updated_at) {
                     if (data.updated_at instanceof Timestamp) {
@@ -93,7 +111,6 @@ export async function GET() {
     } catch (error) {
         console.error('🚨 Sitemap generation failed. Returning static XML only.');
         if (error instanceof Error) console.error(error.message);
-        // No crash, just static routes
     }
 
     const xml = generateXml(urls);
