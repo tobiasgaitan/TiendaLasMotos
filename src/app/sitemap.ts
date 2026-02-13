@@ -5,8 +5,8 @@ import { db } from '@/lib/firebase-admin';
  * Sitemap dinámico para TiendaLasMotos.
  *
  * ⚡ PERFORMANCE OPTIMIZATION:
- * - Limitado a los 60 items más recientes para evitar timeouts en Cloud Build.
- * - Selección de campos específica (slug, updated_at, category) para reducir carga.
+ * - Limitado a los 50 items más recientes para evitar timeouts en Cloud Build.
+ * - Selección de campos específica (slug, updated_at, categories) para reducir carga.
  * - Fallback a rutas estáticas si falla la conexión a Firestore (Fail-Safe).
  */
 
@@ -59,11 +59,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
         console.log('🗺️ Generating dynamic sitemap...');
 
-        // Query Optimization: Top 60 most recent items only.
-        // limit(60) ensures query finishes < 2s even on slow connections.
+        // Query Optimization: Top 50 most recent items only.
+        // limit(50) ensures query finishes < 2s even on slow connections.
         const snapshot = await db.collection('pagina/catalogo/items')
             .orderBy('updated_at', 'desc')
-            .limit(60)
+            .limit(50)
             .select('slug', 'updated_at', 'categories', 'category', 'categoria') // Select only needed fields
             .get();
 
