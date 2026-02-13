@@ -1,8 +1,8 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage"; // <--- 1. Importar
-import { getFunctions } from "firebase/functions"; // <--- Cloud Functions
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getFunctions, Functions } from "firebase/functions";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,11 +14,43 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
+let functions: Functions;
 
-// Initialize Services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app); // <--- 2. Exportar Storage
-export const functions = getFunctions(app); // <--- 3. Exportar Functions
+/**
+ * 🛡️ ROBUST CLIENT INITIALIZATION
+ * Prevents build crashes when environment variables are missing (Cloud Build).
+ */
+try {
+    // Check for critical keys to avoid "invalid config" errors
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        throw new Error("Missing Firebase Client Configuration");
+    }
+
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    functions = getFunctions(app);
+
+} catch (error) {
+    console.warn("⚠️ [Firebase Client] Initialization failed. Using MOCKS for build safety.");
+
+    // Create a safe Mock App to satisfy types
+    app = {} as FirebaseApp;
+
+    // Mock Services to prevent "cannot read property of undefined"
+    const mockService = new Proxy({}, {
+        get: () => () => { } // Return a void function for any property access
+    });
+
+    auth = mockService as unknown as Auth;
+    db = mockService as unknown as Firestore;
+    storage = mockService as unknown as FirebaseStorage;
+    functions = mockService as unknown as Functions;
+}
+
+export { auth, db, storage, functions };
