@@ -39,18 +39,28 @@ try {
 } catch (error) {
     console.warn("⚠️ [Firebase Client] Initialization failed. Using MOCKS for build safety.");
 
-    // Create a safe Mock App to satisfy types
-    app = {} as FirebaseApp;
+    // Create a safe Mock App
+    app = {
+        name: '[DEFAULT-MOCK]',
+        options: {},
+        automaticDataCollectionEnabled: false,
+    } as unknown as FirebaseApp;
 
-    // Mock Services to prevent "cannot read property of undefined"
-    const mockService = new Proxy({}, {
-        get: () => () => { } // Return a void function for any property access
-    });
+    // Mock DB with stubbed methods to prevent crashes if 'collection()' is called
+    db = {
+        type: 'firestore',
+        app: app,
+        toJSON: () => ({}),
+    } as unknown as Firestore;
 
-    auth = mockService as unknown as Auth;
-    db = mockService as unknown as Firestore;
-    storage = mockService as unknown as FirebaseStorage;
-    functions = mockService as unknown as Functions;
+    // IMPORTANT: In the modular SDK, methods like 'collection(db, ...)' might inspect 'db'.
+    // We cannot easily mock the module exports themselves (getDocs, collection, etc.) from here.
+    // BUT we can make 'db' look like a valid Firestore instance to pass basics checks.
+    // The real protection is 'export const dynamic = "force-dynamic"' in the pages.
+
+    auth = {} as Auth;
+    storage = {} as FirebaseStorage;
+    functions = {} as Functions;
 }
 
 export { auth, db, storage, functions };

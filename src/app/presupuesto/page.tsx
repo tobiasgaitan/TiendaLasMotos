@@ -5,23 +5,20 @@ import { City, SoatRate, FinancialEntity } from "@/types/financial";
 import SmartQuotaSlider from "@/components/SmartQuotaSlider";
 import type { Metadata } from "next";
 
+export const dynamic = 'force-dynamic'; // ⚡ BYPASS BUILD PRERENDERING
+
 export const metadata: Metadata = {
     title: "Calcula Tu Cuota | Tienda Las Motos",
     description: "Calcula la cuota mensual de tu moto ideal. Simulador de financiación con múltiples entidades financieras. Obtén tu presupuesto personalizado al instante.",
     keywords: "calculadora cuota moto, financiación motos Colombia, simulador crédito moto, presupuesto moto",
 };
 
-export const revalidate = 3600; // Revalidate every hour
+// ... rest of file (revalidate is ignored when force-dynamic is on, but keeping it doesn't hurt)
+export const revalidate = 3600;
 
 /**
  * Presupuesto Page (Public)
- * 
- * Public-facing budget calculator page featuring the SmartQuotaSlider component.
- * Allows users to calculate monthly payments for motorcycles with various financing options.
- * 
- * This page does NOT require authentication and serves as the main conversion tool.
- * 
- * @returns {Promise<JSX.Element>} The presupuesto page
+ * ...
  */
 export default async function PresupuestoPage() {
     // Fetch all necessary data for the calculator
