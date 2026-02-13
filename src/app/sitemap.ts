@@ -1,13 +1,16 @@
 export const dynamic = 'force-dynamic'; // ⚡ URGENT: Fix for Cloud Build (No creds at build time)
 
 import { MetadataRoute } from 'next';
-import { db } from '@/lib/firebase-admin';
+
+// 🛑 REMOVED TOP-LEVEL IMPORT to prevent build-time initialization
+// import { db } from '@/lib/firebase-admin';
 
 /**
  * Sitemap dinámico para TiendaLasMotos.
  *
  * ⚡ PERFORMANCE & SAFETY:
  * - force-dynamic: Ensures execution ONLY at runtime, never during build.
+ * - Dynamic Import: Loads firebase-admin ONLY when function runs.
  * - Fail-Safe: Static routes are defined outside the try/catch and returned on ANY error.
  * - Limit 50: Strict limit to prevent timeouts.
  */
@@ -61,6 +64,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const fullSitemap: MetadataRoute.Sitemap = [...STATIC_ROUTES];
 
     try {
+        // ⚡ DYNAMIC IMPORT: Load DB only at runtime to avoid build crashes
+        console.log('🔄 Loading Firebase Admin dynamically...');
+        const { db } = await import('@/lib/firebase-admin');
+
         // 3. Dynamic Data Fetching with strict error isolation
         console.log('🔌 Connecting to Firestore for dynamic routes...');
 
