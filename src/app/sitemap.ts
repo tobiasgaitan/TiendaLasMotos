@@ -4,10 +4,10 @@ import { db } from '@/lib/firebase-admin';
 /**
  * Sitemap dinámico para TiendaLasMotos.
  *
- * ⚡ PERFORMANCE OPTIMIZATION:
- * - Limitado a los 50 items más recientes para evitar timeouts en Cloud Build.
- * - Selección de campos específica (slug, updated_at, categories) para reducir carga.
- * - Fallback a rutas estáticas si falla la conexión a Firestore (Fail-Safe).
+ * ⚡ PERFORMANCE & SAFETY:
+ * - Fail-Safe: Static routes are defined outside the try/catch and returned on ANY error.
+ * - Limit 50: Strict limit to prevent timeouts.
+ * - Logging: Explicit start/end and error logging.
  */
 
 const BASE_URL = 'https://tiendalasmotos.com';
@@ -52,36 +52,36 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    // Start with static routes
-    const routes: MetadataRoute.Sitemap = [...STATIC_ROUTES];
+    // 1. Log start to verify function execution in logs
+    console.log('🗺️ Sitemap generation started. Initializing static routes.');
 
-    // 🛡️ FAIL-SAFE TRY/CATCH BLOCK
+    // 2. Define payload with static routes initially
+    const fullSitemap: MetadataRoute.Sitemap = [...STATIC_ROUTES];
+
     try {
-        console.log('🗺️ Generating dynamic sitemap...');
+        // 3. Dynamic Data Fetching with strict error isolation
+        console.log('🔌 Connecting to Firestore for dynamic routes...');
 
-        // Query Optimization: Top 50 most recent items only.
-        // limit(50) ensures query finishes < 2s even on slow connections.
         const snapshot = await db.collection('pagina/catalogo/items')
             .orderBy('updated_at', 'desc')
             .limit(50)
-            .select('slug', 'updated_at', 'categories', 'category', 'categoria') // Select only needed fields
+            .select('slug', 'updated_at', 'categories', 'category', 'categoria')
             .get();
 
         if (snapshot.empty) {
             console.warn('⚠️ Sitemap query returned 0 documents.');
+        } else {
+            console.log(`✅ Fetched ${snapshot.size} items from Firestore.`);
         }
 
         snapshot.forEach((doc) => {
             const data = doc.data();
 
-            // 1. ROBUST SLUG HANDLING
-            // Fallback to ID if slug is missing
+            // Robust Slug
             const slug = data.slug || doc.id;
 
-            // 2. ROBUST CATEGORY HANDLING
-            // Priority: categories[0] -> category -> categoria -> 'general'
+            // Robust Category
             let category = 'general';
-
             if (Array.isArray(data.categories) && data.categories.length > 0) {
                 category = data.categories[0];
             } else if (data.category && typeof data.category === 'string') {
@@ -89,20 +89,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             } else if (data.categoria && typeof data.categoria === 'string') {
                 category = data.categoria;
             }
-
-            // Normalize category slug if needed (basic safety)
             const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
 
-            // 3. DATE HANDLING
-            // Fallback to current date if updated_at is missing or invalid
+            // Robust Date
             let lastModified = new Date();
             if (data.updated_at) {
-                // Handle Firestore Timestamp or standard Date/string
-                // Check for toDate function (Firestore Timestamp)
                 if (typeof data.updated_at.toDate === 'function') {
                     lastModified = data.updated_at.toDate();
                 } else {
-                    // Try parsing string/number
                     const parsedDate = new Date(data.updated_at);
                     if (!isNaN(parsedDate.getTime())) {
                         lastModified = parsedDate;
@@ -110,8 +104,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 }
             }
 
-            // Add dynamic route
-            routes.push({
+            fullSitemap.push({
                 url: `${BASE_URL}/${categorySlug}/${slug}`,
                 lastModified: lastModified,
                 changeFrequency: 'weekly',
@@ -119,19 +112,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             });
         });
 
-        console.log(`✅ Sitemap generated successfully with ${snapshot.size} dynamic items.`);
+        console.log(`✅ Sitemap generation completed. Total URLs: ${fullSitemap.length}`);
+        return fullSitemap;
 
     } catch (error) {
-        // 🛑 CRITICAL ERROR HANDLING
-        // Log the error but DO NOT crash the build. Return static routes only.
-        console.error('⚠️ Sitemap generation failed (Firestore Error). Returning static routes only.');
+        // 4. CATASTROPHIC FAILURE HANDLER
+        // If ANYTHING fails (DB Auth, Network, Parsing), log it and return static routes only.
+        console.error('🚨 SITEMAP_FETCH_ERROR: Critical failure in dynamic sitemap generation.');
         if (error instanceof Error) {
             console.error(error.message);
+            console.error(error.stack);
         } else {
             console.error(error);
         }
-        // No throw - proceed with static routes
-    }
 
-    return routes;
+        // IMPORTANT: Return static routes to avoid 500 Internal Server Error
+        console.log('⚠️ Returning static routes ONLY to prevent build failure.');
+        return STATIC_ROUTES;
+    }
 }
