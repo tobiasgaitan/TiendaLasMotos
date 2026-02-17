@@ -3,6 +3,18 @@ import { db } from "./firebase";
 import { Moto, Bono } from "../types";
 export { db };
 
+/**
+ * Retrieves the full catalog of motorcycles from the Firestore "Source of Truth".
+ * 
+ * Data Source: `pagina/catalogo/items`
+ * 
+ * Logic:
+ * 1. Fetches all documents from the subcollection.
+ * 2. Normalizes legacy fields (e.g., `imagen_url` vs `imagenUrl`).
+ * 3. Standardizes financial fields for the credit simulator.
+ * 
+ * @returns {Promise<Moto[]>} Array of normalized Moto objects.
+ */
 export async function getCatalogoMotos(): Promise<Moto[]> {
     try {
         // Path: collection(db, 'pagina', 'catalogo', 'items')
