@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
+import { UserRound, Flame } from 'lucide-react';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 
 // Status Configuration Map (Must match Modal)
@@ -318,20 +319,51 @@ export default function ProspectsPage() {
 
                                         {/* ACCIONES */}
                                         <td className="p-4 text-right">
-                                            <button
-                                                onClick={(e) => handleWhatsAppClick(e, lead)}
-                                                className="
-                                                    inline-flex items-center gap-2 
-                                                    bg-green-600 hover:bg-green-500 text-white 
-                                                    px-4 py-2 rounded-lg font-bold shadow-lg 
-                                                    transition-all transform hover:scale-105 active:scale-95
-                                                "
-                                            >
-                                                <span>WhatsApp</span>
-                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.696c1.029.56 1.77.854 3.018.855 3.19.001 5.783-2.593 5.783-5.785 0-3.193-2.591-5.79-5.783-5.79zm1.506 8.971c-.167.092-2.502 1.398-2.616 1.408-.12.012-.27.173-.41-.122-.162-.338-.857-1.579-1.256-2.274-.403-.695-.084-.666.27-.98.358-.318.514-.668.618-.95.101-.282-.124-1.293-.46-1.895-.296-.531-.692-.472-.942-.486-.296-.017-.597.051-.82.355-.262.358-1.041 1.059-1.041 2.571 0 1.512.986 2.946 1.154 3.181.166.233 2.126 3.011 4.965 4.304.773.35 1.791.439 2.515.118.598-.266 1.676-1.066 1.944-1.821.267-.754.216-1.564.127-1.761-.106-.233-.409-.327-.852-.544z" />
-                                                </svg>
-                                            </button>
+                                            <div className="flex items-center justify-end gap-3">
+                                                {/* Documentos */}
+                                                <div className="flex items-center gap-2 mr-2">
+                                                    {lead.doc_cedula_url && (
+                                                        <a
+                                                            href={lead.doc_cedula_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="p-2 rounded-full bg-slate-800 text-blue-400 hover:bg-blue-500/20 hover:text-white transition-all"
+                                                            title="Ver Cédula"
+                                                        >
+                                                            <UserRound className="w-5 h-5" />
+                                                        </a>
+                                                    )}
+                                                    {lead.doc_recibo_gas_url && (
+                                                        <a
+                                                            href={lead.doc_recibo_gas_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="p-2 rounded-full bg-slate-800 text-orange-400 hover:bg-orange-500/20 hover:text-white transition-all"
+                                                            title="Ver Recibo Gas"
+                                                        >
+                                                            <Flame className="w-5 h-5" />
+                                                        </a>
+                                                    )}
+                                                </div>
+
+                                                {/* WhatsApp */}
+                                                <button
+                                                    onClick={(e) => handleWhatsAppClick(e, lead)}
+                                                    className="
+                                                        inline-flex items-center gap-2 
+                                                        bg-green-600 hover:bg-green-500 text-white 
+                                                        px-4 py-2 rounded-lg font-bold shadow-lg 
+                                                        transition-all transform hover:scale-105 active:scale-95
+                                                    "
+                                                >
+                                                    <span className="hidden sm:inline">WhatsApp</span>
+                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.696c1.029.56 1.77.854 3.018.855 3.19.001 5.783-2.593 5.783-5.785 0-3.193-2.591-5.79-5.783-5.79zm1.506 8.971c-.167.092-2.502 1.398-2.616 1.408-.12.012-.27.173-.41-.122-.162-.338-.857-1.579-1.256-2.274-.403-.695-.084-.666.27-.98.358-.318.514-.668.618-.95.101-.282-.124-1.293-.46-1.895-.296-.531-.692-.472-.942-.486-.296-.017-.597.051-.82.355-.262.358-1.041 1.059-1.041 2.571 0 1.512.986 2.946 1.154 3.181.166.233 2.126 3.011 4.965 4.304.773.35 1.791.439 2.515.118.598-.266 1.676-1.066 1.944-1.821.267-.754.216-1.564.127-1.761-.106-.233-.409-.327-.852-.544z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

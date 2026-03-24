@@ -28,6 +28,9 @@ export interface Prospect {
     ai_summary?: string;
     notes?: Note[];
     human_help_requested?: boolean; // Bot handoff status
+    doc_cedula_url?: string;
+    doc_recibo_gas_url?: string;
+    doc_status?: boolean;
     [key: string]: any;
 }
 
@@ -280,6 +283,76 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                         <p className="text-gray-300 text-sm leading-relaxed">
                             {prospect.ai_summary || "Esperando primera interacción del bot..."}
                         </p>
+                    </section>
+
+                    {/* Expediente de Crédito Brilla - Document Section */}
+                    <section className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            📄 Expediente de Crédito Brilla
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {/* Cédula */}
+                            <div className="space-y-3">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight">Documento de Identidad</p>
+                                {prospect.doc_cedula_url ? (
+                                    <div className="group relative">
+                                        <a href={prospect.doc_cedula_url} target="_blank" rel="noopener noreferrer" className="block">
+                                            <img
+                                                src={prospect.doc_cedula_url}
+                                                alt="Previsualización Cédula"
+                                                className="h-24 w-full object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-blue-400"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                <span className="text-white text-xs font-bold bg-blue-600 px-2 py-1 rounded">Ver pantalla completa</span>
+                                            </div>
+                                        </a>
+                                        <a 
+                                            href={prospect.doc_cedula_url} 
+                                            target="_blank" 
+                                            className="mt-2 inline-flex items-center text-xs text-blue-400 hover:text-blue-300 font-medium"
+                                        >
+                                            📥 Descargar Cédula
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="h-24 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-700 bg-slate-900/50 text-slate-500 italic text-xs">
+                                        <span>Pendiente</span>
+                                        <span className="text-lg mt-1">❌</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Recibo de Gas */}
+                            <div className="space-y-3">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight">Recibo de Gas</p>
+                                {prospect.doc_recibo_gas_url ? (
+                                    <div className="group relative">
+                                        <a href={prospect.doc_recibo_gas_url} target="_blank" rel="noopener noreferrer" className="block">
+                                            <img
+                                                src={prospect.doc_recibo_gas_url}
+                                                alt="Previsualización Recibo Gas"
+                                                className="h-24 w-full object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-orange-400"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                <span className="text-white text-xs font-bold bg-orange-600 px-2 py-1 rounded">Ver pantalla completa</span>
+                                            </div>
+                                        </a>
+                                        <a 
+                                            href={prospect.doc_recibo_gas_url} 
+                                            target="_blank" 
+                                            className="mt-2 inline-flex items-center text-xs text-orange-400 hover:text-orange-300 font-medium"
+                                        >
+                                            📥 Descargar Recibo
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="h-24 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-700 bg-slate-900/50 text-slate-500 italic text-xs">
+                                        <span>Pendiente</span>
+                                        <span className="text-lg mt-1">❌</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </section>
 
                     {/* Notes Section */}
