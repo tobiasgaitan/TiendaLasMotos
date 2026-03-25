@@ -37,7 +37,7 @@ export interface FinancialEntity {
     active?: boolean;
 
     // Security & Calculation Config (Updated)
-    lifeInsuranceType: 'percentage' | 'fixed_per_million'; // 'percentage' (0.1126%) or 'fixed' ($800 per M)
+    lifeInsuranceType: 'percentage' | 'fixed_per_million' | 'fixed'; // 'percentage' (0.1126%), 'fixed_per_million' (800) or 'fixed' ($15000)
     lifeInsuranceValue: number; // The rate (e.g. 0.1126) or the value (e.g. 800)
 
     // Unified Document Financing Flag
