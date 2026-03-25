@@ -16,7 +16,7 @@ import { Lead } from "@/types";
 const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }),
-    motoInteres: z.string(),
+    moto_interest: z.string(), // [FIXED] Standardized
     motivo_inscripcion: z.enum([
         'Solicitud de Crédito',
         'Pago de Contado',
@@ -24,6 +24,9 @@ const leadSchema = z.object({
         'Repuestos/Accesorios'
     ], { message: "Por favor selecciona un motivo válido" }),
     origen: z.literal("WEB_BETA").default("WEB_BETA"),
+    habeas_data_accepted: z.boolean().refine(val => val === true, {
+        message: "Debes aceptar la política de tratamiento de datos."
+    }),
 });
 
 export type LeadState = {
@@ -31,8 +34,9 @@ export type LeadState = {
     errors?: {
         nombre?: string[];
         celular?: string[];
-        motoInteres?: string[];
+        moto_interest?: string[];
         motivo_inscripcion?: string[];
+        habeas_data_accepted?: string[];
         general?: string[];
     };
     message?: string;
@@ -42,8 +46,9 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     const rawData = {
         nombre: formData.get("nombre") as string,
         celular: formData.get("celular") as string,
-        motoInteres: formData.get("motoInteres") as string || "General",
+        moto_interest: formData.get("moto_interest") as string || "General",
         motivo_inscripcion: formData.get("motivo_inscripcion") as any,
+        habeas_data_accepted: formData.get("habeas_data_accepted") === "true", // [LEGAL] Check for true
         origen: "WEB_BETA",
     };
 

@@ -154,11 +154,12 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             const payload = {
                 nombre: userName,
                 celular: cleanPhone,
-                motoInteres: moto.referencia,
+                moto_interest: moto.referencia,
                 fecha: serverTimestamp(),
                 motivo_inscripcion: isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)',
                 origen: 'ADMIN_QUOTE_GENERATOR',
-                estado: 'NUEVO'
+                estado: 'NUEVO',
+                habeas_data_accepted: true // Admin tool assumes consent or handles internally
             };
             await addDoc(collection(db, "prospectos"), payload);
 

@@ -96,7 +96,7 @@ export default function ProspectsPage() {
      */
     const handleWhatsAppClick = (e: React.MouseEvent, lead: Prospect) => {
         e.stopPropagation(); // Prevent opening modal
-        const interes = lead.motoInteres || lead.motivo_inscripcion || "nuestras motos";
+        const interes = lead.moto_interest || lead.motivo_inscripcion || "nuestras motos";
         const message = `Hola ${lead.nombre}, vi que te interesaste en la ${interes}, ¿cómo puedo ayudarte hoy?`;
 
         const encodedMessage = encodeURIComponent(message);
@@ -285,7 +285,7 @@ export default function ProspectsPage() {
 
                                         {/* INTERÉS */}
                                         <td className="p-4 text-gray-300">
-                                            {lead.motoInteres || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
+                                            {lead.moto_interest || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
                                         </td>
 
                                         {/* BOT STATUS — Interactive Toggle */}

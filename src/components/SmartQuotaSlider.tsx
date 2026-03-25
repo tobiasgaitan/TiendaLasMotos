@@ -43,6 +43,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     // User Contact State
     const [userName, setUserName] = useState("");
     const [userPhone, setUserPhone] = useState("");
+    const [habeasAccepted, setHabeasAccepted] = useState(false);
 
     // Profiling State (Only for Credit)
     const [userProfile, setUserProfile] = useState<RoutingProfile>({
@@ -183,6 +184,10 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             alert("⚠️ Requerido: Por favor ingresa el Nombre Completo y WhatsApp del cliente.");
             return false;
         }
+        if (!habeasAccepted) {
+            alert("⚠️ Requerido: Debes aceptar la política de tratamiento de datos.");
+            return false;
+        }
         return true;
     };
 
@@ -226,11 +231,12 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             const payload: Lead = {
                 nombre: userName,
                 celular: cleanPhone,
-                motoInteres: selectedMoto.referencia,
+                moto_interest: selectedMoto.referencia,
                 fecha: serverTimestamp(),
                 motivo_inscripcion: isCredit ? 'Solicitud de Crédito' : 'Pago de Contado',
                 origen: 'WEB_COTIZADOR_PRO',
                 estado: 'NUEVO',
+                habeas_data_accepted: true,
                 edad: userProfile.age,
                 ingresos_mensuales: userProfile.income,
                 actividad_economica: userProfile.activity,
@@ -325,17 +331,30 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 </div>
 
                 {/* --- CONTACT INFO (REQUIRED) --- */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
-                        <input type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
-                            className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
+                            <input type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
+                                className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
+                            <input type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
+                                className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
-                        <input type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
-                            className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
-                    </div>
+                    <label className="flex items-start gap-2 cursor-pointer bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <input
+                            type="checkbox"
+                            checked={habeasAccepted}
+                            onChange={e => setHabeasAccepted(e.target.checked)}
+                            className="mt-1 rounded text-brand-blue"
+                        />
+                        <span className="text-[10px] text-slate-500 leading-tight">
+                            Acepto el tratamiento de mis datos y autorizo el contacto comercial.
+                        </span>
+                    </label>
                 </div>
 
                 {/* --- PROFILING (CREDIT ONLY) --- */}
