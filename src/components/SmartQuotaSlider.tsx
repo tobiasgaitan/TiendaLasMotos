@@ -113,7 +113,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     useEffect(() => {
         const fetchMatrix = async () => {
             try {
-                const docRef = doc(db, 'config', 'financial_parameters');
+                const docRef = doc(db, 'financial_config/general/global_params/global_params');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     setMatrix(snap.data() as FinancialMatrix);
@@ -128,7 +128,8 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     // Update Default Down Payment (15%) when moto changes
     useEffect(() => {
         if (!selectedMoto) return;
-        const def = Math.floor(selectedMoto.precio * 0.15);
+        const ratio = (matrix as any)?.default_down_payment_ratio ?? 0.10;
+        const def = Math.floor(selectedMoto.precio * ratio);
         setDownPayment(def);
         setDownPaymentStr(def.toLocaleString('es-CO'));
 

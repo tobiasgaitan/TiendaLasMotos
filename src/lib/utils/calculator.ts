@@ -280,10 +280,15 @@ export const calculateQuote = (
 
         // 6. Insurances (on P_final)
         const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
-        if (entity?.lifeInsuranceType === 'fixed_per_million') {
+        const insuranceMode = entity?.lifeInsuranceType || 'percentage';
+
+        if (insuranceMode === 'fixed') {
+            lifeInsuranceValue = insuranceVal; // Direct absolute value (e.g. 15000)
+        } else if (insuranceMode === 'fixed_per_million') {
             const millions = loanAmount / 1000000;
             lifeInsuranceValue = Math.ceil(millions * insuranceVal);
         } else {
+            // Default: percentage
             lifeInsuranceValue = Math.round(loanAmount * (insuranceVal / 100));
         }
 
