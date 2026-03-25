@@ -20,7 +20,7 @@ export interface Prospect {
     id: string;
     nombre: string;
     celular: string;
-    motoInteres?: string;
+    moto_interest?: string; // [FIXED] Standardized
     motivo_inscripcion?: string;
     fecha: Timestamp;
     chatbot_status?: string; // Legacy
@@ -201,10 +201,12 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                 <div className="p-6 border-b border-gray-800 flex justify-between items-start sticky top-0 bg-gray-900 z-10">
                     <div>
                         <h2 className="text-2xl font-bold text-white">{prospect.nombre}</h2>
-                        <div className="flex items-center gap-3 mt-1 text-gray-400">
-                            <span>📱 {prospect.celular}</span>
-                            <span>•</span>
-                            <span>{formatDate(prospect.fecha)}</span>
+                        <div className="flex flex-col gap-1 mt-1 text-gray-400">
+                            <span className="flex items-center gap-2">📱 {prospect.celular}</span>
+                            {prospect.moto_interest && (
+                                <span className="flex items-center gap-2">🏍️ Interés: <b className="text-blue-400">{prospect.moto_interest}</b></span>
+                            )}
+                            <span className="text-xs">🕒 {formatDate(prospect.fecha)}</span>
                         </div>
                     </div>
                     <button
