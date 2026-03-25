@@ -56,10 +56,10 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         fetchMatrix();
     }, []);
 
-    // Default Down Payment (15%) - Reset on moto change
+    // Default Down Payment (10%) - Reset on moto change
     useEffect(() => {
         if (moto) {
-            const def = Math.floor(moto.precio * 0.15);
+            const def = Math.floor(moto.precio * (matrix?.default_down_payment_ratio || 0.10));
             setDownPayment(def);
             setDownPaymentStr(def.toLocaleString('es-CO'));
 

@@ -88,7 +88,7 @@ export default function SimulatorPage() {
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
                     setPrice(mList[0].precio);
-                    setDownPayment(Math.floor(mList[0].precio * 0.15)); // Default 15%
+                    setDownPayment(Math.floor(mList[0].precio * (mData?.default_down_payment_ratio || 0.10))); // Default 10% (SSOT)
                 }
 
                 setLoading(false);
@@ -129,7 +129,7 @@ export default function SimulatorPage() {
         if (m) {
             setPrice(m.precio);
             // Optional: Reset Down Payment percentage? Keeping it manual is better for testing unless changed.
-            setDownPayment(Math.floor(m.precio * 0.15));
+            setDownPayment(Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10)));
 
             // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
             const isPatineta = m.category?.toUpperCase() === 'PATINETA'
