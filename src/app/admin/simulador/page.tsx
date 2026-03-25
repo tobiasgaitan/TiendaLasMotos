@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Moto } from '@/types';
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from '@/types/financial';
@@ -55,10 +55,10 @@ export default function SimulatorPage() {
         const loadData = async () => {
             try {
                 // REMOVED: Legacy cities collection fetch
-                const [soatSnap, finSnap, matrixSnap, sedesSnap] = await Promise.all([
+                const [soatSnap, finSnap, matrixDocSnap, sedesSnap] = await Promise.all([
                     getDocs(collection(db, 'financial_config/general/tarifas_soat')),
                     getDocs(collection(db, 'financial_config/general/financieras')),
-                    getDocs(collection(db, 'config')),
+                    getDoc(doc(db, 'financial_config/general/global_params/global_params')),
                     getDocs(collection(db, 'config/general/sedes')) // [NEW] Fetch Sedes
                 ]);
 
@@ -67,9 +67,8 @@ export default function SimulatorPage() {
                 const fList = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
                 const cList = sedesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City)); // [NEW] Map Sedes
 
-                // Matrix Fetch Logic
-                const matrixDoc = matrixSnap.docs.find(d => d.id === 'financial_parameters');
-                const mData = matrixDoc ? (matrixDoc.data() as FinancialMatrix) : undefined;
+                // Matrix Fetch Logic (Unified document path)
+                const mData = matrixDocSnap.exists() ? (matrixDocSnap.data() as FinancialMatrix) : undefined;
 
                 // Motos Fetch
                 const mList = await getCatalogoMotos();
@@ -142,6 +141,9 @@ export default function SimulatorPage() {
 
     // --- CALCULATION ENGINE ---
     useEffect(() => {
+        // Defensive: Check array integrity before searching
+        if (!Array.isArray(motos) || !Array.isArray(cities) || !Array.isArray(financialEntities)) return;
+
         const moto = motos.find(m => m.id === selectedMotoId);
         const city = cities.find(c => c.id === selectedCityId);
         const entity = financialEntities.find(e => e.id === selectedEntityId);
