@@ -93,4 +93,8 @@ export interface MatrixRow {
 export interface FinancialMatrix {
     rows: MatrixRow[];
     lastUpdated: string; // ISO Date
+    // [ROOT] Global Configuration Keys
+    life_insurance_mode?: 'percentage' | 'fixed';
+    life_insurance_monthly?: number;
+    default_down_payment_ratio?: number;
 }

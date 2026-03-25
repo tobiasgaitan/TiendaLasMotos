@@ -279,17 +279,25 @@ export const calculateQuote = (
         loanAmount = pFinal; // For display and insurance calc
 
         // 6. Insurances (on P_final)
-        const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
-        const insuranceMode = entity?.lifeInsuranceType || 'percentage';
+        // Priority to ROOT Global Config
+        const rootInsuranceMode = financialMatrix?.life_insurance_mode;
+        const rootInsuranceVal = financialMatrix?.life_insurance_monthly;
 
-        if (insuranceMode === 'fixed') {
-            lifeInsuranceValue = insuranceVal; // Direct absolute value (e.g. 15000)
-        } else if (insuranceMode === 'fixed_per_million') {
-            const millions = loanAmount / 1000000;
-            lifeInsuranceValue = Math.ceil(millions * insuranceVal);
+        if (rootInsuranceMode === 'fixed') {
+            lifeInsuranceValue = rootInsuranceVal ?? 15000;
         } else {
-            // Default: percentage
-            lifeInsuranceValue = Math.round(loanAmount * (insuranceVal / 100));
+            const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
+            const insuranceMode = entity?.lifeInsuranceType || 'percentage';
+
+            if (insuranceMode === 'fixed') {
+                lifeInsuranceValue = insuranceVal;
+            } else if (insuranceMode === 'fixed_per_million') {
+                const millions = loanAmount / 1000000;
+                lifeInsuranceValue = Math.ceil(millions * insuranceVal);
+            } else {
+                // Default: percentage
+                lifeInsuranceValue = Math.round(loanAmount * (insuranceVal / 100));
+            }
         }
 
         if (entity?.unemploymentInsuranceValue && entity.unemploymentInsuranceValue > 0) {
