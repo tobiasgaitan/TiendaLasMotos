@@ -125,7 +125,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         fetchMatrix();
     }, []);
 
-    // Update Default Down Payment (15%) when moto changes
+    // Update Default Down Payment (10%) when moto changes
     useEffect(() => {
         if (!selectedMoto) return;
         const ratio = (matrix as any)?.default_down_payment_ratio ?? 0.10;
