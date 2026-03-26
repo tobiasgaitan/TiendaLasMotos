@@ -9,6 +9,7 @@ import { calculateQuote, QuoteResult } from '@/lib/utils/calculator';
 import { Loader2 } from 'lucide-react';
 import { getCatalogoMotos } from '@/lib/firestore';
 import { NumericFormat } from 'react-number-format'; // V15.2
+import Image from "next/image";
 
 /**
  * Simulador de Crédito - Interfaz Administrativa
@@ -203,6 +204,23 @@ export default function SimulatorPage() {
                 <div className="lg:col-span-4 space-y-6">
                     <div className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm">
                         <h3 className="text-lg font-bold text-brand-blue mb-4 uppercase text-sm tracking-wider">Configuración</h3>
+
+                        {/* 0. MOTO IMAGE */}
+                        <div className="relative w-full h-40 mb-4 bg-gray-950 rounded-lg border border-gray-800 overflow-hidden flex items-center justify-center">
+                            {(() => {
+                                const m = motos.find(mt => mt.id === selectedMotoId);
+                                if (m?.imagen_url) {
+                                    return <Image
+                                        src={m.imagen_url}
+                                        alt={m.referencia}
+                                        fill
+                                        className="object-contain p-4"
+                                        unoptimized
+                                    />;
+                                }
+                                return <span className="text-gray-700 font-black uppercase text-[10px] tracking-widest">Sin Imagen</span>;
+                            })()}
+                        </div>
 
                         {/* 1. MOTO SELECTOR */}
                         <div className="mb-4">
