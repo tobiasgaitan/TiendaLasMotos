@@ -90,10 +90,10 @@ export default function BuscadorPublicoPage() {
                     setSelectedEntity(defaultEnt);
                 }
 
-                // C. Financial Parameters (Registration Costs)
-                const matrixDoc = await getDoc(doc(db, 'config', 'financial_parameters'));
+                // C. Financial Parameters (Registration Costs) [FIXED PATH V2]
+                const matrixDoc = await getDoc(doc(db, 'financial_config/general/global_params/global_params'));
                 if (matrixDoc.exists()) {
-                    setMatrixRows(matrixDoc.data().rows || []);
+                    setMatrixRows(matrixDoc.data()?.rows || []);
                 }
 
                 setLoading(false);
@@ -138,7 +138,7 @@ export default function BuscadorPublicoPage() {
         let row;
         const cc = moto.displacement || 150;
 
-        row = matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc);
+        row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
 
         return row ? (row.registrationCreditGeneral || 750000) : 750000;
     };
