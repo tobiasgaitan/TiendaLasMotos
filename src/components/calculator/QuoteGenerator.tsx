@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Moto, CreditSimulation } from "@/types";
+import Image from "next/image";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
 import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
@@ -199,6 +200,26 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 <p className="text-white/80 text-xs">Versión Admin V23.1</p>
             </div>
 
+            {/* MOTO IMAGE */}
+            <div className="relative w-full h-48 mb-6 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
+                {moto.imagen_url ? (
+                    <Image
+                        src={moto.imagen_url}
+                        alt={moto.referencia}
+                        fill
+                        className="object-contain p-2 group-hover:scale-110 transition-transform duration-500"
+                        unoptimized
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        {moto.referencia}
+                    </div>
+                )}
+                <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white font-bold">
+                    {moto.marca} - {moto.displacement}cc
+                </div>
+            </div>
+
             {/* CONTROLS */}
             <div className="space-y-4 mb-6">
 
@@ -245,8 +266,11 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-1">Cuota Inicial Sugerida</label>
-                            <div className="relative">
+                            <div className="grid grid-cols-2 gap-2 mb-1">
+                                <label className="block text-sm font-bold text-gray-900">Cuota Inicial</label>
+                                <span className="text-[10px] text-brand-blue font-bold text-right">Mín. 10% sugerido</span>
+                            </div>
+                            <div className="relative mb-2">
                                 <span className="absolute left-3 top-2 text-gray-500">$</span>
                                 <input
                                     type="text"
@@ -260,6 +284,19 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                                     placeholder="0"
                                 />
                             </div>
+                            <input
+                                type="range"
+                                min={Math.floor(moto.precio * 0.1)}
+                                max={Math.floor(moto.precio * 0.9)}
+                                step={100000}
+                                className="w-full accent-brand-blue cursor-pointer h-2 bg-slate-200 rounded-lg"
+                                value={downPayment}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setDownPayment(val);
+                                    setDownPaymentStr(val.toLocaleString('es-CO'));
+                                }}
+                            />
                         </div>
 
                         <div>

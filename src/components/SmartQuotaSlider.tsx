@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { Moto, Lead } from "@/types";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
@@ -284,7 +285,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     if (!selectedMoto) return null;
 
     return (
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200" suppressHydrationWarning>
             {/* HERDER */}
             <div className={`p-6 text-white text-center relative transition-colors duration-500 ${isCredit ? 'bg-brand-blue' : 'bg-green-600'}`}>
                 <h3 className="text-2xl font-bold uppercase tracking-wide flex items-center justify-center gap-2">
@@ -299,6 +300,30 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             </div>
 
             <div className="p-6 space-y-6">
+
+                {/* --- MOTO IMAGE --- */}
+                <div className="relative w-full h-56 -mt-2 mb-4 rounded-3xl overflow-hidden bg-gradient-to-br from-white to-slate-50 border border-slate-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] group">
+                    {selectedMoto?.imagen_url ? (
+                        <Image
+                            src={selectedMoto.imagen_url}
+                            alt={selectedMoto.referencia}
+                            fill
+                            className="object-contain p-6 group-hover:scale-105 transition-transform duration-1000 ease-out"
+                            unoptimized
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-300 font-black uppercase tracking-tighter opacity-40">
+                            <span className="text-5xl mb-2">🏍️</span>
+                            <span className="text-[10px] tracking-[0.2em]">{selectedMoto?.referencia}</span>
+                        </div>
+                    )}
+                    <div className="absolute top-4 right-4 bg-brand-blue/5 backdrop-blur-md px-4 py-1.5 rounded-full border border-brand-blue/10 shadow-sm">
+                        <span className="text-[10px] font-black text-brand-blue tracking-widest uppercase">
+                            {selectedMoto?.marca}
+                        </span>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
+                </div>
 
                 {/* --- TOGGLE MODE --- */}
                 <div className="bg-slate-100 p-1 rounded-xl flex relative">
@@ -424,12 +449,15 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                     ) : <option>Sin cupo automático</option>}
                                 </select>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Inicial ($)</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cuota Inicial ($)</label>
+                                        <span className="text-[10px] font-bold text-brand-blue">{((downPayment / selectedMoto.precio) * 100).toFixed(0)}%</span>
+                                    </div>
                                     <input
                                         type="text"
-                                        className="w-full p-2 border border-slate-300 rounded-lg font-bold"
+                                        className="w-full p-2.5 border border-slate-300 rounded-xl font-black text-slate-900 bg-slate-50/50 focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                                         value={downPaymentStr}
                                         onChange={(e) => {
                                             const val = Number(e.target.value.replace(/\D/g, ''));
@@ -438,11 +466,33 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                         }}
                                         placeholder="0"
                                     />
+                                    <input
+                                        type="range"
+                                        min={Math.floor(selectedMoto.precio * 0.1)}
+                                        max={Math.floor(selectedMoto.precio * 0.9)}
+                                        step={50000}
+                                        className="w-full h-1.5 bg-slate-200 accent-brand-blue rounded-lg cursor-pointer hover:accent-brand-blue/80"
+                                        value={downPayment}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setDownPayment(val);
+                                            setDownPaymentStr(val.toLocaleString('es-CO'));
+                                        }}
+                                    />
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Plazo: {months}m</label>
-                                    <input type="range" min="12" max="60" step="12" className="w-full h-2 bg-slate-200 accent-brand-blue rounded-lg"
-                                        value={months} onChange={(e) => setMonths(Number(e.target.value))} />
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plazo Deseado: {months} Meses</label>
+                                    <div className="relative pt-1">
+                                        <input type="range" min="12" max="60" step="12" className="w-full h-1.5 bg-slate-200 accent-brand-blue rounded-lg cursor-pointer"
+                                            value={months} onChange={(e) => setMonths(Number(e.target.value))} />
+                                        <div className="flex justify-between text-[8px] font-bold text-slate-400 mt-1 uppercase">
+                                            <span>12m</span>
+                                            <span>24m</span>
+                                            <span>36m</span>
+                                            <span>48m</span>
+                                            <span>60m</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

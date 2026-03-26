@@ -39,7 +39,7 @@ export default function RootLayout({
    * Font stacks are applied via inline CSS variables to avoid next/font/google build-time fetch.
    */
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className="antialiased bg-slate-50 text-slate-900"
         style={{
