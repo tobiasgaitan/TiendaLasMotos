@@ -84,7 +84,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     const [discountStr, setDiscountStr] = useState<string>("");
 
     const [quote, setQuote] = useState<QuoteResult | null>(null);
-    const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: new Date().toISOString() });
     const [isSaving, setIsSaving] = useState(false);
     const [isExempt, setIsExempt] = useState(false); // [NEW] Manual Exemption
 
@@ -92,10 +92,13 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     const [filterText, setFilterText] = useState("");
 
     // Filtered Motos Logic
-    const filteredMotos = motos.filter(m =>
-        m.referencia.toLowerCase().includes(filterText.toLowerCase()) ||
-        m.marca.toLowerCase().includes(filterText.toLowerCase())
-    );
+    const filteredMotos = useMemo(() => {
+        if (!Array.isArray(motos)) return [];
+        return motos.filter(m =>
+            m.referencia.toLowerCase().includes(filterText.toLowerCase()) ||
+            m.marca.toLowerCase().includes(filterText.toLowerCase())
+        );
+    }, [motos, filterText]);
 
     // Ensure selectedMotoId is valid
     useEffect(() => {
@@ -104,7 +107,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         }
     }, [filterText, filteredMotos]);
 
-    const selectedMoto = motos.find(m => m.id === selectedMotoId);
+    const selectedMoto = Array.isArray(motos) ? motos.find(m => m.id === selectedMotoId) : undefined;
 
     const activeScenario = FINANCIAL_SCENARIOS.find(s => s.id === selectedScenarioId) || FINANCIAL_SCENARIOS[0];
     const isCredit = saleMode === 'credit';
@@ -116,7 +119,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 const docRef = doc(db, 'financial_config/general/global_params/global_params');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setMatrix(snap.data() as FinancialMatrix);
+                    setMatrix(snap.data() as FinancialMatrix || { rows: [], lastUpdated: new Date().toISOString() });
                 }
             } catch (e) {
                 console.error("Error fetching matrix", e);
@@ -126,6 +129,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     }, []);
 
     // Update Default Down Payment (10%) when moto changes
+    // [STRICT] This effect must only run when selectedMotoId changes.
+    // Guardrail: Do not reset if other params (like matrix loading later) change,
+    // unless it's a fresh moto selection.
     useEffect(() => {
         if (!selectedMoto) return;
         const ratio = (matrix as any)?.default_down_payment_ratio ?? 0.10;
@@ -145,7 +151,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
         setIsExempt(isPatineta);
 
-    }, [selectedMotoId]); // removed selectedMoto to prevent loop if obj changes ref
+    }, [selectedMotoId]); // Keeping only selectedMotoId to protect user autonomy.
 
     // Calculate Quote
     useEffect(() => {
@@ -325,7 +331,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         value={selectedMotoId}
                         onChange={(e) => setSelectedMotoId(e.target.value)}
                     >
-                        {filteredMotos.map(m => (
+                        {Array.isArray(filteredMotos) && filteredMotos.map(m => (
                             <option key={m.id} value={m.id}>{m.referencia}</option>
                         ))}
                     </select>

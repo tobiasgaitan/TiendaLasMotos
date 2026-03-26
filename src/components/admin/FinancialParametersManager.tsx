@@ -97,7 +97,7 @@ export default function FinancialParametersManager() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const docRef = doc(db, 'config', 'financial_parameters');
+            const docRef = doc(db, 'financial_config/general/global_params/global_params');
             const snap = await getDoc(docRef);
             if (snap.exists()) {
                 const data = snap.data() as FinancialMatrix;
@@ -116,7 +116,7 @@ export default function FinancialParametersManager() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const docRef = doc(db, 'config', 'financial_parameters');
+            const docRef = doc(db, 'financial_config/general/global_params/global_params');
             await setDoc(docRef, {
                 rows: matrix,
                 lastUpdated: new Date().toISOString()

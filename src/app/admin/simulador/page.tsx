@@ -34,7 +34,7 @@ export default function SimulatorPage() {
     const [soatRates, setSoatRates] = useState<SoatRate[]>([]);
     const [financialEntities, setFinancialEntities] = useState<FinancialEntity[]>([]);
     const [motos, setMotos] = useState<Moto[]>([]);
-    const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: new Date().toISOString() });
 
     // --- USER INPUTS ---
     const [selectedCityId, setSelectedCityId] = useState<string>('');
@@ -77,7 +77,7 @@ export default function SimulatorPage() {
                 setSoatRates(sList);
                 setFinancialEntities(fList);
                 setMotos(mList);
-                setMatrix(mData);
+                setMatrix(mData || { rows: [], lastUpdated: new Date().toISOString() });
 
                 // Defaults
                 if (cList.length > 0) setSelectedCityId(cList[0].id);
@@ -87,7 +87,8 @@ export default function SimulatorPage() {
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
                     setPrice(mList[0].precio);
-                    setDownPayment(Math.floor(mList[0].precio * (mData?.default_down_payment_ratio || 0.10))); // Default 10% (SSOT)
+                    // Initial set only
+                    setDownPayment(Math.floor(mList[0].precio * (mData?.default_down_payment_ratio || 0.10)));
                 }
 
                 setLoading(false);
@@ -127,7 +128,7 @@ export default function SimulatorPage() {
         const m = motos.find(mt => mt.id === selectedMotoId);
         if (m) {
             setPrice(m.precio);
-            // Optional: Reset Down Payment percentage? Keeping it manual is better for testing unless changed.
+            // [STRICT] Only reset Down Payment when moto changes
             setDownPayment(Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10)));
 
             // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
@@ -346,7 +347,7 @@ export default function SimulatorPage() {
                                         {/* Traceability Label (User Requested) */}
                                         <div className="flex justify-end -mt-2 mb-1">
                                             <span className="text-[10px] text-gray-500 font-mono bg-gray-900/50 px-1 rounded border border-gray-700">
-                                                Fila: {quote.matchIdentifier || 'N/A'} (CC: {motos.find(m => m.id === selectedMotoId)?.displacement})
+                                                Fila: {quote.matchIdentifier || 'N/A'} (CC: {Array.isArray(motos) ? motos.find(m => m.id === selectedMotoId)?.displacement : 'N/A'})
                                             </span>
                                         </div>
                                         {

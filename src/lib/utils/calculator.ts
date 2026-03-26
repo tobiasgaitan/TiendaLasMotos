@@ -96,75 +96,75 @@ export const calculateQuote = (
     let registrationPrice = 0;
     let matchIdentifier = 'NO_MATRIX';
 
-    // --- Matrix Lookup Logic (Strict & Filtered) ---
-    if (financialMatrix) {
-        const cityName = city.name.toLowerCase();
-        let contextKey: keyof MatrixRow = 'registrationCreditGeneral';
+        // --- Matrix Lookup Logic (Strict & Filtered) ---
+        if (financialMatrix && Array.isArray(financialMatrix.rows)) {
+            const cityName = city.name.toLowerCase();
+            let contextKey: keyof MatrixRow = 'registrationCreditGeneral';
 
-        // Context Key Mapping
-        if (paymentMethod === 'credit') {
-            if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
-            else contextKey = 'registrationCreditGeneral';
-        } else {
-            if (cityName.includes('santa marta')) contextKey = 'registrationCashSantaMarta';
-            else if (cityName.includes('envigado')) contextKey = 'registrationCashEnvigado';
-            else if (cityName.includes('ciénaga') || cityName.includes('cienaga')) contextKey = 'registrationCashCienaga';
-            else if (cityName.includes('zona bananera')) contextKey = 'registrationCashZonaBananera';
-            else contextKey = 'registrationCreditGeneral';
-        }
+            // Context Key Mapping
+            if (paymentMethod === 'credit') {
+                if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
+                else contextKey = 'registrationCreditGeneral';
+            } else {
+                if (cityName.includes('santa marta')) contextKey = 'registrationCashSantaMarta';
+                else if (cityName.includes('envigado')) contextKey = 'registrationCashEnvigado';
+                else if (cityName.includes('ciénaga') || cityName.includes('cienaga')) contextKey = 'registrationCashCienaga';
+                else if (cityName.includes('zona bananera')) contextKey = 'registrationCashZonaBananera';
+                else contextKey = 'registrationCreditGeneral';
+            }
 
-        // Category Matching
-        let categoriesToCheck = (moto.categories?.length)
-            ? moto.categories
-            : (moto.category ? [moto.category] : ["URBANA Y/O TRABAJO"]);
+            // Category Matching
+            let categoriesToCheck = (moto.categories?.length)
+                ? moto.categories
+                : (moto.category ? [moto.category] : ["URBANA Y/O TRABAJO"]);
 
-        let bestMatch: MatrixRow | undefined;
-        let foundSpecific = false;
+            let bestMatch: MatrixRow | undefined;
+            let foundSpecific = false;
 
-        // 1. Try to find a Specific Category Match
-        // We iterate through moto categories and check if any row in matrix matches EXACTLY
-        for (const catRaw of categoriesToCheck) {
-            const cat = catRaw.trim().toUpperCase();
-            const specificMatch = financialMatrix.rows.find(r => r.category && r.category.toUpperCase() === cat);
+            // 1. Try to find a Specific Category Match
+            // We iterate through moto categories and check if any row in matrix matches EXACTLY
+            for (const catRaw of categoriesToCheck) {
+                const cat = catRaw.trim().toUpperCase();
+                const specificMatch = financialMatrix.rows.find(r => r.category && r.category.toUpperCase() === cat);
 
-            if (specificMatch) {
-                bestMatch = specificMatch;
-                foundSpecific = true;
-                break; // Stop if we find a specific category match (Priority 1)
+                if (specificMatch) {
+                    bestMatch = specificMatch;
+                    foundSpecific = true;
+                    break; // Stop if we find a specific category match (Priority 1)
+                }
+            }
+
+            // 2. Generic Displacement Match (Fallback) ONLY if no specific match found
+            if (!foundSpecific) {
+                // [FIX] Strict Filter: We only look for rows that DO NOT have a specific category 
+                // OR have category explicitly set to 'GENERAL'.
+                const validGenericRows = financialMatrix.rows.filter(r =>
+                    !r.category || r.category.toUpperCase() === 'GENERAL'
+                );
+
+                // [FIX] Best Fit Algorithm:
+                // Filter rows where displacement >= minCC.
+                // Sort by minCC DESCENDING. Pick the first one.
+                // This handles "gaps" by snapping to the closest lower bound that covers it (effectively "Floor" logic for brackets).
+
+                const candidates = validGenericRows.filter(r => displacement >= (r.minCC || 0));
+                // Sort by minCC desc
+                candidates.sort((a, b) => (b.minCC || 0) - (a.minCC || 0));
+
+                if (candidates.length > 0) {
+                    bestMatch = candidates[0];
+                }
+            }
+
+            // Apply Value if Match Found
+            if (bestMatch) {
+                matchIdentifier = bestMatch.id; // Capture ID
+                const val = (bestMatch as any)[contextKey] as number;
+                if (typeof val === 'number') {
+                    registrationPrice = val;
+                }
             }
         }
-
-        // 2. Generic Displacement Match (Fallback) ONLY if no specific match found
-        if (!foundSpecific) {
-            // [FIX] Strict Filter: We only look for rows that DO NOT have a specific category 
-            // OR have category explicitly set to 'GENERAL'.
-            const validGenericRows = financialMatrix.rows.filter(r =>
-                !r.category || r.category.toUpperCase() === 'GENERAL'
-            );
-
-            // [FIX] Best Fit Algorithm:
-            // Filter rows where displacement >= minCC.
-            // Sort by minCC DESCENDING. Pick the first one.
-            // This handles "gaps" by snapping to the closest lower bound that covers it (effectively "Floor" logic for brackets).
-
-            const candidates = validGenericRows.filter(r => displacement >= (r.minCC || 0));
-            // Sort by minCC desc
-            candidates.sort((a, b) => (b.minCC || 0) - (a.minCC || 0));
-
-            if (candidates.length > 0) {
-                bestMatch = candidates[0];
-            }
-        }
-
-        // Apply Value if Match Found
-        if (bestMatch) {
-            matchIdentifier = bestMatch.id; // Capture ID
-            const val = (bestMatch as any)[contextKey] as number;
-            if (typeof val === 'number') {
-                registrationPrice = val;
-            }
-        }
-    }
 
     // [Legacy Fallback REMOVED] - 
     // if (registrationPrice === 0) registrationPrice = city.registrationCost?.credit || 0; 

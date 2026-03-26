@@ -40,11 +40,11 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
     const [isExempt, setIsExempt] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Initial Data Fetch (Matrix)
+    // Initial Data Fetch (Matrix) [FIXED PATH V2]
     useEffect(() => {
         const fetchMatrix = async () => {
             try {
-                const docRef = doc(db, 'config', 'financial_parameters');
+                const docRef = doc(db, 'financial_config/general/global_params/global_params');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     setMatrix(snap.data() as FinancialMatrix);
@@ -77,7 +77,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
     }, [moto.id]);
 
     useEffect(() => {
-        if (!moto) return;
+        if (!moto || !Array.isArray(financialEntities)) return;
         // if (!matrix) return; // Allow calc without matrix if needed for basic values
 
         const financialEntity = financialEntities.find(f => f.id === selectedFinancialId);
@@ -238,7 +238,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                                 value={selectedFinancialId}
                                 onChange={(e) => setSelectedFinancialId(e.target.value)}
                             >
-                                {financialEntities.map(f => (
+                                {Array.isArray(financialEntities) && financialEntities.map(f => (
                                     <option key={f.id} value={f.id}>{f.name} ({f.monthlyRate}%)</option>
                                 ))}
                             </select>
