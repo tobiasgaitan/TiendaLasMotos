@@ -85,7 +85,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
     const [discountStr, setDiscountStr] = useState<string>("");
 
     const [quote, setQuote] = useState<QuoteResult | null>(null);
-    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: new Date().toISOString() });
+    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: "" });
     const [isSaving, setIsSaving] = useState(false);
     const [isExempt, setIsExempt] = useState(false); // [NEW] Manual Exemption
 
@@ -120,7 +120,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 const docRef = doc(db, 'financial_config/general/global_params/global_params');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setMatrix(snap.data() as FinancialMatrix || { rows: [], lastUpdated: new Date().toISOString() });
+                    setMatrix(snap.data() as FinancialMatrix || { rows: [], lastUpdated: "" });
                 }
             } catch (e) {
                 console.error("Error fetching matrix", e);
