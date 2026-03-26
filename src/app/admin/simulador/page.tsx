@@ -35,7 +35,7 @@ export default function SimulatorPage() {
     const [soatRates, setSoatRates] = useState<SoatRate[]>([]);
     const [financialEntities, setFinancialEntities] = useState<FinancialEntity[]>([]);
     const [motos, setMotos] = useState<Moto[]>([]);
-    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: new Date().toISOString() });
+    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: "" });
 
     // --- USER INPUTS ---
     const [selectedCityId, setSelectedCityId] = useState<string>('');
@@ -78,7 +78,7 @@ export default function SimulatorPage() {
                 setSoatRates(sList);
                 setFinancialEntities(fList);
                 setMotos(mList);
-                setMatrix(mData || { rows: [], lastUpdated: new Date().toISOString() });
+                setMatrix(mData || { rows: [], lastUpdated: "" });
 
                 // Defaults
                 if (cList.length > 0) setSelectedCityId(cList[0].id);
