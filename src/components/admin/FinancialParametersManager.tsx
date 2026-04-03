@@ -7,7 +7,6 @@ import { MatrixRow, FinancialMatrix } from '@/types/financial';
 import { Loader2, Save, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveFinancialParams } from '@/app/actions';
-import { revalidatePath } from 'next/cache';
 
 const INITIAL_ROWS: MatrixRow[] = [
     {
