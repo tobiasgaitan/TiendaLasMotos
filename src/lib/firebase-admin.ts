@@ -12,26 +12,24 @@ import { getFirestore } from "firebase-admin/firestore";
 let firestoreInstance: FirebaseFirestore.Firestore;
 
 function getMockDB() {
-    return new Proxy({} as FirebaseFirestore.Firestore, {
+    const mockHandler: ProxyHandler<any> = {
         get(_target, prop) {
-            console.warn(`⚠️ [Build Mock] Accessed 'db.${String(prop)}'. Returning safe fallback.`);
-            if (prop === 'collection') {
-                return () => ({
-                    doc: () => ({
-                        get: async () => ({ exists: false, data: () => ({}) }),
-                        set: async () => { },
-                        update: async () => { },
-                    }),
-                    get: async () => ({ empty: true, docs: [] }),
-                    where: () => ({ get: async () => ({ empty: true, docs: [] }) }),
-                    orderBy: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }),
-                    limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
-                    select: () => ({ get: async () => ({ empty: true, docs: [] }) }),
+            if (['collection', 'doc'].includes(prop as string)) {
+                return () => new Proxy({}, mockHandler);
+            }
+            if (['get', 'set', 'update', 'add', 'delete'].includes(prop as string)) {
+                return async () => ({
+                    exists: false,
+                    data: () => ({}),
+                    empty: true,
+                    docs: [],
+                    id: 'mock-id'
                 });
             }
             return undefined;
         }
-    });
+    };
+    return new Proxy({} as FirebaseFirestore.Firestore, mockHandler);
 }
 
 try {
