@@ -215,8 +215,8 @@ const matrixRowSchema = z.object({
     id: z.string(),
     label: z.string(),
     category: z.string().optional(),
-    minCC: z.number().optional(),
-    maxCC: z.number().optional(),
+    minCC: z.coerce.number().optional(),
+    maxCC: z.coerce.number().optional(),
     registrationCredit: z.coerce.number().min(0),
     registrationCash: z.coerce.number().min(0),
 });
@@ -224,15 +224,12 @@ const matrixRowSchema = z.object({
 const financialMatrixSchema = z.object({
     rows: z.array(matrixRowSchema),
     lastUpdated: z.string().optional(),
-    life_insurance_mode: z.enum(['percentage', 'fixed']).optional(),
-    life_insurance_monthly: z.number().optional(),
-    default_down_payment_ratio: z.number().optional(),
 });
 
 /**
  * saveFinancialParams
  * Acción de servidor para guardar la matriz de parámetros financieros.
- * Implementa validación estructural mediante Zod.
+ * Implementa validación estructural mediante Zod y reporte de errores detallado.
  */
 export async function saveFinancialParams(data: any) {
     const cookieStore = await cookies();
@@ -244,14 +241,17 @@ export async function saveFinancialParams(data: any) {
 
     const validated = financialMatrixSchema.safeParse(data);
     if (!validated.success) {
-        console.error("Matrix Validation Error:", validated.error.flatten());
-        return { success: false, message: "Estructura de matriz inválida" };
+        // Erradicación de Fallo Silencioso: Reporte detallado de errores de validación
+        const errorDetails = validated.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return { success: false, message: `Datos de matriz inválidos: ${errorDetails}` };
     }
 
     try {
         const docRef = doc(db, 'financial_config/general/global_params/global_params');
+        
+        // Uso de updateDoc para evitar sobrescritura destructiva de otras llaves del documento
         await updateDoc(docRef, {
-            ...validated.data,
+            rows: validated.data.rows,
             lastUpdated: new Date().toISOString()
         });
 
