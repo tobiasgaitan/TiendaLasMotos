@@ -1,8 +1,7 @@
 'use server';
 
 import { z } from "zod";
-import { db } from "@/lib/firestore";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { db as adminDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -52,23 +51,22 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         origen: "WEB_BETA",
     };
 
-    const validatedFields = leadSchema.safeParse(rawData);
-
-    if (!validatedFields.success) {
+    const validated = leadSchema.safeParse(rawData);
+    if (!validated.success) {
         return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Por favor corrige los errores en el formulario."
+            success: false,
+            errors: validated.error.flatten().fieldErrors as any,
+            message: "Por favor corrige los errores del formulario."
         };
     }
 
     try {
-        const leadData: Omit<Lead, 'fecha'> & { fecha: any } = {
-            ...validatedFields.data,
-            fecha: serverTimestamp(),
-            estado: "NUEVO"
-        };
-
-        await addDoc(collection(db, "leads"), leadData);
+        // [ADMIN SDK] Server-side trusted write
+        await adminDb.collection("leads").add({
+            ...validated.data,
+            created_at: new Date(), // Admin SDK accepts JS Date
+            status: "nuevo"
+        });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
     } catch (error) {
@@ -132,7 +130,7 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
         const colTime = new Date(utc - offset);
 
-        const docRef = doc(db, "pagina", "catalogo", "items", motoId);
+        const docRef = adminDb.collection("pagina").doc("catalogo").collection("items").doc(motoId);
 
         // Objeto de actualización base
         const updatePayload: any = {
@@ -162,12 +160,12 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
             updatePayload["bono.activo"] = bono.activo;
             updatePayload["bono.titulo"] = bono.titulo;
             updatePayload["bono.monto"] = bono.monto;
-            // Convertimos string ISO a Timestamp de Firestore
-            updatePayload["bono.fecha_limite"] = Timestamp.fromDate(new Date(bono.fecha_limite));
+            // El Admin SDK no requiere Timestamp.fromDate, acepta Date directamente o string ISO si se guarda así
+            updatePayload["bono.fecha_limite"] = new Date(bono.fecha_limite);
         }
 
-        // 3. Escribir en Firestore
-        await updateDoc(docRef, updatePayload);
+        // 3. Escribir en Firestore (Admin SDK update)
+        await docRef.update(updatePayload);
 
         // 4. Limpiar Caché (Para que se vea la remolacha al instante)
         revalidatePath('/pagina/catalogo');
@@ -247,18 +245,18 @@ export async function saveFinancialParams(data: any) {
     }
 
     try {
-        const docRef = doc(db, 'financial_config/general/global_params/global_params');
+        // [ADMIN SDK LOCK] Bypassing security rules for trusted config mutation
+        const docRef = adminDb.collection('financial_config').doc('general').collection('global_params').doc('global_params');
         
-        // Uso de updateDoc para evitar sobrescritura destructiva de otras llaves del documento
-        await updateDoc(docRef, {
+        await docRef.set({
             rows: validated.data.rows,
             lastUpdated: new Date().toISOString()
-        });
+        }, { merge: true });
 
         revalidatePath('/admin/financial-parameters');
         return { success: true, message: "Parámetros actualizados correctamente" };
     } catch (error: any) {
         console.error("Error saving financial params:", error);
-        return { success: false, message: error.message || "Error al guardar en Firestore" };
+        return { success: false, message: error.message || "Error al guardar en Firestore Admin" };
     }
 }
