@@ -140,7 +140,7 @@ export default function BuscadorPublicoPage() {
 
         row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
 
-        return row ? (row.registrationCreditGeneral || 750000) : 750000;
+        return row ? (row.registrationCredit || 750000) : 750000;
     };
 
     // 5. Intelligent Filter Logic

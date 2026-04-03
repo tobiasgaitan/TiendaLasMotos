@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { saveFinancialParams } from '@/app/actions';
 import { FinancialMatrix, MatrixRow } from '@/types/financial';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,59 +17,39 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '0 - 99 cc',
         minCC: 0,
         maxCC: 99,
-        registrationCreditGeneral: 660000,
-        registrationCreditSantaMarta: 760000,
-        registrationCashEnvigado: 530000,
-        registrationCashCienaga: 595000,
-        registrationCashZonaBananera: 600000,
-        registrationCashSantaMarta: 730000
+        registrationCredit: 660000,
+        registrationCash: 530000,
     },
     {
         id: '100-124',
         label: '100 - 124 cc',
         minCC: 100,
         maxCC: 124,
-        registrationCreditGeneral: 740000,
-        registrationCreditSantaMarta: 840000,
-        registrationCashEnvigado: 605000,
-        registrationCashCienaga: 680000,
-        registrationCashZonaBananera: 680000,
-        registrationCashSantaMarta: 820000
+        registrationCredit: 740000,
+        registrationCash: 605000,
     },
     {
         id: '125-200',
         label: '125 - 200 cc',
         minCC: 125,
         maxCC: 200,
-        registrationCreditGeneral: 820000,
-        registrationCreditSantaMarta: 920000,
-        registrationCashEnvigado: 605000,
-        registrationCashCienaga: 680000,
-        registrationCashZonaBananera: 680000,
-        registrationCashSantaMarta: 820000
+        registrationCredit: 820000,
+        registrationCash: 605000,
     },
     {
         id: 'gt-200',
         label: 'Mayor a 200 cc',
         minCC: 201,
         maxCC: 99999,
-        registrationCreditGeneral: 1020000,
-        registrationCreditSantaMarta: 1120000,
-        registrationCashEnvigado: 1040000,
-        registrationCashCienaga: 1110000,
-        registrationCashZonaBananera: 1100000,
-        registrationCashSantaMarta: 1260000
+        registrationCredit: 1020000,
+        registrationCash: 1040000,
     },
     {
         id: 'electrical',
         label: 'Eléctricas',
         category: 'ELECTRICA',
-        registrationCreditGeneral: 440000,
-        registrationCreditSantaMarta: 540000,
-        registrationCashEnvigado: 400000,
-        registrationCashCienaga: 470000,
-        registrationCashZonaBananera: 470000,
-        registrationCashSantaMarta: 605000
+        registrationCredit: 440000,
+        registrationCash: 400000,
     },
     {
         id: 'motocarro',
@@ -76,12 +57,8 @@ const INITIAL_ROWS: MatrixRow[] = [
         category: 'MOTOCARRO Y/O MOTOCARGUERO',
         minCC: 0,
         maxCC: 99999,
-        registrationCreditGeneral: 850000,
-        registrationCreditSantaMarta: 950000,
-        registrationCashEnvigado: 650000,
-        registrationCashCienaga: 720000,
-        registrationCashZonaBananera: 720000,
-        registrationCashSantaMarta: 870000
+        registrationCredit: 850000,
+        registrationCash: 650000,
     }
 ];
 
@@ -116,12 +93,15 @@ export default function FinancialParametersManager() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const docRef = doc(db, 'financial_config/general/global_params/global_params');
-            await setDoc(docRef, {
-                rows: matrix,
-                lastUpdated: new Date().toISOString()
+            const result = await saveFinancialParams({
+                rows: matrix
             });
-            toast.success("Parámetros actualizados correctamente");
+
+            if (result.success) {
+                toast.success(result.message);
+            } else {
+                toast.error(result.message);
+            }
         } catch (error) {
             console.error("Error saving:", error);
             toast.error("Error guardando cambios");
@@ -161,13 +141,8 @@ export default function FinancialParametersManager() {
                     <thead className="text-xs uppercase bg-gray-800 text-gray-400">
                         <tr>
                             <th className="px-4 py-4 rounded-tl-xl sticky left-0 bg-gray-800 z-10">Categoría / Cilindrada</th>
-
-                            <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">Crédito (General)</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">Crédito (Sta Marta)</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700">Contado (Envigado)</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700">Contado (Ciénaga)</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700">Contado (Z. Bananera)</th>
-                            <th className="px-4 py-4 text-center border-l border-gray-700">Contado (Sta Marta)</th>
+                            <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">CRÉDITO</th>
+                            <th className="px-4 py-4 text-center border-l border-gray-700 bg-emerald-900/10 text-emerald-100">CONTADO</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -179,63 +154,23 @@ export default function FinancialParametersManager() {
 
 
 
-                                {/* CREDIT GENERAL */}
+                                {/* REGISTRATION CREDIT */}
                                 <td className="p-2 border-r border-gray-700 bg-blue-900/5">
                                     <input
                                         type="number"
                                         className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50 font-medium text-blue-100"
-                                        value={row.registrationCreditGeneral}
-                                        onChange={(e) => updateCell(idx, 'registrationCreditGeneral', Number(e.target.value))}
+                                        value={row.registrationCredit}
+                                        onChange={(e) => updateCell(idx, 'registrationCredit', Number(e.target.value))}
                                     />
                                 </td>
 
-                                {/* CREDIT SANTA MARTA */}
-                                <td className="p-2 border-r border-gray-700 bg-blue-900/5">
+                                {/* REGISTRATION CASH */}
+                                <td className="p-2 border-r border-gray-700 bg-emerald-900/5">
                                     <input
                                         type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50 font-medium text-blue-100"
-                                        value={row.registrationCreditSantaMarta}
-                                        onChange={(e) => updateCell(idx, 'registrationCreditSantaMarta', Number(e.target.value))}
-                                    />
-                                </td>
-
-                                {/* CASH ENVIGADO */}
-                                <td className="p-2 border-r border-gray-700">
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50"
-                                        value={row.registrationCashEnvigado}
-                                        onChange={(e) => updateCell(idx, 'registrationCashEnvigado', Number(e.target.value))}
-                                    />
-                                </td>
-
-                                {/* CASH CIENAGA */}
-                                <td className="p-2 border-r border-gray-700">
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50"
-                                        value={row.registrationCashCienaga}
-                                        onChange={(e) => updateCell(idx, 'registrationCashCienaga', Number(e.target.value))}
-                                    />
-                                </td>
-
-                                {/* CASH ZONA BANANERA */}
-                                <td className="p-2 border-r border-gray-700">
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50"
-                                        value={row.registrationCashZonaBananera}
-                                        onChange={(e) => updateCell(idx, 'registrationCashZonaBananera', Number(e.target.value))}
-                                    />
-                                </td>
-
-                                {/* CASH SANTA MARTA */}
-                                <td className="p-2">
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50"
-                                        value={row.registrationCashSantaMarta}
-                                        onChange={(e) => updateCell(idx, 'registrationCashSantaMarta', Number(e.target.value))}
+                                        className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-emerald-500/50 font-medium text-emerald-100"
+                                        value={row.registrationCash}
+                                        onChange={(e) => updateCell(idx, 'registrationCash', Number(e.target.value))}
                                     />
                                 </td>
                             </tr>
@@ -248,7 +183,8 @@ export default function FinancialParametersManager() {
                 <h4 className="font-bold mb-2 flex items-center gap-2">ℹ️ Notas Importantes</h4>
                 <ul className="list-disc pl-5 space-y-1">
                     <li>La <strong>Categoría</strong> tiene prioridad sobre el cilindraje (ej: Eléctricas siempre usan la fila de eléctricas).</li>
-                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calculará automáticamente el Impuesto de Timbre además del valor base.</li>
+                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calcula automáticamente el Impuesto de Timbre además del valor base indicado.</li>
+                    <li>Para pagos de <strong>Contado</strong>, se indica el valor aplicado por concepto de Impuesto de Timbre dentro del cálculo base si aplica.</li>
                     <li>Los valores de Crédito aplican automáticamente cuando se selecciona un método de financiación.</li>
                 </ul>
             </div>

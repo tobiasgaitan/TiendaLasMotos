@@ -142,8 +142,8 @@ export default function BudgetToBikePage() {
         // Note: Logic simplification, assuming no "Electrical" or "Motocarro" specific overrides for now unless strictly needed
         row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
 
-        // Use "Crédito General" column (fallback to ~750k if missing)
-        return row ? (row.registrationCreditGeneral || 750000) : 750000;
+        // Use "Crédito" column (fallback to ~750k if missing)
+        return row ? (row.registrationCredit || 750000) : 750000;
     };
 
     // 5. Intelligent Filter Logic

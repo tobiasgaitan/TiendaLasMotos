@@ -98,19 +98,13 @@ export const calculateQuote = (
 
         // --- Matrix Lookup Logic (Strict & Filtered) ---
         if (financialMatrix && Array.isArray(financialMatrix.rows)) {
-            const cityName = city.name.toLowerCase();
-            let contextKey: keyof MatrixRow = 'registrationCreditGeneral';
+            let contextKey: keyof MatrixRow = 'registrationCredit';
 
-            // Context Key Mapping
+            // Unificado: Crédito o Contado
             if (paymentMethod === 'credit') {
-                if (cityName.includes('santa marta')) contextKey = 'registrationCreditSantaMarta';
-                else contextKey = 'registrationCreditGeneral';
+                contextKey = 'registrationCredit';
             } else {
-                if (cityName.includes('santa marta')) contextKey = 'registrationCashSantaMarta';
-                else if (cityName.includes('envigado')) contextKey = 'registrationCashEnvigado';
-                else if (cityName.includes('ciénaga') || cityName.includes('cienaga')) contextKey = 'registrationCashCienaga';
-                else if (cityName.includes('zona bananera')) contextKey = 'registrationCashZonaBananera';
-                else contextKey = 'registrationCreditGeneral';
+                contextKey = 'registrationCash';
             }
 
             // Category Matching

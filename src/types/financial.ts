@@ -82,12 +82,8 @@ export interface MatrixRow {
     // Costs per city/region context (using a record for flexibility or fixed keys if known)
     // We will use specific keys as per requirements: 
     // creditGeneral, creditSantaMarta, cashEnvigado, cashCienaga, cashZonaBananera, cashSantaMarta
-    registrationCreditGeneral: number;
-    registrationCashSantaMarta: number;
-    registrationCreditSantaMarta: number;
-    registrationCashEnvigado: number;
-    registrationCashCienaga: number;
-    registrationCashZonaBananera: number;
+    registrationCredit: number;
+    registrationCash: number;
 }
 
 export interface FinancialMatrix {
