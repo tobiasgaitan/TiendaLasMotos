@@ -207,3 +207,58 @@ export async function loginAction(prevState: any, formData: FormData) {
 
     return { success: false, message: "Credenciales incorrectas. Intenta de nuevo." };
 }
+// ==========================================
+// 4. CONFIGURACIÓN FINANCIERA (Matrículas)
+// ==========================================
+
+const matrixRowSchema = z.object({
+    id: z.string(),
+    label: z.string(),
+    category: z.string().optional(),
+    minCC: z.number().optional(),
+    maxCC: z.number().optional(),
+    registrationCredit: z.number().min(0),
+    registrationCash: z.number().min(0),
+});
+
+const financialMatrixSchema = z.object({
+    rows: z.array(matrixRowSchema),
+    lastUpdated: z.string().optional(),
+    life_insurance_mode: z.enum(['percentage', 'fixed']).optional(),
+    life_insurance_monthly: z.number().optional(),
+    default_down_payment_ratio: z.number().optional(),
+});
+
+/**
+ * saveFinancialParams
+ * Acción de servidor para guardar la matriz de parámetros financieros.
+ * Implementa validación estructural mediante Zod.
+ */
+export async function saveFinancialParams(data: any) {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado" };
+    }
+
+    const validated = financialMatrixSchema.safeParse(data);
+    if (!validated.success) {
+        console.error("Matrix Validation Error:", validated.error.flatten());
+        return { success: false, message: "Estructura de matriz inválida" };
+    }
+
+    try {
+        const docRef = doc(db, 'financial_config/general/global_params/global_params');
+        await updateDoc(docRef, {
+            ...validated.data,
+            lastUpdated: new Date().toISOString()
+        });
+
+        revalidatePath('/admin/financial-parameters');
+        return { success: true, message: "Parámetros actualizados correctamente" };
+    } catch (error: any) {
+        console.error("Error saving financial params:", error);
+        return { success: false, message: error.message || "Error al guardar en Firestore" };
+    }
+}
