@@ -79,12 +79,18 @@ export default function FinancialParametersManager() {
             if (snap.exists()) {
                 const data = snap.data() as FinancialMatrix;
                 if (data.rows && data.rows.length > 0) {
-                    setMatrix(data.rows);
+                    // Hidratación Defensiva: Aseguramos campos numéricos válidos
+                    const sanitizedRows = data.rows.map((row: any) => ({
+                        ...row,
+                        registrationCredit: Number(row.registrationCredit || 0),
+                        registrationCash: Number(row.registrationCash || 0),
+                    }));
+                    setMatrix(sanitizedRows);
                 }
             }
         } catch (error) {
             console.error("Error loading financial matrix:", error);
-            toast.error("Error cargando parámetros");
+            toast.error("Error cargando parámetros del servidor");
         } finally {
             setLoading(false);
         }
@@ -100,11 +106,12 @@ export default function FinancialParametersManager() {
             if (result.success) {
                 toast.success(result.message);
             } else {
-                toast.error(result.message);
+                // Erradicación de Fallo Silencioso: Mostrar error exacto del servidor
+                toast.error(result.message || "Estructura de matriz rechazada por el servidor");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving:", error);
-            toast.error("Error guardando cambios");
+            toast.error(error.message || "Error crítico al intentar guardar cambios");
         } finally {
             setSaving(false);
         }

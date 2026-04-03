@@ -217,8 +217,8 @@ const matrixRowSchema = z.object({
     category: z.string().optional(),
     minCC: z.number().optional(),
     maxCC: z.number().optional(),
-    registrationCredit: z.number().min(0),
-    registrationCash: z.number().min(0),
+    registrationCredit: z.coerce.number().min(0),
+    registrationCash: z.coerce.number().min(0),
 });
 
 const financialMatrixSchema = z.object({
