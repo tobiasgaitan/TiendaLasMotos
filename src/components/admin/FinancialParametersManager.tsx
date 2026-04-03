@@ -1,23 +1,19 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { saveFinancialParams } from '@/app/actions';
-import { FinancialMatrix, MatrixRow } from '@/types/financial';
-import { Loader2, Save } from 'lucide-react';
+import { MatrixRow, FinancialMatrix } from '@/types/financial';
+import { Loader2, Save, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { saveFinancialParams } from '@/app/actions';
+import { revalidatePath } from 'next/cache';
 
-/**
- * Default Initial Data based on User Request
- */
 const INITIAL_ROWS: MatrixRow[] = [
     {
         id: '0-99',
         label: '0 - 99 cc',
         minCC: 0,
         maxCC: 99,
-        registrationCredit: 660000,
+        registrationCredit: 700000,
         registrationCash: 530000,
     },
     {
@@ -25,7 +21,7 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '100 - 124 cc',
         minCC: 100,
         maxCC: 124,
-        registrationCredit: 740000,
+        registrationCredit: 780000,
         registrationCash: 605000,
     },
     {
@@ -33,31 +29,29 @@ const INITIAL_ROWS: MatrixRow[] = [
         label: '125 - 200 cc',
         minCC: 125,
         maxCC: 200,
-        registrationCredit: 820000,
+        registrationCredit: 860000,
         registrationCash: 605000,
     },
     {
-        id: 'gt-200',
+        id: '200-plus',
         label: 'Mayor a 200 cc',
-        minCC: 201,
-        maxCC: 99999,
-        registrationCredit: 1020000,
+        minCC: 200,
+        maxCC: 3000,
+        registrationCredit: 1340000,
         registrationCash: 1040000,
     },
     {
-        id: 'electrical',
+        id: 'electric',
         label: 'Eléctricas',
-        category: 'ELECTRICA',
+        category: 'ELÉCTRICA',
         registrationCredit: 440000,
         registrationCash: 400000,
     },
     {
         id: 'motocarro',
         label: 'Motocarros',
-        category: 'MOTOCARRO Y/O MOTOCARGUERO',
-        minCC: 0,
-        maxCC: 99999,
-        registrationCredit: 850000,
+        category: 'MOTOCARRO',
+        registrationCredit: 1050000,
         registrationCash: 650000,
     }
 ];
@@ -99,14 +93,14 @@ export default function FinancialParametersManager() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const result = await saveFinancialParams({
-                rows: matrix
-            });
-
+            // Aseguramos que estamos enviando el estado actual de la matriz
+            const result = await saveFinancialParams({ rows: matrix });
+            
             if (result.success) {
-                toast.success(result.message);
+                toast.success("Cambios guardados exitosamente");
+                // Recargamos para confirmar persistencia real
+                await loadData();
             } else {
-                // Erradicación de Fallo Silencioso: Mostrar error exacto del servidor
                 toast.error(result.message || "Estructura de matriz rechazada por el servidor");
             }
         } catch (error: any) {
@@ -118,6 +112,7 @@ export default function FinancialParametersManager() {
     };
 
     const updateCell = (index: number, field: keyof MatrixRow, value: number) => {
+        // PARCHE DE INMUTABILIDAD REAL - AUDITORIA ESTRICTA
         const newMatrix = [...matrix];
         newMatrix[index] = { ...newMatrix[index], [field]: value };
         setMatrix(newMatrix);
@@ -137,16 +132,16 @@ export default function FinancialParametersManager() {
                     disabled={saving}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                    {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar Cambios
                 </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-gray-700 bg-gray-900/50">
-                <table className="w-full text-sm text-left text-gray-300">
-                    <thead className="text-xs uppercase bg-gray-800 text-gray-400">
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs uppercase bg-gray-800/50 text-gray-400">
                         <tr>
-                            <th className="px-4 py-4 rounded-tl-xl sticky left-0 bg-gray-800 z-10">Categoría / Cilindrada</th>
+                            <th className="px-4 py-4 rounded-tl-xl">Categoría / Cilindrada</th>
                             <th className="px-4 py-4 text-center border-l border-gray-700 bg-blue-900/20 text-blue-200">CRÉDITO</th>
                             <th className="px-4 py-4 text-center border-l border-gray-700 bg-emerald-900/10 text-emerald-100">CONTADO</th>
                         </tr>
@@ -157,8 +152,6 @@ export default function FinancialParametersManager() {
                                 <td className="px-4 py-3 font-medium text-white sticky left-0 bg-gray-900 z-10 border-r border-gray-700">
                                     {row.label}
                                 </td>
-
-
 
                                 {/* REGISTRATION CREDIT */}
                                 <td className="p-2 border-r border-gray-700 bg-blue-900/5">
@@ -185,13 +178,18 @@ export default function FinancialParametersManager() {
                 </table>
             </div>
 
-            <div className="p-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg text-sm text-yellow-200/80">
-                <h4 className="font-bold mb-2 flex items-center gap-2">ℹ️ Notas Importantes</h4>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li>La <strong>Categoría</strong> tiene prioridad sobre el cilindraje (ej: Eléctricas siempre usan la fila de eléctricas).</li>
-                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calcula y suma automáticamente el Impuesto de Timbre (1.5% del valor de la moto por mes calendario faltante del año, más $40.000) al precio final.</li>
-                    <li>Los valores de Crédito aplican automáticamente cuando se selecciona un método de financiación.</li>
-                </ul>
+            <div className="bg-amber-900/10 border border-amber-900/30 rounded-xl p-4">
+                <div className="flex gap-3">
+                    <Info className="w-5 h-5 text-amber-500 shrink-0" />
+                    <div className="space-y-2">
+                        <p className="text-sm font-medium text-amber-200">Notas Importantes</p>
+                        <ul className="text-xs text-amber-200/70 space-y-1 list-disc pl-4">
+                            <li>La <strong>Categoría</strong> tiene prioridad sobre el cilindraje (ej: Eléctricas siempre usan la fila de eléctricas).</li>
+                            <li>Para todos los vehículos &gt; 125cc en modalidad Contado, el sistema calcula y suma automáticamente el Impuesto de Timbre (1.5% del valor de la moto por mes calendario faltante del año, más $40.000) al precio final.</li>
+                            <li>Los valores de Crédito aplican automáticamente cuando se selecciona un método de financiación.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     );
