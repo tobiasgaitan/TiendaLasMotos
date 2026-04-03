@@ -119,8 +119,7 @@ export default function FinancialParametersManager() {
 
     const updateCell = (index: number, field: keyof MatrixRow, value: number) => {
         const newMatrix = [...matrix];
-        // @ts-ignore - Dynamic key assignment
-        newMatrix[index][field] = value;
+        newMatrix[index] = { ...newMatrix[index], [field]: value };
         setMatrix(newMatrix);
     };
 
