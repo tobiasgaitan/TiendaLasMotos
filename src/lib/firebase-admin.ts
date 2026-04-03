@@ -12,24 +12,29 @@ import { getFirestore } from "firebase-admin/firestore";
 let firestoreInstance: FirebaseFirestore.Firestore;
 
 function getMockDB() {
-    const mockHandler: ProxyHandler<any> = {
-        get(_target, prop) {
-            if (['collection', 'doc'].includes(prop as string)) {
-                return () => new Proxy({}, mockHandler);
-            }
-            if (['get', 'set', 'update', 'add', 'delete'].includes(prop as string)) {
-                return async () => ({
-                    exists: false,
-                    data: () => ({}),
-                    empty: true,
-                    docs: [],
-                    id: 'mock-id'
-                });
-            }
-            return undefined;
-        }
+    const mockProxy = (name: string): any => {
+        const fn = () => mockProxy(name);
+        // Methods that return promises
+        const asyncMethods = ['get', 'set', 'update', 'add', 'delete', 'commit'];
+        asyncMethods.forEach(m => {(fn as any)[m] = async () => ({
+            exists: false,
+            data: () => ({}),
+            empty: true,
+            docs: [],
+            id: 'mock-id',
+            writeTime: new Date()
+        })});
+        // Recursive methods
+        const recursiveMethods = ['collection', 'doc', 'where', 'orderBy', 'limit', 'select', 'startAt', 'endAt'];
+        recursiveMethods.forEach(m => {(fn as any)[m] = () => mockProxy(m)});
+        
+        // Identity
+        (fn as any).id = 'mock-id';
+        (fn as any).path = 'mock/path';
+        
+        return fn;
     };
-    return new Proxy({} as FirebaseFirestore.Firestore, mockHandler);
+    return mockProxy('db') as any as FirebaseFirestore.Firestore;
 }
 
 try {
