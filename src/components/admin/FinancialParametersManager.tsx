@@ -74,11 +74,11 @@ export default function FinancialParametersManager() {
             if (snap.exists()) {
                 const data = snap.data() as FinancialMatrix;
                 if (data.rows && data.rows.length > 0) {
-                    // Hidratación Defensiva: Aseguramos campos numéricos válidos
+                    // Hidratación Defensiva: Mapeo de llaves legadas para asegurar migración sin pérdida de datos
                     const sanitizedRows = data.rows.map((row: any) => ({
                         ...row,
-                        registrationCredit: Number(row.registrationCredit || 0),
-                        registrationCash: Number(row.registrationCash || 0),
+                        registrationCredit: Number(row.registrationCredit ?? row.registrationCreditGeneral ?? 0),
+                        registrationCash: Number(row.registrationCash ?? row.registrationCashSantaMarta ?? 0),
                     }));
                     setMatrix(sanitizedRows);
                 }
