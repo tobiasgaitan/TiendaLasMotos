@@ -183,8 +183,7 @@ export default function FinancialParametersManager() {
                 <h4 className="font-bold mb-2 flex items-center gap-2">ℹ️ Notas Importantes</h4>
                 <ul className="list-disc pl-5 space-y-1">
                     <li>La <strong>Categoría</strong> tiene prioridad sobre el cilindraje (ej: Eléctricas siempre usan la fila de eléctricas).</li>
-                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calcula automáticamente el Impuesto de Timbre además del valor base indicado.</li>
-                    <li>Para pagos de <strong>Contado</strong>, se indica el valor aplicado por concepto de Impuesto de Timbre dentro del cálculo base si aplica.</li>
+                    <li>Para <strong>todos los vehículos &gt; 125cc en modalidad Contado</strong>, el sistema calcula y suma automáticamente el Impuesto de Timbre (1.5% del valor de la moto por mes calendario faltante del año, más $40.000) al precio final.</li>
                     <li>Los valores de Crédito aplican automáticamente cuando se selecciona un método de financiación.</li>
                 </ul>
             </div>
