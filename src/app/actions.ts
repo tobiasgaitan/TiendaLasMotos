@@ -253,13 +253,15 @@ export async function saveFinancialParams(data: any) {
         
         await docRef.set({ rows: validated.data.rows }, { merge: true });
 
-        revalidatePath('/admin/financial-parameters');
+        // revalidatePath temporalmente deshabilitado para descartar fallos de caché/renderizado post-mutación
         return { success: true, message: "Parámetros actualizados correctamente" };
     } catch (error: any) {
-        console.error("🔥 Error crítico absoluto en Server Action:", error);
+        // Reporte de diagnóstico crudo para forzar transparencia en el error
+        const errMsg = error?.message || "Excepción sin mensaje";
+        const errStack = (error?.stack || "").substring(0, 100);
         return { 
             success: false, 
-            message: `Fallo de servidor (Handled): ${error.message || 'Excepción desconocida'}` 
+            message: `CRASH_REPORT: ${errMsg} | ${errStack}` 
         };
     }
 }
