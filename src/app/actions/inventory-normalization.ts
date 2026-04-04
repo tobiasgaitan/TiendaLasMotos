@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/firebase-admin";
 
 /**
  * Normalizes all inventory items in the `pagina/catalogo/items` collection.
@@ -17,6 +17,7 @@ export async function normalizeInventory() {
     console.log("🚀 Starting Inventory Normalization (Master Order V23.0)...");
 
     try {
+        const db = getDb();
         const snapshot = await db.collection("pagina").doc("catalogo").collection("items").get();
         let totalProcessed = 0;
         let totalUpdated = 0;
