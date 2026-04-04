@@ -233,21 +233,20 @@ const financialMatrixSchema = z.object({
  * Implementa validación estructural mediante Zod y reporte de errores detallado.
  */
 export async function saveFinancialParams(data: any) {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('__session');
-
-    if (!sessionCookie) {
-        return { success: false, message: "No autorizado" };
-    }
-
-    const validated = financialMatrixSchema.safeParse(data);
-    if (!validated.success) {
-        // Erradicación de Fallo Silencioso: Reporte detallado de errores de validación
-        const errorDetails = validated.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        return { success: false, message: `Datos de matriz inválidos: ${errorDetails}` };
-    }
-
     try {
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('__session');
+
+        if (!sessionCookie) {
+            return { success: false, message: "No autorizado (Session Cookie Missing)" };
+        }
+
+        const validated = financialMatrixSchema.safeParse(data);
+        if (!validated.success) {
+            const errorDetails = validated.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            return { success: false, message: `Datos de matriz inválidos: ${errorDetails}` };
+        }
+
         // [ADMIN SDK LOCK] Bypassing security rules for trusted config mutation
         const adminDb = getDb();
         const docRef = adminDb.collection('financial_config').doc('general').collection('global_params').doc('global_params');
@@ -257,10 +256,10 @@ export async function saveFinancialParams(data: any) {
         revalidatePath('/admin/financial-parameters');
         return { success: true, message: "Parámetros actualizados correctamente" };
     } catch (error: any) {
-        console.error("🔥 Error crítico en Server Action:", error);
+        console.error("🔥 Error crítico absoluto en Server Action:", error);
         return { 
             success: false, 
-            message: `Fallo de servidor: ${error.message || 'Excepción desconocida'}` 
+            message: `Fallo de servidor (Handled): ${error.message || 'Excepción desconocida'}` 
         };
     }
 }
