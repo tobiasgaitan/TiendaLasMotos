@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   description: "Gestión de inventario y ventas",
 };
 
+import { Toaster } from "sonner";
 import { LeadModalProvider } from "@/context/LeadModalContext";
 import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
@@ -50,6 +51,7 @@ export default function RootLayout({
       >
         <LeadModalProvider>
           <AuthProvider>
+            <Toaster position="top-right" expand={false} richColors />
             <NavigationWrapper />
             {children}
             <LeadForm />
