@@ -248,15 +248,15 @@ export async function saveFinancialParams(data: any) {
         // [ADMIN SDK LOCK] Bypassing security rules for trusted config mutation
         const docRef = adminDb.collection('financial_config').doc('general').collection('global_params').doc('global_params');
         
-        await docRef.set({
-            rows: validated.data.rows,
-            lastUpdated: new Date().toISOString()
-        }, { merge: true });
+        await docRef.set({ rows: validated.data.rows }, { merge: true });
 
         revalidatePath('/admin/financial-parameters');
         return { success: true, message: "Parámetros actualizados correctamente" };
     } catch (error: any) {
-        console.error("Error saving financial params:", error);
-        return { success: false, message: error.message || "Error al guardar en Firestore Admin" };
+        console.error("🔥 Error crítico en Server Action:", error);
+        return { 
+            success: false, 
+            message: `Fallo de servidor: ${error.message || 'Excepción desconocida'}` 
+        };
     }
 }
