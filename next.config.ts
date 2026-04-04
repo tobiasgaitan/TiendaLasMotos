@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // ⚡ DOCKER SUPPORT: Required for lightweight container images
   output: 'standalone',
 
+  // 🛡️ EXTERNAL PACKAGES: Prevents bundler from obfuscating firebase-admin
+  serverExternalPackages: ['firebase-admin'],
+
   images: {
     remotePatterns: [
       {
