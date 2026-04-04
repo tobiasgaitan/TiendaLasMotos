@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from "zod";
-import { db as adminDb } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -61,6 +61,7 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     }
 
     try {
+        const adminDb = getDb();
         // [ADMIN SDK] Server-side trusted write
         await adminDb.collection("leads").add({
             ...validated.data,
@@ -69,10 +70,11 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving lead:", error);
         return {
-            message: "Hubo un error al enviar tus datos. Inténtalo de nuevo."
+            success: false,
+            message: `Error al enviar los datos: ${error.message || 'Excepción desconocida'}`
         };
     }
 }
@@ -122,6 +124,7 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
     }
 
     try {
+        const adminDb = getDb();
         const { motoId, precio, imagen_url, marca, modelo, anio, isVisible, bono } = validated.data;
 
         // Configuración de fecha para last_updated (Zona horaria Colombia aprox)
@@ -174,9 +177,9 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
 
         return { success: true, message: "Producto actualizado correctamente" };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving product:", error);
-        return { success: false, message: "Error al guardar en base de datos. Verifica permisos." };
+        return { success: false, message: `Error al guardar producto: ${error.message || 'Excepción desconocida'}` };
     }
 }
 
@@ -246,6 +249,7 @@ export async function saveFinancialParams(data: any) {
 
     try {
         // [ADMIN SDK LOCK] Bypassing security rules for trusted config mutation
+        const adminDb = getDb();
         const docRef = adminDb.collection('financial_config').doc('general').collection('global_params').doc('global_params');
         
         await docRef.set({ rows: validated.data.rows }, { merge: true });

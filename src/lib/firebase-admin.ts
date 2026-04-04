@@ -25,7 +25,9 @@ if (!admin.apps.length) {
     }
 }
 
-// Nota: Acceder a admin.firestore() fuera de un bloque controlado puede causar 500 
-// si la inicialización falló. La persistencia debe manejarse con try/catch en el llamado.
-const db = admin.firestore();
-export { db };
+/**
+ * 🚀 LAZY GETTER: getDb
+ * Evita el "Top-Level Crash" durante la importación del módulo.
+ * La excepción real se lanzará dentro del try/catch de la Server Action.
+ */
+export const getDb = () => admin.firestore();
