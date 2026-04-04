@@ -1,7 +1,8 @@
-import { getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-
 export const getDb = () => {
+    // Lazy Require para engañar al bundler
+    const { getApps, initializeApp } = require('firebase-admin/app');
+    const { getFirestore } = require('firebase-admin/firestore');
+
     if (!getApps().length) {
         try {
             initializeApp({
