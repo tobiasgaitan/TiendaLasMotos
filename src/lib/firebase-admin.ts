@@ -1,18 +1,28 @@
 // @ts-ignore
 export const getDb = () => {
-  // 🛡️ ESCUDO DE TRANSPILACIÓN: 
-  // Usamos eval('require') para que Next.js no intente ofuscar el módulo.
   const adminApp = eval("require('firebase-admin/app')");
   const adminFirestore = eval("require('firebase-admin/firestore')");
 
-  if (!adminApp.getApps().length) {
-    try {
-      adminApp.initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
-      });
-    } catch (error) {
-      console.error('⚠️ [Firebase Admin] Init Error:', error);
+  // 🛡️ PERSISTENCIA GLOBAL: Evita que el App se pierda en el contexto de Cloud Run
+  const globalAny: any = global;
+  
+  if (!globalAny._firebaseAdminApp) {
+    const apps = adminApp.getApps();
+    if (apps.length > 0) {
+      globalAny._firebaseAdminApp = apps[0];
+    } else {
+      try {
+        globalAny._firebaseAdminApp = adminApp.initializeApp({
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
+        });
+        console.log('✅ [Firebase Admin] Nueva instancia inicializada vía ADC');
+      } catch (error) {
+        console.error('⚠️ [Firebase Admin] Error crítico de inicio:', error);
+        throw error;
+      }
     }
   }
-  return adminFirestore.getFirestore();
+
+  // Pasamos la instancia global explícitamente para evitar el error de "Default app"
+  return adminFirestore.getFirestore(globalAny._firebaseAdminApp);
 };
