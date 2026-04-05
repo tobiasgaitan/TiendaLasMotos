@@ -25,6 +25,7 @@ interface RowData {
     vivienda?: string;
     servicios_publicos?: string;
     plan_celular?: string;
+    status?: string;
     status_row?: 'VALID' | 'ERROR';
 }
 
@@ -55,14 +56,16 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
             skipEmptyLines: true,
             complete: (results) => {
                 const processed = (results.data as any[]).map((row) => {
-                    // La columna en el CSV debe llamarse 'celular' o 'document_id' 
-                    // Según Regla Tobias, usamos el celular como document_id
                     const rawId = row.celular || row.document_id;
                     const { id, valid } = normalizeDocumentId(rawId);
                     
                     return {
                         ...row,
                         document_id: id,
+                        // 1. Limpiar la moto en el frontend
+                        moto_interest: row.moto_interest ? row.moto_interest.replace(/;/g, '').trim() : '',
+                        // 2. Respetar el estado del CSV (NO hardcodear PENDING/VALID)
+                        status: row.status ? row.status : 'PENDING',
                         status_row: valid ? 'VALID' : 'ERROR'
                     } as RowData;
                 });
@@ -194,8 +197,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                                 <tr key={i} className="hover:bg-gray-800/30">
                                                     <td className="p-3 font-mono text-xs text-gray-300">{row.document_id}</td>
                                                     <td className="p-3 text-white">{row.nombre}</td>
-                                                    <td className="p-3 text-gray-400">{row.moto_interest}</td>
-                                                    <td className="p-3 text-gray-400">{row.habeas_data}</td>
+                                                    <td className="p-3 text-white font-medium">{row.moto_interest}</td>
+                                                    <td className="p-3 text-gray-400">{row.status || 'PENDING'}</td>
                                                     <td className="p-3 text-center">
                                                         {row.status_row === 'VALID' ? (
                                                             <span className="inline-flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full text-xs">

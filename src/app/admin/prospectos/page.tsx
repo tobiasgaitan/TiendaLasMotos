@@ -293,7 +293,7 @@ export default function ProspectsPage() {
                                         <td className="p-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-white text-lg">{lead.nombre}</span>
-                                                <span className="text-sm text-gray-200 font-mono tracking-wide">
+                                                <span className="text-sm text-white font-mono font-medium tracking-wide">
                                                     {lead.celular}
                                                 </span>
                                             </div>

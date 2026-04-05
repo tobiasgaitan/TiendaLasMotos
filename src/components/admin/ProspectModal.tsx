@@ -283,7 +283,7 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                     <div>
                         <h2 className="text-2xl font-bold text-white">{prospect.nombre}</h2>
                         <div className="flex flex-col gap-1 mt-1">
-                            <span className="flex items-center gap-2 text-gray-200">📱 {prospect.celular}</span>
+                            <span className="flex items-center gap-2 text-white font-medium">📱 {prospect.celular}</span>
                             {(prospect.moto_interes || prospect.moto_interest) && (
                                 <span className="flex items-center gap-2">
                                     🏍️ Interés: <b className="text-blue-400">{prospect.moto_interes || prospect.moto_interest}</b>
