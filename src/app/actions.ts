@@ -263,3 +263,89 @@ export async function saveFinancialParams(data: any) {
         };
     }
 }
+// ==========================================
+// 5. GESTIÓN DE PROSPECTOS (UNE v7.0.0)
+// ==========================================
+
+const prospectUpdateSchema = z.object({
+    id: z.string(),
+    // PII
+    nombre: z.string().max(50).optional(),
+    ciudad: z.string().max(50).optional(),
+
+    // Compliance
+    habeas_data: z.boolean().optional(),
+    habeas_data_sent: z.boolean().optional(),
+
+    // Funnel
+    moto_interes: z.string().optional(),
+    moto_offered: z.string().optional(),
+    moto_confirmada: z.boolean().optional(),
+    forma_pago: z.string().optional(),
+
+    // Crédito
+    ocupacion: z.string().optional(),
+    ingresos: z.coerce.number().optional(),
+    gastos: z.coerce.number().optional(),
+    datacredito: z.string().optional(),
+    vivienda: z.enum(['Propia', 'Familiar', 'Arrendada']).optional(),
+    servicios_publicos: z.boolean().optional(),
+    plan_celular: z.boolean().optional(),
+
+    // Simulación
+    cuota_simulada: z.coerce.number().optional(),
+    plazo_simulado: z.literal(24).default(24).optional(),
+    score_resultado: z.coerce.number().optional(),
+    entidad_simulada: z.literal("Crediorbe").default("Crediorbe").optional(),
+
+    // Gestión
+    status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+    human_help_requested: z.boolean().optional(),
+    notes: z.any().optional(), // Allow arrayUnion or array of objects
+}).strict(); // [STRICT] Rechazar cualquier llave camelCase o desconocida
+
+/**
+ * updateProspectAction
+ * Actualiza parcialmente un prospecto siguiendo el estándar UNE v7.0.0.
+ */
+export async function updateProspectAction(data: any) {
+    // 1. Validar Sesión
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado." };
+    }
+
+    // 2. Validar Datos
+    const validated = prospectUpdateSchema.safeParse(data);
+    if (!validated.success) {
+        console.error("Validation Error (Prospect):", validated.error.format());
+        return { success: false, message: "Datos inválidos o esquema incompatible (UNE v7.0.0 required)." };
+    }
+
+    try {
+        const adminDb = getDb();
+        const { id, ...updateFields } = validated.data;
+
+        // Truncar PII (Doble verificación por si acaso)
+        if (updateFields.nombre) updateFields.nombre = updateFields.nombre.substring(0, 50);
+        if (updateFields.ciudad) updateFields.ciudad = updateFields.ciudad.substring(0, 50);
+
+        // Añadir updated_at
+        const payload = {
+            ...updateFields,
+            updated_at: new Date() // Se mapeará a ServerTimestamp en Firestore
+        };
+
+        const docRef = adminDb.collection("prospectos").doc(id);
+        await docRef.update(payload);
+
+        revalidatePath('/admin/prospectos');
+        return { success: true, message: "Prospecto actualizado correctamente" };
+
+    } catch (error: any) {
+        console.error("Error updating prospect:", error);
+        return { success: false, message: `Error de servidor: ${error.message || 'Excepción desconocida'}` };
+    }
+}

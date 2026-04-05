@@ -1,36 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { Timestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useState, useEffect } from 'react';
+import { Timestamp, arrayUnion } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { updateProspectAction } from '@/app/actions';
 
 /**
  * Estructura de una nota interna en el historial del prospecto.
  */
 interface Note {
     content: string;
-    createdAt: Timestamp;
+    created_at: Timestamp;
     author: string; // 'Admin' or 'System' for now
 }
 
 /**
- * Interfaz principal del usuario/prospecto.
- * Extiende la interfaz base usada en la lista para incluir arrays de notas.
+ * Interfaz principal del usuario/prospecto conforme al estándar UNE v7.0.0 (snake_case).
  */
 export interface Prospect {
     id: string;
+    // PII
     nombre: string;
     celular: string;
-    moto_interest?: string; // [FIXED] Standardized
-    motivo_inscripcion?: string;
-    fecha: Timestamp;
-    chatbot_status?: string; // Legacy
-    status?: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'DISCARDED'; // Main status field
+    ciudad?: string;
+
+    // Compliance
+    habeas_data?: boolean;
+    habeas_data_sent?: boolean;
+
+    // Funnel
+    moto_interes?: string;
+    moto_offered?: string;
+    moto_confirmada?: boolean;
+    forma_pago?: string;
+
+    // Crédito
+    ocupacion?: string;
+    ingresos?: number;
+    gastos?: number;
+    datacredito?: string;
+    vivienda?: 'Propia' | 'Familiar' | 'Arrendada' | string;
+    servicios_publicos?: boolean;
+    plan_celular?: boolean;
+
+    // Simulación
+    cuota_simulada?: number;
+    plazo_simulado?: number;
+    score_resultado?: number;
+    entidad_simulada?: string;
+
+    // Metadatos y Gestión
+    fecha: Timestamp; // internal timestamp of creation
+    updated_at?: Timestamp;
+    status?: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'DISCARDED';
     ai_summary?: string;
     notes?: Note[];
-    human_help_requested?: boolean; // Bot handoff status
+    human_help_requested?: boolean;
     doc_cedula_url?: string;
     doc_recibo_gas_url?: string;
-    doc_status?: boolean;
     [key: string]: any;
 }
 
@@ -61,36 +86,72 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
  * @param prospect - Objeto prospecto seleccionado.
  */
 export default function ProspectModal({ isOpen, onClose, prospect }: ProspectModalProps) {
-    const [currentStatus, setCurrentStatus] = useState<string>('PENDING');
-    const [newNote, setNewNote] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [notesHistory, setNotesHistory] = useState<Note[]>([]);
-    const [humanHelpActive, setHumanHelpActive] = useState(false);
+    const [newNote, setNewNote] = useState('');
+    
+    // Form State (Internal copy for editing)
+    const [formData, setFormData] = useState<Partial<Prospect>>({});
+    const [isEditing, setIsEditing] = useState(false);
 
     // Sync local state when prospect opens
     useEffect(() => {
         if (prospect) {
-            setCurrentStatus(prospect.status || 'PENDING');
-            setNotesHistory(prospect.notes || []);
-            setHumanHelpActive(prospect.human_help_requested || false);
+            setFormData({ ...prospect });
+            setIsEditing(false);
         }
     }, [prospect]);
 
     if (!isOpen || !prospect) return null;
 
-    const handleStatusChange = async (newStatus: string) => {
+    const handleSaveGeneral = async () => {
+        if (!prospect) return;
         setIsSaving(true);
         try {
-            const prospectRef = doc(db, 'prospectos', prospect.id);
-            await updateDoc(prospectRef, {
-                status: newStatus
-            });
-            setCurrentStatus(newStatus);
-        } catch (error) {
-            console.error("Error updating status:", error);
-            alert("Error al actualizar estado");
+            // Clean data for UNE v7.0.0 compatibility
+            const updatePayload = {
+                id: prospect.id,
+                nombre: formData.nombre?.substring(0, 50),
+                ciudad: formData.ciudad?.substring(0, 50),
+                moto_interes: formData.moto_interes,
+                moto_offered: formData.moto_offered,
+                moto_confirmada: formData.moto_confirmada,
+                forma_pago: formData.forma_pago,
+                status: formData.status,
+                ocupacion: formData.ocupacion,
+                ingresos: formData.ingresos,
+                gastos: formData.gastos,
+                datacredito: formData.datacredito,
+                vivienda: formData.vivienda,
+                servicios_publicos: formData.servicios_publicos,
+                plan_celular: formData.plan_celular,
+                habeas_data: formData.habeas_data,
+                habeas_data_sent: formData.habeas_data_sent,
+                human_help_requested: formData.human_help_requested
+            };
+
+            const result = await updateProspectAction(updatePayload);
+            
+            if (result.success) {
+                toast.success('Cambios guardados correctamente');
+                setIsEditing(false);
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error: any) {
+            console.error("Error saving prospect details:", error);
+            toast.error('Error al guardar cambios', { description: error.message });
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleStatusChange = (newStatus: any) => {
+        setFormData(prev => ({ ...prev, status: newStatus }));
+        // Auto-save status if not in general edit mode
+        if (!isEditing) {
+            // Option: either force edit mode or save immediately. 
+            // For now, let's keep it immediate to maintain old UX but using our new action
+            updateProspectAction({ id: prospect!.id, status: newStatus });
         }
     };
 
@@ -100,16 +161,21 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
         try {
             const note: Note = {
                 content: newNote.trim(),
-                createdAt: Timestamp.now(),
+                created_at: Timestamp.now(),
                 author: 'Admin'
             };
 
-            const prospectRef = doc(db, 'prospectos', prospect.id);
-            await updateDoc(prospectRef, {
+            const result = await updateProspectAction({
+                id: prospect.id,
                 notes: arrayUnion(note)
-            });
+            } as any);
 
-            setNotesHistory(prev => [note, ...prev]); // Optimistic update
+            if (!result.success) throw new Error(result.message);
+
+            setFormData(prev => ({ 
+                ...prev, 
+                notes: [note, ...(prev.notes || [])] 
+            }));
             setNewNote('');
         } catch (error) {
             console.error("Error adding note:", error);
@@ -125,8 +191,7 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
      */
     const handleBotReactivation = async () => {
         if (!prospect) return;
-
-        const newHelpStatus = !humanHelpActive;
+        const newHelpStatus = !formData.human_help_requested;
         setIsSaving(true);
 
         try {
@@ -147,14 +212,16 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
 
-            // 2. Update Firestore
-            const prospectRef = doc(db, 'prospectos', prospect.id);
-            await updateDoc(prospectRef, {
+            // 2. Update via Server Action
+            const result = await updateProspectAction({
+                id: prospect.id,
                 human_help_requested: newHelpStatus
             });
 
+            if (!result.success) throw new Error(result.message);
+
             // 3. Update local state
-            setHumanHelpActive(newHelpStatus);
+            setFormData(prev => ({ ...prev, human_help_requested: newHelpStatus }));
 
             // 4. Show success feedback
             if (newHelpStatus) {
@@ -177,17 +244,13 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
         }
     };
 
-    const formatDate = (timestamp: Timestamp) => {
+    const formatDate = (timestamp: any) => {
         if (!timestamp) return 'Fecha no disponible';
         try {
-            // Check if it's a Firestore Timestamp
-            if (timestamp.toDate) {
-                return timestamp.toDate().toLocaleString('es-CO', {
-                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                });
-            }
-            // Fallback if somehow date is different
-            return 'Fecha inválida';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleString('es-CO', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
         } catch (e) {
             return 'Fecha inválida';
         }
@@ -203,21 +266,187 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                         <h2 className="text-2xl font-bold text-white">{prospect.nombre}</h2>
                         <div className="flex flex-col gap-1 mt-1 text-gray-400">
                             <span className="flex items-center gap-2">📱 {prospect.celular}</span>
-                            {prospect.moto_interest && (
-                                <span className="flex items-center gap-2">🏍️ Interés: <b className="text-blue-400">{prospect.moto_interest}</b></span>
+                            {(prospect.moto_interes || prospect.moto_interest) && (
+                                <span className="flex items-center gap-2">
+                                    🏍️ Interés: <b className="text-blue-400">{prospect.moto_interes || prospect.moto_interest}</b>
+                                </span>
                             )}
-                            <span className="text-xs">🕒 {formatDate(prospect.fecha)}</span>
+                            <span className="text-xs italic">🕒 {formatDate(prospect.fecha)}</span>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-white transition-colors"
-                    >
-                        ✕
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => isEditing ? handleSaveGeneral() : setIsEditing(true)}
+                            disabled={isSaving}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                isEditing 
+                                ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20' 
+                                : 'bg-blue-600/20 text-blue-400 border border-blue-500/50 hover:bg-blue-500/20'
+                            }`}
+                        >
+                            {isSaving ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Editar Datos')}
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-500 hover:text-white transition-colors p-2"
+                            aria-label="Cerrar modal"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-6 space-y-8">
+
+                    {/* Basic Info & Funnel */}
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Información PII</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 block mb-1">Nombre Completo (max 50)</label>
+                                    <input 
+                                        type="text"
+                                        disabled={!isEditing}
+                                        value={formData.nombre || ''}
+                                        onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white disabled:opacity-70"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 block mb-1">Ciudad</label>
+                                    <input 
+                                        type="text"
+                                        disabled={!isEditing}
+                                        value={formData.ciudad || ''}
+                                        onChange={(e) => setFormData({...formData, ciudad: e.target.value})}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white disabled:opacity-70"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Embudo (Funnel)</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 block mb-1">Moto de Interés</label>
+                                    <input 
+                                        type="text"
+                                        disabled={!isEditing}
+                                        value={formData.moto_interes || formData.moto_interest || ''}
+                                        onChange={(e) => setFormData({...formData, moto_interes: e.target.value})}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white disabled:opacity-70"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 block mb-1">Forma de Pago</label>
+                                    <select 
+                                        disabled={!isEditing}
+                                        value={formData.forma_pago || ''}
+                                        onChange={(e) => setFormData({...formData, forma_pago: e.target.value})}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white disabled:opacity-70"
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Crédito">Crédito</option>
+                                        <option value="Contado">Contado</option>
+                                        <option value="Retoma">Retoma (Parte de pago)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Financiación Detail */}
+                    <section className="bg-gray-800/30 border border-gray-700 rounded-xl p-5">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            💰 Perfil Crediticio
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label className="text-xs text-gray-500 block mb-1">Ocupación</label>
+                                <select 
+                                    disabled={!isEditing}
+                                    value={formData.ocupacion || ''}
+                                    onChange={(e) => setFormData({...formData, ocupacion: e.target.value})}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Empleado">Empleado</option>
+                                    <option value="Independiente">Independiente</option>
+                                    <option value="Pensionado">Pensionado</option>
+                                    <option value="Estudiante">Estudiante</option>
+                                    <option value="Hogar">Hogar</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 block mb-1">Vivienda</label>
+                                <select 
+                                    disabled={!isEditing}
+                                    value={formData.vivienda || ''}
+                                    onChange={(e) => setFormData({...formData, vivienda: e.target.value as any})}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Propia">Propia</option>
+                                    <option value="Familiar">Familiar</option>
+                                    <option value="Arrendada">Arrendada</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 block mb-1">Datacrédito (Score/Estado)</label>
+                                <input 
+                                    type="text"
+                                    disabled={!isEditing}
+                                    placeholder="Ej: Bueno / 650+"
+                                    value={formData.datacredito || ''}
+                                    onChange={(e) => setFormData({...formData, datacredito: e.target.value})}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 block mb-1">Ingresos</label>
+                                <input 
+                                    type="number"
+                                    disabled={!isEditing}
+                                    value={formData.ingresos || ''}
+                                    onChange={(e) => setFormData({...formData, ingresos: Number(e.target.value)})}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 block mb-1">Gastos</label>
+                                <input 
+                                    type="number"
+                                    disabled={!isEditing}
+                                    value={formData.gastos || ''}
+                                    onChange={(e) => setFormData({...formData, gastos: Number(e.target.value)})}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                                />
+                            </div>
+                            <div className="flex items-center gap-4 pt-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox"
+                                        disabled={!isEditing}
+                                        checked={!!formData.servicios_publicos}
+                                        onChange={(e) => setFormData({...formData, servicios_publicos: e.target.checked})}
+                                        className="w-4 h-4 rounded bg-gray-900 border-gray-700 text-green-500 focus:ring-green-500"
+                                    />
+                                    <span className="text-xs text-gray-400">Recibo Gas?</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox"
+                                        disabled={!isEditing}
+                                        checked={!!formData.plan_celular}
+                                        onChange={(e) => setFormData({...formData, plan_celular: e.target.checked})}
+                                        className="w-4 h-4 rounded bg-gray-900 border-gray-700 text-green-500 focus:ring-green-500"
+                                    />
+                                    <span className="text-xs text-gray-400">Plan Celular?</span>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
 
                     {/* Status Section */}
                     <section>
@@ -230,7 +459,7 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     disabled={isSaving}
                                     className={`
                     px-4 py-2 rounded-lg border font-medium transition-all
-                    ${currentStatus === key
+                    ${(formData.status || 'PENDING') === key
                                             ? config.color + ' ring-2 ring-offset-2 ring-offset-gray-900 ring-gray-700'
                                             : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
                                         }
@@ -248,13 +477,13 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                         <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-2xl">{humanHelpActive ? '✋' : '🤖'}</span>
+                                    <span className="text-2xl">{formData.human_help_requested ? '✋' : '🤖'}</span>
                                     <div>
                                         <p className="font-bold text-white">
-                                            {humanHelpActive ? 'Modo Humano Activo' : 'Bot Activo'}
+                                            {formData.human_help_requested ? 'Modo Humano Activo' : 'Bot Activo'}
                                         </p>
                                         <p className="text-sm text-gray-400">
-                                            {humanHelpActive
+                                            {formData.human_help_requested
                                                 ? 'El bot está silenciado. Un humano debe responder.'
                                                 : 'El bot responde automáticamente a este cliente.'}
                                         </p>
@@ -265,13 +494,13 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     disabled={isSaving}
                                     className={`
                                         px-4 py-2 rounded-lg font-medium transition-all
-                                        ${humanHelpActive
+                                        ${formData.human_help_requested
                                             ? 'bg-green-600 hover:bg-green-500 text-white'
                                             : 'bg-amber-600 hover:bg-amber-500 text-white'}
                                         disabled:opacity-50 disabled:cursor-not-allowed
                                     `}
                                 >
-                                    {isSaving ? 'Guardando...' : (humanHelpActive ? 'Reactivar Bot' : 'Solicitar Humano')}
+                                    {isSaving ? 'Guardando...' : (formData.human_help_requested ? 'Reactivar Bot' : 'Solicitar Humano')}
                                 </button>
                             </div>
                         </div>
@@ -382,15 +611,15 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
 
                         {/* List */}
                         <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                            {notesHistory.length === 0 ? (
+                            {(formData.notes || []).length === 0 ? (
                                 <p className="text-center text-gray-600 italic py-4">No hay notas registradas</p>
                             ) : (
-                                notesHistory.map((note, index) => (
+                                (formData.notes || []).map((note, index) => (
                                     <div key={index} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
                                         <p className="text-gray-200 mb-1">{note.content}</p>
                                         <div className="flex justify-between items-center text-xs text-gray-500">
                                             <span>{note.author}</span>
-                                            <span>{formatDate(note.createdAt)}</span>
+                                            <span>{formatDate(note.created_at)}</span>
                                         </div>
                                     </div>
                                 ))
