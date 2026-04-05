@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { UserRound, Flame } from 'lucide-react';
+import { UserRound, Flame, Phone } from 'lucide-react';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
 
@@ -293,9 +293,10 @@ export default function ProspectsPage() {
                                         <td className="p-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-white text-lg">{lead.nombre}</span>
-                                                <span className="text-sm text-gray-200 font-mono font-medium tracking-wide">
+                                                <div className="flex items-center text-sm font-bold text-white mt-1">
+                                                    <Phone className="w-4 h-4 mr-2 text-gray-400" />
                                                     {lead.celular}
-                                                </span>
+                                                </div>
                                             </div>
                                         </td>
 
