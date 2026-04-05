@@ -32,7 +32,7 @@ interface RowData {
 export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
     const [file, setFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<RowData[]>([]);
-    const [allData, setAllData] = useState<RowData[]>([]);
+    const [csvData, setCsvData] = useState<RowData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [report, setReport] = useState<{ created: number; updated: number; failed: number } | null>(null);
 
@@ -55,23 +55,30 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                const processed = (results.data as any[]).map((row) => {
-                    const rawId = row.celular || row.document_id;
-                    const { id, valid } = normalizeDocumentId(rawId);
-                    
-                    return {
-                        ...row,
-                        document_id: id,
-                        // 1. Limpiar la moto en el frontend
-                        moto_interest: row.moto_interest ? row.moto_interest.replace(/;/g, '').trim() : '',
-                        // 2. Respetar el estado del CSV (NO hardcodear PENDING/VALID)
-                        status: row.status ? row.status : 'PENDING',
-                        status_row: valid ? 'VALID' : 'ERROR'
-                    } as RowData;
+                // 1. Sanitización estricta OBLIGATORIA
+                const cleanData = results.data.map((row: any) => {
+                  let finalStatus = 'PENDING';
+                  if (row.status && row.status.trim() !== '') {
+                    finalStatus = row.status.trim();
+                  }
+
+                  // Aplicar Regla Tobias (normalización de ID)
+                  const rawId = row.celular || row.document_id;
+                  const { id, valid } = normalizeDocumentId(rawId);
+
+                  return {
+                    ...row,
+                    document_id: id,
+                    // Limpieza agresiva de punto y coma y espacios al final
+                    moto_interest: row.moto_interest ? row.moto_interest.replace(/;/g, '').trim() : '',
+                    status: finalStatus,
+                    status_row: valid ? 'VALID' : 'ERROR'
+                  };
                 });
 
-                setAllData(processed);
-                setPreviewData(processed.slice(0, 5));
+                // 2. IMPORTANTE: Usar cleanData para la pre-visualización, NO results.data
+                setPreviewData(cleanData.slice(0, 5));
+                setCsvData(cleanData); // Guardar la data limpia para el envío
             },
             error: (error) => {
                 toast.error("Error al leer el archivo CSV", { description: error.message });
@@ -90,7 +97,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     };
 
     const handleImport = async () => {
-        const validProspects = allData.filter(p => p.status_row === 'VALID');
+        const validProspects = csvData.filter(p => p.status_row === 'VALID');
         if (validProspects.length === 0) {
             toast.error("No hay registros válidos para importar.");
             return;
@@ -167,7 +174,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                     </div>
                                     <div>
                                         <p className="font-bold text-white">{file.name}</p>
-                                        <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB • {allData.length} registros detectados</p>
+                                        <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB • {csvData.length} registros detectados</p>
                                     </div>
                                 </div>
                                 <button 
@@ -195,7 +202,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                         <tbody className="divide-y divide-gray-800">
                                             {previewData.map((row, i) => (
                                                 <tr key={i} className="hover:bg-gray-800/30">
-                                                    <td className="p-3 font-mono text-xs text-gray-300">{row.document_id}</td>
+                                                    <td className="p-3">
+                                                        <p className="text-sm font-medium text-white">{row.document_id}</p>
+                                                    </td>
                                                     <td className="p-3 text-white">{row.nombre}</td>
                                                     <td className="p-3 text-white font-medium">{row.moto_interest}</td>
                                                     <td className="p-3 text-gray-400">{row.status || 'PENDING'}</td>
@@ -215,8 +224,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                         </tbody>
                                     </table>
                                 </div>
-                                {allData.length > 5 && (
-                                    <p className="text-xs text-center text-gray-600">... y {allData.length - 5} registros más</p>
+                                {csvData.length > 5 && (
+                                    <p className="text-xs text-center text-gray-600">... y {csvData.length - 5} registros más</p>
                                 )}
                             </div>
                         </div>
