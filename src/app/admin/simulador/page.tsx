@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Moto } from '@/types';
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from '@/types/financial';
@@ -9,6 +9,7 @@ import { calculateQuote, QuoteResult } from '@/lib/utils/calculator';
 import { Loader2 } from 'lucide-react';
 import { getCatalogoMotos } from '@/lib/firestore';
 import { NumericFormat } from 'react-number-format'; // V15.2
+import Image from "next/image";
 
 /**
  * Simulador de Crédito - Interfaz Administrativa
@@ -34,7 +35,7 @@ export default function SimulatorPage() {
     const [soatRates, setSoatRates] = useState<SoatRate[]>([]);
     const [financialEntities, setFinancialEntities] = useState<FinancialEntity[]>([]);
     const [motos, setMotos] = useState<Moto[]>([]);
-    const [matrix, setMatrix] = useState<FinancialMatrix | undefined>(undefined);
+    const [matrix, setMatrix] = useState<FinancialMatrix>({ rows: [], lastUpdated: "" });
 
     // --- USER INPUTS ---
     const [selectedCityId, setSelectedCityId] = useState<string>('');
@@ -55,10 +56,10 @@ export default function SimulatorPage() {
         const loadData = async () => {
             try {
                 // REMOVED: Legacy cities collection fetch
-                const [soatSnap, finSnap, matrixSnap, sedesSnap] = await Promise.all([
+                const [soatSnap, finSnap, matrixDocSnap, sedesSnap] = await Promise.all([
                     getDocs(collection(db, 'financial_config/general/tarifas_soat')),
                     getDocs(collection(db, 'financial_config/general/financieras')),
-                    getDocs(collection(db, 'config')),
+                    getDoc(doc(db, 'financial_config/general/global_params/global_params')),
                     getDocs(collection(db, 'config/general/sedes')) // [NEW] Fetch Sedes
                 ]);
 
@@ -67,9 +68,8 @@ export default function SimulatorPage() {
                 const fList = finSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
                 const cList = sedesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City)); // [NEW] Map Sedes
 
-                // Matrix Fetch Logic
-                const matrixDoc = matrixSnap.docs.find(d => d.id === 'financial_parameters');
-                const mData = matrixDoc ? (matrixDoc.data() as FinancialMatrix) : undefined;
+                // Matrix Fetch Logic (Unified document path)
+                const mData = matrixDocSnap.exists() ? (matrixDocSnap.data() as FinancialMatrix) : undefined;
 
                 // Motos Fetch
                 const mList = await getCatalogoMotos();
@@ -78,7 +78,7 @@ export default function SimulatorPage() {
                 setSoatRates(sList);
                 setFinancialEntities(fList);
                 setMotos(mList);
-                setMatrix(mData);
+                setMatrix(mData || { rows: [], lastUpdated: "" });
 
                 // Defaults
                 if (cList.length > 0) setSelectedCityId(cList[0].id);
@@ -88,7 +88,8 @@ export default function SimulatorPage() {
                 if (mList.length > 0) {
                     setSelectedMotoId(mList[0].id);
                     setPrice(mList[0].precio);
-                    setDownPayment(Math.floor(mList[0].precio * 0.15)); // Default 15%
+                    // Initial set only
+                    setDownPayment(Math.floor(mList[0].precio * (mData?.default_down_payment_ratio || 0.10)));
                 }
 
                 setLoading(false);
@@ -128,8 +129,8 @@ export default function SimulatorPage() {
         const m = motos.find(mt => mt.id === selectedMotoId);
         if (m) {
             setPrice(m.precio);
-            // Optional: Reset Down Payment percentage? Keeping it manual is better for testing unless changed.
-            setDownPayment(Math.floor(m.precio * 0.15));
+            // [STRICT] Only reset Down Payment when moto changes
+            setDownPayment(Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10)));
 
             // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
             const isPatineta = m.category?.toUpperCase() === 'PATINETA'
@@ -142,6 +143,9 @@ export default function SimulatorPage() {
 
     // --- CALCULATION ENGINE ---
     useEffect(() => {
+        // Defensive: Check array integrity before searching
+        if (!Array.isArray(motos) || !Array.isArray(cities) || !Array.isArray(financialEntities)) return;
+
         const moto = motos.find(m => m.id === selectedMotoId);
         const city = cities.find(c => c.id === selectedCityId);
         const entity = financialEntities.find(e => e.id === selectedEntityId);
@@ -200,6 +204,23 @@ export default function SimulatorPage() {
                 <div className="lg:col-span-4 space-y-6">
                     <div className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm">
                         <h3 className="text-lg font-bold text-brand-blue mb-4 uppercase text-sm tracking-wider">Configuración</h3>
+
+                        {/* 0. MOTO IMAGE */}
+                        <div className="relative w-full h-40 mb-4 bg-gray-950 rounded-lg border border-gray-800 overflow-hidden flex items-center justify-center">
+                            {(() => {
+                                const m = motos.find(mt => mt.id === selectedMotoId);
+                                if (m?.imagen_url) {
+                                    return <Image
+                                        src={m.imagen_url}
+                                        alt={m.referencia}
+                                        fill
+                                        className="object-contain p-4"
+                                        unoptimized
+                                    />;
+                                }
+                                return <span className="text-gray-700 font-black uppercase text-[10px] tracking-widest">Sin Imagen</span>;
+                            })()}
+                        </div>
 
                         {/* 1. MOTO SELECTOR */}
                         <div className="mb-4">
@@ -344,7 +365,7 @@ export default function SimulatorPage() {
                                         {/* Traceability Label (User Requested) */}
                                         <div className="flex justify-end -mt-2 mb-1">
                                             <span className="text-[10px] text-gray-500 font-mono bg-gray-900/50 px-1 rounded border border-gray-700">
-                                                Fila: {quote.matchIdentifier || 'N/A'} (CC: {motos.find(m => m.id === selectedMotoId)?.displacement})
+                                                Fila: {quote.matchIdentifier || 'N/A'} (CC: {Array.isArray(motos) ? motos.find(m => m.id === selectedMotoId)?.displacement : 'N/A'})
                                             </span>
                                         </div>
                                         {

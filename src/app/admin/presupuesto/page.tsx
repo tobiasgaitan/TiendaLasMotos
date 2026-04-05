@@ -88,10 +88,10 @@ export default function BudgetToBikePage() {
                     setSelectedEntity(defaultEnt);
                 }
 
-                // C. Financial Parameters (Registration Costs)
-                const matrixDoc = await getDoc(doc(db, 'config', 'financial_parameters'));
+                // C. Financial Parameters (Registration Costs) [FIXED PATH V2]
+                const matrixDoc = await getDoc(doc(db, 'financial_config/general/global_params/global_params'));
                 if (matrixDoc.exists()) {
-                    setMatrixRows(matrixDoc.data().rows || []);
+                    setMatrixRows(matrixDoc.data()?.rows || []);
                 }
 
                 setLoading(false);
@@ -140,10 +140,10 @@ export default function BudgetToBikePage() {
 
         // Find row by CC range
         // Note: Logic simplification, assuming no "Electrical" or "Motocarro" specific overrides for now unless strictly needed
-        row = matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc);
+        row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
 
-        // Use "Crédito General" column (fallback to ~750k if missing)
-        return row ? (row.registrationCreditGeneral || 750000) : 750000;
+        // Use "Crédito" column (fallback to ~750k if missing)
+        return row ? (row.registrationCredit || 750000) : 750000;
     };
 
     // 5. Intelligent Filter Logic

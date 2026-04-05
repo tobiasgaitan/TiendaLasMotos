@@ -37,7 +37,7 @@ export interface FinancialEntity {
     active?: boolean;
 
     // Security & Calculation Config (Updated)
-    lifeInsuranceType: 'percentage' | 'fixed_per_million'; // 'percentage' (0.1126%) or 'fixed' ($800 per M)
+    lifeInsuranceType: 'percentage' | 'fixed_per_million' | 'fixed'; // 'percentage' (0.1126%), 'fixed_per_million' (800) or 'fixed' ($15000)
     lifeInsuranceValue: number; // The rate (e.g. 0.1126) or the value (e.g. 800)
 
     // Unified Document Financing Flag
@@ -82,15 +82,15 @@ export interface MatrixRow {
     // Costs per city/region context (using a record for flexibility or fixed keys if known)
     // We will use specific keys as per requirements: 
     // creditGeneral, creditSantaMarta, cashEnvigado, cashCienaga, cashZonaBananera, cashSantaMarta
-    registrationCreditGeneral: number;
-    registrationCashSantaMarta: number;
-    registrationCreditSantaMarta: number;
-    registrationCashEnvigado: number;
-    registrationCashCienaga: number;
-    registrationCashZonaBananera: number;
+    registrationCredit: number;
+    registrationCash: number;
 }
 
 export interface FinancialMatrix {
     rows: MatrixRow[];
     lastUpdated: string; // ISO Date
+    // [ROOT] Global Configuration Keys
+    life_insurance_mode?: 'percentage' | 'fixed';
+    life_insurance_monthly?: number;
+    default_down_payment_ratio?: number;
 }

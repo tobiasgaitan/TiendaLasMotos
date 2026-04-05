@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Moto, CreditSimulation } from "@/types";
+import Image from "next/image";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
 import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
@@ -40,11 +41,11 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
     const [isExempt, setIsExempt] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Initial Data Fetch (Matrix)
+    // Initial Data Fetch (Matrix) [FIXED PATH V2]
     useEffect(() => {
         const fetchMatrix = async () => {
             try {
-                const docRef = doc(db, 'config', 'financial_parameters');
+                const docRef = doc(db, 'financial_config/general/global_params/global_params');
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     setMatrix(snap.data() as FinancialMatrix);
@@ -56,10 +57,10 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         fetchMatrix();
     }, []);
 
-    // Default Down Payment (15%) - Reset on moto change
+    // Default Down Payment (10%) - Reset on moto change
     useEffect(() => {
         if (moto) {
-            const def = Math.floor(moto.precio * 0.15);
+            const def = Math.floor(moto.precio * (matrix?.default_down_payment_ratio || 0.10));
             setDownPayment(def);
             setDownPaymentStr(def.toLocaleString('es-CO'));
 
@@ -77,7 +78,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
     }, [moto.id]);
 
     useEffect(() => {
-        if (!moto) return;
+        if (!moto || !Array.isArray(financialEntities)) return;
         // if (!matrix) return; // Allow calc without matrix if needed for basic values
 
         const financialEntity = financialEntities.find(f => f.id === selectedFinancialId);
@@ -154,11 +155,12 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             const payload = {
                 nombre: userName,
                 celular: cleanPhone,
-                motoInteres: moto.referencia,
+                moto_interest: moto.referencia,
                 fecha: serverTimestamp(),
                 motivo_inscripcion: isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)',
                 origen: 'ADMIN_QUOTE_GENERATOR',
-                estado: 'NUEVO'
+                estado: 'NUEVO',
+                habeas_data_accepted: true // Admin tool assumes consent or handles internally
             };
             await addDoc(collection(db, "prospectos"), payload);
 
@@ -196,6 +198,26 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                     {isCredit ? 'Simulador Crédito' : 'Cotizador Contado'}
                 </h3>
                 <p className="text-white/80 text-xs">Versión Admin V23.1</p>
+            </div>
+
+            {/* MOTO IMAGE */}
+            <div className="relative w-full h-48 mb-6 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
+                {moto.imagen_url ? (
+                    <Image
+                        src={moto.imagen_url}
+                        alt={moto.referencia}
+                        fill
+                        className="object-contain p-2 group-hover:scale-110 transition-transform duration-500"
+                        unoptimized
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        {moto.referencia}
+                    </div>
+                )}
+                <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white font-bold">
+                    {moto.marca} - {moto.displacement}cc
+                </div>
             </div>
 
             {/* CONTROLS */}
@@ -237,15 +259,18 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                                 value={selectedFinancialId}
                                 onChange={(e) => setSelectedFinancialId(e.target.value)}
                             >
-                                {financialEntities.map(f => (
+                                {Array.isArray(financialEntities) && financialEntities.map(f => (
                                     <option key={f.id} value={f.id}>{f.name} ({f.monthlyRate}%)</option>
                                 ))}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-1">Cuota Inicial Sugerida</label>
-                            <div className="relative">
+                            <div className="grid grid-cols-2 gap-2 mb-1">
+                                <label className="block text-sm font-bold text-gray-900">Cuota Inicial</label>
+                                <span className="text-[10px] text-brand-blue font-bold text-right">Mín. 10% sugerido</span>
+                            </div>
+                            <div className="relative mb-2">
                                 <span className="absolute left-3 top-2 text-gray-500">$</span>
                                 <input
                                     type="text"
@@ -259,6 +284,19 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                                     placeholder="0"
                                 />
                             </div>
+                            <input
+                                type="range"
+                                min={Math.floor(moto.precio * 0.1)}
+                                max={Math.floor(moto.precio * 0.9)}
+                                step={100000}
+                                className="w-full accent-brand-blue cursor-pointer h-2 bg-slate-200 rounded-lg"
+                                value={downPayment}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setDownPayment(val);
+                                    setDownPaymentStr(val.toLocaleString('es-CO'));
+                                }}
+                            />
                         </div>
 
                         <div>

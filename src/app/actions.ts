@@ -1,8 +1,7 @@
 'use server';
 
 import { z } from "zod";
-import { db } from "@/lib/firestore";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { getDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -16,7 +15,7 @@ import { Lead } from "@/types";
 const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }),
-    motoInteres: z.string(),
+    moto_interest: z.string(), // [FIXED] Standardized
     motivo_inscripcion: z.enum([
         'Solicitud de Crédito',
         'Pago de Contado',
@@ -24,6 +23,9 @@ const leadSchema = z.object({
         'Repuestos/Accesorios'
     ], { message: "Por favor selecciona un motivo válido" }),
     origen: z.literal("WEB_BETA").default("WEB_BETA"),
+    habeas_data_accepted: z.boolean().refine(val => val === true, {
+        message: "Debes aceptar la política de tratamiento de datos."
+    }),
 });
 
 export type LeadState = {
@@ -31,8 +33,9 @@ export type LeadState = {
     errors?: {
         nombre?: string[];
         celular?: string[];
-        motoInteres?: string[];
+        moto_interest?: string[];
         motivo_inscripcion?: string[];
+        habeas_data_accepted?: string[];
         general?: string[];
     };
     message?: string;
@@ -42,34 +45,36 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     const rawData = {
         nombre: formData.get("nombre") as string,
         celular: formData.get("celular") as string,
-        motoInteres: formData.get("motoInteres") as string || "General",
+        moto_interest: formData.get("moto_interest") as string || "General",
         motivo_inscripcion: formData.get("motivo_inscripcion") as any,
+        habeas_data_accepted: formData.get("habeas_data_accepted") === "true", // [LEGAL] Check for true
         origen: "WEB_BETA",
     };
 
-    const validatedFields = leadSchema.safeParse(rawData);
-
-    if (!validatedFields.success) {
+    const validated = leadSchema.safeParse(rawData);
+    if (!validated.success) {
         return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Por favor corrige los errores en el formulario."
+            success: false,
+            errors: validated.error.flatten().fieldErrors as any,
+            message: "Por favor corrige los errores del formulario."
         };
     }
 
     try {
-        const leadData: Omit<Lead, 'fecha'> & { fecha: any } = {
-            ...validatedFields.data,
-            fecha: serverTimestamp(),
-            estado: "NUEVO"
-        };
-
-        await addDoc(collection(db, "leads"), leadData);
+        const adminDb = getDb();
+        // [ADMIN SDK] Server-side trusted write
+        await adminDb.collection("leads").add({
+            ...validated.data,
+            created_at: new Date(), // Admin SDK accepts JS Date
+            status: "nuevo"
+        });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving lead:", error);
         return {
-            message: "Hubo un error al enviar tus datos. Inténtalo de nuevo."
+            success: false,
+            message: `Error al enviar los datos: ${error.message || 'Excepción desconocida'}`
         };
     }
 }
@@ -119,6 +124,7 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
     }
 
     try {
+        const adminDb = getDb();
         const { motoId, precio, imagen_url, marca, modelo, anio, isVisible, bono } = validated.data;
 
         // Configuración de fecha para last_updated (Zona horaria Colombia aprox)
@@ -127,7 +133,7 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
         const colTime = new Date(utc - offset);
 
-        const docRef = doc(db, "pagina", "catalogo", "items", motoId);
+        const docRef = adminDb.collection("pagina").doc("catalogo").collection("items").doc(motoId);
 
         // Objeto de actualización base
         const updatePayload: any = {
@@ -157,12 +163,12 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
             updatePayload["bono.activo"] = bono.activo;
             updatePayload["bono.titulo"] = bono.titulo;
             updatePayload["bono.monto"] = bono.monto;
-            // Convertimos string ISO a Timestamp de Firestore
-            updatePayload["bono.fecha_limite"] = Timestamp.fromDate(new Date(bono.fecha_limite));
+            // El Admin SDK no requiere Timestamp.fromDate, acepta Date directamente o string ISO si se guarda así
+            updatePayload["bono.fecha_limite"] = new Date(bono.fecha_limite);
         }
 
-        // 3. Escribir en Firestore
-        await updateDoc(docRef, updatePayload);
+        // 3. Escribir en Firestore (Admin SDK update)
+        await docRef.update(updatePayload);
 
         // 4. Limpiar Caché (Para que se vea la remolacha al instante)
         revalidatePath('/pagina/catalogo');
@@ -171,9 +177,9 @@ export async function saveProduct(data: z.infer<typeof productSchema>) {
 
         return { success: true, message: "Producto actualizado correctamente" };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving product:", error);
-        return { success: false, message: "Error al guardar en base de datos. Verifica permisos." };
+        return { success: false, message: `Error al guardar producto: ${error.message || 'Excepción desconocida'}` };
     }
 }
 
@@ -201,4 +207,270 @@ export async function loginAction(prevState: any, formData: FormData) {
     }
 
     return { success: false, message: "Credenciales incorrectas. Intenta de nuevo." };
+}
+// ==========================================
+// 4. CONFIGURACIÓN FINANCIERA (Matrículas)
+// ==========================================
+
+const matrixRowSchema = z.object({
+    id: z.string(),
+    label: z.string(),
+    category: z.string().optional(),
+    minCC: z.coerce.number().optional(),
+    maxCC: z.coerce.number().optional(),
+    registrationCredit: z.coerce.number().min(0),
+    registrationCash: z.coerce.number().min(0),
+});
+
+const financialMatrixSchema = z.object({
+    rows: z.array(matrixRowSchema),
+    lastUpdated: z.string().optional(),
+});
+
+/**
+ * saveFinancialParams
+ * Acción de servidor para guardar la matriz de parámetros financieros.
+ * Implementa validación estructural mediante Zod y reporte de errores detallado.
+ */
+export async function saveFinancialParams(data: any) {
+    try {
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('__session');
+
+        if (!sessionCookie) {
+            return { success: false, message: "No autorizado (Session Cookie Missing)" };
+        }
+
+        const validated = financialMatrixSchema.safeParse(data);
+        if (!validated.success) {
+            const errorDetails = validated.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            return { success: false, message: `Datos de matriz inválidos: ${errorDetails}` };
+        }
+
+        // [ADMIN SDK LOCK] Bypassing security rules for trusted config mutation
+        const adminDb = getDb();
+        const docRef = adminDb.collection('financial_config').doc('general').collection('global_params').doc('global_params');
+        
+        await docRef.set({ rows: validated.data.rows }, { merge: true });
+
+        // revalidatePath temporalmente deshabilitado para descartar fallos de caché/renderizado post-mutación
+        return { success: true, message: "Parámetros actualizados correctamente" };
+    } catch (error: any) {
+        // Reporte de diagnóstico crudo para forzar transparencia en el error
+        const errMsg = error?.message || "Excepción sin mensaje";
+        const errStack = (error?.stack || "").substring(0, 100);
+        return { 
+            success: false, 
+            message: `CRASH_REPORT: ${errMsg} | ${errStack}` 
+        };
+    }
+}
+// ==========================================
+// 5. GESTIÓN DE PROSPECTOS (UNE v7.0.0)
+// ==========================================
+
+const prospectUpdateSchema = z.object({
+    document_id: z.string(),
+    updates: z.object({
+        // PII
+        nombre: z.string().max(50).optional(),
+        ciudad: z.string().max(50).optional(),
+
+        // Compliance
+        habeas_data: z.boolean().optional(),
+        habeas_data_sent: z.boolean().optional(),
+
+        // Funnel
+        moto_interes: z.string().optional(),
+        moto_offered: z.string().optional(),
+        moto_confirmada: z.boolean().optional(),
+        forma_pago: z.string().optional(),
+
+        // Crédito
+        ocupacion: z.string().optional(),
+        ingresos: z.coerce.number().optional(),
+        gastos: z.coerce.number().optional(),
+        datacredito: z.string().optional(),
+        vivienda: z.enum(['Propia', 'Familiar', 'Arrendada']).optional(),
+        servicios_publicos: z.string().optional(),
+        plan_celular: z.string().optional(),
+
+        // Simulación
+        cuota_simulada: z.coerce.number().optional(),
+        plazo_simulado: z.literal(24).default(24),
+        score_resultado: z.coerce.number().optional(),
+        entidad_simulada: z.literal("Crediorbe").default("Crediorbe"),
+
+        // Gestión
+        status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+        chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
+        notes: z.any().optional(), // Allow arrayUnion or array of objects
+    }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
+});
+
+/**
+ * updateProspectAction
+ * Actualiza un prospecto siguiendo el estándar UNE v7.0.1 (Estructura document_id + updates).
+ */
+export async function updateProspectAction(data: any) {
+    // 1. Validar Sesión
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado." };
+    }
+
+    // 2. Validar Datos (Contrato v7.0.1)
+    const validated = prospectUpdateSchema.safeParse(data);
+    if (!validated.success) {
+        console.error("Validation Error (Prospect v7.0.1):", validated.error.format());
+        return { success: false, message: "Error de contrato UNE v7.0.1 (Verificar document_id y updates)" };
+    }
+
+    try {
+        const adminDb = getDb();
+        const { document_id, updates } = validated.data;
+
+        // Truncar PII (Regla de Negocio)
+        if (updates.nombre) updates.nombre = updates.nombre.substring(0, 50);
+        if (updates.ciudad) updates.ciudad = updates.ciudad.substring(0, 50);
+
+        // Inyectar Metadatos Obligatorios en el Servidor
+        const finalPayload = {
+            ...updates,
+            updated_at: new Date() // Sincronización automática con Firestore
+        };
+
+        const docRef = adminDb.collection("prospectos").doc(document_id);
+        await docRef.update(finalPayload);
+
+        revalidatePath('/admin/prospectos');
+        return { success: true, message: "Prospecto actualizado correctamente" };
+
+    } catch (error: any) {
+        console.error("Error updating prospect (v7.0.1):", error);
+        return { success: false, message: `Error de servidor: ${error.message || 'Excepción desconocida'}` };
+    }
+}
+
+// ==========================================
+// 6. CARGA MASIVA (Bulk Import v1.1)
+// ==========================================
+
+export async function bulkImportProspectsAction(prospects: any[]) {
+    // 1. Validar Sesión
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado." };
+    }
+
+    if (!prospects || !Array.isArray(prospects)) {
+        return { success: false, message: "Datos de importación inválidos." };
+    }
+
+    // Límite de Batch de Firestore es 500
+    const limitedProspects = prospects.slice(0, 500);
+    const adminDb = getDb();
+    const batch = adminDb.batch();
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    let failedCount = 0;
+
+    try {
+        // Obtener todas las referencias y verificar existencia para el reporte
+        const docRefs = limitedProspects.map(p => adminDb.collection("prospectos").doc(p.document_id));
+        const snapshots = await adminDb.getAll(...docRefs);
+        
+        const existenceMap = new Map<string, boolean>();
+        snapshots.forEach((snap: any) => {
+            existenceMap.set(snap.id, snap.exists);
+        });
+
+        for (const prospect of limitedProspects) {
+            const { document_id, ...data } = prospect;
+
+            if (!document_id) {
+                failedCount++;
+                continue;
+            }
+
+            // 1. Normalización y Casting (Regla Tobias & UNE v7.0.2)
+            const exists = existenceMap.get(document_id);
+            const updates: any = {
+                updated_at: new Date(),
+                // Asegurar que extraemos y usamos el status limpio (Upsert compatible)
+                status: data.status || data.STATUS || "PENDING",
+                metadata: {
+                    source: 'BULK_IMPORT_V1.1',
+                    imported_at: new Date().toISOString(),
+                }
+            };
+
+            // Mapeo selectivo con Lógica de Preservación (No-Sobrescritura)
+            // Solo incluimos campos que no estén vacíos en el CSV
+            const mapField = (csvKey: string, dbKey: string, transform?: (val: any) => any) => {
+                const val = data[csvKey];
+                if (val !== undefined && val !== null && val !== "") {
+                    updates[dbKey] = transform ? transform(val) : val;
+                }
+            };
+
+            mapField('nombre', 'nombre', (v) => String(v).substring(0, 50));
+            mapField('ciudad', 'ciudad', (v) => String(v).substring(0, 50));
+            // Sanitización Automática (Auto-Clean): elimiar residuales de Excel/CSV
+            mapField('moto_interest', 'moto_interest', (v) => String(v).replace(/;/g, '').trim());
+            mapField('forma_pago', 'forma_pago');
+            mapField('ocupacion', 'ocupacion');
+            mapField('ingresos', 'ingresos', Number);
+            mapField('gastos', 'gastos', Number);
+            mapField('datacredito', 'datacredito');
+            mapField('vivienda', 'vivienda');
+            mapField('servicios_publicos', 'servicios_publicos'); // String "Si"/"No"
+            mapField('plan_celular', 'plan_celular'); // String "Si"/"No"
+            
+            // Casting Legal: habeas_data ("Si" -> true)
+            if (data.habeas_data === "Si") updates.habeas_data = true;
+            else if (data.habeas_data === "No") updates.habeas_data = false;
+
+            // Campos obligatorios para nuevos registros
+            if (!exists) {
+                updates.fecha = new Date();
+                updates.origen = "BULK_IMPORT_V1.1";
+                updates.plazo_simulado = 24;
+                updates.entidad_simulada = "Crediorbe";
+                createdCount++;
+            } else {
+                updatedCount++;
+            }
+
+            updates.updated_at = new Date();
+
+            const docRef = adminDb.collection("prospectos").doc(document_id);
+            batch.set(docRef, updates, { merge: true });
+        }
+
+        await batch.commit();
+        revalidatePath('/admin/prospectos');
+
+        return {
+            success: true,
+            report: {
+                total: limitedProspects.length,
+                created: createdCount,
+                updated: updatedCount,
+                failed: failedCount
+            }
+        };
+
+    } catch (error: any) {
+        console.error('Error en bulkImport:', error);
+        return { 
+            success: false, 
+            message: error instanceof Error ? error.message : "Error desconocido en la carga masiva."
+        };
+    }
 }
