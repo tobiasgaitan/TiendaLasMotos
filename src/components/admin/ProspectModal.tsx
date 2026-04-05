@@ -123,8 +123,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                     gastos: Number(formData.gastos) || 0,
                     datacredito: formData.datacredito,
                     vivienda: formData.vivienda,
-                    servicios_publicos: formData.servicios_publicos,
-                    plan_celular: formData.plan_celular,
+                    // [UNE v7.0.2] Coercive casting Boolean -> String ("Si" / "No")
+                    servicios_publicos: formData.servicios_publicos ? "Si" : "No",
+                    plan_celular: formData.plan_celular ? "Si" : "No",
                     habeas_data: formData.habeas_data,
                     habeas_data_sent: formData.habeas_data_sent,
                     chatbot_status: formData.human_help_requested ? "PAUSED" : "ACTIVE",

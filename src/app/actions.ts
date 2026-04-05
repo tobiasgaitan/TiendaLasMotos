@@ -290,8 +290,8 @@ const prospectUpdateSchema = z.object({
         gastos: z.coerce.number().optional(),
         datacredito: z.string().optional(),
         vivienda: z.enum(['Propia', 'Familiar', 'Arrendada']).optional(),
-        servicios_publicos: z.boolean().optional(),
-        plan_celular: z.boolean().optional(),
+        servicios_publicos: z.string().optional(),
+        plan_celular: z.string().optional(),
 
         // Simulación
         cuota_simulada: z.coerce.number().optional(),
@@ -303,7 +303,7 @@ const prospectUpdateSchema = z.object({
         status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
         chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
         notes: z.any().optional(), // Allow arrayUnion or array of objects
-    }).strict(), // [STRICT] Rechazar cualquier llave camelCase o desconocida dentro de updates
+    }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
 });
 
 /**
