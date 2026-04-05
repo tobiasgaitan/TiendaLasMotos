@@ -353,3 +353,113 @@ export async function updateProspectAction(data: any) {
         return { success: false, message: `Error de servidor: ${error.message || 'Excepción desconocida'}` };
     }
 }
+
+// ==========================================
+// 6. CARGA MASIVA (Bulk Import v1.1)
+// ==========================================
+
+export async function bulkImportProspectsAction(prospects: any[]) {
+    // 1. Validar Sesión
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado." };
+    }
+
+    if (!prospects || !Array.isArray(prospects)) {
+        return { success: false, message: "Datos de importación inválidos." };
+    }
+
+    // Límite de Batch de Firestore es 500
+    const limitedProspects = prospects.slice(0, 500);
+    const adminDb = getDb();
+    const batch = adminDb.batch();
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    let failedCount = 0;
+
+    try {
+        // Obtener todas las referencias y verificar existencia para el reporte
+        const docRefs = limitedProspects.map(p => adminDb.collection("prospectos").doc(p.document_id));
+        const snapshots = await adminDb.getAll(...docRefs);
+        
+        const existenceMap = new Map<string, boolean>();
+        snapshots.forEach((snap: any) => {
+            existenceMap.set(snap.id, snap.exists);
+        });
+
+        for (const prospect of limitedProspects) {
+            const { document_id, ...data } = prospect;
+
+            if (!document_id) {
+                failedCount++;
+                continue;
+            }
+
+            // 1. Normalización y Casting (Regla Tobias & UNE v7.0.2)
+            const exists = existenceMap.get(document_id);
+            const updates: any = {};
+
+            // Mapeo selectivo con Lógica de Preservación (No-Sobrescritura)
+            // Solo incluimos campos que no estén vacíos en el CSV
+            const mapField = (csvKey: string, dbKey: string, transform?: (val: any) => any) => {
+                const val = data[csvKey];
+                if (val !== undefined && val !== null && val !== "") {
+                    updates[dbKey] = transform ? transform(val) : val;
+                }
+            };
+
+            mapField('nombre', 'nombre', (v) => String(v).substring(0, 50));
+            mapField('ciudad', 'ciudad', (v) => String(v).substring(0, 50));
+            mapField('moto_interest', 'moto_interest');
+            mapField('forma_pago', 'forma_pago');
+            mapField('ocupacion', 'ocupacion');
+            mapField('ingresos', 'ingresos', Number);
+            mapField('gastos', 'gastos', Number);
+            mapField('datacredito', 'datacredito');
+            mapField('vivienda', 'vivienda');
+            mapField('servicios_publicos', 'servicios_publicos'); // String "Si"/"No"
+            mapField('plan_celular', 'plan_celular'); // String "Si"/"No"
+            
+            // Casting Legal: habeas_data ("Si" -> true)
+            if (data.habeas_data === "Si") updates.habeas_data = true;
+            else if (data.habeas_data === "No") updates.habeas_data = false;
+
+            // Campos obligatorios para nuevos registros
+            if (!exists) {
+                updates.fecha = new Date();
+                updates.status = "PENDING";
+                updates.origen = "BULK_IMPORT_V1.1";
+                updates.plazo_simulado = 24;
+                updates.entidad_simulada = "Crediorbe";
+                createdCount++;
+            } else {
+                updatedCount++;
+            }
+
+            updates.updated_at = new Date();
+
+            const docRef = adminDb.collection("prospectos").doc(document_id);
+            batch.set(docRef, updates, { merge: true });
+        }
+
+        await batch.commit();
+        revalidatePath('/admin/prospectos');
+
+        return {
+            success: true,
+            report: {
+                total: limitedProspects.length,
+                created: createdCount,
+                updated: updatedCount,
+                failed: failedCount
+            }
+        };
+
+    } catch (error: any) {
+        console.error("Error in bulk import batch:", error);
+        return { success: false, message: `Error en proceso masivo: ${error.message}` };
+    }
+}
