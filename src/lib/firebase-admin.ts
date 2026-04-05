@@ -26,3 +26,23 @@ export const getDb = () => {
   // Pasamos la instancia global explícitamente para evitar el error de "Default app"
   return adminFirestore.getFirestore(globalAny._firebaseAdminApp);
 };
+
+export const getAdminAuth = () => {
+  const adminApp = eval("require('firebase-admin/app')");
+  const adminAuth = eval("require('firebase-admin/auth')");
+
+  const globalAny: any = global;
+
+  if (!globalAny._firebaseAdminApp) {
+    const apps = adminApp.getApps();
+    if (apps.length > 0) {
+      globalAny._firebaseAdminApp = apps[0];
+    } else {
+      globalAny._firebaseAdminApp = adminApp.initializeApp({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
+      });
+    }
+  }
+
+  return adminAuth.getAuth(globalAny._firebaseAdminApp);
+};
