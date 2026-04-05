@@ -71,12 +71,13 @@ export default function AdminSidebar() {
                     <>
                         <div className="relative h-10 w-10 shrink-0">
                             {user.photoURL ? (
-                                <Image
-                                    src={user.photoURL}
-                                    alt="Profile"
-                                    fill
-                                    className="rounded-full object-cover border border-slate-600"
-                                />
+                                    <Image
+                                        src={user.photoURL}
+                                        alt="Profile"
+                                        fill
+                                        unoptimized={true}
+                                        className="rounded-full object-cover border border-slate-600"
+                                    />
                             ) : (
                                 <div className="h-full w-full rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
                                     {user.displayName?.charAt(0) || "U"}

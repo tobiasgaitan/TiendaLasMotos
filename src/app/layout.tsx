@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   description: "Gestión de inventario y ventas",
 };
 
+import { Toaster } from "sonner";
 import { LeadModalProvider } from "@/context/LeadModalContext";
 import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
@@ -39,7 +40,7 @@ export default function RootLayout({
    * Font stacks are applied via inline CSS variables to avoid next/font/google build-time fetch.
    */
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className="antialiased bg-slate-50 text-slate-900"
         style={{
@@ -50,6 +51,7 @@ export default function RootLayout({
       >
         <LeadModalProvider>
           <AuthProvider>
+            <Toaster position="top-right" expand={false} richColors />
             <NavigationWrapper />
             {children}
             <LeadForm />

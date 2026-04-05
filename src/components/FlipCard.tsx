@@ -47,6 +47,7 @@ export default function FlipCard({ product }: FlipCardProps) {
                             alt={product.referencia}
                             width={400}
                             height={300}
+                            unoptimized={true}
                             className="object-contain max-h-full transition-transform duration-500 group-hover:scale-110"
                         />
                         <div className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">

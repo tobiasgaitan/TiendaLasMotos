@@ -6,8 +6,9 @@ export interface Lead {
     // Core Fields
     nombre: string;
     celular: string;
-    motoInteres: string;
+    moto_interest: string; // [FIXED] Standardized naming
     fecha: Timestamp;
+    habeas_data_accepted: boolean; // [LEGAL] Mandatory consent flag
 
     // New Field - MANDATORY
     motivo_inscripcion: 'Solicitud de Crédito' | 'Pago de Contado' | 'Asesoría General' | 'Repuestos/Accesorios';

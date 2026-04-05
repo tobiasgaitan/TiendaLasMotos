@@ -65,7 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     if (!querySnapshot.empty && mounted) {
                         // Assuming email is unique and we take the first match
                         const userDoc = querySnapshot.docs[0].data();
-                        setRole(userDoc.rol || "guest");
+                        // Support both 'role' and 'rol' for backward compatibility
+                        const userRole = userDoc.role || userDoc.rol || "guest";
+                        setRole(userRole);
                     } else if (mounted) {
                         // User exists in Auth but not in our DB
                         setRole("guest");
