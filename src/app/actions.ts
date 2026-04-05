@@ -461,7 +461,10 @@ export async function bulkImportProspectsAction(prospects: any[]) {
         };
 
     } catch (error: any) {
-        console.error("Error in bulk import batch:", error);
-        return { success: false, message: `Error en proceso masivo: ${error.message}` };
+        console.error('Error en bulkImport:', error);
+        return { 
+            success: false, 
+            message: error instanceof Error ? error.message : "Error desconocido en la carga masiva."
+        };
     }
 }
