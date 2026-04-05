@@ -107,29 +107,33 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
         if (!prospect) return;
         setIsSaving(true);
         try {
-            // Clean data for UNE v7.0.0 compatibility
-            const updatePayload = {
-                id: prospect.id,
-                nombre: formData.nombre?.substring(0, 50),
-                ciudad: formData.ciudad?.substring(0, 50),
-                moto_interes: formData.moto_interes,
-                moto_offered: formData.moto_offered,
-                moto_confirmada: formData.moto_confirmada,
-                forma_pago: formData.forma_pago,
-                status: formData.status,
-                ocupacion: formData.ocupacion,
-                ingresos: formData.ingresos,
-                gastos: formData.gastos,
-                datacredito: formData.datacredito,
-                vivienda: formData.vivienda,
-                servicios_publicos: formData.servicios_publicos,
-                plan_celular: formData.plan_celular,
-                habeas_data: formData.habeas_data,
-                habeas_data_sent: formData.habeas_data_sent,
-                human_help_requested: formData.human_help_requested
+            // Estructura Mandatoria UNE v7.0.1 (JSON Voorhees)
+            const payload = {
+                document_id: prospect.id,
+                updates: {
+                    nombre: formData.nombre?.substring(0, 50),
+                    ciudad: formData.ciudad?.substring(0, 50),
+                    moto_interes: formData.moto_interes,
+                    moto_offered: formData.moto_offered,
+                    moto_confirmada: formData.moto_confirmada,
+                    forma_pago: formData.forma_pago,
+                    status: formData.status,
+                    ocupacion: formData.ocupacion,
+                    ingresos: Number(formData.ingresos) || 0,
+                    gastos: Number(formData.gastos) || 0,
+                    datacredito: formData.datacredito,
+                    vivienda: formData.vivienda,
+                    servicios_publicos: formData.servicios_publicos,
+                    plan_celular: formData.plan_celular,
+                    habeas_data: formData.habeas_data,
+                    habeas_data_sent: formData.habeas_data_sent,
+                    chatbot_status: formData.human_help_requested ? "PAUSED" : "ACTIVE",
+                    plazo_simulado: 24, // MANDATORIO v7.0.1
+                    entidad_simulada: "Crediorbe" // MANDATORIO v7.0.1
+                }
             };
 
-            const result = await updateProspectAction(updatePayload);
+            const result = await updateProspectAction(payload);
             
             if (result.success) {
                 toast.success('Cambios guardados correctamente');
@@ -147,11 +151,16 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
 
     const handleStatusChange = (newStatus: any) => {
         setFormData(prev => ({ ...prev, status: newStatus }));
-        // Auto-save status if not in general edit mode
         if (!isEditing) {
-            // Option: either force edit mode or save immediately. 
-            // For now, let's keep it immediate to maintain old UX but using our new action
-            updateProspectAction({ id: prospect!.id, status: newStatus });
+            // Actualización asíncrona v7.0.1
+            updateProspectAction({ 
+                document_id: prospect!.id, 
+                updates: { 
+                    status: newStatus,
+                    plazo_simulado: 24, 
+                    entidad_simulada: "Crediorbe" 
+                } 
+            });
         }
     };
 
@@ -166,8 +175,12 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
             };
 
             const result = await updateProspectAction({
-                id: prospect.id,
-                notes: arrayUnion(note)
+                document_id: prospect.id,
+                updates: {
+                    notes: arrayUnion(note),
+                    plazo_simulado: 24,
+                    entidad_simulada: "Crediorbe"
+                }
             } as any);
 
             if (!result.success) throw new Error(result.message);
@@ -212,10 +225,14 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
 
-            // 2. Update via Server Action
+            // 2. Update via Server Action (v7.0.1)
             const result = await updateProspectAction({
-                id: prospect.id,
-                human_help_requested: newHelpStatus
+                document_id: prospect.id,
+                updates: {
+                    chatbot_status: newHelpStatus ? "PAUSED" : "ACTIVE",
+                    plazo_simulado: 24,
+                    entidad_simulada: "Crediorbe"
+                }
             });
 
             if (!result.success) throw new Error(result.message);
