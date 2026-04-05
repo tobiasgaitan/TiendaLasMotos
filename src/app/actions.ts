@@ -400,7 +400,15 @@ export async function bulkImportProspectsAction(prospects: any[]) {
 
             // 1. Normalización y Casting (Regla Tobias & UNE v7.0.2)
             const exists = existenceMap.get(document_id);
-            const updates: any = {};
+            const updates: any = {
+                updated_at: new Date(),
+                // Asegurar que extraemos y usamos el status limpio (Upsert compatible)
+                status: data.status || data.STATUS || "PENDING",
+                metadata: {
+                    source: 'BULK_IMPORT_V1.1',
+                    imported_at: new Date().toISOString(),
+                }
+            };
 
             // Mapeo selectivo con Lógica de Preservación (No-Sobrescritura)
             // Solo incluimos campos que no estén vacíos en el CSV
@@ -431,8 +439,6 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             // Campos obligatorios para nuevos registros
             if (!exists) {
                 updates.fecha = new Date();
-                // Prioridad de Estado (Status Override): if coming from CSV use it, else default PENDING
-                updates.status = data.status || "PENDING";
                 updates.origen = "BULK_IMPORT_V1.1";
                 updates.plazo_simulado = 24;
                 updates.entidad_simulada = "Crediorbe";
