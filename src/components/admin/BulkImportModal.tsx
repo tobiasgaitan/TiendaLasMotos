@@ -54,26 +54,31 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            // 1. Destruir espacios ocultos y BOM en cabeceras
+            transformHeader: (header) => header.trim().replace(/^\uFEFF/, ''),
             complete: (results) => {
-                // 1. Sanitización estricta OBLIGATORIA
                 const cleanData = results.data.map((row: any) => {
-                  let finalStatus = 'PENDING';
-                  if (row.status && row.status.trim() !== '') {
-                    finalStatus = row.status.trim();
-                  }
+                    // 2. Extraer limpiando espacios en llaves y valores
+                    const rawStatus = row.status || row.STATUS || row.Status || '';
+                    const rawMoto = row.moto_interest || row.MOTO_INTERES || row.moto_interes || '';
+                    const rawIdField = row.celular || row.document_id || row.CELULAR || row.DOCUMENT_ID;
+                    
+                    let finalStatus = 'PENDING';
+                    if (rawStatus.toString().trim() !== '') {
+                        finalStatus = rawStatus.toString().trim();
+                    }
 
-                  // Aplicar Regla Tobias (normalización de ID)
-                  const rawId = row.celular || row.document_id;
-                  const { id, valid } = normalizeDocumentId(rawId);
+                    // Aplicar Regla Tobias (normalización de ID)
+                    const { id, valid } = normalizeDocumentId(rawIdField);
 
-                  return {
-                    ...row,
-                    document_id: id,
-                    // Limpieza agresiva de punto y coma y espacios al final
-                    moto_interest: row.moto_interest ? row.moto_interest.replace(/;/g, '').trim() : '',
-                    status: finalStatus,
-                    status_row: valid ? 'VALID' : 'ERROR'
-                  };
+                    return {
+                        ...row,
+                        document_id: id,
+                        // 3. Limpieza extrema
+                        moto_interest: rawMoto.toString().replace(/;/g, '').trim(),
+                        status: finalStatus,
+                        status_row: valid ? 'VALID' : 'ERROR'
+                    };
                 });
 
                 // 2. IMPORTANTE: Usar cleanData para la pre-visualización, NO results.data
@@ -130,7 +135,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                             <Upload className="w-6 h-6 text-green-500" />
-                            Carga Masiva de Prospectos
+                            Carga Masiva v1.2
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">Estándar UNE v7.0.2 • Regla Tobias</p>
                     </div>
@@ -203,7 +208,10 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                             {previewData.map((row, i) => (
                                                 <tr key={i} className="hover:bg-gray-800/30">
                                                     <td className="p-3">
-                                                        <p className="text-sm font-medium text-white">{row.document_id}</p>
+                                                        {/* Forzar color blanco ignorando Tailwind */}
+                                                        <p style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '14px' }}>
+                                                            {row.document_id}
+                                                        </p>
                                                     </td>
                                                     <td className="p-3 text-white">{row.nombre}</td>
                                                     <td className="p-3 text-white font-medium">{row.moto_interest}</td>
