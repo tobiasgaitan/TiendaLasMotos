@@ -265,3 +265,91 @@ export async function saveFinancialParams(data: any) {
         };
     }
 }
+// ==========================================
+// 5. GESTIÓN DE PROSPECTOS (UNE v7.0.0)
+// ==========================================
+
+const prospectUpdateSchema = z.object({
+    document_id: z.string(),
+    updates: z.object({
+        // PII
+        nombre: z.string().max(50).optional(),
+        ciudad: z.string().max(50).optional(),
+
+        // Compliance
+        habeas_data: z.boolean().optional(),
+        habeas_data_sent: z.boolean().optional(),
+
+        // Funnel
+        moto_interes: z.string().optional(),
+        moto_offered: z.string().optional(),
+        moto_confirmada: z.boolean().optional(),
+        forma_pago: z.string().optional(),
+
+        // Crédito
+        ocupacion: z.string().optional(),
+        ingresos: z.coerce.number().optional(),
+        gastos: z.coerce.number().optional(),
+        datacredito: z.string().optional(),
+        vivienda: z.enum(['Propia', 'Familiar', 'Arrendada']).optional(),
+        servicios_publicos: z.string().optional(),
+        plan_celular: z.string().optional(),
+
+        // Simulación
+        cuota_simulada: z.coerce.number().optional(),
+        plazo_simulado: z.literal(24).default(24),
+        score_resultado: z.coerce.number().optional(),
+        entidad_simulada: z.literal("Crediorbe").default("Crediorbe"),
+
+        // Gestión
+        status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+        chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
+        notes: z.any().optional(), // Allow arrayUnion or array of objects
+    }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
+});
+
+/**
+ * updateProspectAction
+ * Actualiza un prospecto siguiendo el estándar UNE v7.0.1 (Estructura document_id + updates).
+ */
+export async function updateProspectAction(data: any) {
+    // 1. Validar Sesión
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session');
+
+    if (!sessionCookie) {
+        return { success: false, message: "No autorizado." };
+    }
+
+    // 2. Validar Datos (Contrato v7.0.1)
+    const validated = prospectUpdateSchema.safeParse(data);
+    if (!validated.success) {
+        console.error("Validation Error (Prospect v7.0.1):", validated.error.format());
+        return { success: false, message: "Error de contrato UNE v7.0.1 (Verificar document_id y updates)" };
+    }
+
+    try {
+        const adminDb = getDb();
+        const { document_id, updates } = validated.data;
+
+        // Truncar PII (Regla de Negocio)
+        if (updates.nombre) updates.nombre = updates.nombre.substring(0, 50);
+        if (updates.ciudad) updates.ciudad = updates.ciudad.substring(0, 50);
+
+        // Inyectar Metadatos Obligatorios en el Servidor
+        const finalPayload = {
+            ...updates,
+            updated_at: new Date() // Sincronización automática con Firestore
+        };
+
+        const docRef = adminDb.collection("prospectos").doc(document_id);
+        await docRef.update(finalPayload);
+
+        revalidatePath('/admin/prospectos');
+        return { success: true, message: "Prospecto actualizado correctamente" };
+
+    } catch (error: any) {
+        console.error("Error updating prospect (v7.0.1):", error);
+        return { success: false, message: `Error de servidor: ${error.message || 'Excepción desconocida'}` };
+    }
+}
