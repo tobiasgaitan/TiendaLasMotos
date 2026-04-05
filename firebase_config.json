@@ -1,0 +1,20 @@
+{
+  "status": "success",
+  "result": {
+    "fileName": "firebase-js-config.json",
+    "fileContents": "{\n  \"projectId\": \"tiendalasmotos\",\n  \"appId\": \"1:467812260261:web:557321ebd82e4b28d2304c\",\n  \"databaseURL\": \"https://tiendalasmotos.firebaseio.com\",\n  \"storageBucket\": \"tiendalasmotos.appspot.com\",\n  \"locationId\": \"us-central\",\n  \"apiKey\": \"AIzaSyBNN-zrGyBfc6I6XikToTHJu2VA_Ed16-0\",\n  \"authDomain\": \"tiendalasmotos.firebaseapp.com\",\n  \"messagingSenderId\": \"467812260261\",\n  \"measurementId\": \"G-CTBYB0REK6\",\n  \"projectNumber\": \"467812260261\",\n  \"version\": \"2\"\n}",
+    "sdkConfig": {
+      "projectId": "tiendalasmotos",
+      "appId": "1:467812260261:web:557321ebd82e4b28d2304c",
+      "databaseURL": "https://tiendalasmotos.firebaseio.com",
+      "storageBucket": "tiendalasmotos.appspot.com",
+      "locationId": "us-central",
+      "apiKey": "AIzaSyBNN-zrGyBfc6I6XikToTHJu2VA_Ed16-0",
+      "authDomain": "tiendalasmotos.firebaseapp.com",
+      "messagingSenderId": "467812260261",
+      "measurementId": "G-CTBYB0REK6",
+      "projectNumber": "467812260261",
+      "version": "2"
+    }
+  }
+}
