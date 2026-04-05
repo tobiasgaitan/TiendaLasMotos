@@ -413,7 +413,8 @@ export async function bulkImportProspectsAction(prospects: any[]) {
 
             mapField('nombre', 'nombre', (v) => String(v).substring(0, 50));
             mapField('ciudad', 'ciudad', (v) => String(v).substring(0, 50));
-            mapField('moto_interest', 'moto_interest');
+            // Sanitización Automática (Auto-Clean): elimiar residuales de Excel/CSV
+            mapField('moto_interest', 'moto_interest', (v) => String(v).replace(/;/g, '').trim());
             mapField('forma_pago', 'forma_pago');
             mapField('ocupacion', 'ocupacion');
             mapField('ingresos', 'ingresos', Number);
@@ -430,7 +431,8 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             // Campos obligatorios para nuevos registros
             if (!exists) {
                 updates.fecha = new Date();
-                updates.status = "PENDING";
+                // Prioridad de Estado (Status Override): if coming from CSV use it, else default PENDING
+                updates.status = data.status || "PENDING";
                 updates.origen = "BULK_IMPORT_V1.1";
                 updates.plazo_simulado = 24;
                 updates.entidad_simulada = "Crediorbe";
