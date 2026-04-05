@@ -293,9 +293,9 @@ export default function ProspectsPage() {
                                         <td className="p-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-white text-lg">{lead.nombre}</span>
-                                                <div className="flex items-center mt-1" style={{ color: '#ffffff', fontWeight: '600', fontSize: '14px' }}>
-                                                    <Phone className="w-4 h-4 mr-1 text-gray-300" />
-                                                    {lead.celular}
+                                                <div className="flex items-center mt-1" style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '14px' }}>
+                                                    <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                                                    {lead.id || lead.celular}
                                                 </div>
                                             </div>
                                         </td>
