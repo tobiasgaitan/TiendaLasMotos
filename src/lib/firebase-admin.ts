@@ -1,26 +1,48 @@
-import * as admin from 'firebase-admin';
-import "server-only";
-
-/**
- * 🛡️ FIREBASE ADMIN INITIALIZATION (LAZY & PROTECTED)
- * Se movió a un patrón de inicialización perezosa para evitar el "Top-Level Crash"
- * que ocurre cuando Next.js importa el módulo en entornos de producción con ADC.
- */
-
-/**
- * 🚀 LAZY GETTER: getDb (ADC PURO)
- * Inicia Firebase Admin utilizando Application Default Credentials (ADC).
- * Eliminado el parseo de FIREBASE_SERVICE_ACCOUNT_KEY que causaba 500s en runtime.
- */
+// @ts-ignore
 export const getDb = () => {
-    if (!admin.apps.length) {
-        try {
-            admin.initializeApp({
-                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
-            });
-        } catch (error) {
-            console.error('⚠️ [Firebase Admin] Init Error:', error);
-        }
+  const adminApp = eval("require('firebase-admin/app')");
+  const adminFirestore = eval("require('firebase-admin/firestore')");
+
+  // 🛡️ PERSISTENCIA GLOBAL: Evita que el App se pierda en el contexto de Cloud Run
+  const globalAny: any = global;
+  
+  if (!globalAny._firebaseAdminApp) {
+    const apps = adminApp.getApps();
+    if (apps.length > 0) {
+      globalAny._firebaseAdminApp = apps[0];
+    } else {
+      try {
+        globalAny._firebaseAdminApp = adminApp.initializeApp({
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
+        });
+        console.log('✅ [Firebase Admin] Nueva instancia inicializada vía ADC');
+      } catch (error) {
+        console.error('⚠️ [Firebase Admin] Error crítico de inicio:', error);
+        throw error;
+      }
     }
-    return admin.firestore();
+  }
+
+  // Pasamos la instancia global explícitamente para evitar el error de "Default app"
+  return adminFirestore.getFirestore(globalAny._firebaseAdminApp);
+};
+
+export const getAdminAuth = () => {
+  const adminApp = eval("require('firebase-admin/app')");
+  const adminAuth = eval("require('firebase-admin/auth')");
+
+  const globalAny: any = global;
+
+  if (!globalAny._firebaseAdminApp) {
+    const apps = adminApp.getApps();
+    if (apps.length > 0) {
+      globalAny._firebaseAdminApp = apps[0];
+    } else {
+      globalAny._firebaseAdminApp = adminApp.initializeApp({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
+      });
+    }
+  }
+
+  return adminAuth.getAuth(globalAny._firebaseAdminApp);
 };
