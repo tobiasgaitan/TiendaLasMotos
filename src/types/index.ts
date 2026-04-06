@@ -6,7 +6,7 @@ export interface Lead {
     // Core Fields
     nombre: string;
     celular: string;
-    moto_interest: string; // [FIXED] Standardized naming
+    moto_interes: string; // [FIXED] Standardized naming
     fecha: Timestamp;
     habeas_data_accepted: boolean; // [LEGAL] Mandatory consent flag
 

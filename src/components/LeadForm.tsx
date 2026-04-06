@@ -83,11 +83,11 @@ export default function LeadForm() {
             const payload = {
                 nombre: data.nombre,
                 celular: cleanPhone,
-                moto_interest: selectedMoto ? selectedMoto.referencia : "General",
+                moto_interes: selectedMoto ? selectedMoto.referencia : "General",
                 motivo_inscripcion: data.motivo_inscripcion,
                 habeas_data_accepted: true, // [LEGAL] Confirmed by checkbox
                 fecha: serverTimestamp(),
-                estado: "NUEVO",
+                status: "Pendiente",
 
                 // AI/Chatbot Fields
                 ai_summary: null,
