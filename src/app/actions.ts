@@ -15,7 +15,7 @@ import { Lead } from "@/types";
 const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }),
-    moto_interest: z.string(), // [FIXED] Standardized
+    moto_interes: z.string(), // [FIXED] Standardized
     motivo_inscripcion: z.enum([
         'Solicitud de Crédito',
         'Pago de Contado',
@@ -33,7 +33,7 @@ export type LeadState = {
     errors?: {
         nombre?: string[];
         celular?: string[];
-        moto_interest?: string[];
+        moto_interes?: string[];
         motivo_inscripcion?: string[];
         habeas_data_accepted?: string[];
         general?: string[];
@@ -45,7 +45,7 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     const rawData = {
         nombre: formData.get("nombre") as string,
         celular: formData.get("celular") as string,
-        moto_interest: formData.get("moto_interest") as string || "General",
+        moto_interes: formData.get("moto_interest") as string || "General",
         motivo_inscripcion: formData.get("motivo_inscripcion") as any,
         habeas_data_accepted: formData.get("habeas_data_accepted") === "true", // [LEGAL] Check for true
         origen: "WEB_BETA",
@@ -66,7 +66,7 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         await adminDb.collection("leads").add({
             ...validated.data,
             created_at: new Date(), // Admin SDK accepts JS Date
-            status: "nuevo"
+            status: "Pendiente"
         });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
@@ -277,7 +277,7 @@ const prospectUpdateSchema = z.object({
         ciudad: z.string().max(50).optional(),
 
         // Compliance
-        habeas_data: z.boolean().optional(),
+        habeas_data_accepted: z.boolean().optional(),
         habeas_data_sent: z.boolean().optional(),
 
         // Funnel
@@ -302,7 +302,7 @@ const prospectUpdateSchema = z.object({
         entidad_simulada: z.literal("Crediorbe").default("Crediorbe"),
 
         // Gestión
-        status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+        status: z.enum(['Pendiente', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
         chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
         notes: z.any().optional(), // Allow arrayUnion or array of objects
     }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
@@ -403,9 +403,9 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             const updates: any = {
                 updated_at: new Date(),
                 // Asegurar que extraemos y usamos el status limpio (Upsert compatible)
-                status: data.status || data.STATUS || "PENDING",
+                status: data.status || data.STATUS || "Pendiente",
                 metadata: {
-                    source: 'BULK_IMPORT_V1.1',
+                    source: 'BULK_IMPORT_V1.2',
                     imported_at: new Date().toISOString(),
                 }
             };
@@ -422,7 +422,7 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             mapField('nombre', 'nombre', (v) => String(v).substring(0, 50));
             mapField('ciudad', 'ciudad', (v) => String(v).substring(0, 50));
             // Sanitización Automática (Auto-Clean): elimiar residuales de Excel/CSV
-            mapField('moto_interest', 'moto_interest', (v) => String(v).replace(/;/g, '').trim());
+            mapField('moto_interes', 'moto_interes', (v) => String(v).replace(/;/g, '').trim());
             mapField('forma_pago', 'forma_pago');
             mapField('ocupacion', 'ocupacion');
             mapField('ingresos', 'ingresos', Number);
@@ -432,14 +432,14 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             mapField('servicios_publicos', 'servicios_publicos'); // String "Si"/"No"
             mapField('plan_celular', 'plan_celular'); // String "Si"/"No"
             
-            // Casting Legal: habeas_data ("Si" -> true)
-            if (data.habeas_data === "Si") updates.habeas_data = true;
-            else if (data.habeas_data === "No") updates.habeas_data = false;
+            // Casting Legal: habeas_data_accepted
+            if (data.habeas_data_accepted === true || data.habeas_data === "Si") updates.habeas_data_accepted = true;
+            else if (data.habeas_data === "No") updates.habeas_data_accepted = false;
 
             // Campos obligatorios para nuevos registros
             if (!exists) {
                 updates.fecha = new Date();
-                updates.origen = "BULK_IMPORT_V1.1";
+                updates.origen = "BULK_IMPORT_V1.2";
                 updates.plazo_simulado = 24;
                 updates.entidad_simulada = "Crediorbe";
                 createdCount++;

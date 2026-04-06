@@ -15,8 +15,8 @@ interface RowData {
     document_id: string;
     nombre: string;
     celular: string;
-    moto_interest: string;
-    habeas_data: string;
+    moto_interes: string;
+    habeas_data_accepted: boolean;
     ciudad?: string;
     ocupacion?: string;
     ingresos?: string;
@@ -38,11 +38,14 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
 
     const normalizeDocumentId = (id: string): { id: string; valid: boolean } => {
         const clean = id?.toString().trim().replace(/\D/g, '');
+        // Regla Tobias Hardened: Solo permitimos 10 dígitos. 
+        // Si tiene 12 y empieza con 57, extraemos los últimos 10.
         if (clean.length === 10) {
-            return { id: `57${clean}`, valid: true };
+            return { id: clean, valid: true };
         }
         if (clean.length === 12 && clean.startsWith('57')) {
-            return { id: clean, valid: true };
+            const truncated = clean.substring(2);
+            return { id: truncated, valid: true };
         }
         return { id: clean, valid: false };
     };
@@ -60,10 +63,11 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                 const cleanData = results.data.map((row: any) => {
                     // 2. Extraer limpiando espacios en llaves y valores
                     const rawStatus = row.status || row.STATUS || row.Status || '';
-                    const rawMoto = row.moto_interest || row.MOTO_INTERES || row.moto_interes || '';
+                    const rawMoto = row.moto_interest || row.MOTO_INTERES || row.moto_interes || row.MOTO_INTEREST || '';
                     const rawIdField = row.celular || row.document_id || row.CELULAR || row.DOCUMENT_ID;
+                    const rawHabeas = row.habeas_data_accepted || row.habeas_data || row.HABEAS_DATA || 'No';
                     
-                    let finalStatus = 'PENDING';
+                    let finalStatus = 'Pendiente';
                     if (rawStatus.toString().trim() !== '') {
                         finalStatus = rawStatus.toString().trim();
                     }
@@ -75,7 +79,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                         ...row,
                         document_id: id,
                         // 3. Limpieza extrema
-                        moto_interest: rawMoto.toString().replace(/;/g, '').trim(),
+                        moto_interes: rawMoto.toString().replace(/;/g, '').trim(),
+                        habeas_data_accepted: (rawHabeas === 'Si' || rawHabeas === true),
                         status: finalStatus,
                         status_row: valid ? 'VALID' : 'ERROR'
                     };
@@ -214,8 +219,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                                         </p>
                                                     </td>
                                                     <td className="p-3 text-white">{row.nombre}</td>
-                                                    <td className="p-3 text-white font-medium">{row.moto_interest}</td>
-                                                    <td className="p-3 text-gray-400">{row.status || 'PENDING'}</td>
+                                                    <td className="p-3 text-white font-medium">{row.moto_interes}</td>
+                                                    <td className="p-3 text-gray-400">{row.status || 'Pendiente'}</td>
                                                     <td className="p-3 text-center">
                                                         {row.status_row === 'VALID' ? (
                                                             <span className="inline-flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full text-xs">
