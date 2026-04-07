@@ -82,6 +82,7 @@ export default function LeadForm() {
             // 2. Prepare Payload
             const payload = {
                 nombre: data.nombre,
+                ciudad: "No especificada",
                 celular: cleanPhone,
                 moto_interes: selectedMoto ? selectedMoto.referencia : "General",
                 motivo_inscripcion: data.motivo_inscripcion,
@@ -91,7 +92,8 @@ export default function LeadForm() {
 
                 // AI/Chatbot Fields
                 ai_summary: null,
-                chatbot_status: "PENDING",
+                chatbot_status: "ACTIVE",
+                human_help_requested: false,
                 origen: "WEB_COTIZADOR"
             };
 

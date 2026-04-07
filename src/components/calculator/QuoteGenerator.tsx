@@ -154,13 +154,16 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             const cleanPhone = userPhone.replace(/\D/g, '');
             const payload = {
                 nombre: userName,
+                ciudad: activeScenario.cityName || "No especificada",
                 celular: cleanPhone,
-                moto_interest: moto.referencia,
+                moto_interes: moto.referencia,
                 fecha: serverTimestamp(),
                 motivo_inscripcion: isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)',
                 origen: 'ADMIN_QUOTE_GENERATOR',
                 estado: 'NUEVO',
-                habeas_data_accepted: true // Admin tool assumes consent or handles internally
+                habeas_data_accepted: true, // Admin tool assumes consent or handles internally
+                chatbot_status: 'ACTIVE',
+                human_help_requested: false
             };
             await addDoc(collection(db, "prospectos"), payload);
 
