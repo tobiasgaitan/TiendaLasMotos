@@ -296,7 +296,7 @@ export default function ProspectsPage() {
                                                 <div className="mt-1" style={{ color: '#ffffff', display: 'block', visibility: 'visible', fontWeight: 'bold', fontSize: '14px' }}>
                                                     <div className="flex items-center">
                                                         <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                                                        {lead.id || lead.celular}
+                                                        {lead.celular}
                                                     </div>
                                                 </div>
                                             </div>
