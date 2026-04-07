@@ -238,13 +238,16 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         try {
             const payload: Lead = {
                 nombre: userName,
+                ciudad: activeScenario.cityName || "No especificada",
                 celular: cleanPhone,
-                moto_interest: selectedMoto.referencia,
+                moto_interes: selectedMoto.referencia,
                 fecha: serverTimestamp(),
                 motivo_inscripcion: isCredit ? 'Solicitud de Crédito' : 'Pago de Contado',
                 origen: 'WEB_COTIZADOR_PRO',
                 estado: 'NUEVO',
                 habeas_data_accepted: true,
+                chatbot_status: 'ACTIVE',
+                human_help_requested: false,
                 edad: userProfile.age,
                 ingresos_mensuales: userProfile.income,
                 actividad_economica: userProfile.activity,
