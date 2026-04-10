@@ -48,6 +48,15 @@ export const calculateSoat = (displacement: number, rates: SoatRate[]): number =
 
 // CONSTANTS REMOVED (Imported)
 
+const CREDIORBE_FACTORS: Record<number, number> = {
+    12: 0.15520,
+    24: 0.09628,
+    36: 0.07813,
+    48: 0.07005,
+    60: 0.06588,
+    72: 0.06356
+};
+
 /**
  * Calculates a full quote with Matrix Logic and Layered Capitalization.
  * 
@@ -197,154 +206,116 @@ export const calculateQuote = (
         const docsTotal = registrationPrice + documentationFee;
         const financeDocs = entity?.financeDocsAndSoat ?? entity?.includeDocsInCapital ?? true; // Support new and legacy flag
 
-        // 1. CAPITAL BASE (P1) calculation
-        // Formula: (Moto - CuotaInicial) + [Docs] + [Guarantee] + [FNG]
-        // Note: FNG is now requested as "FNG / Otros Seguros (%)" in UI and "Se suma al Capital Base".
-        // It is usually a % of the BASE or financed amount. Let's assume % of (Moto + Docs - Down).
-
-        let p1_base = assetPrice - downPaymentInput;
-        // [FIX] Docs should be ADDED to base if financed. 
-        // Logic: If 'financeDocs' is true, we add docsTotal to the loan principal.
-        // If false, user pays docs upfront? Or it's just not part of capital?
-        // Usually: P_financed = Price - Down + Docs (if financed).
-        if (financeDocs) {
-            p1_base += docsTotal;
-        }
-
-        // [FIX] Removed static "Phantom" Charge of 120k (MOVABLE_GUARANTEE_COST) as per user request.
-        // It should ONLY be applied if explicitly configured in entity parameters if needed.
-        // For now, we strictly follow the Entity configuration.
-
-
-        // FNG Calculation
-        // Requirement Crediorbe: 20.66% del Neto (Precio - Inicial)
-        // Current Code: `p1_base` starts as (Price - Down).
         const isCrediorbe = entity?.name?.toLowerCase().includes('crediorbe') || false;
 
         if (isCrediorbe) {
-            // [OVERRIDE MATHEMATICO OBLIGATORIO] Aval Resfin S.A.S
-            const crediorbeMultiplier = 1.441711094;
-            fngCost = Math.round(p1_base * crediorbeMultiplier) - p1_base;
-            p1_base += fngCost;
+            // [OVERRIDE ESTATICO] Modelo de Factor Estático para Crediorbe
+            // Promedio exacto derivado para alineación de matriz de riesgo.
+            const netAmount = assetPrice - downPaymentInput;
+            // Provide fallback factor 0 if month is not in dictionary to avoid NaN
+            const factor = CREDIORBE_FACTORS[months] || 0;
+            monthlyPayment = Math.round(netAmount * factor);
+
+            // Nullify dynamic layers for strict factor logic
+            fngCost = 0;
             vGestion = 0;
+            vCobertura = 0;
+            lifeInsuranceValue = 0;
+            unemploymentInsuranceCost = 0;
+            coverageMonthlyComponent = 0;
+            loanAmount = netAmount;
+
+            total = downPaymentInput + (monthlyPayment * months);
+
+            if (!financeDocs) {
+                registrationPrice = 0;
+            }
         } else {
+            // 1. CAPITAL BASE (P1) calculation
+            // Formula: (Moto - CuotaInicial) + [Docs] + [Guarantee] + [FNG]
+            let p1_base = assetPrice - downPaymentInput;
+            if (financeDocs) {
+                p1_base += docsTotal;
+            }
+
             if (entity?.fngRate && entity.fngRate > 0) {
                 fngCost = Math.round(p1_base * (entity.fngRate / 100));
                 p1_base += fngCost;
             }
 
             // 2. GESTION (V_gestion)
-            // Formula: P1 * 5% (or configured rate)
             if (entity?.brillaManagementRate && entity.brillaManagementRate > 0) {
                 vGestion = Math.round(p1_base * (entity.brillaManagementRate / 100));
             }
-        }
 
-        // 3. CAPITAL INTERMEDIO (P2)
-        const p2_intermediate = p1_base + vGestion;
+            // 3. CAPITAL INTERMEDIO (P2)
+            const p2_intermediate = p1_base + vGestion;
 
-        // 4. COBERTURA (V_cobertura)
-        // Formula: P2 * 4% (or configured rate)
-        if (isCrediorbe) {
-            vCobertura = 0;
-        } else if (entity?.coverageRate && entity.coverageRate > 0) {
-            vCobertura = Math.round(p2_intermediate * (entity.coverageRate / 100));
-        }
-
-        // 5. FINAL CAPITAL (P_final)
-        const pFinal = p2_intermediate + vCobertura;
-
-        // --- PAYMENT LOGIC ---
-        // Requirement: Coverage is split in first 12 months.
-        // If coverage exists:
-        //    Amortization Capital = P2 (Coverage is paid separately)
-        //    Coverage Fee = V_cobertura / 12 (max 12 months)
-        // Else:
-        //    Amortization Capital = P2 (which equals P_final if V_cob is 0)
-
-        // Note: If V_cobertura > 0, we treat it as an Add-on, NOT part of the Amortized Loan Principal,
-        // BUT it is part of the Risk/Insurance Base (P_final).
-
-        let amortizationPrincipal = p2_intermediate;
-
-        // If the entity does NOT use the split logic (standard check), then we might amortize P_final.
-        // BUT the user prompt implies this is standard for "Brilla" or whenever Configured.
-        // We will Apply Split Logic IF vCobertura > 0.
-
-        if (vCobertura > 0) {
-            coverageMonthlyComponent = Math.round(vCobertura / 12);
-        } else {
-            amortizationPrincipal = pFinal; // Should be same as p2 if vCobertura is 0
-        }
-
-        loanAmount = pFinal; // For display and insurance calc
-
-        // 6. Insurances (on P_final)
-        // Priority to ROOT Global Config
-        const rootInsuranceMode = financialMatrix?.life_insurance_mode;
-        const rootInsuranceVal = financialMatrix?.life_insurance_monthly;
-
-        if (rootInsuranceMode === 'fixed') {
-            lifeInsuranceValue = rootInsuranceVal ?? 15000;
-        } else {
-            const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
-            const insuranceMode = entity?.lifeInsuranceType || 'percentage';
-
-            if (insuranceMode === 'fixed') {
-                lifeInsuranceValue = insuranceVal;
-            } else if (insuranceMode === 'fixed_per_million') {
-                const millions = loanAmount / 1000000;
-                lifeInsuranceValue = Math.ceil(millions * insuranceVal);
-            } else {
-                // Default: percentage
-                lifeInsuranceValue = Math.round(loanAmount * (insuranceVal / 100));
+            // 4. COBERTURA (V_cobertura)
+            if (entity?.coverageRate && entity.coverageRate > 0) {
+                vCobertura = Math.round(p2_intermediate * (entity.coverageRate / 100));
             }
-        }
 
-        if (entity?.unemploymentInsuranceValue && entity.unemploymentInsuranceValue > 0) {
-            if (entity.unemploymentInsuranceType === 'percentage_monthly') {
-                unemploymentInsuranceCost = Math.round(loanAmount * (entity.unemploymentInsuranceValue / 100));
+            // 5. FINAL CAPITAL (P_final)
+            const pFinal = p2_intermediate + vCobertura;
+
+            let amortizationPrincipal = p2_intermediate;
+
+            if (vCobertura > 0) {
+                coverageMonthlyComponent = Math.round(vCobertura / 12);
             } else {
-                unemploymentInsuranceCost = entity.unemploymentInsuranceValue;
+                amortizationPrincipal = pFinal; 
             }
-        }
 
-        if (isCrediorbe) {
-            lifeInsuranceValue = 0;
-            unemploymentInsuranceCost = 0;
-        }
+            loanAmount = pFinal;
 
-        // 7. Amortization
-        let effectiveRate = entity?.interestRate || 2.5;
+            // 6. Insurances (on P_final)
+            const rootInsuranceMode = financialMatrix?.life_insurance_mode;
+            const rootInsuranceVal = financialMatrix?.life_insurance_monthly;
 
-        // [BYPASS] Parametric subyacent rate to pinpoint exactly PMT goal
-        if (isCrediorbe) {
-            effectiveRate = 4.190786366403919;
-        }
+            if (rootInsuranceMode === 'fixed') {
+                lifeInsuranceValue = rootInsuranceVal ?? 15000;
+            } else {
+                const insuranceVal = entity?.lifeInsuranceValue ?? 0.1126;
+                const insuranceMode = entity?.lifeInsuranceType || 'percentage';
 
-        const r = effectiveRate / 100;
-        const n = months;
-        let basePmt = 0;
+                if (insuranceMode === 'fixed') {
+                    lifeInsuranceValue = insuranceVal;
+                } else if (insuranceMode === 'fixed_per_million') {
+                    const millions = loanAmount / 1000000;
+                    lifeInsuranceValue = Math.ceil(millions * insuranceVal);
+                } else {
+                    lifeInsuranceValue = Math.round(loanAmount * (insuranceVal / 100));
+                }
+            }
 
-        if (n > 0) {
-            if (r > 0) basePmt = (amortizationPrincipal * r) / (1 - Math.pow(1 + r, -n));
-            else basePmt = amortizationPrincipal / n;
-        }
+            if (entity?.unemploymentInsuranceValue && entity.unemploymentInsuranceValue > 0) {
+                if (entity.unemploymentInsuranceType === 'percentage_monthly') {
+                    unemploymentInsuranceCost = Math.round(loanAmount * (entity.unemploymentInsuranceValue / 100));
+                } else {
+                    unemploymentInsuranceCost = entity.unemploymentInsuranceValue;
+                }
+            }
 
-        // Total Monthly Payment (Month 1-12 View)
-        monthlyPayment = Math.round(basePmt + lifeInsuranceValue + unemploymentInsuranceCost + coverageMonthlyComponent);
+            // 7. Amortization
+            let effectiveRate = entity?.interestRate || 2.5;
 
-        // Total Project Cost
-        // If Split Logic: DownPayment + (Base+Ins)*months + V_cobertura
-        // We approximate total by (monthlyPayment * months) which overestimates if coverage stops at 12.
-        // Correct Total = DownPayment + (BasePmt + Ins)*months + V_cobertura
-        total = downPaymentInput + ((basePmt + lifeInsuranceValue + unemploymentInsuranceCost) * n) + vCobertura;
+            const r = effectiveRate / 100;
+            const n = months;
+            let basePmt = 0;
 
-        // [STRICT RULE] If entity does NOT finance docs, we must FORCE registrationPrice to 0 in results logic
-        // to avoid confusion in the UI Waterfalls.
-        // Compliance: "Lógica Excluyente de Trámites".
-        if (!financeDocs) {
-            registrationPrice = 0;
+            if (n > 0) {
+                if (r > 0) basePmt = (amortizationPrincipal * r) / (1 - Math.pow(1 + r, -n));
+                else basePmt = amortizationPrincipal / n;
+            }
+
+            monthlyPayment = Math.round(basePmt + lifeInsuranceValue + unemploymentInsuranceCost + coverageMonthlyComponent);
+
+            total = downPaymentInput + ((basePmt + lifeInsuranceValue + unemploymentInsuranceCost) * n) + vCobertura;
+
+            if (!financeDocs) {
+                registrationPrice = 0;
+            }
         }
     }
 

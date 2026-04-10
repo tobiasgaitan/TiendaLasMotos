@@ -512,9 +512,15 @@ export default function SimulatorPage() {
                                                 </td>
                                             </tr>
                                             <tr className="bg-gray-900/50 border-t border-gray-600">
-                                                <td className="py-4 text-white font-bold text-lg">CUOTA MENSUAL TOTAL</td>
+                                                <td className="py-4 text-white font-bold text-lg">
+                                                    CUOTA MENSUAL TOTAL
+                                                    {/* [BYPASS NUCLEAR] Disclaimer Cuota Estimada */}
+                                                    <span style={{ display: 'block', visibility: 'visible', color: 'rgb(239, 68, 68)', fontWeight: 'bold', marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                                                        *Cuota Estimada sujeta a estudio de crédito
+                                                    </span>
+                                                </td>
                                                 {/* [BYPASS NUCLEAR] Node 22 UI Issue */}
-                                                <td className="py-4 text-right font-mono text-xl font-bold text-brand-yellow" style={{ visibility: 'visible', color: '#fff' }}>
+                                                <td className="py-4 text-right font-mono text-xl font-bold text-brand-yellow flex flex-col justify-center items-end" style={{ visibility: 'visible', color: '#fff' }}>
                                                     {formatCurrency(quote.monthlyPayment || 0)}
                                                 </td>
                                                 <td className="py-4 text-right font-mono text-lg font-bold text-gray-300">
