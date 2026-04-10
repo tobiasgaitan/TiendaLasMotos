@@ -42,11 +42,6 @@ const nextConfig: NextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   // Ensure we don't try to access FS for map files in prod if not needed
   productionBrowserSourceMaps: false,
 };

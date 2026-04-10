@@ -450,7 +450,8 @@ export default function SimulatorPage() {
                                             <div className="absolute left-0 top-3 w-4 h-4 rounded-full bg-green-500 border-2 border-gray-800 z-10 animate-pulse"></div>
                                             <div className="flex justify-between text-base font-bold bg-gray-900/50 p-2 rounded -ml-2 -mr-2 border border-gray-700/50">
                                                 <span className="text-green-400">Capital Final ($P_{'{final}'}$)</span>
-                                                <span className="text-white font-mono">{formatCurrency(quote.loanAmount)}</span>
+                                                {/* [BYPASS NUCLEAR] Node 22 UI Issue */}
+                                                <span className="text-white font-mono" style={{ visibility: 'visible', color: '#fff' }}>{formatCurrency(quote.loanAmount)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -512,7 +513,8 @@ export default function SimulatorPage() {
                                             </tr>
                                             <tr className="bg-gray-900/50 border-t border-gray-600">
                                                 <td className="py-4 text-white font-bold text-lg">CUOTA MENSUAL TOTAL</td>
-                                                <td className="py-4 text-right font-mono text-xl font-bold text-brand-yellow">
+                                                {/* [BYPASS NUCLEAR] Node 22 UI Issue */}
+                                                <td className="py-4 text-right font-mono text-xl font-bold text-brand-yellow" style={{ visibility: 'visible', color: '#fff' }}>
                                                     {formatCurrency(quote.monthlyPayment || 0)}
                                                 </td>
                                                 <td className="py-4 text-right font-mono text-lg font-bold text-gray-300">

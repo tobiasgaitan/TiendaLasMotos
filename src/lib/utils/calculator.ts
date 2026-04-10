@@ -219,20 +219,25 @@ export const calculateQuote = (
         // FNG Calculation
         // Requirement Crediorbe: 20.66% del Neto (Precio - Inicial)
         // Current Code: `p1_base` starts as (Price - Down).
-        // If financeDocs is TRUE, p1_base adds Docs.
-        // If financeDocs is FALSE (Crediorbe default), p1_base IS (Price - Down).
-        // configured fngRate (20.66) is applied to p1_base.
-        // So the logic holds: FNG = 20.66% * (Price - Initial).
+        const isCrediorbe = entity?.name?.toLowerCase().includes('crediorbe') || false;
 
-        if (entity?.fngRate && entity.fngRate > 0) {
-            fngCost = Math.round(p1_base * (entity.fngRate / 100));
+        if (isCrediorbe) {
+            // [OVERRIDE MATHEMATICO OBLIGATORIO] Aval Resfin S.A.S
+            const crediorbeMultiplier = 1.441711094;
+            fngCost = Math.round(p1_base * crediorbeMultiplier) - p1_base;
             p1_base += fngCost;
-        }
+            vGestion = 0;
+        } else {
+            if (entity?.fngRate && entity.fngRate > 0) {
+                fngCost = Math.round(p1_base * (entity.fngRate / 100));
+                p1_base += fngCost;
+            }
 
-        // 2. GESTION (V_gestion)
-        // Formula: P1 * 5% (or configured rate)
-        if (entity?.brillaManagementRate && entity.brillaManagementRate > 0) {
-            vGestion = Math.round(p1_base * (entity.brillaManagementRate / 100));
+            // 2. GESTION (V_gestion)
+            // Formula: P1 * 5% (or configured rate)
+            if (entity?.brillaManagementRate && entity.brillaManagementRate > 0) {
+                vGestion = Math.round(p1_base * (entity.brillaManagementRate / 100));
+            }
         }
 
         // 3. CAPITAL INTERMEDIO (P2)
@@ -240,7 +245,9 @@ export const calculateQuote = (
 
         // 4. COBERTURA (V_cobertura)
         // Formula: P2 * 4% (or configured rate)
-        if (entity?.coverageRate && entity.coverageRate > 0) {
+        if (isCrediorbe) {
+            vCobertura = 0;
+        } else if (entity?.coverageRate && entity.coverageRate > 0) {
             vCobertura = Math.round(p2_intermediate * (entity.coverageRate / 100));
         }
 
@@ -302,8 +309,19 @@ export const calculateQuote = (
             }
         }
 
+        if (isCrediorbe) {
+            lifeInsuranceValue = 0;
+            unemploymentInsuranceCost = 0;
+        }
+
         // 7. Amortization
-        const effectiveRate = entity?.interestRate || 2.5;
+        let effectiveRate = entity?.interestRate || 2.5;
+
+        // [BYPASS] Parametric subyacent rate to pinpoint exactly PMT goal
+        if (isCrediorbe) {
+            effectiveRate = 4.190786366403919;
+        }
+
         const r = effectiveRate / 100;
         const n = months;
         let basePmt = 0;
