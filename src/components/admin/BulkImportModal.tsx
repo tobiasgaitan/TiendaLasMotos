@@ -125,6 +125,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                 throw new Error(result.message);
             }
         } catch (error: any) {
+            console.error(error);
             toast.error("Error en la importación", { description: error.message });
         } finally {
             setIsProcessing(false);
