@@ -404,6 +404,8 @@ export async function bulkImportProspectsAction(prospects: any[]) {
                 updated_at: new Date(),
                 // Asegurar que extraemos y usamos el status limpio (Upsert compatible)
                 status: data.status || data.STATUS || "Pendiente",
+                // [ESTÁNDAR UNE v7.0.2] Forzar mapeo de la llave principal al campo celular
+                celular: document_id,
                 metadata: {
                     source: 'BULK_IMPORT_V1.2',
                     imported_at: new Date().toISOString(),
