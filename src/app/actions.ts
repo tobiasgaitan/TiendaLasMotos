@@ -381,8 +381,25 @@ export async function bulkImportProspectsAction(prospects: any[]) {
     let failedCount = 0;
 
     try {
+        // 1. [ESTRICTO] Sanitizar payload asegurando document_id y descartar inválidos antes de tocar el SDK
+        const validProspects = limitedProspects.map(p => {
+            p.document_id = p.document_id || p.celular; // Mapeo de seguridad final
+            return p;
+        }).filter(p => p.document_id && typeof p.document_id === 'string' && p.document_id.trim() !== '');
+
+        // Sumar al contador de fallos aquellos que no pasaron el filtro nulo
+        failedCount += (limitedProspects.length - validProspects.length);
+
+        // Check de finalización anticipada si no hay registros válidos
+        if (validProspects.length === 0) {
+             return {
+                success: true,
+                report: { total: limitedProspects.length, created: 0, updated: 0, failed: failedCount }
+             };
+        }
+
         // Obtener todas las referencias y verificar existencia para el reporte
-        const docRefs = limitedProspects.map(p => adminDb.collection("prospectos").doc(p.document_id));
+        const docRefs = validProspects.map(p => adminDb.collection("prospectos").doc(p.document_id));
         const snapshots = await adminDb.getAll(...docRefs);
         
         const existenceMap = new Map<string, boolean>();
@@ -390,7 +407,7 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             existenceMap.set(snap.id, snap.exists);
         });
 
-        for (const prospect of limitedProspects) {
+        for (const prospect of validProspects) {
             const { document_id, ...data } = prospect;
 
             if (!document_id) {
