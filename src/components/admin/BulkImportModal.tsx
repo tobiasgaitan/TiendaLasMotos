@@ -115,7 +115,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
 
         setIsProcessing(true);
         try {
-            const result = await bulkImportProspectsAction(validProspects);
+            // [NODE 22] Eliminación agresiva de prototipos de PapaParse para evitar Server Actions Strictness Error
+            const cleanPayload = JSON.parse(JSON.stringify(validProspects));
+            const result = await bulkImportProspectsAction(cleanPayload);
             if (result.success && result.report) {
                 setReport(result.report);
                 toast.success("Importación completada!");
