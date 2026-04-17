@@ -450,6 +450,8 @@ export async function bulkImportProspectsAction(prospects: any[]) {
             }
 
             updates.updated_at = new Date();
+            // [ESTRICTO] Contrato Único de Datos: Asegurar llave ancla inmediatamente antes del merge
+            updates.celular = document_id;
 
             const docRef = adminDb.collection("prospectos").doc(document_id);
             batch.set(docRef, updates, { merge: true });
