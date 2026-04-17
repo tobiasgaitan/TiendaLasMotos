@@ -37,7 +37,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     const [report, setReport] = useState<{ created: number; updated: number; failed: number } | null>(null);
 
     const normalizeDocumentId = (id: string): { id: string; valid: boolean } => {
-        const clean = id?.toString().trim().replace(/\D/g, '');
+        const clean = (id || '').toString().trim().replace(/\D/g, '');
         // Regla Tobias Hardened: Solo permitimos 10 dígitos. 
         // Si tiene 12 y empieza con 57, extraemos los últimos 10.
         if (clean.length === 10) {
@@ -56,9 +56,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         
         Papa.parse(file, {
             header: true,
-            skipEmptyLines: true,
+            skipEmptyLines: 'greedy',
             // 1. Destruir espacios ocultos y BOM en cabeceras
-            transformHeader: (header) => header.trim().replace(/^\uFEFF/, ''),
+            transformHeader: (header) => (header || '').toString().trim().replace(/^\uFEFF/, ''),
             complete: (results) => {
                 const cleanData = results.data.map((row: any) => {
                     // 2. Extraer limpiando espacios en llaves y valores
@@ -68,8 +68,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     const rawHabeas = row.habeas_data_accepted || row.habeas_data || row.HABEAS_DATA || 'No';
                     
                     let finalStatus = 'Pendiente';
-                    if (rawStatus.toString().trim() !== '') {
-                        finalStatus = rawStatus.toString().trim();
+                    if (rawStatus && (rawStatus || '').toString().trim() !== '') {
+                        finalStatus = (rawStatus || '').toString().trim();
                     }
 
                     // Aplicar Regla Tobias (normalización de ID)
@@ -79,7 +79,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                         ...row,
                         document_id: id,
                         // 3. Limpieza extrema
-                        moto_interes: rawMoto.toString().replace(/;/g, '').trim(),
+                        moto_interes: (rawMoto || '').toString().replace(/;/g, '').trim(),
                         habeas_data_accepted: (rawHabeas === 'Si' || rawHabeas === true),
                         status: finalStatus,
                         status_row: valid ? 'VALID' : 'ERROR'
