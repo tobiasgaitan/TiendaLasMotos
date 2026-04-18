@@ -100,6 +100,27 @@ export default function LeadForm() {
             // 3. Send to Firestore
             await addDoc(collection(db, "prospectos"), payload);
 
+            // [INYECCIÓN CRÍTICA] Disparar el Orquestador del Bot
+            try {
+                const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL || "";
+                await fetch(`${cloudRunUrl}/api/admin/campaign/start`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-admin-api-key": process.env.NEXT_PUBLIC_BOT_API_KEY || ""
+                    },
+                    body: JSON.stringify({
+                        phone: cleanPhone,
+                        name: data.nombre,
+                        moto: selectedMoto ? selectedMoto.referencia : "General",
+                        template_name: "contactos_impulsa"
+                    })
+                });
+            } catch (botError) {
+                console.error("Error disparando el webhook del bot:", botError);
+                // Opcional: No bloqueamos el success del usuario si el bot falla, pero lo registramos.
+            }
+
             // 4. Handle Success
             setSubmitSuccess(true);
 

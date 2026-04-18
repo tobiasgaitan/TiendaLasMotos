@@ -227,7 +227,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         }
     };
 
-    // WhatsApp Handler
+    // WhatsApp Handler [MODIFICADO PARA ORQUESTADOR IA]
     const handleWhatsapp = async () => {
         if (!quote || !selectedMoto) return;
         if (!validateContact()) return;
@@ -246,7 +246,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 origen: 'WEB_COTIZADOR_PRO',
                 estado: 'NUEVO',
                 habeas_data_accepted: true,
-                chatbot_status: 'ACTIVE',
+                chatbot_status: 'ACTIVE', // Señal de control para el bot
                 human_help_requested: false,
                 edad: userProfile.age,
                 ingresos_mensuales: userProfile.income,
@@ -255,34 +255,38 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 eligibility_status: isCredit ? (routingResult.status === 'Eligible' ? 'APTO' : 'RECHAZADO_AUTO') : 'N/A'
             } as any;
 
+            // 1. Guardar prospecto en Base de Datos (Firestore)
             await addDoc(collection(db, "prospectos"), payload);
+
+            // 2. Detonación del Orquestador IA (Puente de Red HTTP)
+            const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL;
+            const apiKey = process.env.NEXT_PUBLIC_BOT_API_KEY;
+
+            if (cloudRunUrl && apiKey) {
+                await fetch(`${cloudRunUrl}/api/admin/campaign/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        campaign_id: "contactos_impulsa",
+                        phones: [cleanPhone] // Transferencia del número objetivo al worker
+                    })
+                });
+            } else {
+                console.error("[AUDITORÍA RED] Variables de entorno ausentes. Puente a Cloud Run abortado.");
+            }
+
+            // 3. Feedback Interfaz de Usuario (Anula el window.open manual)
+            alert("✅ Cotización registrada. El Asesor IA enviará la información a tu WhatsApp en segundos.");
+
         } catch (e) {
-            console.error("Error saving lead", e);
+            console.error("[ERROR FIREBASE/FETCH]", e);
+            alert("Error crítico de red al procesar la solicitud.");
         } finally {
             setIsSaving(false);
         }
-
-        const phone = "573008603210";
-        let text = `Hola, soy *${userName}*, me interesa la *${selectedMoto.marca} ${selectedMoto.referencia}*.\n`;
-        text += `*Modalidad:* ${activeScenario.label}\n`;
-
-        if (isCredit) {
-            text += `*Entidad:* ${quote.financialEntity || 'N/A'}\n`;
-            text += `*Cuota Inicial:* $${downPayment.toLocaleString()}\n`;
-            text += `*Cuota Mensual:* $${quote.monthlyPayment?.toLocaleString()}\n`;
-            text += `*Plazo:* ${months} meses\n`;
-        } else {
-            // Net Total with Discount
-            const netTotal = quote.total - discount;
-            if (discount > 0) {
-                text += `*Precio Lista:* $${quote.vehiclePrice.toLocaleString()}\n`;
-                text += `*Descuento:* -$${discount.toLocaleString()}\n`;
-            }
-            text += `*Total a Pagar:* $${netTotal.toLocaleString()}\n`;
-        }
-
-        text += `\nGeneré esta cotización PRO en la web.`;
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     if (!selectedMoto) return null;
