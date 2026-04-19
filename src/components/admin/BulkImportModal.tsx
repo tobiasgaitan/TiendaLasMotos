@@ -132,6 +132,15 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         }
     };
 
+    const handleDownloadTemplate = () => {
+        const link = document.createElement('a');
+        link.href = `${window.location.origin}/Formato%20carga%20leads.csv`;
+        link.setAttribute('download', 'Formato_carga_leads.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -179,22 +188,22 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             />
                         </div>
                         <div className="flex justify-center">
-                            <a 
-                                href="/Formato%20carga%20leads.csv" 
-                                download 
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button 
+                                onClick={handleDownloadTemplate}
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
                                     zIndex: 50
                                 }}
                             >
                                 Descargar plantilla oficial (.csv)
-                            </a>
+                            </button>
                         </div>
                         </>
                     ) : (
