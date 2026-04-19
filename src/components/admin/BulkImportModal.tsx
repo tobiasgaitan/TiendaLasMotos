@@ -156,6 +156,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     
                     {/* Drag & Drop Zone */}
                     {!file ? (
+                        <>
                         <div 
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={onDrop}
@@ -168,20 +169,6 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             <div className="text-center">
                                 <p className="text-lg font-bold text-white">Haz clic o arrastra tu archivo CSV</p>
                                 <p className="text-gray-500 text-sm">El archivo debe contener las columnas: nombre, celular, moto_interest, habeas_data</p>
-                                <a 
-                                    href="/Formato carga leads.csv" 
-                                    download 
-                                    style={{ 
-                                        color: '#0070f3', 
-                                        textDecoration: 'underline', 
-                                        display: 'block', 
-                                        marginTop: '12px',
-                                        fontSize: '14px',
-                                        fontWeight: '600'
-                                    }}
-                                >
-                                    Descargar plantilla oficial (.csv)
-                                </a>
                             </div>
                             <input 
                                 id="csvInput"
@@ -191,6 +178,23 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                 onChange={(e) => e.target.files?.[0] && handleFileLoad(e.target.files[0])}
                             />
                         </div>
+                        <div className="flex justify-center">
+                            <a 
+                                href="/Formato carga leads.csv" 
+                                download 
+                                style={{ 
+                                    color: '#0070f3', 
+                                    textDecoration: 'underline', 
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    zIndex: 50
+                                }}
+                            >
+                                Descargar plantilla oficial (.csv)
+                            </a>
+                        </div>
+                        </>
                     ) : (
                         <div className="space-y-6">
                             {/* File Info Card */}
