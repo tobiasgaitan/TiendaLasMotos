@@ -180,8 +180,10 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                         </div>
                         <div className="flex justify-center">
                             <a 
-                                href="/Formato carga leads.csv" 
+                                href="/Formato%20carga%20leads.csv" 
                                 download 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
