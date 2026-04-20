@@ -131,20 +131,6 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
             setIsProcessing(false);
         }
     };
- 
-    const handleDownloadTemplate = () => {
-        // AG-UI-053: Encapsulated Propagation Hotfix
-        const a = document.createElement('a');
-        a.href = window.location.origin + "/Formato%20carga%20leads.csv";
-        a.download = "Formato_carga_leads.csv";
-        
-        // Intercept and kill event bubbling to bypass Next.js global delegation
-        a.addEventListener("click", (e) => e.stopPropagation());
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    };
 
 
 
@@ -195,22 +181,20 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             />
                         </div>
                         <div className="flex justify-center">
-                            <button 
-                                onClick={handleDownloadTemplate}
+                            <a 
+                                href="data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cciudad%0A"
+                                download="Formato_carga_leads.csv"
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: 0,
                                     zIndex: 50
                                 }}
                             >
                                 Descargar plantilla oficial (.csv)
-                            </button>
+                            </a>
                         </div>
                         </>
                     ) : (
