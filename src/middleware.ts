@@ -3,6 +3,12 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
+    
+    // AG-SEC-043: Early return for static CSV assets to bypass Firebase Admin check
+    if (pathname.endsWith('.csv')) {
+        return NextResponse.next();
+    }
+
     const hostname = request.headers.get('host') || ''
     const session = request.cookies.get('__session')?.value
 
@@ -63,7 +69,8 @@ export const config = {
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
+         * - .csv files (static templates)
          */
-        '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|.*\\.csv$).*)',
     ],
 }
