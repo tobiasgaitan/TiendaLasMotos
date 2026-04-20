@@ -131,6 +131,16 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
             setIsProcessing(false);
         }
     };
+ 
+    const handleDownloadTemplate = () => {
+        // AG-UI-051: Synchronous Absolute URL Bypass
+        const a = document.createElement('a');
+        a.href = window.location.origin + "/Formato%20carga%20leads.csv";
+        a.download = "Formato_carga_leads.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
 
 
 
@@ -181,22 +191,22 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             />
                         </div>
                         <div className="flex justify-center">
-                            <a 
-                                href="/Formato%20carga%20leads.csv"
-                                download="Formato_carga_leads.csv"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button 
+                                onClick={handleDownloadTemplate}
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
                                     zIndex: 50
                                 }}
                             >
                                 Descargar plantilla oficial (.csv)
-                            </a>
+                            </button>
                         </div>
                         </>
                     ) : (
