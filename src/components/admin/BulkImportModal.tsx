@@ -184,6 +184,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             <a 
                                 href="data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cciudad%0A"
                                 download="Formato_carga_leads.csv"
+                                // AG-FAIL-001: stopPropagation interrumpe el burbujeo hacia el <div onClick> padre
+                                // que activa csvInput.click() y anula silenciosamente la descarga.
+                                onClick={(e) => e.stopPropagation()}
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
