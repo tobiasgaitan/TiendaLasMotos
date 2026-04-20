@@ -132,13 +132,28 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         }
     };
 
-    const handleDownloadTemplate = () => {
-        const link = document.createElement('a');
-        link.href = `${window.location.origin}/Formato%20carga%20leads.csv`;
-        link.setAttribute('download', 'Formato_carga_leads.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadTemplate = async () => {
+        try {
+            // Bypass Firebase Hosting 'content-disposition: inline' using Blob Pattern
+            const response = await fetch(`${window.location.origin}/Formato%20carga%20leads.csv`);
+            if (!response.ok) throw new Error('Error al obtener la plantilla');
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Formato_carga_leads.csv');
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            toast.error("Error al descargar la plantilla de carga.");
+        }
     };
 
     if (!isOpen) return null;
