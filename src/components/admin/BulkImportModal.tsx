@@ -132,30 +132,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         }
     };
 
-    const handleDownloadTemplate = async () => {
-        try {
-            // Bypass Firebase Hosting 'content-disposition: inline' using Blob Pattern
-            const response = await fetch(`${window.location.origin}/Formato%20carga%20leads.csv`);
-            if (!response.ok) throw new Error('Error al obtener la plantilla');
-            
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            
-            // AG-UI-049: Strict DOM injection for Sandbox Compliance
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Formato_carga_leads.csv';
-            document.body.appendChild(a);
-            a.click();
-            
-            // Forced Cleanup
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Download failed:', error);
-            toast.error("Error al descargar la plantilla de carga.");
-        }
-    };
+
 
     if (!isOpen) return null;
 
@@ -204,22 +181,22 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             />
                         </div>
                         <div className="flex justify-center">
-                            <button 
-                                onClick={handleDownloadTemplate}
+                            <a 
+                                href="/Formato%20carga%20leads.csv"
+                                download="Formato_carga_leads.csv"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 style={{ 
                                     color: '#0070f3', 
                                     textDecoration: 'underline', 
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: 0,
                                     zIndex: 50
                                 }}
                             >
                                 Descargar plantilla oficial (.csv)
-                            </button>
+                            </a>
                         </div>
                         </>
                     ) : (
