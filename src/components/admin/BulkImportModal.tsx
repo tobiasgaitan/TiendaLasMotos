@@ -133,13 +133,11 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     };
  
     const handleDownloadTemplate = () => {
-        // AG-UI-051: Synchronous Absolute URL Bypass
+        // AG-UI-052: Orphan Node Bypass (Avoiding Event Bubbling)
         const a = document.createElement('a');
         a.href = window.location.origin + "/Formato%20carga%20leads.csv";
         a.download = "Formato_carga_leads.csv";
-        document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
     };
 
 
