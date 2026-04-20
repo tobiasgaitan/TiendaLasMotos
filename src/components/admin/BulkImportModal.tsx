@@ -141,14 +141,15 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', 'Formato_carga_leads.csv');
-            document.body.appendChild(link);
-            link.click();
+            // AG-UI-049: Strict DOM injection for Sandbox Compliance
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Formato_carga_leads.csv';
+            document.body.appendChild(a);
+            a.click();
             
-            // Cleanup
-            document.body.removeChild(link);
+            // Forced Cleanup
+            document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Download failed:', error);
