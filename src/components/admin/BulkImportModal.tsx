@@ -133,11 +133,17 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     };
  
     const handleDownloadTemplate = () => {
-        // AG-UI-052: Orphan Node Bypass (Avoiding Event Bubbling)
+        // AG-UI-053: Encapsulated Propagation Hotfix
         const a = document.createElement('a');
         a.href = window.location.origin + "/Formato%20carga%20leads.csv";
         a.download = "Formato_carga_leads.csv";
+        
+        // Intercept and kill event bubbling to bypass Next.js global delegation
+        a.addEventListener("click", (e) => e.stopPropagation());
+        
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
     };
 
 
