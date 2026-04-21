@@ -276,6 +276,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                 </div>
                             </div>
                         </div>
+                        </>
                     ) : (
                         <div className="space-y-6">
                             {/* File Info Card */}
