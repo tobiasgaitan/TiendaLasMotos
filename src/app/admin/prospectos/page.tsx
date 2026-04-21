@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { UserRound, Flame, Phone } from 'lucide-react';
+import { UserRound, Flame, Phone, Check, CheckCheck, AlertCircle } from 'lucide-react';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
 import CampaignControl from '@/components/admin/CampaignControl';
@@ -188,6 +188,45 @@ export default function ProspectsPage() {
         );
     };
 
+    const getWhatsAppDeliveryBadge = (lead: Prospect) => {
+        const status = lead.whatsapp_delivery_status;
+        if (!status) return <span className="text-gray-600 text-xs">-</span>;
+
+        switch (status) {
+            case 'sent':
+                return (
+                    <span className="inline-flex items-center gap-1 text-gray-400 text-xs bg-gray-800/50 px-2 py-1 rounded-md" title="Enviado">
+                        <Check className="w-3 h-3" />
+                        <span className="hidden sm:inline">Enviado</span>
+                    </span>
+                );
+            case 'delivered':
+                return (
+                    <span className="inline-flex items-center gap-1 text-gray-300 text-xs bg-gray-800/50 px-2 py-1 rounded-md" title="Entregado">
+                        <CheckCheck className="w-3 h-3" />
+                        <span className="hidden sm:inline">Entregado</span>
+                    </span>
+                );
+            case 'read':
+                return (
+                    <span className="inline-flex items-center gap-1 text-blue-400 text-xs bg-blue-900/20 border border-blue-500/30 px-2 py-1 rounded-md" title="Leído">
+                        <CheckCheck className="w-3 h-3" />
+                        <span className="hidden sm:inline">Leído</span>
+                    </span>
+                );
+            case 'failed':
+                const errorMsg = lead.whatsapp_error_details?.message || 'Error de entrega';
+                return (
+                    <span className="inline-flex items-center gap-1 text-red-400 text-xs bg-red-900/20 border border-red-500/30 px-2 py-1 rounded-md cursor-help" title={errorMsg}>
+                        <AlertCircle className="w-3 h-3" />
+                        <span className="hidden sm:inline">Falló</span>
+                    </span>
+                );
+            default:
+                return <span className="text-gray-500 text-xs">{status}</span>;
+        }
+    };
+
     // --- RENDERIZADO ---
 
     if (loading) {
@@ -354,6 +393,7 @@ export default function ProspectsPage() {
                                             <th className="p-4 font-medium">Interés</th>
                                             <th className="p-4 font-medium text-center">Bot</th>
                                             <th className="p-4 font-medium text-center">Estado</th>
+                                            <th className="p-4 font-medium text-center">Envío WA</th>
                                             <th className="p-4 font-medium text-right">Acciones</th>
                                         </tr>
                                     </thead>
@@ -420,6 +460,11 @@ export default function ProspectsPage() {
                                                 {/* ESTADO */}
                                                 <td className="p-4 text-center">
                                                     {getStatusBadge(lead.status)}
+                                                </td>
+
+                                                {/* ENVÍO WA */}
+                                                <td className="p-4 text-center">
+                                                    {getWhatsAppDeliveryBadge(lead)}
                                                 </td>
 
                                                 {/* ACCIONES */}

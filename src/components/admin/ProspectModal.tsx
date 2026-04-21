@@ -56,6 +56,11 @@ export interface Prospect {
     human_help_requested?: boolean;
     doc_cedula_url?: string;
     doc_recibo_gas_url?: string;
+
+    // WhatsApp Delivery Tracking
+    whatsapp_delivery_status?: 'sent' | 'delivered' | 'read' | 'failed';
+    whatsapp_error_details?: any;
+
     [key: string]: any;
 }
 
