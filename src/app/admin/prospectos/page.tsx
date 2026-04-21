@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { UserRound, Flame, Phone } from 'lucide-react';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
+import CampaignControl from '@/components/admin/CampaignControl';
 
 // Status Configuration Map (Must match Modal)
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -39,7 +40,8 @@ export default function ProspectsPage() {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
     // [ARCH-BULK-META-008] Tab switcher: useState only (no new dependency — contrato v2.0.0)
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva'>('dashboard');
+    // [FRONTEND-ENVIO-MASIVO-TAB] Tercer estado añadido — contrato v2.1.0
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva' | 'envio_masivo'>('dashboard');
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -254,9 +256,28 @@ export default function ProspectsPage() {
                 >
                     📤 Carga Masiva
                 </button>
+                {/* [FRONTEND-ENVIO-MASIVO-TAB] Tercer tab — disparo de campañas masivas */}
+                <button
+                    onClick={() => setActiveTab('envio_masivo')}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px 8px 0 0',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        transition: 'all 0.15s ease',
+                        background: activeTab === 'envio_masivo' ? '#7c3aed' : '#1f2937',
+                        color: activeTab === 'envio_masivo' ? '#ffffff' : '#9ca3af',
+                    }}
+                >
+                    🚀 Envío Masivo
+                </button>
             </div>
 
-            {activeTab === 'carga_masiva' ? (
+            {activeTab === 'envio_masivo' ? (
+                <CampaignControl />
+            ) : activeTab === 'carga_masiva' ? (
                 <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📤</div>
                     <h2 style={{ color: '#ffffff', fontWeight: '700', fontSize: '22px', marginBottom: '8px' }}>Carga Masiva de Prospectos</h2>
