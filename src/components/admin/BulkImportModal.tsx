@@ -35,6 +35,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     const [csvData, setCsvData] = useState<RowData[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [report, setReport] = useState<{ created: number; updated: number; failed: number } | null>(null);
+    // [ARCH-BULK-META-008] wa_config fields — contrato v2.0.0: metadata.whatsapp
+    const [waTemplateName, setWaTemplateName] = useState('');
+    const [waPhoneNumberId, setWaPhoneNumberId] = useState('');
 
     const normalizeDocumentId = (id: string): { id: string; valid: boolean } => {
         const clean = (id || '').toString().trim().replace(/\D/g, '');
@@ -117,7 +120,16 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         try {
             // [NODE 22] Eliminación agresiva de prototipos de PapaParse para evitar Server Actions Strictness Error
             const cleanPayload = JSON.parse(JSON.stringify(validProspects));
-            const result = await bulkImportProspectsAction(cleanPayload);
+
+            // [ARCH-BULK-META-008] Construir wa_config como objeto plano opcional — contrato v2.0.0
+            // Solo se incluye si el usuario proveyó al menos un campo. Prohibido enviar objeto con campos vacíos.
+            const trimmedTemplate = waTemplateName.trim();
+            const trimmedPhoneId = waPhoneNumberId.trim();
+            const wa_config = (trimmedTemplate || trimmedPhoneId)
+                ? { template_name: trimmedTemplate || undefined, phone_number_id: trimmedPhoneId || undefined }
+                : undefined;
+
+            const result = await bulkImportProspectsAction(cleanPayload, wa_config);
             if (result.success && result.report) {
                 setReport(result.report);
                 toast.success("Importación completada!");
@@ -145,7 +157,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                             <Upload className="w-6 h-6 text-green-500" />
-                            Carga Masiva v1.2
+                            Carga Masiva v2.0
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">Estándar UNE v7.0.2 • Regla Tobias</p>
                     </div>
@@ -181,23 +193,88 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             />
                         </div>
                         <div className="flex justify-center">
-                            <a 
-                                href="data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cciudad%0A"
-                                download="Formato_carga_leads.csv"
-                                // AG-FAIL-001: stopPropagation interrumpe el burbujeo hacia el <div onClick> padre
-                                // que activa csvInput.click() y anula silenciosamente la descarga.
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ 
-                                    color: '#0070f3', 
-                                    textDecoration: 'underline', 
+                            {/* [FIX AG-FAIL-001 v2] Root cause: stopPropagation on <a> + parent div onClick creates a
+                                 race where the browser's download dispatch is cancelled. Solution: Imperative download
+                                 inside setTimeout(0) to fully escape the React synthetic event loop.
+                                 The full 14-column URI matches /public/Formato carga leads.csv exactly. */}
+                            <button
+                                onClick={() => {
+                                    window.setTimeout(() => {
+                                        const a = document.createElement('a');
+                                        a.href = "data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cstatus%2Cciudad%2Cocupacion%2Cingresos%2Cgastos%2Cforma_pago%2Cvivienda%2Cservicios_publicos%2Cplan_celular%2Cdatacredito%0AJuan%20Perez%2C3001234567%2CTVS%20Sport%20100%2CSi%2CPendiente%2CBogota%2CEmpleado%2C2000000%2C1000000%2CCredito%2CPropia%2CSi%2CSi%2CNo%0A";
+                                        a.download = 'Formato_carga_leads.csv';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                    }, 0);
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#0070f3',
+                                    textDecoration: 'underline',
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    zIndex: 50
+                                    padding: 0,
                                 }}
                             >
                                 Descargar plantilla oficial (.csv)
-                            </a>
+                            </button>
+                        </div>
+
+                        {/* [ARCH-BULK-META-008] wa_config inputs — metadata.whatsapp contract */}
+                        <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '12px', padding: '16px', marginTop: '4px' }}>
+                            <p style={{ color: '#9ca3af', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+                                📱 Configuración WhatsApp (Opcional)
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                                        Plantilla WhatsApp
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={waTemplateName}
+                                        onChange={(e) => setWaTemplateName(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                                        placeholder="ej. contactos_impulsa"
+                                        style={{
+                                            width: '100%',
+                                            background: '#111827',
+                                            border: '1px solid #4b5563',
+                                            borderRadius: '8px',
+                                            padding: '8px 12px',
+                                            color: '#ffffff',
+                                            fontSize: '13px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                                        Número de Origen (Phone ID)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={waPhoneNumberId}
+                                        onChange={(e) => setWaPhoneNumberId(e.target.value.replace(/\D/g, ''))}
+                                        placeholder="ej. 123456789"
+                                        style={{
+                                            width: '100%',
+                                            background: '#111827',
+                                            border: '1px solid #4b5563',
+                                            borderRadius: '8px',
+                                            padding: '8px 12px',
+                                            color: '#ffffff',
+                                            fontSize: '13px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         </>
                     ) : (
