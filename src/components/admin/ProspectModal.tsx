@@ -60,6 +60,7 @@ export interface Prospect {
     // WhatsApp Delivery Tracking
     whatsapp_delivery_status?: 'sent' | 'delivered' | 'read' | 'failed';
     whatsapp_error_details?: any;
+    whatsapp_read_at?: any;
 
     [key: string]: any;
 }

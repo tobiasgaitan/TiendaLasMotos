@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { UserRound, Flame, Phone, Check, CheckCheck, AlertCircle } from 'lucide-react';
+import { UserRound, Flame, Phone, Check, CheckCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
 import CampaignControl from '@/components/admin/CampaignControl';
@@ -192,6 +192,20 @@ export default function ProspectsPage() {
         const status = lead.whatsapp_delivery_status;
         if (!status) return <span className="text-gray-600 text-xs">-</span>;
 
+        let isStale = false;
+        if (status === 'read' && lead.whatsapp_read_at && lead.status === 'PENDING') {
+            try {
+                const readAtDate = lead.whatsapp_read_at.toDate ? lead.whatsapp_read_at.toDate() : new Date(lead.whatsapp_read_at);
+                const now = new Date();
+                const diffMinutes = Math.floor((now.getTime() - readAtDate.getTime()) / (1000 * 60));
+                if (diffMinutes > 60) {
+                    isStale = true;
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+
         switch (status) {
             case 'sent':
                 return (
@@ -209,10 +223,17 @@ export default function ProspectsPage() {
                 );
             case 'read':
                 return (
-                    <span className="inline-flex items-center gap-1 text-blue-400 text-xs bg-blue-900/20 border border-blue-500/30 px-2 py-1 rounded-md" title="Leído">
-                        <CheckCheck className="w-3 h-3" />
-                        <span className="hidden sm:inline">Leído</span>
-                    </span>
+                    <div className="flex flex-col items-center gap-1">
+                        <span className="inline-flex items-center gap-1 text-blue-400 text-xs bg-blue-900/20 border border-blue-500/30 px-2 py-1 rounded-md" title="Leído">
+                            <CheckCheck className="w-3 h-3" />
+                            <span className="hidden sm:inline">Leído</span>
+                        </span>
+                        {isStale && (
+                            <span className="text-orange-500 cursor-help" title="¡Atención! Visto hace más de 1 hora sin respuesta.">
+                                <AlertTriangle className="w-4 h-4 animate-pulse" />
+                            </span>
+                        )}
+                    </div>
                 );
             case 'failed':
                 const errorMsg = lead.whatsapp_error_details?.message || 'Error de entrega';
