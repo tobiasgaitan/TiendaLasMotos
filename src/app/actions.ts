@@ -358,7 +358,10 @@ export async function updateProspectAction(data: any) {
 // 6. CARGA MASIVA (Bulk Import v1.1)
 // ==========================================
 
-export async function bulkImportProspectsAction(prospects: any[]) {
+export async function bulkImportProspectsAction(
+    prospects: any[],
+    wa_config?: { template_name?: string; phone_number_id?: string }
+) {
     // 1. Validar Sesión
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('__session');
@@ -424,8 +427,19 @@ export async function bulkImportProspectsAction(prospects: any[]) {
                 // [ESTÁNDAR UNE v7.0.2] Forzar mapeo de la llave principal al campo celular
                 celular: document_id,
                 metadata: {
-                    source: 'BULK_IMPORT_V1.2',
+                    source: 'BULK_IMPORT_V2.0',
                     imported_at: new Date().toISOString(),
+                    // [ARCH-BULK-META-008] Persistir wa_config en metadata.whatsapp SOLO si fue provisto
+                    // Contrato JSON Voorhees v2.0.0: never write empty object to Firestore
+                    ...(wa_config && (wa_config.template_name || wa_config.phone_number_id)
+                        ? {
+                            whatsapp: {
+                                ...(wa_config.template_name ? { template_name: wa_config.template_name } : {}),
+                                ...(wa_config.phone_number_id ? { phone_number_id: wa_config.phone_number_id } : {}),
+                            }
+                          }
+                        : {}
+                    ),
                 }
             };
 

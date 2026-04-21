@@ -34,6 +34,8 @@ export default function ProspectsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
+    // [ARCH-BULK-META-008] Tab switcher: useState only (no new dependency — contrato v2.0.0)
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva'>('dashboard');
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -214,20 +216,79 @@ export default function ProspectsPage() {
                         Gestiona los <span className="text-white font-bold">{leads.length}</span> clientes interesados en tiempo real.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-gray-700 transition-all active:scale-95"
-                    >
-                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        Carga Masiva
-                    </button>
-                    {/* Add other global actions here if needed */}
-                </div>
             </div>
 
+            {/* [ARCH-BULK-META-008] Tab Switcher — useState only, Bypass Nuclear compliant (no library) */}
+            <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #374151', paddingBottom: '0' }}>
+                <button
+                    onClick={() => setActiveTab('dashboard')}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px 8px 0 0',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        transition: 'all 0.15s ease',
+                        background: activeTab === 'dashboard' ? '#16a34a' : '#1f2937',
+                        color: activeTab === 'dashboard' ? '#ffffff' : '#9ca3af',
+                    }}
+                >
+                    📊 Dashboard
+                </button>
+                <button
+                    onClick={() => setActiveTab('carga_masiva')}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px 8px 0 0',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        transition: 'all 0.15s ease',
+                        background: activeTab === 'carga_masiva' ? '#16a34a' : '#1f2937',
+                        color: activeTab === 'carga_masiva' ? '#ffffff' : '#9ca3af',
+                    }}
+                >
+                    📤 Carga Masiva
+                </button>
+            </div>
+
+            {/* --- CARGA MASIVA TAB VIEW --- */}
+            {activeTab === 'carga_masiva' && (
+                <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📤</div>
+                    <h2 style={{ color: '#ffffff', fontWeight: '700', fontSize: '22px', marginBottom: '8px' }}>Carga Masiva de Prospectos</h2>
+                    <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '24px' }}>
+                        Importa hasta 500 prospectos en lote desde un archivo CSV. Estándar UNE v7.0.2 • Contrato v2.0.0.
+                    </p>
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        style={{
+                            background: '#16a34a',
+                            color: '#ffffff',
+                            padding: '12px 32px',
+                            borderRadius: '12px',
+                            fontWeight: '700',
+                            fontSize: '15px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                        }}
+                    >
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Abrir Importador CSV
+                    </button>
+                </div>
+            )}
+
+            {/* --- DASHBOARD TAB VIEW --- */}
+            {activeTab === 'dashboard' && (
+            <div className="space-y-6">
             {/* Filter Tabs */}
             <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
                 <button
@@ -293,11 +354,22 @@ export default function ProspectsPage() {
                                         <td className="p-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-white text-lg">{lead.nombre}</span>
-                                                <div className="mt-1" style={{ color: '#ffffff', display: 'block', visibility: 'visible', fontWeight: 'bold', fontSize: '14px' }}>
-                                                    <div className="flex items-center">
-                                                        <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                                                        {lead.celular}
-                                                    </div>
+                                                {/* [BYPASS NUCLEAR v2.0.0] — Inline styles are the ONLY authority on this element.
+                                                     Tailwind classes are PROHIBITED here to prevent collision with theme overrides.
+                                                     Ref: contrato JSON Voorhees bypass_nuclear_rule */}
+                                                <div
+                                                    className="mt-1 flex items-center gap-2"
+                                                    style={{
+                                                        color: '#F9FAFB',
+                                                        opacity: 1,
+                                                        visibility: 'visible',
+                                                        fontFamily: 'monospace',
+                                                        fontWeight: '500',
+                                                        fontSize: '13px',
+                                                    }}
+                                                >
+                                                    <Phone className="w-3.5 h-3.5" style={{ color: '#6b7280', flexShrink: 0 }} />
+                                                    {lead.celular}
                                                 </div>
                                             </div>
                                         </td>
@@ -390,7 +462,8 @@ export default function ProspectsPage() {
                         </table>
                     </div>
                 </div>
-            )}
+            </div> {/* end dashboard tab inner space-y-6 */}
+            )} {/* end activeTab === 'dashboard' */}
 
             {/* Detail Modal */}
             <ProspectModal
