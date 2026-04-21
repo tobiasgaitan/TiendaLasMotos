@@ -411,11 +411,16 @@ export async function bulkImportProspectsAction(
         });
 
         for (const prospect of validProspects) {
-            const { document_id, ...data } = prospect;
+            let { document_id, ...data } = prospect;
 
             if (!document_id) {
                 failedCount++;
                 continue;
+            }
+
+            document_id = String(document_id).replace(/\D/g, "");
+            if (document_id.length === 10) {
+                document_id = "57" + document_id;
             }
 
             // 1. Normalización y Casting (Regla Tobias & UNE v7.0.2)
