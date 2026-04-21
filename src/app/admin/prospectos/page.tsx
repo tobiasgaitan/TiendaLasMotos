@@ -17,6 +17,29 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 /**
+ * [UI-HOTFIX-META-004] Mapa de normalización de estados legacy.
+ * El pipeline BULK_IMPORT_V2.0 persiste estados en español ('Pendiente').
+ * Este mapa traduce valores legacy al enum canónico en inglés que usa STATUS_CONFIG,
+ * garantizando compatibilidad hacia atrás sin modificar el backend ni los documentos en Firestore.
+ */
+const LEGACY_STATUS_MAP: Record<string, string> = {
+    'Pendiente': 'PENDING',
+    'En Gestión': 'IN_PROGRESS',
+    'Venta Cerrada': 'DONE',
+    'Descartado': 'DISCARDED',
+    'Descartados': 'DISCARDED',
+};
+
+/** Normaliza un valor de status legacy o canónico al enum estándar de STATUS_CONFIG. */
+const normalizeStatus = (status?: string): string => {
+    if (!status) return 'PENDING';
+    // Si ya es un valor canónico (PENDING, IN_PROGRESS…), lo retorna directamente.
+    if (status in STATUS_CONFIG) return status;
+    // Si es un valor legacy en español, lo traduce.
+    return LEGACY_STATUS_MAP[status] ?? 'PENDING';
+};
+
+/**
  * ProspectsPage - Dashboard de Prospectos y Ventas
  * 
  * Visualiza los leads capturados en tiempo real desde la colección "prospectos".
@@ -64,14 +87,15 @@ export default function ProspectsPage() {
         return () => unsubscribe();
     }, []);
 
-    // Filter Logic
+    // Filter Logic — [UI-HOTFIX-META-004]
+    // normalizeStatus() desacopla el label visual del valor lógico.
+    // Convierte valores legacy ('Pendiente') al enum canónico ('PENDING') antes de comparar.
     useEffect(() => {
         if (currentFilter === 'ALL') {
             setFilteredLeads(leads);
         } else {
             setFilteredLeads(leads.filter(lead => {
-                const status = lead.status || 'PENDING'; // Default to PENDING if undefined
-                return status === currentFilter;
+                return normalizeStatus(lead.status) === currentFilter;
             }));
         }
     }, [leads, currentFilter]);
@@ -173,7 +197,7 @@ export default function ProspectsPage() {
     };
 
     const getStatusBadge = (status?: string) => {
-        const key = status || 'PENDING';
+        const key = normalizeStatus(status); // [UI-HOTFIX-META-004] normalizar antes de buscar
         const config = STATUS_CONFIG[key] || STATUS_CONFIG.PENDING;
         return (
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.color}`}>
