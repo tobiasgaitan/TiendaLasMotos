@@ -66,7 +66,7 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         await adminDb.collection("leads").add({
             ...validated.data,
             created_at: new Date(), // Admin SDK accepts JS Date
-            status: "Pendiente"
+            status: "PENDING"
         });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
@@ -302,7 +302,7 @@ const prospectUpdateSchema = z.object({
         entidad_simulada: z.literal("Crediorbe").default("Crediorbe"),
 
         // Gestión
-        status: z.enum(['Pendiente', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+        status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
         chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
         notes: z.any().optional(), // Allow arrayUnion or array of objects
     }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
@@ -422,8 +422,8 @@ export async function bulkImportProspectsAction(
             const exists = existenceMap.get(document_id);
             const updates: any = {
                 updated_at: new Date(),
-                // Asegurar que extraemos y usamos el status limpio (Upsert compatible)
-                status: data.status || data.STATUS || "Pendiente",
+                // [UI-HOMOLOGACION-PENDING-001] Estándar v2.0.0: status siempre en inglés canónico
+                status: data.status || data.STATUS || "PENDING",
                 // [ESTÁNDAR UNE v7.0.2] Forzar mapeo de la llave principal al campo celular
                 celular: document_id,
                 metadata: {
