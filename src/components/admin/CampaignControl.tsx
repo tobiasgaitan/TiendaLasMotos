@@ -13,6 +13,8 @@ interface CampaignStartRequest {
     template_a: string;
     template_b: string;
     language: string;
+    /** phone_id — WhatsApp Business Account Phone ID para la línea de salida. Contrato v2.1.0 */
+    phone_id: string;
 }
 
 /**
@@ -28,6 +30,20 @@ interface TemplateOption {
 const TEMPLATE_OPTIONS: TemplateOption[] = [
     { label: 'contactos_impulsa (en)', template_name: 'contactos_impulsa', language: 'en' },
     { label: 'envio_mensaje_prospectos (es_CO)', template_name: 'envio_mensaje_prospectos', language: 'es_CO' },
+];
+
+/**
+ * PhoneOption — Líneas de salida de WhatsApp Business disponibles.
+ * POR QUÉ: Permite seleccionar el Phone Number ID de la WABA desde el que se envía
+ * la campaña, habilitando operación multi-número sin re-despliegue del backend.
+ */
+interface PhoneOption {
+    label: string;
+    phone_id: string;
+}
+
+const PHONE_OPTIONS: PhoneOption[] = [
+    { label: 'Línea Principal (1021779847693778)', phone_id: '1021779847693778' },
 ];
 
 // Endpoint del orquestador de campañas — Cloud Run Beta
@@ -181,6 +197,9 @@ const styles: Record<string, React.CSSProperties> = {
  * sin hardcoding de idioma o plantilla (patrón establecido en a2767d7e / b2ef5988).
  */
 export default function CampaignControl() {
+    // Línea de salida (WhatsApp Phone Number ID) — default: Línea Principal
+    const [selectedPhone, setSelectedPhone] = useState('1021779847693778');
+
     // Dropdown selection (índice dentro de TEMPLATE_OPTIONS)
     const [selectedTemplateIdx, setSelectedTemplateIdx] = useState<number>(0);
 
@@ -230,6 +249,7 @@ export default function CampaignControl() {
             template_a: selectedTemplate.template_name,
             template_b: selectedTemplate.template_name,
             language: selectedTemplate.language,
+            phone_id: selectedPhone,
         };
 
         try {
@@ -295,6 +315,26 @@ export default function CampaignControl() {
 
             {/* Controles */}
             <div style={styles.formGrid}>
+                {/* Dropdown: Línea de Salida (phone_id) */}
+                <div style={styles.formGroup}>
+                    <label htmlFor="campaign-phone-select" style={styles.label}>
+                        Línea de Salida (WhatsApp ID)
+                    </label>
+                    <select
+                        id="campaign-phone-select"
+                        style={styles.select}
+                        value={selectedPhone}
+                        onChange={(e) => setSelectedPhone(e.target.value)}
+                        disabled={isSending}
+                    >
+                        {PHONE_OPTIONS.map((opt) => (
+                            <option key={opt.phone_id} value={opt.phone_id}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 {/* Dropdown: Plantilla */}
                 <div style={styles.formGroup}>
                     <label htmlFor="campaign-template-select" style={styles.label}>
