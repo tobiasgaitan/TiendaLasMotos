@@ -70,7 +70,8 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     const rawIdField = row.celular || row.document_id || row.CELULAR || row.DOCUMENT_ID;
                     const rawHabeas = row.habeas_data_accepted || row.habeas_data || row.HABEAS_DATA || 'No';
                     
-                    let finalStatus = 'Pendiente';
+                    // [UI-HOMOLOGACION-PENDING-001] Estado inicial canónico en inglés (v2.0.0)
+                    let finalStatus = 'PENDING';
                     if (rawStatus && (rawStatus || '').toString().trim() !== '') {
                         finalStatus = (rawStatus || '').toString().trim();
                     }
@@ -201,7 +202,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                 onClick={() => {
                                     window.setTimeout(() => {
                                         const a = document.createElement('a');
-                                        a.href = "data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cstatus%2Cciudad%2Cocupacion%2Cingresos%2Cgastos%2Cforma_pago%2Cvivienda%2Cservicios_publicos%2Cplan_celular%2Cdatacredito%0AJuan%20Perez%2C3001234567%2CTVS%20Sport%20100%2CSi%2CPendiente%2CBogota%2CEmpleado%2C2000000%2C1000000%2CCredito%2CPropia%2CSi%2CSi%2CNo%0A";
+                                        a.href = "data:text/csv;charset=utf-8,nombre%2Ccelular%2Cmoto_interest%2Chabeas_data%2Cstatus%2Cciudad%2Cocupacion%2Cingresos%2Cgastos%2Cforma_pago%2Cvivienda%2Cservicios_publicos%2Cplan_celular%2Cdatacredito%0AJuan%20Perez%2C3001234567%2CTVS%20Sport%20100%2CSi%2CPENDING%2CBogota%2CEmpleado%2C2000000%2C1000000%2CCredito%2CPropia%2CSi%2CSi%2CNo%0A";
                                         a.download = 'Formato_carga_leads.csv';
                                         document.body.appendChild(a);
                                         a.click();
@@ -323,7 +324,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                                     </td>
                                                     <td className="p-3 text-white">{row.nombre}</td>
                                                     <td className="p-3 text-white font-medium">{row.moto_interes}</td>
-                                                    <td className="p-3 text-gray-400">{row.status || 'Pendiente'}</td>
+                                                    <td className="p-3 text-gray-400">{row.status || 'PENDING'}</td>
                                                     <td className="p-3 text-center">
                                                         {row.status_row === 'VALID' ? (
                                                             <span className="inline-flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full text-xs">

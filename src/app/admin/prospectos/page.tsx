@@ -16,28 +16,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     DISCARDED: { label: 'Descartados', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
 };
 
-/**
- * [UI-HOTFIX-META-004] Mapa de normalización de estados legacy.
- * El pipeline BULK_IMPORT_V2.0 persiste estados en español ('Pendiente').
- * Este mapa traduce valores legacy al enum canónico en inglés que usa STATUS_CONFIG,
- * garantizando compatibilidad hacia atrás sin modificar el backend ni los documentos en Firestore.
- */
-const LEGACY_STATUS_MAP: Record<string, string> = {
-    'Pendiente': 'PENDING',
-    'En Gestión': 'IN_PROGRESS',
-    'Venta Cerrada': 'DONE',
-    'Descartado': 'DISCARDED',
-    'Descartados': 'DISCARDED',
-};
-
-/** Normaliza un valor de status legacy o canónico al enum estándar de STATUS_CONFIG. */
-const normalizeStatus = (status?: string): string => {
-    if (!status) return 'PENDING';
-    // Si ya es un valor canónico (PENDING, IN_PROGRESS…), lo retorna directamente.
-    if (status in STATUS_CONFIG) return status;
-    // Si es un valor legacy en español, lo traduce.
-    return LEGACY_STATUS_MAP[status] ?? 'PENDING';
-};
+// [UI-HOMOLOGACION-PENDING-001] LEGACY_STATUS_MAP y normalizeStatus() eliminados.
+// El pipeline BULK_IMPORT persiste 'PENDING' directamente (estándar v2.0.0).
+// No se requiere capa de traducción.
 
 /**
  * ProspectsPage - Dashboard de Prospectos y Ventas
@@ -89,16 +70,13 @@ export default function ProspectsPage() {
         return () => unsubscribe();
     }, []);
 
-    // Filter Logic — [UI-HOTFIX-META-004]
-    // normalizeStatus() desacopla el label visual del valor lógico.
-    // Convierte valores legacy ('Pendiente') al enum canónico ('PENDING') antes de comparar.
+    // Filter Logic — [UI-HOMOLOGACION-PENDING-001]
+    // Comparación directa: todos los documentos persisten el enum canónico en inglés.
     useEffect(() => {
         if (currentFilter === 'ALL') {
             setFilteredLeads(leads);
         } else {
-            setFilteredLeads(leads.filter(lead => {
-                return normalizeStatus(lead.status) === currentFilter;
-            }));
+            setFilteredLeads(leads.filter(lead => lead.status === currentFilter));
         }
     }, [leads, currentFilter]);
 
@@ -199,8 +177,8 @@ export default function ProspectsPage() {
     };
 
     const getStatusBadge = (status?: string) => {
-        const key = normalizeStatus(status); // [UI-HOTFIX-META-004] normalizar antes de buscar
-        const config = STATUS_CONFIG[key] || STATUS_CONFIG.PENDING;
+        // [UI-HOMOLOGACION-PENDING-001] Comparación directa sin normalización legacy
+        const config = STATUS_CONFIG[status ?? ''] || STATUS_CONFIG.PENDING;
         return (
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.color}`}>
                 {config.label}
