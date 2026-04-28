@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 import { UserRound, Flame, Phone, Check, CheckCheck, AlertCircle, AlertTriangle } from 'lucide-react';
@@ -218,6 +218,103 @@ export default function ProspectsPage() {
         }
     };
 
+    /**
+     * [WEB-755] CSV Export — Patrón Data URI seguro.
+     * Mapea filteredLeads al string CSV con cabeceras, codifica con
+     * encodeURIComponent y fuerza la descarga mediante un <a> dinámico.
+     * Safe-Fallback: los campos undefined se reemplazan por cadena vacía.
+     */
+    const handleExportCSV = () => {
+        const headers = [
+            'ID', 'Nombre', 'Celular', 'Ciudad',
+            'Moto Interés', 'Forma Pago', 'Ocupación',
+            'Ingresos', 'Gastos', 'Datacredito', 'Vivienda',
+            'Score', 'Estado', 'Habeas Data', 'Envío WA',
+            'Costo IA (USD)', 'Fecha'
+        ];
+
+        const escapeCell = (val: any): string => {
+            if (val == null) return '';
+            const str = String(val);
+            // RFC 4180: si contiene coma, salto de línea o comilla → encerrar en comillas
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const rows = filteredLeads.map(lead => [
+            escapeCell(lead.id),
+            escapeCell(lead.nombre),
+            escapeCell(lead.celular),
+            escapeCell(lead.ciudad),
+            escapeCell(lead.moto_interes || lead.motivo_inscripcion),
+            escapeCell(lead.forma_pago),
+            escapeCell(lead.ocupacion),
+            escapeCell(lead.ingresos),
+            escapeCell(lead.gastos),
+            escapeCell(lead.datacredito),
+            escapeCell(lead.vivienda),
+            escapeCell(lead.score_resultado),
+            escapeCell(lead.status),
+            escapeCell(lead.habeas_data ? 'Sí' : 'No'),
+            escapeCell(lead.whatsapp_delivery_status),
+            escapeCell(lead.session_cost_usd),
+            escapeCell(lead.fecha ? formatDate(lead.fecha) : ''),
+        ].join(','));
+
+        const csv = [headers.join(','), ...rows].join('\n');
+        const uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+
+        const link = document.createElement('a');
+        link.setAttribute('href', uri);
+        link.setAttribute('download', `prospectos_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success('📥 CSV exportado', {
+            description: `${filteredLeads.length} prospectos descargados correctamente.`
+        });
+    };
+
+    /**
+     * [WEB-755] Hard Delete individual — Optimistic UI.
+     * Flujo: window.confirm → deleteDoc (Firestore) → filtrar estado local.
+     * No recarga la página. Si Firestore falla, restaura la fila y muestra error.
+     *
+     * @param e  - MouseEvent (stopPropagation evita abrir el modal de detalle)
+     * @param id - ID del documento Firestore a eliminar
+     */
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        const confirmed = window.confirm(
+            '⚠️ ¿Eliminar este prospecto permanentemente? Esta acción no se puede deshacer.'
+        );
+        if (!confirmed) return;
+
+        // Optimistic UI: retirar la fila inmediatamente
+        const snapshot = leads.filter(l => l.id !== id);
+        setLeads(snapshot);
+
+        try {
+            await deleteDoc(doc(db, 'prospectos', id));
+            toast.success('🗑️ Prospecto eliminado', {
+                description: 'El registro fue eliminado permanentemente de Firestore.'
+            });
+        } catch (error) {
+            // Rollback: restaurar el lead si Firestore rechaza la operación
+            console.error('[WEB-755] Error al eliminar prospecto:', error);
+            setLeads(prev => {
+                const deleted = leads.find(l => l.id === id);
+                return deleted ? [deleted, ...prev] : prev;
+            });
+            toast.error('Error al eliminar', {
+                description: error instanceof Error ? error.message : 'Verifica tus permisos de Firestore.'
+            });
+        }
+    };
+
     const getStatusBadge = (status?: string) => {
         // [UI-HOMOLOGACION-PENDING-001] Comparación directa sin normalización legacy
         const config = STATUS_CONFIG[status ?? ''] || STATUS_CONFIG.PENDING;
@@ -377,6 +474,19 @@ export default function ProspectsPage() {
                         Gestiona los <span className="text-white font-bold">{leads.length}</span> clientes interesados en tiempo real.
                     </p>
                 </div>
+                {/* [WEB-755] Exportar CSV — Patrón Data URI */}
+                <button
+                    onClick={handleExportCSV}
+                    disabled={filteredLeads.length === 0}
+                    className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border border-gray-600 text-gray-200 hover:text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all shadow-md"
+                    title={`Exportar ${filteredLeads.length} prospectos visibles como CSV`}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Exportar CSV
+                    <span className="ml-1 bg-gray-700 text-gray-300 text-xs px-1.5 py-0.5 rounded-full font-mono">{filteredLeads.length}</span>
+                </button>
             </div>
 
             {/* [ARCH-BULK-META-008] Tab Switcher — useState only, Bypass Nuclear compliant (no library) */}
@@ -642,6 +752,15 @@ export default function ProspectsPage() {
                                                                     </svg>
                                                                 </>
                                                             )}
+                                                        </button>
+
+                                                        {/* [WEB-755] Hard Delete — Optimistic UI */}
+                                                        <button
+                                                            onClick={(e) => handleDelete(e, lead.id)}
+                                                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-900/30 hover:bg-red-600 border border-red-700/50 hover:border-red-500 text-red-400 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow"
+                                                            title="Eliminar prospecto permanentemente"
+                                                        >
+                                                            🗑️
                                                         </button>
                                                     </div>
                                                 </td>
