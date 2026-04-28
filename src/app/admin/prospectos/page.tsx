@@ -39,6 +39,8 @@ export default function ProspectsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
+    // [WEB-751] Orchestrator-First Policy: estado de carga individual por prospecto
+    const [orchestratingId, setOrchestratingId] = useState<string | null>(null);
     // [ARCH-BULK-META-008] Tab switcher: useState only (no new dependency — contrato v2.0.0)
     // [FRONTEND-ENVIO-MASIVO-TAB] Tercer estado añadido — contrato v2.1.0
     const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva' | 'envio_masivo'>('dashboard');
@@ -100,17 +102,55 @@ export default function ProspectsPage() {
     };
 
     /**
-     * Construye y abre el enlace de WhatsApp
+     * [WEB-751] Orchestrator-First Policy — Detonador del orquestador backend.
+     * PROHIBIDO usar wa.me directo. Toda comunicación individual debe pasar por
+     * /api/admin/campaign/start para garantizar trazabilidad y persistencia en Firestore.
+     *
+     * Contrato: POST /api/admin/campaign/start (CampaignControl.tsx v2.1.0)
+     * Template por defecto: envio_mensaje_prospectos (es_CO)
+     * Phone ID por defecto: 1021779847693778 (Línea Principal)
      */
-    const handleWhatsAppClick = (e: React.MouseEvent, lead: Prospect) => {
-        e.stopPropagation(); // Prevent opening modal
-        const interes = lead.moto_interest || lead.motivo_inscripcion || "nuestras motos";
-        const message = `Hola ${lead.nombre}, vi que te interesaste en la ${interes}, ¿cómo puedo ayudarte hoy?`;
+    const handleOrchestrate = async (e: React.MouseEvent, lead: Prospect) => {
+        e.stopPropagation();
+        if (orchestratingId) return; // Prevenir disparos concurrentes
+        setOrchestratingId(lead.id);
 
-        const encodedMessage = encodeURIComponent(message);
-        const url = `https://wa.me/${lead.celular}?text=${encodedMessage}`;
+        const BACKEND_URL = 'https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/campaign/start';
+        const ADMIN_API_KEY = 'moto_master_2026';
 
-        window.open(url, '_blank', 'noopener,noreferrer');
+        try {
+            const response = await fetch(BACKEND_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Admin-API-Key': ADMIN_API_KEY,
+                },
+                body: JSON.stringify({
+                    targets: [{ celular: lead.celular }],
+                    template_a: 'envio_mensaje_prospectos',
+                    template_b: 'envio_mensaje_prospectos',
+                    phone_id: '1021779847693778',
+                    language: 'es_CO',
+                }),
+            });
+
+            // [Zero-Silent-Failures] Captura del payload nativo del proveedor
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Orquestador respondió ${response.status}: ${errorBody}`);
+            }
+
+            toast.success('📤 Mensaje orquestado', {
+                description: `Campaña individual disparada para ${lead.nombre}. Revisa el log de envíos.`
+            });
+        } catch (error) {
+            console.error('[WEB-751] Error al llamar al orquestador:', error);
+            toast.error('Error al orquestar mensaje', {
+                description: error instanceof Error ? error.message : 'Verifica tu conexión con el backend.'
+            });
+        } finally {
+            setOrchestratingId(null);
+        }
     };
 
     const handleRowClick = (lead: Prospect) => {
@@ -451,9 +491,9 @@ export default function ProspectsPage() {
                                                     </div>
                                                 </td>
 
-                                                {/* INTERÉS */}
+                                                {/* INTERÉS — [WEB-751] Fallback canónico: moto_interes (UNE snake_case) */}
                                                 <td className="p-4 text-gray-300">
-                                                    {lead.moto_interest || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
+                                                    {lead.moto_interes || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
                                                 </td>
 
                                                 {/* BOT STATUS — Interactive Toggle */}
@@ -518,14 +558,26 @@ export default function ProspectsPage() {
                                                             )}
                                                         </div>
 
+                                                        {/* [WEB-751] Orchestrator-First Policy — detonador del backend orquestador */}
                                                         <button
-                                                            onClick={(e) => handleWhatsAppClick(e, lead)}
-                                                            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+                                                            onClick={(e) => handleOrchestrate(e, lead)}
+                                                            disabled={orchestratingId === lead.id}
+                                                            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-wait text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+                                                            title="Enviar mensaje vía Orquestador (no abre wa.me)"
                                                         >
-                                                            <span className="hidden sm:inline">WhatsApp</span>
-                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.696c1.029.56 1.77.854 3.018.855 3.19.001 5.783-2.593 5.783-5.785 0-3.193-2.591-5.79-5.783-5.79zm1.506 8.971c-.167.092-2.502 1.398-2.616 1.408-.12.012-.27.173-.41-.122-.162-.338-.857-1.579-1.256-2.274-.403-.695-.084-.666.27-.98.358-.318.514-.668.618-.95.101-.282-.124-1.293-.46-1.895-.296-.531-.692-.472-.942-.486-.296-.017-.597.051-.82.355-.262.358-1.041 1.059-1.041 2.571 0 1.512.986 2.946 1.154 3.181.166.233 2.126 3.011 4.965 4.304.773.35 1.791.439 2.515.118.598-.266 1.676-1.066 1.944-1.821.267-.754.216-1.564.127-1.761-.106-.233-.409-.327-.852-.544z" />
-                                                            </svg>
+                                                            {orchestratingId === lead.id ? (
+                                                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                                </svg>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="hidden sm:inline">WhatsApp</span>
+                                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.696c1.029.56 1.77.854 3.018.855 3.19.001 5.783-2.593 5.783-5.785 0-3.193-2.591-5.79-5.783-5.79zm1.506 8.971c-.167.092-2.502 1.398-2.616 1.408-.12.012-.27.173-.41-.122-.162-.338-.857-1.579-1.256-2.274-.403-.695-.084-.666.27-.98.358-.318.514-.668.618-.95.101-.282-.124-1.293-.46-1.895-.296-.531-.692-.472-.942-.486-.296-.017-.597.051-.82.355-.262.358-1.041 1.059-1.041 2.571 0 1.512.986 2.946 1.154 3.181.166.233 2.126 3.011 4.965 4.304.773.35 1.791.439 2.515.118.598-.266 1.676-1.066 1.944-1.821.267-.754.216-1.564.127-1.761-.106-.233-.409-.327-.852-.544z" />
+                                                                    </svg>
+                                                                </>
+                                                            )}
                                                         </button>
                                                     </div>
                                                 </td>
