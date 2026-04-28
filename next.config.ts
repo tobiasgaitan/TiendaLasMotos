@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   // ⚡ DOCKER SUPPORT: Required for lightweight container images
   output: 'standalone',
 
+  // [WEB-752] Tree-shaking selectivo para paquetes de UI pesados.
+  // Lighthouse detectó 600ms de JS sin usar por imports no optimizados de lucide-react.
+  // Requiere Next.js ≥14.1. Compatible con output: 'standalone'.
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'sonner'],
+  },
+
   // 🛡️ EXTERNAL PACKAGES: Prevents bundler from obfuscating firebase-admin (REDUNDANT BASE DEEP)
   serverExternalPackages: ['firebase-admin', 'firebase-admin/app', 'firebase-admin/firestore'],
 

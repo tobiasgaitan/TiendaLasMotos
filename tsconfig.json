@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    // [WEB-752] ES2022: elimina polyfills legacy generados por ES2017 (async/await, class fields, optional chaining).
+    // Node 22 (engines) + Firebase Hosting (browsers modernos) soportan ES2022 natiamente.
+    // Lib "esnext" existente ya cubre ES2022 — sin riesgo de regresión de tipo.
+    "target": "ES2022",
     "lib": [
       "dom",
       "dom.iterable",

@@ -41,6 +41,17 @@ export default function RootLayout({
    */
   return (
     <html lang="en" suppressHydrationWarning>
+      {/*
+        [WEB-752] Resource hints para los orígenes críticos del proyecto.
+        - preconnect: Firebase Storage (imágenes de cédula/recibo) y Firestore API
+        - dns-prefetch: Backend Cloud Run (orquestador + webhooks)
+        NOTA: Google Fonts deliberadamente excluido — sistema usa system fonts (commit 81196e5).
+      */}
+      <head>
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="dns-prefetch" href="https://bot-tiendalasmotos-467812260261.us-central1.run.app" />
+      </head>
       <body
         className="antialiased bg-slate-50 text-slate-900"
         style={{
@@ -59,6 +70,6 @@ export default function RootLayout({
           </AuthProvider>
         </LeadModalProvider>
       </body>
-    </html >
+    </html>
   );
 }
