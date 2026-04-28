@@ -288,6 +288,60 @@ export default function ProspectsPage() {
         }
     };
 
+    /**
+     * [WEB-754] Credit Score Semaphore Badge
+     * Reglas de negocio:
+     *   Verde  >= 700 (perfil sólido de crédito)
+     *   Amarillo >= 400 (perfil condicional)
+     *   Rojo   < 400  (perfil de alto riesgo)
+     *   Gris   null   (sin datos de scoring)
+     *
+     * Safe-Fallback: nunca arroja TypeError si score_resultado es undefined.
+     */
+    const getScoreBadge = (score: number | undefined | null) => {
+        if (score == null) {
+            return (
+                <span
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-gray-700/60 text-gray-500 border border-gray-600/50"
+                    title="Sin datos de scoring"
+                >
+                    —
+                </span>
+            );
+        }
+        if (score >= 700) {
+            return (
+                <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-green-500/15 text-green-400 border border-green-500/40"
+                    title={`Score: ${score} — Perfil sólido`}
+                >
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                    {score}
+                </span>
+            );
+        }
+        if (score >= 400) {
+            return (
+                <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/40"
+                    title={`Score: ${score} — Perfil condicional`}
+                >
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
+                    {score}
+                </span>
+            );
+        }
+        return (
+            <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-red-500/15 text-red-400 border border-red-500/40"
+                title={`Score: ${score} — Alto riesgo`}
+            >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+                {score}
+            </span>
+        );
+    };
+
     // --- RENDERIZADO ---
 
     if (loading) {
@@ -452,6 +506,8 @@ export default function ProspectsPage() {
                                             <th className="p-4 font-medium">Fecha</th>
                                             <th className="p-4 font-medium">Cliente</th>
                                             <th className="p-4 font-medium">Interés</th>
+                                            {/* [WEB-754] Credit Score Column */}
+                                            <th className="p-4 font-medium text-center">Score</th>
                                             <th className="p-4 font-medium text-center">Bot</th>
                                             <th className="p-4 font-medium text-center">Estado</th>
                                             <th className="p-4 font-medium text-center">Envío WA</th>
@@ -494,6 +550,11 @@ export default function ProspectsPage() {
                                                 {/* INTERÉS — [WEB-751] Fallback canónico: moto_interes (UNE snake_case) */}
                                                 <td className="p-4 text-gray-300">
                                                     {lead.moto_interes || lead.motivo_inscripcion || <span className="text-gray-600 italic">General</span>}
+                                                </td>
+
+                                                {/* [WEB-754] SCORE — Semáforo de crédito (0-1000). Safe-Fallback: muestra '—' si null */}
+                                                <td className="p-4 text-center">
+                                                    {getScoreBadge(lead.score_resultado)}
                                                 </td>
 
                                                 {/* BOT STATUS — Interactive Toggle */}
