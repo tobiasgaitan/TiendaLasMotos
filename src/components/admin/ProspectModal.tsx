@@ -62,6 +62,9 @@ export interface Prospect {
     whatsapp_error_details?: any;
     whatsapp_read_at?: any;
 
+    // [WEB-751] Telemetría de IA — costo USD de la sesión (persistido por ai_brain.py)
+    session_cost_usd?: number;
+
     [key: string]: any;
 }
 
@@ -532,6 +535,17 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 </button>
                             </div>
                         </div>
+                        {/* [WEB-751] Telemetría de IA — costo de sesión generado por ai_brain.py */}
+                        {prospect.session_cost_usd !== undefined && (
+                            <div className="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between">
+                                <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                                    💡 <span>Costo IA última sesión</span>
+                                </span>
+                                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-900/20 border border-emerald-500/30 px-2 py-0.5 rounded">
+                                    ${prospect.session_cost_usd.toFixed(4)} USD
+                                </span>
+                            </div>
+                        )}
                     </section>
 
                     {/* AI Analysis Section */}
