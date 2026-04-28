@@ -301,8 +301,11 @@ export default function ProspectsPage() {
     const getScoreBadge = (score: number | undefined | null) => {
         if (score == null) {
             return (
+                // [WEB-754-WCAG] Bypass Nuclear: text-gray-500 falló WCAG AA (ratio 2.71:1 < 4.5:1).
+                // Inline style garantiza text-gray-300 (#d1d5db) → ratio 8.89:1 ✅ contra bg efectivo #283140.
                 <span
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-gray-700/60 text-gray-500 border border-gray-600/50"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-gray-700/60 border border-gray-600/50"
+                    style={{ color: '#d1d5db' }}
                     title="Sin datos de scoring"
                 >
                     —
