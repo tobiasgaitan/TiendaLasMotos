@@ -23,7 +23,7 @@ const leadSchema = z.object({
         'Repuestos/Accesorios'
     ], { message: "Por favor selecciona un motivo válido" }),
     origen: z.literal("WEB_BETA").default("WEB_BETA"),
-    habeas_data_accepted: z.boolean().refine(val => val === true, {
+    habeas_data: z.boolean().refine(val => val === true, {
         message: "Debes aceptar la política de tratamiento de datos."
     }),
 });
@@ -35,7 +35,7 @@ export type LeadState = {
         celular?: string[];
         moto_interes?: string[];
         motivo_inscripcion?: string[];
-        habeas_data_accepted?: string[];
+        habeas_data?: string[];
         general?: string[];
     };
     message?: string;
@@ -47,7 +47,7 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
         celular: formData.get("celular") as string,
         moto_interes: formData.get("moto_interest") as string || "General",
         motivo_inscripcion: formData.get("motivo_inscripcion") as any,
-        habeas_data_accepted: formData.get("habeas_data_accepted") === "true", // [LEGAL] Check for true
+        habeas_data: formData.get("habeas_data") === "true", // [LEGAL] Check for true
         origen: "WEB_BETA",
     };
 
@@ -277,7 +277,7 @@ const prospectUpdateSchema = z.object({
         ciudad: z.string().max(50).optional(),
 
         // Compliance
-        habeas_data_accepted: z.boolean().optional(),
+        habeas_data: z.boolean().optional(),
         habeas_data_sent: z.boolean().optional(),
 
         // Funnel
@@ -470,9 +470,8 @@ export async function bulkImportProspectsAction(
             mapField('servicios_publicos', 'servicios_publicos'); // String "Si"/"No"
             mapField('plan_celular', 'plan_celular'); // String "Si"/"No"
             
-            // Casting Legal: habeas_data_accepted
-            if (data.habeas_data_accepted === true || data.habeas_data === "Si") updates.habeas_data_accepted = true;
-            else if (data.habeas_data === "No") updates.habeas_data_accepted = false;
+            // [LEGAL-V8.0.0] Direct mapping of habeas_data boolean
+            mapField('habeas_data', 'habeas_data', (v) => v === 'Si' || v === true);
 
             // Campos obligatorios para nuevos registros
             if (!exists) {

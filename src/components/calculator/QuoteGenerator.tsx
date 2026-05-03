@@ -161,7 +161,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 motivo_inscripcion: isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)',
                 origen: 'ADMIN_QUOTE_GENERATOR',
                 estado: 'NUEVO',
-                habeas_data_accepted: true, // Admin tool assumes consent or handles internally
+                habeas_data: true, // Admin tool assumes consent or handles internally
                 chatbot_status: 'ACTIVE',
                 human_help_requested: false
             };

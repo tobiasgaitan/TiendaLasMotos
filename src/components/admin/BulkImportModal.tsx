@@ -16,7 +16,7 @@ interface RowData {
     nombre: string;
     celular: string;
     moto_interes: string;
-    habeas_data_accepted: boolean;
+    habeas_data: boolean;
     ciudad?: string;
     ocupacion?: string;
     ingresos?: string;
@@ -68,7 +68,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     const rawStatus = row.status || row.STATUS || row.Status || '';
                     const rawMoto = row.moto_interest || row.MOTO_INTERES || row.moto_interes || row.MOTO_INTEREST || '';
                     const rawIdField = row.celular || row.document_id || row.CELULAR || row.DOCUMENT_ID;
-                    const rawHabeas = row.habeas_data_accepted || row.habeas_data || row.HABEAS_DATA || 'No';
+                    const rawHabeas = row.habeas_data || row.habeas_data_accepted || row.HABEAS_DATA || 'No';
                     
                     // [UI-HOMOLOGACION-PENDING-001] Estado inicial canónico en inglés (v2.0.0)
                     let finalStatus = 'PENDING';
@@ -84,7 +84,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                         document_id: id,
                         // 3. Limpieza extrema
                         moto_interes: (rawMoto || '').toString().replace(/;/g, '').trim(),
-                        habeas_data_accepted: (rawHabeas === 'Si' || rawHabeas === true),
+                        habeas_data: (rawHabeas === 'Si' || rawHabeas === true),
                         status: finalStatus,
                         status_row: valid ? 'VALID' : 'ERROR'
                     };
