@@ -22,7 +22,7 @@ const clientSchema = z.object({
         'Asesoría General',
         'Repuestos/Accesorios'
     ], { message: "Selecciona un motivo" }),
-    habeas_data_accepted: z.boolean().refine(val => val === true, {
+    habeas_data: z.boolean().refine(val => val === true, {
         message: "Debes aceptar la política de datos"
     }),
 });
@@ -86,7 +86,7 @@ export default function LeadForm() {
                 celular: cleanPhone,
                 moto_interes: selectedMoto ? selectedMoto.referencia : "General",
                 motivo_inscripcion: data.motivo_inscripcion,
-                habeas_data_accepted: true, // [LEGAL] Confirmed by checkbox
+                habeas_data: true, // [LEGAL] Confirmed by checkbox
                 fecha: serverTimestamp(),
                 status: "Pendiente",
 
@@ -243,18 +243,18 @@ export default function LeadForm() {
 
                             <div className="flex items-start gap-3 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
                                 <input
-                                    {...register("habeas_data_accepted")}
+                                    {...register("habeas_data")}
                                     type="checkbox"
-                                    id="habeas_data_accepted"
+                                    id="habeas_data"
                                     className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-900 text-orange-600 focus:ring-orange-600 focus:ring-offset-slate-900"
                                 />
-                                <label htmlFor="habeas_data_accepted" className="text-xs text-slate-400 leading-tight">
+                                <label htmlFor="habeas_data" className="text-xs text-slate-400 leading-tight">
                                     Acepto la <a href="/politica-de-privacidad" target="_blank" className="text-orange-500 hover:underline">política de tratamiento de datos personales</a> y autorizo el contacto vía WhatsApp.
                                 </label>
                             </div>
-                            {errors.habeas_data_accepted && (
+                            {errors.habeas_data && (
                                 <p className="text-red-500 text-[10px] mt-1 italic">
-                                    * {errors.habeas_data_accepted.message}
+                                    * {errors.habeas_data.message}
                                 </p>
                             )}
 

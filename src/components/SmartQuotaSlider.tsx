@@ -245,7 +245,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 motivo_inscripcion: isCredit ? 'Solicitud de Crédito' : 'Pago de Contado',
                 origen: 'WEB_COTIZADOR_PRO',
                 estado: 'NUEVO',
-                habeas_data_accepted: true,
+                habeas_data: true,
                 chatbot_status: 'ACTIVE', // Señal de control para el bot
                 human_help_requested: false,
                 edad: userProfile.age,

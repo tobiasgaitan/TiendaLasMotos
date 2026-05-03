@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
 
-export default function Error({
+export default function SimuladorErrorBoundary({
     error,
     reset,
 }: {
