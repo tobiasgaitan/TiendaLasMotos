@@ -37,13 +37,15 @@ export type LeadState = {
 }
 
 export async function submitLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
-    // 1. [ESTRICTO] Extracción de todos los campos para soporte dinámico (v8.0.0)
+    // 1. [ESTRICTO] Extracción y Casteo de tipos para soporte dinámico (v8.0.0)
     const rawData: any = {};
+    const booleanFields = ['habeas_data', 'human_help_requested', 'reportado_datacredito'];
+    const numberFields = ['edad', 'ingresos_mensuales', 'monto_credito', 'precio_moto', 'cuota_mensual', 'plazo', 'cuota_inicial'];
+
     formData.forEach((value, key) => {
-        // Conversión de tipos conocidos
-        if (key === 'habeas_data') {
+        if (booleanFields.includes(key)) {
             rawData[key] = value === 'true';
-        } else if (key === 'edad' || key === 'ingresos_mensuales' || key === 'monto_credito') {
+        } else if (numberFields.includes(key)) {
             const num = Number(value);
             rawData[key] = isNaN(num) ? value : num;
         } else {
