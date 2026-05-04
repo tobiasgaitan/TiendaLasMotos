@@ -16,17 +16,12 @@ const leadSchema = z.object({
     nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
     celular: z.string().regex(/^(3\d{9}|(\+57)?3\d{9})$/, { message: "El celular debe ser válido (10 dígitos)" }),
     moto_interes: z.string(), // [FIXED] Standardized
-    motivo_inscripcion: z.enum([
-        'Solicitud de Crédito',
-        'Pago de Contado',
-        'Asesoría General',
-        'Repuestos/Accesorios'
-    ], { message: "Por favor selecciona un motivo válido" }),
-    origen: z.literal("WEB_BETA").default("WEB_BETA"),
+    motivo_inscripcion: z.string().min(1, { message: "Por favor selecciona un motivo válido" }),
+    origen: z.string().default("WEB_BETA"),
     habeas_data: z.boolean().refine(val => val === true, {
         message: "Debes aceptar la política de tratamiento de datos."
     }),
-});
+}).passthrough();
 
 export type LeadState = {
     success?: boolean;
@@ -42,14 +37,22 @@ export type LeadState = {
 }
 
 export async function submitLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
-    const rawData = {
-        nombre: formData.get("nombre") as string,
-        celular: formData.get("celular") as string,
-        moto_interes: formData.get("moto_interest") as string || "General",
-        motivo_inscripcion: formData.get("motivo_inscripcion") as any,
-        habeas_data: formData.get("habeas_data") === "true", // [LEGAL] Check for true
-        origen: "WEB_BETA",
-    };
+    // 1. [ESTRICTO] Extracción de todos los campos para soporte dinámico (v8.0.0)
+    const rawData: any = {};
+    formData.forEach((value, key) => {
+        // Conversión de tipos conocidos
+        if (key === 'habeas_data') {
+            rawData[key] = value === 'true';
+        } else if (key === 'edad' || key === 'ingresos_mensuales' || key === 'monto_credito') {
+            const num = Number(value);
+            rawData[key] = isNaN(num) ? value : num;
+        } else {
+            rawData[key] = value;
+        }
+    });
+
+    // Mapeo de alias comunes en la UI
+    if (!rawData.moto_interes) rawData.moto_interes = formData.get("moto_interest") as string || "General";
 
     const validated = leadSchema.safeParse(rawData);
     if (!validated.success) {
@@ -63,18 +66,17 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
     try {
         const adminDb = getDb();
 
-        // 1. [ESTRICTO] Normalización Contrato 12 Dígitos (UNE v7.0.2)
+        // 2. [ESTRICTO] Normalización Contrato 12 Dígitos (UNE v7.0.2)
         let normalizedCelular = String(validated.data.celular).replace(/\D/g, "");
         if (normalizedCelular.length === 10) {
             normalizedCelular = "57" + normalizedCelular;
         }
 
-        // 2. [ADMIN SDK] Persistencia en Colección prospectos (ID = Celular)
-        // [CIRUJANO] Se cambia .add() por .doc().set() para garantizar ID determinístico
+        // 3. [ADMIN SDK] Persistencia en Colección prospectos (ID = Celular)
         const docRef = adminDb.collection("prospectos").doc(normalizedCelular);
 
         const finalPayload = {
-            ...validated.data,
+            ...validated.data, // Incluye campos extra por .passthrough()
             celular: normalizedCelular, // [V8.0.0] Forzar celular normalizado en el payload
             created_at: new Date(),
             fecha: new Date(), // Paridad con bulkImport

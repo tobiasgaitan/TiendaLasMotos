@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLeadModal } from "@/context/LeadModalContext";
 import { createPortal } from "react-dom";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { submitLead } from "@/app/actions";
 
 /**
  * Validatio Schema
@@ -33,7 +32,7 @@ type ClientFormSchema = z.infer<typeof clientSchema>;
  * LeadForm Component
  * 
  * Floating modal that captures user leads and saves them to Firestore
- * in the 'prospectos' collection. Prepared for AI/Chatbot integration.
+ * via the centralized submitLead Server Action.
  */
 export default function LeadForm() {
     const { isOpen, closeModal, selectedMoto } = useLeadModal();
@@ -66,41 +65,36 @@ export default function LeadForm() {
     if (!isOpen) return null;
 
     /**
-     * Handles form submission
-     * - Sanitizes the phone number to store only digits (removes formatting like spaces, dashes).
-     * - Adds metadata for Bot processing (AI summary placeholder, origin).
-     * - Saves the clean data to Firestore 'prospectos' collection.
+     * Handles form submission via Server Action
      */
     const onSubmit = async (data: ClientFormSchema) => {
         setIsSubmitting(true);
         setSubmitError(null);
 
         try {
-            // 1. Clean Phone Number (Remove spaces, dashes, etc - though Regex enforces digits, being safe)
+            // 1. Prepare FormData for Server Action
+            const formData = new FormData();
+            formData.append("nombre", data.nombre);
+            formData.append("celular", data.celular);
+            formData.append("moto_interest", selectedMoto ? selectedMoto.referencia : "General");
+            formData.append("motivo_inscripcion", data.motivo_inscripcion);
+            formData.append("habeas_data", String(data.habeas_data));
+            formData.append("origen", "WEB_COTIZADOR_MODAL");
+            
+            // Metadatos extra para el bot
+            formData.append("chatbot_status", "ACTIVE");
+            formData.append("human_help_requested", "false");
+
+            // 2. [ESTRICTO] Llamada a Server Action (Single Source of Truth)
+            const result = await submitLead({ success: false }, formData);
+
+            if (!result.success) {
+                throw new Error(result.message || "Error al procesar el registro");
+            }
+
+            // 3. [INYECCIÓN CRÍTICA] Disparar el Orquestador del Bot
+            // Usamos el celular normalizado (o el original para que el bot lo limpie)
             const cleanPhone = data.celular.replace(/\D/g, '');
-
-            // 2. Prepare Payload
-            const payload = {
-                nombre: data.nombre,
-                ciudad: "No especificada",
-                celular: cleanPhone,
-                moto_interes: selectedMoto ? selectedMoto.referencia : "General",
-                motivo_inscripcion: data.motivo_inscripcion,
-                habeas_data: true, // [LEGAL] Confirmed by checkbox
-                fecha: serverTimestamp(),
-                status: "Pendiente",
-
-                // AI/Chatbot Fields
-                ai_summary: null,
-                chatbot_status: "ACTIVE",
-                human_help_requested: false,
-                origen: "WEB_COTIZADOR"
-            };
-
-            // 3. Send to Firestore
-            await addDoc(collection(db, "prospectos"), payload);
-
-            // [INYECCIÓN CRÍTICA] Disparar el Orquestador del Bot
             try {
                 const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL || "";
                 await fetch(`${cloudRunUrl}/api/admin/campaign/start`, {
@@ -118,15 +112,14 @@ export default function LeadForm() {
                 });
             } catch (botError) {
                 console.error("Error disparando el webhook del bot:", botError);
-                // Opcional: No bloqueamos el success del usuario si el bot falla, pero lo registramos.
             }
 
             // 4. Handle Success
             setSubmitSuccess(true);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error submitting lead:", error);
-            setSubmitError("Hubo un error al enviar tus datos. Por favor intenta de nuevo.");
+            setSubmitError(error.message || "Hubo un error al enviar tus datos. Por favor intenta de nuevo.");
         } finally {
             setIsSubmitting(false);
         }

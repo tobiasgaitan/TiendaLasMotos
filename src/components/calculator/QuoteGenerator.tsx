@@ -5,8 +5,9 @@ import { Moto, CreditSimulation } from "@/types";
 import Image from "next/image";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
-import { addDoc, collection, serverTimestamp, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { submitLead } from "@/app/actions";
 import { FINANCIAL_SCENARIOS } from "@/lib/constants";
 
 interface Props {
@@ -150,24 +151,36 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         setIsSaving(true);
 
         try {
-            // Saving as Prospect/Lead for consistency
-            const cleanPhone = userPhone.replace(/\D/g, '');
-            const payload = {
-                nombre: userName,
-                ciudad: activeScenario.cityName || "No especificada",
-                celular: cleanPhone,
-                moto_interes: moto.referencia,
-                fecha: serverTimestamp(),
-                motivo_inscripcion: isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)',
-                origen: 'ADMIN_QUOTE_GENERATOR',
-                estado: 'NUEVO',
-                habeas_data: true, // Admin tool assumes consent or handles internally
-                chatbot_status: 'ACTIVE',
-                human_help_requested: false
-            };
-            await addDoc(collection(db, "prospectos"), payload);
+            // 1. Prepare FormData for Centralization v8.0.0
+            const formData = new FormData();
+            formData.append("nombre", userName);
+            formData.append("celular", userPhone);
+            formData.append("moto_interest", moto.referencia);
+            formData.append("motivo_inscripcion", isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)');
+            formData.append("habeas_data", "true"); // Admin tool assumes consent
+            formData.append("origen", 'ADMIN_QUOTE_GENERATOR');
+            
+            // Additional Metadata for IA/Profiling
+            formData.append("ciudad", activeScenario.cityName || "No especificada");
+            formData.append("chatbot_status", 'ACTIVE');
+            formData.append("human_help_requested", "false");
+            formData.append("precio_moto", String(quote.vehiclePrice));
+            formData.append("cuota_mensual", isCredit ? String(quote.monthlyPayment) : "0");
+            formData.append("plazo", String(months));
+            formData.append("cuota_inicial", String(downPayment));
 
-        } catch (e) { console.error("Error saving lead", e); }
+            // 2. Execute Server Action (Single Source of Truth)
+            const result = await submitLead({ success: false }, formData);
+
+            if (!result.success) {
+                console.error("Error from submitLead:", result.message);
+                // We proceed to WhatsApp anyway as fallback for the user experience,
+                // but we log the failure.
+            }
+
+        } catch (e) { 
+            console.error("Error saving lead via submitLead", e); 
+        }
         finally { setIsSaving(false); }
 
         const phone = "573008603210";
