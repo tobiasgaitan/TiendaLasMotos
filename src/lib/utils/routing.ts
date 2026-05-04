@@ -2,7 +2,7 @@ import { FinancialEntity } from "@/types/financial";
 import { Lead } from "@/types";
 
 export interface RoutingProfile {
-    age: number;
+    age?: number | null;
     income?: string; // e.g. "1-2 SMMLV"
     activity?: string; // e.g. "Independiente"
     reported?: boolean;
@@ -26,10 +26,16 @@ export const routeFinancialEntities = (
     const { age } = profile;
 
     // 1. Age Validation
-    // If Age < 18 or > 70, global restriction might apply (or specific to Bogotá)
-    // For now, we filter individually per entity rules.
+    // If age is not provided, we cannot guarantee eligibility
+    if (age === null || age === undefined) {
+        return {
+            suitableEntities: [],
+            rejectedEntities: availableEntities,
+            reason: "Perfil incompleto: se requiere la edad del cliente.",
+            status: 'Rejected'
+        };
+    }
 
-    // Check Global Eligibility (example: min 18 for everyone)
     if (age < 18) {
         return {
             suitableEntities: [],
