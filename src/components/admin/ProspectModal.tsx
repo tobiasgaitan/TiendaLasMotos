@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Timestamp, arrayUnion } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { updateProspectAction } from '@/app/actions';
@@ -570,11 +571,15 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 {prospect.doc_cedula_url ? (
                                     <div className="group relative">
                                         <a href={prospect.doc_cedula_url} target="_blank" rel="noopener noreferrer" className="block">
-                                            <img
-                                                src={prospect.doc_cedula_url}
-                                                alt="Previsualización Cédula"
-                                                className="h-24 w-full object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-blue-400"
-                                            />
+                                            <div className="h-24 w-full relative">
+                                                <Image
+                                                    src={prospect.doc_cedula_url}
+                                                    alt="Previsualización Cédula"
+                                                    fill
+                                                    unoptimized={true}
+                                                    className="object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-blue-400"
+                                                />
+                                            </div>
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                                 <span className="text-white text-xs font-bold bg-blue-600 px-2 py-1 rounded">Ver pantalla completa</span>
                                             </div>
@@ -601,11 +606,15 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 {prospect.doc_recibo_gas_url ? (
                                     <div className="group relative">
                                         <a href={prospect.doc_recibo_gas_url} target="_blank" rel="noopener noreferrer" className="block">
-                                            <img
-                                                src={prospect.doc_recibo_gas_url}
-                                                alt="Previsualización Recibo Gas"
-                                                className="h-24 w-full object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-orange-400"
-                                            />
+                                            <div className="h-24 w-full relative">
+                                                <Image
+                                                    src={prospect.doc_recibo_gas_url}
+                                                    alt="Previsualización Recibo Gas"
+                                                    fill
+                                                    unoptimized={true}
+                                                    className="object-cover rounded-lg border-2 border-slate-600 cursor-zoom-in transition-all group-hover:border-orange-400"
+                                                />
+                                            </div>
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                                 <span className="text-white text-xs font-bold bg-orange-600 px-2 py-1 rounded">Ver pantalla completa</span>
                                             </div>

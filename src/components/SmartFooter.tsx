@@ -118,7 +118,7 @@ export default function SmartFooter() {
                                 </Link>
                             </li>
                             <li className="text-xs text-blue-300 mt-4 leading-snug">
-                                "Autorizo el tratamiento de mis datos personales conforme a la Ley 1581 de 2012 y la política de privacidad de la empresa."
+                                &quot;Autorizo el tratamiento de mis datos personales conforme a la Ley 1581 de 2012 y la política de privacidad de la empresa.&quot;
                             </li>
                         </ul>
                     </div>

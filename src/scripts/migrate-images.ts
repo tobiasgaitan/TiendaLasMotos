@@ -16,7 +16,7 @@ async function migrate() {
     if (getApps().length === 0) {
         if (fs.existsSync(serviceAccountPath)) {
             console.log("🔑 Found service-account.json, using it.");
-            const serviceAccount = require(serviceAccountPath);
+            const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
             initializeApp({
                 credential: cert(serviceAccount)
             });

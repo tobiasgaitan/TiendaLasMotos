@@ -12,6 +12,27 @@ interface ConfigModalProps {
     initialData?: any;
 }
 
+const getDefaults = () => {
+    return {
+        name: "",
+        interestRate: 0,
+        minDownPaymentPercentage: 0,
+        financeDocsAndSoat: true, // Unified Default
+        lifeInsuranceType: 'percentage',
+        lifeInsuranceValue: 0.1126,
+        // New Fields
+        fngRate: 0,
+        unemploymentInsuranceType: 'fixed_monthly',
+        unemploymentInsuranceValue: 0,
+        manualOverride: false,
+        syncedWithUsura: false,
+        brillaManagementRate: 0,
+        coverageRate: 0,
+        minAge: 18,
+        maxAge: 75
+    };
+};
+
 /**
  * Modal component for editing or creating financial configuration entities.
  * handles form state, validation, and submission to Firestore.
@@ -24,6 +45,7 @@ interface ConfigModalProps {
 export default function ConfigModal({ isOpen, onClose, onSave, initialData }: ConfigModalProps) {
     const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
     const type = 'financial'; // Forced type
+
 
     useEffect(() => {
         if (isOpen) {
@@ -42,26 +64,6 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
         }
     };
 
-    const getDefaults = () => {
-        return {
-            name: "",
-            interestRate: 0,
-            minDownPaymentPercentage: 0,
-            financeDocsAndSoat: true, // Unified Default
-            lifeInsuranceType: 'percentage',
-            lifeInsuranceValue: 0.1126,
-            // New Fields
-            fngRate: 0,
-            unemploymentInsuranceType: 'fixed_monthly',
-            unemploymentInsuranceValue: 0,
-            manualOverride: false,
-            syncedWithUsura: false,
-            brillaManagementRate: 0,
-            coverageRate: 0,
-            minAge: 18,
-            maxAge: 75
-        };
-    };
 
     const modalTitle = `${initialData ? 'Editar' : 'Nueva'} Entidad Financiera`;
 

@@ -1,6 +1,9 @@
-// @ts-ignore
 export const getDb = () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
   const adminApp = eval("require('firebase-admin/app')");
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
   const adminFirestore = eval("require('firebase-admin/firestore')");
 
   // 🛡️ PERSISTENCIA GLOBAL: Evita que el App se pierda en el contexto de Cloud Run
@@ -28,7 +31,11 @@ export const getDb = () => {
 };
 
 export const getAdminAuth = () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
   const adminApp = eval("require('firebase-admin/app')");
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
   const adminAuth = eval("require('firebase-admin/auth')");
 
   const globalAny: any = global;

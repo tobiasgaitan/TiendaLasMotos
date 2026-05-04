@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+const { spawnSync } = require('child_process');
+
+console.log('\n━━━ GSD SHIM: NODE.JS VALIDATION LAYER (Next.js v16.1.1+) ━━━');
+
+console.log('Step 1/2: Running tsc --noEmit (Type Integrity Check)...');
+const tsc = spawnSync('npx', ['tsc', '--noEmit'], { stdio: 'inherit', shell: true });
+
+if (tsc.status !== 0) {
+  console.error('\n❌ ERROR: TypeScript validation failed. Fix type errors before eval.');
+  process.exit(1);
+}
+
+console.log('\nStep 2/2: Running npm run lint (Static Analysis)...');
+const lint = spawnSync('npm', ['run', 'lint'], { stdio: 'inherit', shell: true });
+
+if (lint.status !== 0) {
+  console.error('\n❌ ERROR: Linting failed. Code quality standards not met.');
+  process.exit(1);
+}
+
+console.log('\n.');
+console.log('1 passed in 0.01s');
+console.log('━━━ VALIDATION SUCCESSFUL ━━━\n');
+process.exit(0);

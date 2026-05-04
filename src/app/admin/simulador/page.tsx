@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Moto } from '@/types';
@@ -48,9 +48,6 @@ export default function SimulatorPage() {
     const [months, setMonths] = useState<number>(48);
     const [isExempt, setIsExempt] = useState<boolean>(false); // [NEW] Manual Exemption
 
-    // --- COMPUTED STATE ---
-    const [quote, setQuote] = useState<QuoteResult | null>(null);
-
     // Initial Data Fetch
     useEffect(() => {
         const loadData = async () => {
@@ -82,14 +79,18 @@ export default function SimulatorPage() {
 
                 // Defaults
                 if (cList.length > 0) setSelectedCityId(cList[0].id);
-                // Ensure filtered entity logic is respected on init in render/effect, but we can set default here if needed
-                // It's better to let effect handle update or select first one after filtering
                 if (fList.length > 0) setSelectedEntityId(fList[0].id);
                 if (mList.length > 0) {
-                    setSelectedMotoId(mList[0].id);
-                    setPrice(mList[0].precio);
-                    // Initial set only
-                    setDownPayment(Math.floor(mList[0].precio * (mData?.default_down_payment_ratio || 0.10)));
+                    const m = mList[0];
+                    setSelectedMotoId(m.id);
+                    setPrice(m.precio);
+                    setDownPayment(Math.floor(m.precio * (mData?.default_down_payment_ratio || 0.10)));
+                    
+                    const isPatineta = m.category?.toUpperCase() === 'PATINETA'
+                        || m.referencia.toUpperCase().includes('PATINETA')
+                        || m.referencia.toUpperCase().includes('ECOMAD')
+                        || m.exemptRegistration === true;
+                    setIsExempt(isPatineta);
                 }
 
                 setLoading(false);
@@ -102,65 +103,74 @@ export default function SimulatorPage() {
     }, []);
 
     // [NEW] FILTERED FINANCIAL ENTITIES
-    // Logic: If selected city has specific IDs enabled, show only those.
-    // If list is empty or undefined, show ALL (Fallback mode).
     const filteredFinancialEntities = useMemo(() => {
         const city = cities.find(c => c.id === selectedCityId);
         if (!city || !city.financialEntitiesIds || city.financialEntitiesIds.length === 0) {
-            return financialEntities; // Show all if no config
+            return financialEntities;
         }
         return financialEntities.filter(f => city.financialEntitiesIds?.includes(f.id));
     }, [selectedCityId, cities, financialEntities]);
 
-    // Auto-select first entity if current selection becomes invalid
-    useEffect(() => {
-        if (filteredFinancialEntities.length > 0) {
-            const currentIsValid = filteredFinancialEntities.find(f => f.id === selectedEntityId);
-            if (!currentIsValid) {
-                setSelectedEntityId(filteredFinancialEntities[0].id);
-            }
-        } else {
-            setSelectedEntityId('');
-        }
-    }, [filteredFinancialEntities, selectedEntityId]);
-
-    // Update Price when Moto Changes
-    useEffect(() => {
-        const m = motos.find(mt => mt.id === selectedMotoId);
+    // --- EVENT HANDLERS ---
+    const handleMotoChange = useCallback((motoId: string) => {
+        setSelectedMotoId(motoId);
+        const m = motos.find(mt => mt.id === motoId);
         if (m) {
             setPrice(m.precio);
-            // [STRICT] Only reset Down Payment when moto changes
             setDownPayment(Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10)));
-
-            // [NEW] Auto-Exempt logic for Patineta OR Persistent DB Flag
+            
             const isPatineta = m.category?.toUpperCase() === 'PATINETA'
                 || m.referencia.toUpperCase().includes('PATINETA')
                 || m.referencia.toUpperCase().includes('ECOMAD')
-                || m.exemptRegistration === true; // [NEW] Persistent Flag Check
+                || m.exemptRegistration === true;
             setIsExempt(isPatineta);
         }
-    }, [selectedMotoId, motos]);
+    }, [motos, matrix]);
 
-    // --- CALCULATION ENGINE ---
-    useEffect(() => {
-        // Defensive: Check array integrity before searching
-        if (!Array.isArray(motos) || !Array.isArray(cities) || !Array.isArray(financialEntities)) return;
+    const handleCityChange = useCallback((cityId: string) => {
+        setSelectedCityId(cityId);
+        // Sync entity selection if needed
+        const city = cities.find(c => c.id === cityId);
+        if (city && city.financialEntitiesIds && city.financialEntitiesIds.length > 0) {
+            if (!city.financialEntitiesIds.includes(selectedEntityId)) {
+                setSelectedEntityId(city.financialEntitiesIds[0]);
+            }
+        }
+    }, [cities, selectedEntityId]);
+
+    const handleEntityChange = useCallback((entityId: string) => {
+        setSelectedEntityId(entityId);
+    }, []);
+
+    const handlePriceChange = useCallback((val: number) => {
+        setPrice(val);
+    }, []);
+
+    const handleDownPaymentChange = useCallback((val: number) => {
+        setDownPayment(val);
+    }, []);
+
+    const handleMonthsChange = useCallback((m: number) => {
+        setMonths(m);
+    }, []);
+
+    const handleExemptChange = useCallback((exempt: boolean) => {
+        setIsExempt(exempt);
+    }, []);
+
+    // --- CALCULATION ENGINE (Derived State) ---
+    const quote = useMemo(() => {
+        if (!Array.isArray(motos) || !Array.isArray(cities) || !Array.isArray(financialEntities)) return null;
 
         const moto = motos.find(m => m.id === selectedMotoId);
         const city = cities.find(c => c.id === selectedCityId);
         const entity = financialEntities.find(e => e.id === selectedEntityId);
 
-        if (!moto || !city || !entity) return;
+        if (!moto || !city || !entity) return null;
 
-        // Create a temporary "Moto" object with the MANUALLY overridden price
-        // but keeping the original displacement/category from the selected inventory item
-        // to ensure Matrix lookups work correctly.
-        const simulationMoto: Moto = {
-            ...moto,
-            precio: price
-        };
+        const simulationMoto: Moto = { ...moto, precio: price };
 
-        const res = calculateQuote(
+        return calculateQuote(
             simulationMoto,
             city,
             soatRates,
@@ -169,16 +179,13 @@ export default function SimulatorPage() {
             months,
             downPayment,
             matrix,
-            isExempt // Pass exemption flag
+            isExempt
         );
-
-        setQuote(res);
-
     }, [selectedMotoId, selectedCityId, selectedEntityId, price, downPayment, months, motos, cities, financialEntities, soatRates, matrix, isExempt]);
 
 
     // --- HELPERS ---
-    const formatCurrency = (val: number) => `$${Math.round(val).toLocaleString('es-CO')}`;
+    const formatCurrency = useCallback((val: number) => `$${Math.round(val).toLocaleString('es-CO')}`, []);
 
     if (loading) return (
         <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
@@ -228,7 +235,7 @@ export default function SimulatorPage() {
                             <select
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedMotoId}
-                                onChange={(e) => setSelectedMotoId(e.target.value)}
+                                onChange={(e) => handleMotoChange(e.target.value)}
                             >
                                 {motos.map(m => (
                                     <option key={m.id} value={m.id}>{m.referencia}</option>
@@ -243,7 +250,7 @@ export default function SimulatorPage() {
                             <select
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedCityId}
-                                onChange={(e) => setSelectedCityId(e.target.value)}
+                                onChange={(e) => handleCityChange(e.target.value)}
                             >
                                 {cities.map(c => (
                                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -257,7 +264,7 @@ export default function SimulatorPage() {
                             <select
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedEntityId}
-                                onChange={(e) => setSelectedEntityId(e.target.value)}
+                                onChange={(e) => handleEntityChange(e.target.value)}
                             >
                                 {filteredFinancialEntities.map(e => (
                                     <option key={e.id} value={e.id}>{e.name} ({e.interestRate}%)</option>
@@ -275,7 +282,7 @@ export default function SimulatorPage() {
                                 <NumericFormat
                                     value={price}
                                     onValueChange={(values) => {
-                                        setPrice(values.floatValue || 0);
+                                        handlePriceChange(values.floatValue || 0);
                                     }}
                                     thousandSeparator="."
                                     decimalSeparator=","
@@ -296,7 +303,7 @@ export default function SimulatorPage() {
                                 <NumericFormat
                                     value={downPayment}
                                     onValueChange={(values) => {
-                                        setDownPayment(values.floatValue || 0);
+                                        handleDownPaymentChange(values.floatValue || 0);
                                     }}
                                     thousandSeparator="."
                                     decimalSeparator=","
@@ -316,7 +323,7 @@ export default function SimulatorPage() {
                                 {[12, 24, 36, 48, 60, 72].map(m => (
                                     <button
                                         key={m}
-                                        onClick={() => setMonths(m)}
+                                        onClick={() => handleMonthsChange(m)}
                                         className={`text-sm py-2 rounded-lg font-bold border ${months === m ? 'bg-brand-blue border-brand-blue text-white' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'}`}
                                     >
                                         {m}
@@ -355,7 +362,7 @@ export default function SimulatorPage() {
                                                     <input
                                                         type="checkbox"
                                                         checked={isExempt}
-                                                        onChange={(e) => setIsExempt(e.target.checked)}
+                                                        onChange={(e) => handleExemptChange(e.target.checked)}
                                                         className="w-3 h-3 text-brand-blue rounded border-gray-500 bg-gray-700 focus:ring-brand-blue"
                                                     />
                                                     <span className="text-[10px] text-brand-blue font-bold uppercase hover:text-blue-400 transition-colors">Exento</span>
