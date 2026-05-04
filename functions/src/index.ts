@@ -304,7 +304,7 @@ export * from './sendUserInvitation';
 export const manualSyncBot = functions.runWith({ memory: "1GB", timeoutSeconds: 540 }).https.onRequest(async (req, res) => {
     // Security: Check for Secret Token
     // Hardcoded token for immediate fix
-    const validationToken = "SYNC_MASTER_KEY_2025_SECURE_HARDCODED"; // process.env.CRON_SECRET_TOKEN;
+    const validationToken = process.env.CRON_SECRET_TOKEN;
     if (!validationToken) {
         console.error("CRON_SECRET_TOKEN is not defined.");
         res.status(500).send("Server Config Error");
