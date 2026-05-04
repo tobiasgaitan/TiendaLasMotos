@@ -54,4 +54,3 @@ lint_report*.txt
 lint_output.txt
 /scratch/
 __pycache__/
-.planning/
