@@ -49,11 +49,13 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
     // Profiling State (Only for Credit)
     const [userProfile, setUserProfile] = useState<RoutingProfile>({
-        age: 25, // Default eligible age
-        income: "1-2 SMMLV",
-        activity: "Empleado",
+        age: null,
+        income: "",
+        activity: "",
         reported: false
     });
+
+    const [hasInteractedWithProfile, setHasInteractedWithProfile] = useState(false);
 
     // Routing Logic (Only relevant for Credit)
     const routingResult = useMemo(() => {
@@ -246,14 +248,18 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             formData.append("habeas_data", "true");
             formData.append("origen", 'WEB_COTIZADOR_PRO');
             
-            // Metadatos adicionales para perfilamiento e IA
+            // Metadatos adicionales para perfilamiento e IA (Solo si interactuó)
             formData.append("ciudad", activeScenario.cityName || "No especificada");
             formData.append("chatbot_status", 'ACTIVE');
             formData.append("human_help_requested", "false");
-            formData.append("edad", String(userProfile.age));
-            formData.append("ingresos_mensuales", String(userProfile.income));
-            formData.append("actividad_economica", String(userProfile.activity || ""));
-            formData.append("reportado_datacredito", String(userProfile.reported));
+            
+            if (hasInteractedWithProfile) {
+                if (userProfile.age !== null) formData.append("edad", String(userProfile.age));
+                if (userProfile.income) formData.append("ingresos_mensuales", String(userProfile.income));
+                if (userProfile.activity) formData.append("actividad_economica", String(userProfile.activity));
+                formData.append("reportado_datacredito", String(userProfile.reported));
+            }
+            
             formData.append("eligibility_status", isCredit ? (routingResult.status === 'Eligible' ? 'APTO' : 'RECHAZADO_AUTO') : 'N/A');
 
             // 2. Ejecutar Server Action (Single Source of Truth)
@@ -411,16 +417,31 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Edad</label>
-                                <input type="number" value={userProfile.age} onChange={(e) => setUserProfile({ ...userProfile, age: Number(e.target.value) })}
-                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold" />
+                                <input 
+                                    type="number" 
+                                    value={userProfile.age ?? ""} 
+                                    onChange={(e) => {
+                                        setHasInteractedWithProfile(true);
+                                        setUserProfile({ ...userProfile, age: e.target.value === "" ? null : Number(e.target.value) });
+                                    }}
+                                    placeholder="Ej: 25"
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold" 
+                                />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Actividad</label>
-                                <select value={userProfile.activity} onChange={(e) => setUserProfile({ ...userProfile, activity: e.target.value })}
-                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold">
-                                    <option>Empleado</option>
-                                    <option>Independiente</option>
-                                    <option>Pensionado</option>
+                                <select 
+                                    value={userProfile.activity} 
+                                    onChange={(e) => {
+                                        setHasInteractedWithProfile(true);
+                                        setUserProfile({ ...userProfile, activity: e.target.value });
+                                    }}
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold"
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Empleado">Empleado</option>
+                                    <option value="Independiente">Independiente</option>
+                                    <option value="Pensionado">Pensionado</option>
                                 </select>
                             </div>
                         </div>
