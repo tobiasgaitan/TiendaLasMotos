@@ -62,16 +62,31 @@ export async function submitLead(prevState: LeadState, formData: FormData): Prom
 
     try {
         const adminDb = getDb();
-        // [ADMIN SDK] Server-side trusted write
-        await adminDb.collection("leads").add({
+
+        // 1. [ESTRICTO] Normalización Contrato 12 Dígitos (UNE v7.0.2)
+        let normalizedCelular = String(validated.data.celular).replace(/\D/g, "");
+        if (normalizedCelular.length === 10) {
+            normalizedCelular = "57" + normalizedCelular;
+        }
+
+        // 2. [ADMIN SDK] Persistencia en Colección prospectos (ID = Celular)
+        // [CIRUJANO] Se cambia .add() por .doc().set() para garantizar ID determinístico
+        const docRef = adminDb.collection("prospectos").doc(normalizedCelular);
+
+        const finalPayload = {
             ...validated.data,
-            created_at: new Date(), // Admin SDK accepts JS Date
-            status: "PENDING"
-        });
+            celular: normalizedCelular, // [V8.0.0] Forzar celular normalizado en el payload
+            created_at: new Date(),
+            fecha: new Date(), // Paridad con bulkImport
+            status: "PENDING",
+            updated_at: new Date()
+        };
+
+        await docRef.set(finalPayload, { merge: true });
 
         return { success: true, message: "¡Gracias! Un asesor te contactará pronto." };
     } catch (error: any) {
-        console.error("Error saving lead:", error);
+        console.error("Error saving lead (12-Digit Contract):", error);
         return {
             success: false,
             message: `Error al enviar los datos: ${error.message || 'Excepción desconocida'}`
