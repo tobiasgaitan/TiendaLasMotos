@@ -6,8 +6,9 @@ import { Moto, Lead } from "@/types";
 import { City, SoatRate, FinancialEntity, FinancialMatrix } from "@/types/financial";
 import { calculateQuote, QuoteResult } from "@/lib/utils/calculator";
 import { routeFinancialEntities, RoutingProfile } from "@/lib/utils/routing";
-import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { submitLead } from "@/app/actions";
 import { FINANCIAL_SCENARIOS } from "@/lib/constants";
 
 interface Props {
@@ -236,29 +237,33 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
         const cleanPhone = userPhone.replace(/\D/g, '');
 
         try {
-            const payload: Lead = {
-                nombre: userName,
-                ciudad: activeScenario.cityName || "No especificada",
-                celular: cleanPhone,
-                moto_interes: selectedMoto.referencia,
-                fecha: serverTimestamp(),
-                motivo_inscripcion: isCredit ? 'Solicitud de Crédito' : 'Pago de Contado',
-                origen: 'WEB_COTIZADOR_PRO',
-                estado: 'NUEVO',
-                habeas_data: true,
-                chatbot_status: 'ACTIVE', // Señal de control para el bot
-                human_help_requested: false,
-                edad: userProfile.age,
-                ingresos_mensuales: userProfile.income,
-                actividad_economica: userProfile.activity,
-                reportado_datacredito: userProfile.reported,
-                eligibility_status: isCredit ? (routingResult.status === 'Eligible' ? 'APTO' : 'RECHAZADO_AUTO') : 'N/A'
-            } as any;
+            // 1. [ESTRICTO] Preparar FormData para Centralización v8.0.0
+            const formData = new FormData();
+            formData.append("nombre", userName);
+            formData.append("celular", userPhone); // submitLead se encarga de normalizar a 57...
+            formData.append("moto_interest", selectedMoto.referencia);
+            formData.append("motivo_inscripcion", isCredit ? 'Solicitud de Crédito' : 'Pago de Contado');
+            formData.append("habeas_data", "true");
+            formData.append("origen", 'WEB_COTIZADOR_PRO');
+            
+            // Metadatos adicionales para perfilamiento e IA
+            formData.append("ciudad", activeScenario.cityName || "No especificada");
+            formData.append("chatbot_status", 'ACTIVE');
+            formData.append("human_help_requested", "false");
+            formData.append("edad", String(userProfile.age));
+            formData.append("ingresos_mensuales", String(userProfile.income));
+            formData.append("actividad_economica", String(userProfile.activity || ""));
+            formData.append("reportado_datacredito", String(userProfile.reported));
+            formData.append("eligibility_status", isCredit ? (routingResult.status === 'Eligible' ? 'APTO' : 'RECHAZADO_AUTO') : 'N/A');
 
-            // 1. Guardar prospecto en Base de Datos (Firestore)
-            await addDoc(collection(db, "prospectos"), payload);
+            // 2. Ejecutar Server Action (Single Source of Truth)
+            const result = await submitLead({ success: false }, formData);
 
-            // 2. Detonación del Orquestador IA (Puente de Red HTTP)
+            if (!result.success) {
+                throw new Error(result.message || "Error al procesar el registro");
+            }
+
+            // 3. Detonación del Orquestador IA (Puente de Red HTTP)
             const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL;
             const apiKey = process.env.NEXT_PUBLIC_BOT_API_KEY;
 
@@ -278,12 +283,12 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 console.error("[AUDITORÍA RED] Variables de entorno ausentes. Puente a Cloud Run abortado.");
             }
 
-            // 3. Feedback Interfaz de Usuario (Anula el window.open manual)
+            // 4. Feedback Interfaz de Usuario
             alert("✅ Cotización registrada. El Asesor IA enviará la información a tu WhatsApp en segundos.");
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("[ERROR FIREBASE/FETCH]", e);
-            alert("Error crítico de red al procesar la solicitud.");
+            alert(`Error crítico al procesar la solicitud: ${e.message || 'Error desconocido'}`);
         } finally {
             setIsSaving(false);
         }
