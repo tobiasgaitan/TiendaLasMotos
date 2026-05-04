@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { collection, onSnapshot, query, where, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Moto } from "@/types";
@@ -25,8 +25,7 @@ export default function BudgetToBikePage() {
     const [dailyBudget, setDailyBudget] = useState<number>(15000);
     const [initialPayment, setInitialPayment] = useState<number>(0);
 
-    // -- Calculated State --
-    const [calculation, setCalculation] = useState<any>(null);
+    // -- Calculated State (Derived via useMemo) --
 
     // 1. Initial Data Fetch
     useEffect(() => {
@@ -115,11 +114,11 @@ export default function BudgetToBikePage() {
     };
 
     // 3. Real-time Calculation (Budget -> Max Loan)
-    useEffect(() => {
-        if (!selectedEntity) return;
+    const calculation = useMemo(() => {
+        if (!selectedEntity) return null;
 
         // Use Entity Parameters
-        const result = calculateMaxLoan(
+        return calculateMaxLoan(
             dailyBudget,
             initialPayment,
             48,
@@ -127,12 +126,11 @@ export default function BudgetToBikePage() {
             selectedEntity.fngRate || 0,
             selectedEntity.lifeInsuranceValue || 0.1126
         );
-        setCalculation(result);
     }, [dailyBudget, initialPayment, selectedEntity]);
 
 
     // 4. Helper: Get Registration Cost
-    const getDocsCost = (moto: Moto): number => {
+    const getDocsCost = useCallback((moto: Moto): number => {
         if (!matrixRows.length) return 800000; // Fallback
 
         let row;
@@ -144,7 +142,7 @@ export default function BudgetToBikePage() {
 
         // Use "Crédito" column (fallback to ~750k if missing)
         return row ? (row.registrationCredit || 750000) : 750000;
-    };
+    }, [matrixRows]);
 
     // 5. Intelligent Filter Logic
     const visibleMotos = useMemo(() => {
@@ -168,7 +166,7 @@ export default function BudgetToBikePage() {
             })
             .filter(m => m.isFeasible)
             .sort((a, b) => b.precio - a.precio);
-    }, [allMotos, calculation, matrixRows, selectedEntity]); // Added selectedEntity dependency
+    }, [allMotos, calculation, matrixRows, selectedEntity, getDocsCost]); // Added selectedEntity and getDocsCost dependency
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);

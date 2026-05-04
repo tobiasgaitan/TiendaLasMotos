@@ -47,3 +47,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# analysis & reports
+graphify-out/
+lint_report*.txt
+lint_output.txt
+/scratch/
+__pycache__/
+.planning/

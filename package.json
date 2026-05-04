@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "agent-eval": "PATH=\"$(pwd)/.agent/scripts:$PATH\" npx @tobiasgaitan/agent-cli eval"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

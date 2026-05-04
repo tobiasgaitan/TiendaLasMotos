@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { collection, onSnapshot, query, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Moto } from "@/types";
@@ -32,8 +32,19 @@ export default function BuscadorPublicoPage() {
     const [dailyBudget, setDailyBudget] = useState<number>(15000);
     const [initialPayment] = useState<number>(0);
 
-    // Calculated State
-    const [calculation, setCalculation] = useState<any>(null);
+    // 1. Intelligent Calculation (Budget -> Max Loan) - Derived State
+    const calculation = useMemo(() => {
+        if (!selectedEntity) return null;
+
+        return calculateMaxLoan(
+            dailyBudget,
+            initialPayment,
+            48,
+            selectedEntity.interestRate || 2.3,
+            selectedEntity.fngRate || 0,
+            selectedEntity.lifeInsuranceValue || 0.1126
+        );
+    }, [dailyBudget, initialPayment, selectedEntity]);
 
     // 1. Initial Data Fetch
     useEffect(() => {
@@ -116,34 +127,18 @@ export default function BuscadorPublicoPage() {
         }
     };
 
-    // 3. Real-time Calculation (Budget -> Max Loan)
-    useEffect(() => {
-        if (!selectedEntity) return;
 
-        const result = calculateMaxLoan(
-            dailyBudget,
-            initialPayment,
-            48,
-            selectedEntity.interestRate || 2.3,
-            selectedEntity.fngRate || 0,
-            selectedEntity.lifeInsuranceValue || 0.1126
-        );
-        setCalculation(result);
-    }, [dailyBudget, initialPayment, selectedEntity]);
+    // 3. Helper: Get Registration Cost
+    const getDocsCost = useCallback((moto: Moto): number => {
+        if (!matrixRows || !matrixRows.length) return 800000;
 
-    // 4. Helper: Get Registration Cost
-    const getDocsCost = (moto: Moto): number => {
-        if (!matrixRows.length) return 800000;
-
-        let row;
         const cc = moto.displacement || 150;
-
-        row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
+        const row = Array.isArray(matrixRows) ? matrixRows.find(r => r.minCC <= cc && r.maxCC >= cc) : null;
 
         return row ? (row.registrationCredit || 750000) : 750000;
-    };
+    }, [matrixRows]);
 
-    // 5. Intelligent Filter Logic
+    // 4. Intelligent Filter Logic
     const visibleMotos = useMemo(() => {
         if (!calculation || !allMotos.length) return [];
 
@@ -160,7 +155,7 @@ export default function BuscadorPublicoPage() {
             })
             .filter(m => m.isFeasible)
             .sort((a, b) => b.precio - a.precio);
-    }, [allMotos, calculation, matrixRows, selectedEntity]);
+    }, [allMotos, calculation, getDocsCost, selectedEntity]);
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);

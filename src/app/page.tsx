@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
     // Financial partners for carousel
@@ -109,12 +110,12 @@ export default function Home() {
 
                         {/* Secondary CTA */}
                         <div className="text-center">
-                            <a
+                            <Link
                                 href="/presupuesto"
                                 className="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-10 rounded-full transition-all hover:scale-105 shadow-lg text-lg min-h-[56px]"
                             >
                                 SIMULAR MI CRÉDITO
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </section>

@@ -1,5 +1,6 @@
 import { getCatalogoMotos } from "@/lib/firestore";
 import MotoCard from "@/components/MotoCard";
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const dynamic = 'force-dynamic'; // ⚡ BYPASS BUILD PRERENDERING
@@ -68,12 +69,12 @@ export default async function CatalogoPage() {
                     <p className="text-lg text-blue-100 mb-8">
                         Calcula tu cuota mensual y descubre las opciones de financiación disponibles.
                     </p>
-                    <a
+                    <Link
                         href="/presupuesto"
                         className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-slate-900 font-bold py-4 px-8 rounded-full transition-all hover:scale-105 shadow-[0_0_30px_rgba(251,146,60,0.5)]"
                     >
                         🧮 CALCULA TU CUOTA AHORA
-                    </a>
+                    </Link>
                 </div>
             </section>
         </div>
