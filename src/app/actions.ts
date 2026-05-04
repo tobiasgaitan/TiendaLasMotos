@@ -37,21 +37,28 @@ export type LeadState = {
 }
 
 export async function submitLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
-    // 1. [ESTRICTO] Extracción y Casteo de tipos para soporte dinámico (v8.0.0)
+    // 1. [ESTRICTO] Extracción y Casteo de tipos para soporte dinámico (v8.0.1)
     const rawData: any = {};
     const booleanFields = ['habeas_data', 'human_help_requested', 'reportado_datacredito'];
     const numberFields = ['edad', 'ingresos_mensuales', 'monto_credito', 'precio_moto', 'cuota_mensual', 'plazo', 'cuota_inicial'];
 
-    formData.forEach((value, key) => {
-        if (booleanFields.includes(key)) {
-            rawData[key] = value === 'true';
-        } else if (numberFields.includes(key)) {
-            const num = Number(value);
-            rawData[key] = isNaN(num) ? value : num;
+    for (const [key, value] of formData.entries()) {
+        if (typeof value === 'string') {
+            const normalizedKey = key.trim();
+            if (booleanFields.includes(normalizedKey)) {
+                // Casteo explícito a booleano
+                rawData[normalizedKey] = value.toLowerCase() === 'true';
+            } else if (numberFields.includes(normalizedKey)) {
+                // Casteo explícito a número
+                const num = Number(value);
+                rawData[normalizedKey] = isNaN(num) ? value : num;
+            } else {
+                rawData[normalizedKey] = value;
+            }
         } else {
             rawData[key] = value;
         }
-    });
+    }
 
     // Mapeo de alias comunes en la UI
     if (!rawData.moto_interes) rawData.moto_interes = formData.get("moto_interest") as string || "General";
