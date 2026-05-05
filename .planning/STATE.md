@@ -38,5 +38,13 @@ Score de Evaluación Final: 1.000 (Next.js Validation).
 Verificación: Purgado de artefactos Python (.venv, pytest) para evitar sangrado de contexto.
 Historial: Migración exitosa de la capa de auditoría de Python a TypeScript Strict Mode.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Remediation Final v8 | 2026-05-04 | f2db1c6 | 001-remediation-final-v8 |
+| 002 | Promoción Beta a Main (WEB-PROD-SYNC-811) | 2026-05-05 | f2db1c6 | 002-promover-beta-main-prod |
+
 🏛️ Nota para el Ingeniero:
 El repositorio ha sido saneado arquitectónicamente. Cualquier herramienta que intente inyectar dependencias de Python debe ser reportada como una regresión de infraestructura.
+La rama main ha sido sincronizada con beta (v8.1.1) y desplegada a producción.
