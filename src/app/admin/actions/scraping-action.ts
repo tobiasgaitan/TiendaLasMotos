@@ -21,7 +21,7 @@ export async function getSyncList() {
 }
 
 export async function triggerManualScraping(targetUrl?: string) {
-    const CRON_SECRET_TOKEN = process.env.CRON_SECRET_TOKEN;
+    const CRON_SECRET_TOKEN = "SYNC_MASTER_KEY_2025_SECURE_HARDCODED"; // process.env.CRON_SECRET_TOKEN;
     const FUNCTION_URL = process.env.NEXT_PUBLIC_SCRAPING_FUNCTION_URL || "https://us-central1-tiendalasmotos.cloudfunctions.net/manualSyncBot";
 
     if (!CRON_SECRET_TOKEN || !FUNCTION_URL) {
