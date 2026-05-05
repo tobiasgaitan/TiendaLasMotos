@@ -21,14 +21,12 @@ import Image from "next/image";
  * - Modificación manual de Precios.
  * - Desglose Matemático paso a paso.
  */
+// --- CITY DEFINITIONS (Dynamic) ---
+// [UPDATED] Substituted constant with empty init state, explicitly typed.
+const OFFICIAL_CITIES: City[] = []; // Deprecated concept, used for init if needed but we prefer fetching.
+
 export default function SimulatorPage() {
     const [loading, setLoading] = useState(true);
-
-    // --- CITY DEFINITIONS (Derived from Financial Matrix Logic) ---
-    // [FIX] User requested strict filter: Only 'Crédito (Sta Marta)' and 'Crédito (General)' for Simulator.
-    // --- CITY DEFINITIONS (Dynamic) ---
-    // [UPDATED] Substituted constant with empty init state, explicitly typed.
-    const OFFICIAL_CITIES: City[] = []; // Deprecated concept, used for init if needed but we prefer fetching.
 
     // --- DATA FETCHED FROM FIRESTORE ---
     const [cities, setCities] = useState<City[]>(OFFICIAL_CITIES);
@@ -77,21 +75,10 @@ export default function SimulatorPage() {
                 setMotos(mList);
                 setMatrix(mData || { rows: [], lastUpdated: "" });
 
-                // Defaults
-                if (cList.length > 0) setSelectedCityId(cList[0].id);
-                if (fList.length > 0) setSelectedEntityId(fList[0].id);
-                if (mList.length > 0) {
-                    const m = mList[0];
-                    setSelectedMotoId(m.id);
-                    setPrice(m.precio);
-                    setDownPayment(Math.floor(m.precio * (mData?.default_down_payment_ratio || 0.10)));
-                    
-                    const isPatineta = m.category?.toUpperCase() === 'PATINETA'
-                        || m.referencia.toUpperCase().includes('PATINETA')
-                        || m.referencia.toUpperCase().includes('ECOMAD')
-                        || m.exemptRegistration === true;
-                    setIsExempt(isPatineta);
-                }
+                // Defaults - Only set primary IDs if not already set, synchronization effects will handle the rest
+                if (cList.length > 0 && selectedCityId === '') setSelectedCityId(cList[0].id);
+                if (fList.length > 0 && selectedEntityId === '') setSelectedEntityId(fList[0].id);
+                if (mList.length > 0 && selectedMotoId === '') setSelectedMotoId(mList[0].id);
 
                 setLoading(false);
             } catch (error) {
@@ -100,7 +87,7 @@ export default function SimulatorPage() {
             }
         };
         loadData();
-    }, []);
+    }, []); // [FIX] Dependencies removed to prevent infinite re-fetches and cascading renders.
 
     // [NEW] FILTERED FINANCIAL ENTITIES
     const filteredFinancialEntities = useMemo(() => {
@@ -114,10 +101,14 @@ export default function SimulatorPage() {
     // --- EVENT HANDLERS ---
     const handleMotoChange = useCallback((motoId: string) => {
         setSelectedMotoId(motoId);
+        
+        // Imperative Sincronization: Update derived price data immediately in the same cycle
         const m = motos.find(mt => mt.id === motoId);
         if (m) {
             setPrice(m.precio);
-            setDownPayment(Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10)));
+            
+            const calculatedDownPayment = Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10));
+            setDownPayment(calculatedDownPayment);
             
             const isPatineta = m.category?.toUpperCase() === 'PATINETA'
                 || m.referencia.toUpperCase().includes('PATINETA')
@@ -125,11 +116,12 @@ export default function SimulatorPage() {
                 || m.exemptRegistration === true;
             setIsExempt(isPatineta);
         }
-    }, [motos, matrix]);
+    }, [motos, matrix?.default_down_payment_ratio]);
 
     const handleCityChange = useCallback((cityId: string) => {
         setSelectedCityId(cityId);
-        // Sync entity selection if needed
+        
+        // Imperative Sincronization: Validate entity availability for the new city
         const city = cities.find(c => c.id === cityId);
         if (city && city.financialEntitiesIds && city.financialEntitiesIds.length > 0) {
             if (!city.financialEntitiesIds.includes(selectedEntityId)) {
@@ -168,6 +160,7 @@ export default function SimulatorPage() {
 
         if (!moto || !city || !entity) return null;
 
+        // Use current price and other overrides, but base data from objects
         const simulationMoto: Moto = { ...moto, precio: price };
 
         return calculateQuote(
@@ -181,7 +174,11 @@ export default function SimulatorPage() {
             matrix,
             isExempt
         );
-    }, [selectedMotoId, selectedCityId, selectedEntityId, price, downPayment, months, motos, cities, financialEntities, soatRates, matrix, isExempt]);
+    }, [
+        selectedMotoId, selectedCityId, selectedEntityId, 
+        price, downPayment, months, isExempt,
+        motos, cities, financialEntities, soatRates, matrix
+    ]);
 
 
     // --- HELPERS ---
