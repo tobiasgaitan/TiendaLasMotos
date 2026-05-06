@@ -44,6 +44,7 @@ Historial: Migración exitosa de la capa de auditoría de Python a TypeScript St
 |---|-------------|------|--------|-----------|
 | 001 | Remediation Final v8 | 2026-05-04 | f2db1c6 | 001-remediation-final-v8 |
 | 002 | Promoción Beta a Main (WEB-PROD-SYNC-811) | 2026-05-05 | f2db1c6 | 002-promover-beta-main-prod |
+| 003 | FE-FIX-904-ENV-SYNC (Estandarización NEXT_PUBLIC_API_URL) | 2026-05-06 | a93ac80 | 003-env-sync-api-url |
 
 🏛️ Nota para el Ingeniero:
 El repositorio ha sido saneado arquitectónicamente. Cualquier herramienta que intente inyectar dependencias de Python debe ser reportada como una regresión de infraestructura.
