@@ -50,7 +50,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
         <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="dns-prefetch" href="https://bot-tiendalasmotos-467812260261.us-central1.run.app" />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
       </head>
       <body
         className="antialiased bg-slate-50 text-slate-900"

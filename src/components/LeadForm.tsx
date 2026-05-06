@@ -96,12 +96,12 @@ export default function LeadForm() {
             // Usamos el celular normalizado (o el original para que el bot lo limpie)
             const cleanPhone = data.celular.replace(/\D/g, '');
             try {
-                const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL || "";
+                const cloudRunUrl = process.env.NEXT_PUBLIC_API_URL || "";
                 await fetch(`${cloudRunUrl}/api/admin/campaign/start`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "x-admin-api-key": process.env.NEXT_PUBLIC_BOT_API_KEY || ""
+                        "X-Admin-API-Key": process.env.NEXT_PUBLIC_BOT_API_KEY || ""
                     },
                     body: JSON.stringify({
                         phone: cleanPhone,

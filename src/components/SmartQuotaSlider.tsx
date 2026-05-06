@@ -270,15 +270,15 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
             }
 
             // 3. Detonación del Orquestador IA (Puente de Red HTTP)
-            const cloudRunUrl = process.env.NEXT_PUBLIC_CLOUD_RUN_URL;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             const apiKey = process.env.NEXT_PUBLIC_BOT_API_KEY;
 
-            if (cloudRunUrl && apiKey) {
-                await fetch(`${cloudRunUrl}/api/admin/campaign/start`, {
+            if (apiUrl && apiKey) {
+                await fetch(`${apiUrl}/api/admin/campaign/start`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-API-Key': apiKey
+                        'X-Admin-API-Key': apiKey
                     },
                     body: JSON.stringify({
                         campaign_id: "contactos_impulsa",
@@ -286,7 +286,7 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                     })
                 });
             } else {
-                console.error("[AUDITORÍA RED] Variables de entorno ausentes. Puente a Cloud Run abortado.");
+                console.error("[AUDITORÍA RED] Variables de entorno (NEXT_PUBLIC_API_URL / NEXT_PUBLIC_BOT_API_KEY) ausentes. Puente a Cloud Run abortado.");
             }
 
             // 4. Feedback Interfaz de Usuario

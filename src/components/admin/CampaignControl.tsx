@@ -47,11 +47,10 @@ const PHONE_OPTIONS: PhoneOption[] = [
 ];
 
 // Endpoint del orquestador de campañas — Cloud Run Beta
-const CAMPAIGN_API_URL =
-    'https://bot-tiendalasmotos-beta-467812260261.us-central1.run.app/api/admin/campaign/start';
+const CAMPAIGN_API_URL = process.env.NEXT_PUBLIC_API_URL + '/api/admin/campaign/start';
 
-// Llave de administrador — guardada por contrato (usada también en handleBotToggle)
-const ADMIN_API_KEY = 'moto_master_2026';
+// Llave de administrador — guardada por contrato
+const ADMIN_API_KEY = process.env.NEXT_PUBLIC_BOT_API_KEY;
 
 // --- Estilos (Bypass Nuclear — sin Tailwind arbitrario) ---
 
@@ -266,7 +265,7 @@ export default function CampaignControl() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Admin-API-Key': ADMIN_API_KEY,
+                    'X-Admin-API-Key': ADMIN_API_KEY as string,
                 },
                 body: JSON.stringify(requestBody),
             });

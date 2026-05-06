@@ -115,15 +115,15 @@ export default function ProspectsPage() {
         if (orchestratingId) return; // Prevenir disparos concurrentes
         setOrchestratingId(lead.id);
 
-        const BACKEND_URL = 'https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/campaign/start';
-        const ADMIN_API_KEY = 'moto_master_2026';
+        const BACKEND_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/campaign/start`;
+        const ADMIN_API_KEY = process.env.NEXT_PUBLIC_BOT_API_KEY;
 
         try {
             const response = await fetch(BACKEND_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Admin-API-Key': ADMIN_API_KEY,
+                    'X-Admin-API-Key': ADMIN_API_KEY as string,
                 },
                 body: JSON.stringify({
                     targets: [{ celular: lead.celular }],
@@ -176,12 +176,12 @@ export default function ProspectsPage() {
         try {
             // 1. Backend API sync (runtime bot state)
             const response = await fetch(
-                'https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/reset-handoff',
+                `${process.env.NEXT_PUBLIC_API_URL}/api/admin/reset-handoff`,
                 {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Admin-API-Key': 'moto_master_2026'
+                        'X-Admin-API-Key': process.env.NEXT_PUBLIC_BOT_API_KEY as string
                     },
                     body: JSON.stringify({
                         phone: lead.celular,

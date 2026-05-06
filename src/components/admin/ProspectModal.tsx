@@ -220,11 +220,11 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
 
         try {
             // 1. Call Backend API to reset handoff
-            const response = await fetch('https://bot-tiendalasmotos-467812260261.us-central1.run.app/api/admin/reset-handoff', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reset-handoff`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Admin-API-Key': 'moto_master_2026'
+                    'X-Admin-API-Key': process.env.NEXT_PUBLIC_BOT_API_KEY as string
                 },
                 body: JSON.stringify({
                     phone: prospect.celular,
