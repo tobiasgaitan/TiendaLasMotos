@@ -13,7 +13,8 @@ import CampaignControl from '@/components/admin/CampaignControl';
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     PENDING: { label: 'Pendientes', color: 'bg-amber-500/20 text-amber-500 border-amber-500/50' },
     IN_PROGRESS: { label: 'En Gestión', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' },
-    DONE: { label: 'Venta Cerrada', color: 'bg-green-500/20 text-green-500 border-green-500/50' },
+    // [WEB-OBS-1.3] Estandarización v8.1.1: DONE → CLOSED
+    CLOSED: { label: 'Venta Cerrada', color: 'bg-green-500/20 text-green-500 border-green-500/50' },
     DISCARDED: { label: 'Descartados', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
 };
 

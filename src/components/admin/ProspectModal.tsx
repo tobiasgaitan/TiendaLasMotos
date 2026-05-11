@@ -51,7 +51,8 @@ export interface Prospect {
     // Metadatos y Gestión
     fecha: Timestamp; // internal timestamp of creation
     updated_at?: Timestamp;
-    status?: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'DISCARDED';
+    // [WEB-OBS-1.3] Estandarización de Estados v8.1.1
+    status?: 'PENDING' | 'IN_PROGRESS' | 'CLOSED' | 'DISCARDED';
     ai_summary?: string;
     notes?: Note[];
     human_help_requested?: boolean;
@@ -66,6 +67,10 @@ export interface Prospect {
     // [WEB-751] Telemetría de IA — costo USD de la sesión (persistido por ai_brain.py)
     session_cost_usd?: number;
 
+    // [WEB-OBS-1.3] Observabilidad de Herramientas IA (Bot v9.7.0)
+    active_tool?: string;
+    tool_status?: 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
     [key: string]: any;
 }
 
@@ -79,7 +84,8 @@ interface ProspectModalProps {
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     PENDING: { label: 'Pendientes', color: 'bg-amber-500/20 text-amber-500 border-amber-500/50' },
     IN_PROGRESS: { label: 'En Gestión', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' },
-    DONE: { label: 'Venta Cerrada', color: 'bg-green-500/20 text-green-500 border-green-500/50' },
+    // [WEB-OBS-1.3] Estandarización v8.1.1: DONE → CLOSED
+    CLOSED: { label: 'Venta Cerrada', color: 'bg-green-500/20 text-green-500 border-green-500/50' },
     DISCARDED: { label: 'Descartados', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
 };
 
@@ -547,6 +553,73 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 </span>
                             </div>
                         )}
+                    </section>
+
+                    {/* [WEB-OBS-1.3] Observabilidad de Herramientas IA (Bot v9.7.0) */}
+                    <section className="bg-violet-900/15 border border-violet-500/30 rounded-xl p-4">
+                        <h3 className="flex items-center gap-2 text-sm font-bold text-violet-400 uppercase tracking-wider mb-3">
+                            🔧 Herramienta Activa del Bot
+                        </h3>
+                        <div className="flex items-center gap-4">
+                            {prospect.tool_status === 'RUNNING' ? (
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-violet-400 border-t-transparent" />
+                                            <div className="absolute inset-0 animate-ping rounded-full h-6 w-6 border border-violet-400/30" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold text-sm">
+                                                {prospect.active_tool || 'Herramienta en ejecución'}
+                                            </p>
+                                            <p className="text-violet-300/70 text-xs">Procesando... El bot está ejecutando una herramienta.</p>
+                                        </div>
+                                    </div>
+                                    <span className="ml-auto bg-violet-500/20 text-violet-300 border border-violet-500/40 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">
+                                        RUNNING
+                                    </span>
+                                </>
+                            ) : prospect.tool_status === 'COMPLETED' ? (
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-green-400 text-xl">✅</span>
+                                        <div>
+                                            <p className="text-white font-medium text-sm">{prospect.active_tool || 'Última herramienta'}</p>
+                                            <p className="text-green-300/70 text-xs">Ejecución completada exitosamente.</p>
+                                        </div>
+                                    </div>
+                                    <span className="bg-green-500/20 text-green-400 border border-green-500/40 px-2.5 py-1 rounded-full text-xs font-bold">
+                                        COMPLETED
+                                    </span>
+                                </div>
+                            ) : prospect.tool_status === 'FAILED' ? (
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-red-400 text-xl">❌</span>
+                                        <div>
+                                            <p className="text-white font-medium text-sm">{prospect.active_tool || 'Herramienta fallida'}</p>
+                                            <p className="text-red-300/70 text-xs">La última ejecución falló. Revisar logs.</p>
+                                        </div>
+                                    </div>
+                                    <span className="bg-red-500/20 text-red-400 border border-red-500/40 px-2.5 py-1 rounded-full text-xs font-bold">
+                                        FAILED
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-gray-500 text-xl">💤</span>
+                                        <div>
+                                            <p className="text-gray-400 font-medium text-sm">Sin herramienta activa</p>
+                                            <p className="text-gray-500 text-xs">El bot está en reposo o respondiendo sin herramientas.</p>
+                                        </div>
+                                    </div>
+                                    <span className="bg-gray-700/50 text-gray-500 border border-gray-600/40 px-2.5 py-1 rounded-full text-xs font-bold">
+                                        IDLE
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </section>
 
                     {/* AI Analysis Section */}

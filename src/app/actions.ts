@@ -328,9 +328,14 @@ const prospectUpdateSchema = z.object({
         entidad_simulada: z.literal("Crediorbe").default("Crediorbe"),
 
         // Gestión
-        status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'DISCARDED']).optional(),
+        // [WEB-OBS-1.3] Estandarización de Estados v8.1.1: DONE → CLOSED
+        status: z.enum(['PENDING', 'IN_PROGRESS', 'CLOSED', 'DISCARDED']).optional(),
         chatbot_status: z.enum(['ACTIVE', 'PAUSED']).optional(),
         notes: z.any().optional(), // Allow arrayUnion or array of objects
+
+        // [WEB-OBS-1.3] Observabilidad de Herramientas IA (Bot v9.7.0)
+        active_tool: z.string().optional(),
+        tool_status: z.enum(['IDLE', 'RUNNING', 'COMPLETED', 'FAILED']).optional(),
     }).passthrough(), // [PASSTHROUGH] Permitir campos inyectados por el Bot (ai_summary, etc.)
 });
 
