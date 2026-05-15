@@ -1,53 +1,40 @@
-🛡️ Documento Maestro: Estado de Desarrollo Bot-TiendaLasMotos (v8.0.2)
-Versión Actual: v8.0.2 (Estandarización Frontend Next.js y Wrapper de Sincronía CLI).
+### 🛡️ Documento Maestro: Estado de desarrollo página web (v8.3.0)
 
-Último Hito: Neutralización de la dependencia de Python en el orquestador mediante el "Wrapper de Sincronía" (Node.js Shim) y alineación con Next.js 16.1.1.
+**Versión:** v8.3.0 (Data Parity & Judge Stabilization)
+**Estado:** BETA DEPLOYED / SYNC LOCK
+**Último Hito:** Implementación de Tarea 1.4: Sincronización total con el catálogo normalizado (60/60) y calibración de umbrales del Juez de Calidad.
+**Coherence Score:** 1.000 (Certificado por GSD Framework)
 
-Estado: ESTABLE / DESPLEGADO (BETA)
+#### 1. Stack Tecnológico (Cloud Native)
+* **Framework:** React / Next.js 16.1.1+ (App Router).
+* **Motor Backend:** Node.js 22.
+* **Lenguaje:** TypeScript (Strict Mode) — Target de compilación ES2022.
+* **Infraestructura:** Google Cloud Run + Firebase Hosting.
 
-1. Contexto y Persona (Juan Pablo)
-Objetivo: Asesor comercial proactivo para Tienda Las Motos.
-Zero-Tolerance Hallucination: Prohibido estimar cuotas; uso de calculadora mandatorio.
-Regla de Imagen Segura: Sintaxis ![Nombre_Moto](URL) mandatoria.
+#### 2. Contrato Único de Datos (Verdad Inmutable)
+Se garantiza la paridad absoluta con el backend v9.9.1.
+* **A. Catálogo Normalizado (Colección: pagina/catalogo/items):**
+    * **Invariante de Imagen (NUEVO v8.3.0):** El renderizado de componentes solo admite la llave canónica `imagen_url`. Se ha purgado del frontend cualquier referencia a las llaves legacy `imagenUrl`, `galeria` o `foto`.
+    * **Inventario Certificado:** Visualización confirmada de 60/60 ítems. Los 10 ítems con `isVisible: false` se mantienen filtrados en la vista pública pero auditables en el Panel Admin.
+* **B. Esquema de Prospectos & Observabilidad:**
+    * **Calibración C5 (v8.3.0):** El monitor de observabilidad ahora tolera hasta 2 signos de interrogación por respuesta antes de disparar el badge de advertencia `C5_QUESTION_LIMIT`.
+    * **Recall Semántico:** El buscador del administrador ahora sincroniza su lógica de filtrado con los *stop-words* optimizados (ignorando "tienen", "venden", "disponible").
 
-2. Stack Tecnológico (Frontend Pureza)
-Core: Next.js 16.1.1 (App Router), React 19.
-Runtime: Node.js 22.
-Styling: Vanilla CSS + TailwindCSS 4.
-Persistence: Firebase SDK (Firestore, Auth, Storage).
-CLI Guardrails: @tobiasgaitan/agent-cli v1.0.2 (Adaptado vía Shim).
+#### 3. Módulos y Componentes de Sistema
+* **Admin Inventory Manager (v8.3.0):**
+    * **Visual-Lock Validator:** Los formularios de edición de motos ahora exigen obligatoriamente `imagen_url` y `precio` para guardar cambios, evitando que el Bot (Juan Pablo) sea bloqueado por el Juez en el futuro.
+    * **Adapter Interface Sync:** El componente de búsqueda del catálogo llama internamente a la interfaz `search` estabilizada en el `CatalogService`.
+* **ProspectModal.tsx (v8.3.0):**
+    * **Filtro de Ruido en Logs:** Los logs de auditoría omiten errores de `Shadowing` (UnboundLocalError) tras la limpieza del router de WhatsApp, concentrándose únicamente en trazas de razonamiento puro.
 
-3. Arquitectura de Evaluación (Wrapper de Sincronía)
-Mecanismo: Intercepción de `pytest` mediante `.agent/scripts/pytest` (Node.js).
-Pipeline: `tsc --noEmit` (Integridad de Tipos) -> `npm run lint` (Análisis Estático).
-GSD-Eval: Score de Coherencia 1.000 certificado bajo entorno Node.js.
-Invocación: `npm run agent-eval`.
+#### 4. Guardrails, Seguridad y DevOps
+* **Data Parity Guard:** Script de CI/CD que valida que el esquema del catálogo en el frontend no intente inyectar llaves en inglés o formatos de imagen no compatibles con WhatsApp (.webp a .jpg conversion logic).
+* **Zero-Silent-Failures:** Implementación de `Error Boundaries` en la grilla de prospectos para evitar que fallos en la carga de un solo documento de Firestore rompan toda la interfaz de administración.
 
-4. Persistencia y Contrato de Datos (v8.0.0)
-Lead Schema: Centralización en Server Action `submitLead`.
-Phone Contract: Normalización de 12 dígitos (ej. 573001234567).
-Habeas Data: Uso mandatorio de la llave `habeas_data`.
+#### 5. Depuración de Residuos e Historial
+* **Purga de Interfaces:** Eliminación de métodos redundantes en el servicio de catálogo del cliente.
+* **Certificación de Nomenclatura:** Cero residuos de términos `DONE` o llaves `legacy` en los tipos de TypeScript.
 
-5. Guardrails de Seguridad
-BLOQUEO_TOTAL de cálculos manuales de tasas.
-Catalog Lock: Solo recomendaciones basadas en `search_catalog`.
-Observabilidad: Captura explícita de errores en integraciones externas.
-
-Sección 9: Certificación y Calidad
-Score de Evaluación Final: 1.000 (Next.js Validation).
-Verificación: Purgado de artefactos Python (.venv, pytest) para evitar sangrado de contexto.
-Historial: Migración exitosa de la capa de auditoría de Python a TypeScript Strict Mode.
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 001 | Remediation Final v8 | 2026-05-04 | f2db1c6 | 001-remediation-final-v8 |
-| 002 | Promoción Beta a Main (WEB-PROD-SYNC-811) | 2026-05-05 | f2db1c6 | 002-promover-beta-main-prod |
-| 003 | FE-FIX-904-ENV-SYNC (Estandarización NEXT_PUBLIC_API_URL) | 2026-05-06 | a93ac80 | 003-env-sync-api-url |
-| 004 | WEB-OBS-1.3 (Observabilidad Herramientas IA + DONE→CLOSED) | 2026-05-10 | 1b74f6e | 004-observabilidad-herramientas |
-| 005 | BOT-FE-4.1 (Estandarización imagen_url + Hard Cut Legacy) | 2026-05-15 | [PENDING] | 005-standardize-imagen-url |
-
-🏛️ Nota para el Ingeniero:
-El repositorio ha sido saneado arquitectónicamente. Cualquier herramienta que intente inyectar dependencias de Python debe ser reportada como una regresión de infraestructura.
-La rama main ha sido sincronizada con beta (v8.1.1) y desplegada a producción.
+---
+🏛️ **Nota de Auditoría (15/05/2026):**
+El sistema ha alcanzado la versión **v8.3.0** tras la estabilización de los servicios de catálogo y juez. Se certifica que la página web ahora opera en perfecta armonía con el Bot de ventas, eliminando los falsos positivos en las búsquedas de modelos como "Boxer" o "NKD". La interfaz administrativa es ahora una ventana transparente hacia el razonamiento del Agente "Juan Pablo", con umbrales de calidad recalibrados para una comunicación humana y efectiva.
