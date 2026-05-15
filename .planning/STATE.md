@@ -1,8 +1,8 @@
-### 🛡️ Documento Maestro: Estado de desarrollo página web (v8.3.0)
+### 🛡️ Documento Maestro: Estado de desarrollo página web (v8.3.1)
 
-**Versión:** v8.3.1 (WEB-831 Firestore Gate & Phone Normalization)
-**Estado:** BETA DEPLOYED / SYNC LOCK
-**Último Hito:** WEB-831: Enforcement de persistencia en handleDownloadPDF + normalización celular 12 dígitos (UNE v7.0.2) en QuoteGenerator.tsx.
+**Versión:** v8.3.1 (Interface Lock & Lead Capture Enforcement)
+**Estado:** BETA DEPLOYED / TESTING VALIDATION
+**Último Hito:** Cierre de regresión crítica WEB-831. Bloqueo de interfaz en `QuoteGenerator.tsx` garantizando persistencia síncrona obligatoria y normalización estricta de 12 dígitos.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -14,37 +14,20 @@
 #### 2. Contrato Único de Datos (Verdad Inmutable)
 Se garantiza la paridad absoluta con el backend v9.9.1.
 * **A. Catálogo Normalizado (Colección: pagina/catalogo/items):**
-    * **Invariante de Imagen (NUEVO v8.3.0):** El renderizado de componentes solo admite la llave canónica `imagen_url`. Se ha purgado del frontend cualquier referencia a las llaves legacy `imagenUrl`, `galeria` o `foto`.
-    * **Inventario Certificado:** Visualización confirmada de 60/60 ítems. Los 10 ítems con `isVisible: false` se mantienen filtrados en la vista pública pero auditables en el Panel Admin.
+    * **Invariante de Imagen:** El renderizado de componentes solo admite la llave canónica `imagen_url`.
+    * **Inventario Certificado:** Visualización confirmada de 60/60 ítems.
 * **B. Esquema de Prospectos & Observabilidad:**
-    * **Calibración C5 (v8.3.0):** El monitor de observabilidad ahora tolera hasta 2 signos de interrogación por respuesta antes de disparar el badge de advertencia `C5_QUESTION_LIMIT`.
-    * **Recall Semántico:** El buscador del administrador ahora sincroniza su lógica de filtrado con los *stop-words* optimizados (ignorando "tienen", "venden", "disponible").
+    * **Captura Blindada (v8.3.1):** Persistencia síncrona obligatoria implementada tanto en el flujo de envío de WhatsApp como en el de generación y descarga de cotizaciones en PDF, unificando la entrada a través de `submitLead`.
+    * **Contrato Rígido de PII:** Sanitización forzada del campo `celular` eliminando caracteres no numéricos e inyectando de forma determinista el código de país (`57`).
 
 #### 3. Módulos y Componentes de Sistema
+* **QuoteGenerator.tsx (v8.3.1):**
+    * Refactorizado bajo el esquema Interface Lock. Cierre de brechas de persistencia locales y extracción del helper síncrono `normalizeCelular`.
 * **Admin Inventory Manager (v8.3.0):**
-    * **Visual-Lock Validator:** Los formularios de edición de motos ahora exigen obligatoriamente `imagen_url` y `precio` para guardar cambios, evitando que el Bot (Juan Pablo) sea bloqueado por el Juez en el futuro.
-    * **Adapter Interface Sync:** El componente de búsqueda del catálogo llama internamente a la interfaz `search` estabilizada en el `CatalogService`.
-* **ProspectModal.tsx (v8.3.0):**
-    * **Filtro de Ruido en Logs:** Los logs de auditoría omiten errores de `Shadowing` (UnboundLocalError) tras la limpieza del router de WhatsApp, concentrándose únicamente en trazas de razonamiento puro.
+    * **Visual-Lock Validator:** Los formularios de edición de motos exigen obligatoriamente `imagen_url` y `precio`.
 
 #### 4. Guardrails, Seguridad y DevOps
-* **Data Parity Guard:** Script de CI/CD que valida que el esquema del catálogo en el frontend no intente inyectar llaves en inglés o formatos de imagen no compatibles con WhatsApp (.webp a .jpg conversion logic).
-* **Zero-Silent-Failures:** Implementación de `Error Boundaries` en la grilla de prospectos para evitar que fallos en la carga de un solo documento de Firestore rompan toda la interfaz de administración.
+* **Zero-Silent-Failures:** Control forense de excepciones en la Server Action; los fallos de red hacia el proveedor externo no interrumpen la ejecución del cliente pero se registran de forma estructurada en la consola del administrador.
 
 #### 5. Depuración de Residuos e Historial
-* **Purga de Interfaces:** Eliminación de métodos redundantes en el servicio de catálogo del cliente.
-* **Certificación de Nomenclatura:** Cero residuos de términos `DONE` o llaves `legacy` en los tipos de TypeScript.
-
----
-🏛️ **Nota de Auditoría (15/05/2026 — v8.3.1):**
-El sistema ha alcanzado la versión **v8.3.1** tras la corrección del ticket crítico **WEB-831**. Se certifica que el flujo de descarga de PDF en `QuoteGenerator.tsx` ahora persiste obligatoriamente en Firestore (colección `prospectos`) antes de generar el archivo, y que el campo `celular` viaja normalizado como string de 12 dígitos (prefijo `57`) en todos los paths del formulario admin, alineado con el contrato UNE v7.0.2 de `actions.ts`.
-
-### Quick Tasks Completadas
-
-| # | Descripción | Fecha | Commit | Directorio |
-|---|-------------|-------|--------|------------|
-| 001 | *(histórico)* | — | — | — |
-| 002 | *(histórico)* | — | — | — |
-| 003 | *(histórico)* | — | — | — |
-| 004 | *(histórico)* | — | — | — |
-| 005 | WEB-831: Firestore gate PDF + celular 12-dígitos + habeas_data | 2026-05-15 | `550669b` | `005-web831-interface-lock-calculator` |
+* **Purga de Interfaces:** Cero métodos redundantes o llamadas directas descentralizadas a `addDoc` sobre la colección de prospectos desde calculadoras de UI.
