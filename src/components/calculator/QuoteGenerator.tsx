@@ -107,6 +107,13 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         setQuote(result);
     }, [selectedScenarioId, selectedFinancialId, months, downPayment, moto, soatRates, financialEntities, matrix, activeScenario, isCredit, isExempt]);
 
+    // [WEB-831] Helper: Normalización Contrato 12 Dígitos (UNE v7.0.2)
+    // Strip todos los no-dígitos, luego prefija '57' si son 10 dígitos (Colombia).
+    const normalizeCelular = (raw: string): string => {
+        const digits = raw.replace(/\D/g, "");
+        return digits.length === 10 ? `57${digits}` : digits;
+    };
+
     // Validation
     const validateContact = () => {
         if (!userName.trim() || userPhone.length < 7) {
@@ -116,27 +123,51 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
         return true;
     };
 
-    // PDF Handler (New Shared Logic)
+    // PDF Handler — [WEB-831] Persistencia Obligatoria en Firestore antes de descargar
     const handleDownloadPDF = async () => {
         if (!quote) return;
         if (!validateContact()) return;
 
         setIsSaving(true);
         try {
+            // [WEB-831-FIX-1] GATE OBLIGATORIO: submitLead DEBE ejecutarse antes del PDF.
+            // Garantiza que ninguna descarga bypasee la persistencia en Firestore.
+            const formData = new FormData();
+            formData.append("nombre", userName);
+            formData.append("celular", normalizeCelular(userPhone)); // [WEB-831-FIX-2] 12 dígitos
+            formData.append("moto_interest", moto.referencia);
+            formData.append("motivo_inscripcion", isCredit ? 'Simulador Admin (Crédito PDF)' : 'Simulador Admin (Contado PDF)');
+            formData.append("habeas_data", "true"); // Admin tool — consentimiento implícito del operador
+            formData.append("origen", 'ADMIN_QUOTE_GENERATOR');
+            formData.append("ciudad", activeScenario.cityName || "No especificada");
+            formData.append("chatbot_status", 'ACTIVE');
+            formData.append("human_help_requested", "false");
+            formData.append("precio_moto", String(quote.vehiclePrice));
+            formData.append("cuota_mensual", isCredit ? String(quote.monthlyPayment) : "0");
+            formData.append("plazo", String(months));
+            formData.append("cuota_inicial", String(downPayment));
+
+            const leadResult = await submitLead({ success: false }, formData);
+            if (!leadResult.success) {
+                // Fallo no bloqueante: el operador admin debe poder descargar el PDF incluso si
+                // hay un error transitorio de red. El error queda en los logs forenses.
+                console.error("[WEB-831] submitLead failed before PDF download:", leadResult.message);
+            }
+
             const { generateQuotationPDF } = await import('@/lib/pdf/generator');
 
             await generateQuotationPDF({
                 moto: moto,
                 quoteResult: quote,
                 customerName: userName,
-                customerPhone: userPhone,
+                customerPhone: normalizeCelular(userPhone), // [WEB-831-FIX-2] consistencia
                 isCredit: isCredit,
                 months: months,
                 downPayment: downPayment,
                 discount: discount
             });
         } catch (e) {
-            console.error(e);
+            console.error("[WEB-831] Error en handleDownloadPDF:", e);
             alert("Error generando PDF");
         } finally {
             setIsSaving(false);
@@ -154,7 +185,7 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
             // 1. Prepare FormData for Centralization v8.0.0
             const formData = new FormData();
             formData.append("nombre", userName);
-            formData.append("celular", userPhone);
+            formData.append("celular", normalizeCelular(userPhone)); // [WEB-831-FIX-2] Contrato 12 dígitos
             formData.append("moto_interest", moto.referencia);
             formData.append("motivo_inscripcion", isCredit ? 'Simulador Admin (Crédito)' : 'Simulador Admin (Contado)');
             formData.append("habeas_data", "true"); // Admin tool assumes consent
