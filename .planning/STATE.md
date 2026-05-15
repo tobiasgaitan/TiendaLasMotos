@@ -1,8 +1,8 @@
 ### 🛡️ Documento Maestro: Estado de desarrollo página web (v8.3.0)
 
-**Versión:** v8.3.0 (Data Parity & Judge Stabilization)
+**Versión:** v8.3.1 (WEB-831 Firestore Gate & Phone Normalization)
 **Estado:** BETA DEPLOYED / SYNC LOCK
-**Último Hito:** Implementación de Tarea 1.4: Sincronización total con el catálogo normalizado (60/60) y calibración de umbrales del Juez de Calidad.
+**Último Hito:** WEB-831: Enforcement de persistencia en handleDownloadPDF + normalización celular 12 dígitos (UNE v7.0.2) en QuoteGenerator.tsx.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -36,5 +36,15 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 * **Certificación de Nomenclatura:** Cero residuos de términos `DONE` o llaves `legacy` en los tipos de TypeScript.
 
 ---
-🏛️ **Nota de Auditoría (15/05/2026):**
-El sistema ha alcanzado la versión **v8.3.0** tras la estabilización de los servicios de catálogo y juez. Se certifica que la página web ahora opera en perfecta armonía con el Bot de ventas, eliminando los falsos positivos en las búsquedas de modelos como "Boxer" o "NKD". La interfaz administrativa es ahora una ventana transparente hacia el razonamiento del Agente "Juan Pablo", con umbrales de calidad recalibrados para una comunicación humana y efectiva.
+🏛️ **Nota de Auditoría (15/05/2026 — v8.3.1):**
+El sistema ha alcanzado la versión **v8.3.1** tras la corrección del ticket crítico **WEB-831**. Se certifica que el flujo de descarga de PDF en `QuoteGenerator.tsx` ahora persiste obligatoriamente en Firestore (colección `prospectos`) antes de generar el archivo, y que el campo `celular` viaja normalizado como string de 12 dígitos (prefijo `57`) en todos los paths del formulario admin, alineado con el contrato UNE v7.0.2 de `actions.ts`.
+
+### Quick Tasks Completadas
+
+| # | Descripción | Fecha | Commit | Directorio |
+|---|-------------|-------|--------|------------|
+| 001 | *(histórico)* | — | — | — |
+| 002 | *(histórico)* | — | — | — |
+| 003 | *(histórico)* | — | — | — |
+| 004 | *(histórico)* | — | — | — |
+| 005 | WEB-831: Firestore gate PDF + celular 12-dígitos + habeas_data | 2026-05-15 | `550669b` | `005-web831-interface-lock-calculator` |
