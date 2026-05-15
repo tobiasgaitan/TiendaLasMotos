@@ -5,7 +5,7 @@
 - **Tareas**:
   - [x] Refactorizar `LeadForm.tsx` (Completado)
   - [x] Refactorizar `SmartQuotaSlider.tsx` (Completado)
-  - [/] Refactorizar `QuoteGenerator.tsx` (Pendiente)
+  - [x] Refactorizar `QuoteGenerator.tsx` (Completado - WEB-831)
   - [ ] Verificación de integridad con `agent-cli eval`
   - [ ] Despliegue y validación manual en Beta
 
