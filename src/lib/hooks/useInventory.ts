@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
  * @property {string} model - Model name of the vehicle.
  * @property {number} price - Current listing price.
  * @property {string} status - Availability status (e.g., 'Activo', 'Inactivo').
- * @property {string} [imageUrl] - URL for the product image. Normalized from string or object source.
+ * @property {string} [imagen_url] - URL for the product image. Standardized source.
  * @property {string} [external_url] - Direct link to the source if available (Bot populated).
  */
 export interface Product {
@@ -100,12 +100,8 @@ export function useInventory() {
                         price: Number(data.price || data.precio || 0),
                         // Estado por defecto
                         status: data.status || 'Activo',
-                        // ESTÁNDAR: imagen_url (Normalización Agresiva V27.15 via Extractor)
-                        imagen_url: extractUrl(data.imagen_url) ||
-                            extractUrl(data.imagenUrl) ||
-                            extractUrl(data.imagen) ||
-                            extractUrl(data.foto) ||
-                            '',
+                        // ESTÁNDAR: imagen_url (Hard Cut V27.15)
+                        imagen_url: extractUrl(data.imagen_url) || '',
                         // Link del bot
                         external_url: data.external_url,
 

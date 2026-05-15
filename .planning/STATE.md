@@ -46,6 +46,7 @@ Historial: Migración exitosa de la capa de auditoría de Python a TypeScript St
 | 002 | Promoción Beta a Main (WEB-PROD-SYNC-811) | 2026-05-05 | f2db1c6 | 002-promover-beta-main-prod |
 | 003 | FE-FIX-904-ENV-SYNC (Estandarización NEXT_PUBLIC_API_URL) | 2026-05-06 | a93ac80 | 003-env-sync-api-url |
 | 004 | WEB-OBS-1.3 (Observabilidad Herramientas IA + DONE→CLOSED) | 2026-05-10 | 1b74f6e | 004-observabilidad-herramientas |
+| 005 | BOT-FE-4.1 (Estandarización imagen_url + Hard Cut Legacy) | 2026-05-15 | [PENDING] | 005-standardize-imagen-url |
 
 🏛️ Nota para el Ingeniero:
 El repositorio ha sido saneado arquitectónicamente. Cualquier herramienta que intente inyectar dependencias de Python debe ser reportada como una regresión de infraestructura.
