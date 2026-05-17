@@ -1,22 +1,65 @@
-# ROADMAP: Centralización de Captura de Leads (Contrato v8.3.1)
+# ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
-- [cite_start]**Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`[cite: 143].
+- **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
 - **Tareas**:
   - [x] Refactorizar `LeadForm.tsx` (Completado)
   - [x] Refactorizar `SmartQuotaSlider.tsx` (Completado)
-  - [x] [cite_start]Refactorizar `QuoteGenerator.tsx` (Completado - WEB-831) [cite: 143]
-  - [x] [cite_start]Verificación de integridad con `agent-cli eval` [cite: 144]
-  - [x] [cite_start]Despliegue y validación manual en Beta [cite: 142]
+  - [x] Refactorizar `QuoteGenerator.tsx` (Completado - WEB-831)
+  - [x] Verificación de integridad con `agent-cli eval`
+  - [x] Despliegue y validación manual en Beta
 
 ## Fase 2: Auditoría y Cierre de Deuda Técnica [COMPLETADO]
-- [cite_start]**Objetivo**: Asegurar que no existan llamadas residuales a `addDoc` en la colección `prospectos` en todo el repositorio[cite: 168].
+- **Objetivo**: Asegurar que no existan llamadas residuales a `addDoc` en la colección `prospectos` en todo el repositorio.
 - **Tareas**:
-  - [x] [cite_start]Grep exhaustivo de `addDoc(collection(db, "prospectos")` [cite: 168]
-  - [x] [cite_start]Verificación de normalización de 12 dígitos en Firestore real[cite: 143].
+  - [x] Grep exhaustivo de `addDoc(collection(db, "prospectos")`
+  - [x] Verificación de normalización de 12 dígitos en Firestore real.
 
 ## Fase 3: Reactividad y Depuración Estructural [COMPLETADO]
 - **Objetivo**: Implementar reactividad en tiempo real en el Dashboard y eliminar código legacy redundante.
 - **Tareas**:
   - [x] Tarea 3.2: Implementación de reactividad `onSnapshot` en el Dashboard de Prospectos (Confirmada).
   - [x] Tarea 3.3: Purga de código legacy - Eliminación del nodo huérfano `src/app/admin/leads` (WEB-833).
+
+---
+
+# MILESTONE 2: Migración Estructural de Contratos de Datos (WEB-835)
+
+## Progreso
+
+| Fase | Nombre | Estado | Plan | Fecha |
+|------|--------|--------|------|-------|
+| 4 | Planificación y Diseño Técnico | En progreso | XML Plan | 2026-05-17 |
+| 5 | Migración de Servicios y Componentes de Consulta | Planificado | — | — |
+| 6 | Migración de Formularios de Administración y Simulador | Planificado | — | — |
+| 7 | Verificación E2E y Despliegue en Beta | Planificado | — | — |
+
+## Fases
+
+### Fase 4: Planificación y Diseño Técnico
+**Meta:** Establecer los planos y el Documento Técnico de Planificación en español con paridad JSON Voorhees.
+**Requisitos:** R1-R8
+- [ ] Documento Técnico de Planificación con paridad 1:1 de llaves de Firestore
+- [ ] Planes atómicos XML de la migración estructural
+
+### Fase 5: Migración de Servicios y Componentes de Consulta
+**Meta:** Actualizar las consultas públicas y generación de transacciones atómicas.
+**Requisitos:** R1, R2, R3, R4
+- [ ] Modificar `actions/quotation.ts` (counters -> configuracion)
+- [ ] Modificar `components/TopBar.tsx` (general_info -> configuracion)
+- [ ] Modificar `components/SmartFooter.tsx` (general_info, sedes -> configuracion)
+- [ ] Modificar `app/sedes/page.tsx` (sedes -> configuracion)
+
+### Fase 6: Migración de Formularios de Administración y Simulador
+**Meta:** Actualizar la lectura y escritura de administración y la carga del simulador.
+**Requisitos:** R5, R6, R7
+- [ ] Modificar `admin/general/page.tsx` (general_info -> configuracion)
+- [ ] Modificar `admin/sedes/page.tsx` (sedes -> configuracion)
+- [ ] Modificar `admin/simulador/page.tsx` (sedes -> configuracion)
+
+### Fase 7: Verificación E2E y Despliegue en Beta
+**Meta:** Validar de extremo a extremo que no haya fallos silenciosos y desplegar en Beta.
+**Requisitos:** R8
+- [ ] Ejecutar `npx agent-cli eval`
+- [ ] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
+- [ ] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
