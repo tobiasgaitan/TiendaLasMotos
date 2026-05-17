@@ -31,7 +31,7 @@ export default function SedesPage() {
         setLoading(true);
         try {
             const [sedesSnap, finSnap] = await Promise.all([
-                getDocs(collection(db, 'config/general/sedes')),
+                getDocs(collection(db, 'configuracion/general/sedes')),
                 getDocs(collection(db, 'financial_config/general/financieras'))
             ]);
 
@@ -90,10 +90,10 @@ export default function SedesPage() {
             };
 
             if (editingSede) {
-                await updateDoc(doc(db, 'config/general/sedes', editingSede.id), dataToSave);
+                await updateDoc(doc(db, 'configuracion/general/sedes', editingSede.id), dataToSave);
                 toast.success("Sede actualizada");
             } else {
-                await addDoc(collection(db, 'config/general/sedes'), dataToSave);
+                await addDoc(collection(db, 'configuracion/general/sedes'), dataToSave);
                 toast.success("Sede creada");
             }
             setIsModalOpen(false);
@@ -117,7 +117,7 @@ export default function SedesPage() {
     const handleDelete = async (id: string) => {
         if (!confirm("¿Eliminar esta sede?")) return;
         try {
-            await deleteDoc(doc(db, 'config/general/sedes', id));
+            await deleteDoc(doc(db, 'configuracion/general/sedes', id));
             toast.success("Sede eliminada");
             fetchData();
         } catch (error) {
