@@ -40,7 +40,7 @@ export default function TopBar() {
          */
         const fetchConfig = async () => {
             try {
-                const configRef = doc(db, "config", "general_info");
+                const configRef = doc(db, "configuracion", "general_info");
                 const configSnap = await getDoc(configRef);
                 
                 if (configSnap.exists()) {
