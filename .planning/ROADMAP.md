@@ -29,8 +29,8 @@
 
 | Fase | Nombre | Estado | Plan | Fecha |
 |------|--------|--------|------|-------|
-| 4 | Planificación y Diseño Técnico | En progreso | XML Plan | 2026-05-17 |
-| 5 | Migración de Servicios y Componentes de Consulta | Planificado | — | — |
+| 4 | Planificación y Diseño Técnico | Completado | XML Plan | 2026-05-17 |
+| 5 | Migración de Servicios y Componentes de Consulta | Planificado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
 | 6 | Migración de Formularios de Administración y Simulador | Planificado | — | — |
 | 7 | Verificación E2E y Despliegue en Beta | Planificado | — | — |
 
@@ -39,8 +39,8 @@
 ### Fase 4: Planificación y Diseño Técnico
 **Meta:** Establecer los planos y el Documento Técnico de Planificación en español con paridad JSON Voorhees.
 **Requisitos:** R1-R8
-- [ ] Documento Técnico de Planificación con paridad 1:1 de llaves de Firestore
-- [ ] Planes atómicos XML de la migración estructural
+- [x] Documento Técnico de Planificación con paridad 1:1 de llaves de Firestore
+- [x] Planes atómicos XML de la migración estructural
 
 ### Fase 5: Migración de Servicios y Componentes de Consulta
 **Meta:** Actualizar las consultas públicas y generación de transacciones atómicas.
