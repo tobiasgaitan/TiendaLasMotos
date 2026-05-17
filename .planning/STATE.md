@@ -1,4 +1,9 @@
-### 🛡️ Documento Maestro: Estado de desarrollo página web (v8.3.3)
+# Estado Actual: DEPLOYED_v8.3.3
+**Fase Activa:** N/A (Ciclo Completado)
+**Decisiones Clave:**
+- Se eliminó el acoplamiento a la base de datos `config`.
+- `firestore.rules` garantiza lectura pública no autenticada para `configuracion/general/sedes` y `configuracion/general_info`.
+
 
 **Versión:** v8.3.3 (Data Contract Path Migration - WEB-835)
 **Estado:** DEPLOYED_v8.3.3

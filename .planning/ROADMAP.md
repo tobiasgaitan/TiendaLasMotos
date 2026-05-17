@@ -62,4 +62,4 @@
 **Requisitos:** R8
 - [x] Ejecutar `npx agent-cli eval`
 - [x] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
-- [/] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
+- [x] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
