@@ -30,9 +30,9 @@
 | Fase | Nombre | Estado | Plan | Fecha |
 |------|--------|--------|------|-------|
 | 4 | Planificación y Diseño Técnico | Completado | XML Plan | 2026-05-17 |
-| 5 | Migración de Servicios y Componentes de Consulta | Planificado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
-| 6 | Migración de Formularios de Administración y Simulador | Planificado | — | — |
-| 7 | Verificación E2E y Despliegue en Beta | Planificado | — | — |
+| 5 | Migración de Servicios y Componentes de Consulta | Completado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
+| 6 | Migración de Formularios de Administración y Simulador | Completado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
+| 7 | Verificación E2E y Despliegue en Beta | En progreso | — | 2026-05-17 |
 
 ## Fases
 
@@ -45,21 +45,21 @@
 ### Fase 5: Migración de Servicios y Componentes de Consulta
 **Meta:** Actualizar las consultas públicas y generación de transacciones atómicas.
 **Requisitos:** R1, R2, R3, R4
-- [ ] Modificar `actions/quotation.ts` (counters -> configuracion)
-- [ ] Modificar `components/TopBar.tsx` (general_info -> configuracion)
-- [ ] Modificar `components/SmartFooter.tsx` (general_info, sedes -> configuracion)
-- [ ] Modificar `app/sedes/page.tsx` (sedes -> configuracion)
+- [x] Modificar `actions/quotation.ts` (counters -> configuracion)
+- [x] Modificar `components/TopBar.tsx` (general_info -> configuracion)
+- [x] Modificar `components/SmartFooter.tsx` (general_info, sedes -> configuracion)
+- [x] Modificar `app/sedes/page.tsx` (sedes -> configuracion)
 
 ### Fase 6: Migración de Formularios de Administración y Simulador
 **Meta:** Actualizar la lectura y escritura de administración y la carga del simulador.
 **Requisitos:** R5, R6, R7
-- [ ] Modificar `admin/general/page.tsx` (general_info -> configuracion)
-- [ ] Modificar `admin/sedes/page.tsx` (sedes -> configuracion)
-- [ ] Modificar `admin/simulador/page.tsx` (sedes -> configuracion)
+- [x] Modificar `admin/general/page.tsx` (general_info -> configuracion)
+- [x] Modificar `admin/sedes/page.tsx` (sedes -> configuracion)
+- [x] Modificar `admin/simulador/page.tsx` (sedes -> configuracion)
 
 ### Fase 7: Verificación E2E y Despliegue en Beta
 **Meta:** Validar de extremo a extremo que no haya fallos silenciosos y desplegar en Beta.
 **Requisitos:** R8
-- [ ] Ejecutar `npx agent-cli eval`
-- [ ] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
-- [ ] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
+- [x] Ejecutar `npx agent-cli eval`
+- [x] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
+- [/] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
