@@ -32,7 +32,7 @@ export default function SmartFooter() {
         const fetchFooterData = async () => {
             try {
                 // 1. Fetch Sedes Activas
-                const sedesRef = collection(db, "config/general/sedes");
+                const sedesRef = collection(db, "configuracion/general/sedes");
                 const sedesSnap = await getDocs(query(sedesRef, where("isActive", "==", true)));
                 // Fallback to fetching all if 'isActive' index/field missing issues, or just client filter
                 // Ideally backend ignores deleted, but checking 'isActive' is good practice if implemented
@@ -41,7 +41,7 @@ export default function SmartFooter() {
                 setSedes(loadedSedes);
 
                 // 2. Fetch General Config (Contact)
-                const configRef = doc(db, "config", "general_info");
+                const configRef = doc(db, "configuracion", "general_info");
                 const configSnap = await getDoc(configRef);
                 if (configSnap.exists()) {
                     setConfig(configSnap.data() as GeneralConfig);
