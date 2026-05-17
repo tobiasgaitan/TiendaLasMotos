@@ -14,3 +14,9 @@
 - **Tareas**:
   - [x] [cite_start]Grep exhaustivo de `addDoc(collection(db, "prospectos")` [cite: 168]
   - [x] [cite_start]Verificación de normalización de 12 dígitos en Firestore real[cite: 143].
+
+## Fase 3: Reactividad y Depuración Estructural [COMPLETADO]
+- **Objetivo**: Implementar reactividad en tiempo real en el Dashboard y eliminar código legacy redundante.
+- **Tareas**:
+  - [x] Tarea 3.2: Implementación de reactividad `onSnapshot` en el Dashboard de Prospectos (Confirmada).
+  - [x] Tarea 3.3: Purga de código legacy - Eliminación del nodo huérfano `src/app/admin/leads` (WEB-833).
