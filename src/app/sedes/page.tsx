@@ -21,7 +21,7 @@ export const revalidate = 3600;
  */
 export default async function SedesPage() {
     // Fetch active sedes from Firestore
-    const sedesRef = collection(db, "config/general/sedes");
+    const sedesRef = collection(db, "configuracion/general/sedes");
     const sedesSnap = await getDocs(query(sedesRef, where("isActive", "==", true)));
     const sedes = sedesSnap.docs.map(d => ({ id: d.id, ...d.data() } as City));
 
