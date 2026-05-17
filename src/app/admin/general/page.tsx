@@ -40,7 +40,7 @@ export default function GeneralConfigPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const docRef = doc(db, "config", "general_info");
+                const docRef = doc(db, "configuracion", "general_info");
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -61,7 +61,7 @@ export default function GeneralConfigPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await setDoc(doc(db, "config", "general_info"), formData);
+            await setDoc(doc(db, "configuracion", "general_info"), formData);
             toast.success("Información actualizada correctamente");
         } catch (error) {
             console.error("Error saving general config:", error);
