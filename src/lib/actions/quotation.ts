@@ -8,7 +8,7 @@ import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 export async function getNextQuoteNumber(): Promise<string> {
     try {
         const year = new Date().getFullYear();
-        const counterRef = doc(db, "config", "counters");
+        const counterRef = doc(db, "configuracion", "counters");
 
         return await runTransaction(db, async (transaction) => {
             const counterDoc = await transaction.get(counterRef);
