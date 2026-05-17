@@ -55,7 +55,7 @@ export default function SimulatorPage() {
                     getDocs(collection(db, 'financial_config/general/tarifas_soat')),
                     getDocs(collection(db, 'financial_config/general/financieras')),
                     getDoc(doc(db, 'financial_config/general/global_params/global_params')),
-                    getDocs(collection(db, 'config/general/sedes')) // [NEW] Fetch Sedes
+                    getDocs(collection(db, 'configuracion/general/sedes')) // [NEW] Fetch Sedes
                 ]);
 
                 // Basic Mapping
