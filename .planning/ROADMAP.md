@@ -63,3 +63,8 @@
 - [x] Ejecutar `npx agent-cli eval`
 - [x] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
 - [x] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
+
+---
+
+## Tareas Rápidas y Hotfixes (Quick Tasks)
+- [x] **Quick-006 (WEB-836):** Simulator Price Fix. Uso de `price` canónico en lugar de `precio` en `handleMotoChange`. Completado (2026-05-18).
