@@ -1,32 +1,33 @@
-# WEB-835: Migración Estructural de Contratos de Datos
+# Estado del Proyecto Web & Documento Maestro (v8.3.4)
 
-## Visión
+## Hito Principal: WEB-835 — Migración Estructural de Contratos de Datos
+
+### Visión
 Migrar de forma segura, limpia y con paridad de datos del 100% todas las referencias del frontend y de administración a la colección heredada `config` hacia la nueva colección canónica `configuracion` en Firestore, garantizando un despliegue atómico en la rama `beta` y eliminando cualquier brecha de inconsistencia.
 
-## Valor Central
+### Valor Central
 Garantizar la continuidad absoluta del negocio en la cotización, visualización de sedes e información de contacto mediante una paridad estructural 1:1, asegurando que ningún cambio altere, renombre o elimine llaves existentes (`phone`, `email`, `quotationCount`, etc.).
 
-## Target Users
-- **Clientes del portal público:** Que consultan sedes en el footer, barra superior, y en la vista pública de sedes, además de generar cotizaciones con números correlativos sin interrupciones.
-- **Administradores del portal backend:** Que gestionan la información general y sedes desde el Dashboard administrativo.
-
-## Contexto Técnico
+### Contexto Técnico
 - **Framework:** Next.js 16.1.1+ (App Router).
 - **Persistencia:** Firebase Firestore (Web SDK v9/v10).
 - **Ruta Legacy:** `config`
 - **Ruta Nueva Canónica:** `configuracion`
 - **Garantía de Sincronía:** Transacciones con bloqueo en `actions/quotation.ts`.
 
-## Requisitos
+---
 
-### Activos
-- **R1 - Migración en Acciones Server (actions/quotation.ts):** Cambiar `counters` de `config/counters` a `configuracion/counters`.
-- **R2 - Migración en UI Transversal (SmartFooter, TopBar, sedes/page.tsx):** Cambiar `config/general_info` y `config/general/sedes` a `configuracion/general_info` y `configuracion/general/sedes`.
-- **R3 - Migración en Dashboard Administrativo (admin/general/page.tsx, admin/sedes/page.tsx, admin/simulador/page.tsx):** Cambiar todas las referencias de lectura, escritura, actualización y eliminación de `config` a `configuracion`.
-- **R4 - Validación Cruzada en Beta:** Despliegue en la rama beta (`tiendalasmotos-beta.web.app`) y validación física con datos reales en Firestore.
+## Hito Ad-hoc: WEB-836 — Simulator Price Fix (Hotfix)
 
-### Fuera de Alcance
-- **Purger de la colección heredada `config`:** No se purgará físicamente la colección `config` en esta fase hasta que el Auditor y Tobias aprueben la migración total y estable en Beta.
+### Descripción
+Corregir de forma quirúrgica e integral la violación de lógica financiera y colisión de variables en el simulador administrativo (`SimulatorPage`). Ahora el simulador inyecta el valor base canónico (`m.price`) en lugar del valor comercial con descuento (`m.precio`) durante el ciclo de actualización de `handleMotoChange`, garantizando que el Capital Base y la Cuota Inicial en planes de crédito se calculen correctamente basándose en el precio real libre de bonos temporales.
+
+### Métricas de Calidad
+- **Coherence Score:** 1.000 (Certificado por GSD Framework)
+- **Tipo de Cierre:** UAT Completo y verificado visualmente en Beta.
+- **Rama Remota de Despliegue:** `beta`
+
+---
 
 ## Decisiones Clave
 
@@ -35,6 +36,7 @@ Garantizar la continuidad absoluta del negocio en la cotización, visualización
 | Paridad 1:1 Absoluta | Usuario (Condición Crítica) | Evitar efectos colaterales en la lógica de negocio y APIs | Aprobado |
 | Flujo GSD Standard | Usuario | Granularidad de plan atómico formal debido al impacto en God Node | Aprobado |
 | Tracking Físico Git | Usuario (PSD) | Auditoría forense obligatoria de estado y roadmap | Aprobado |
+| Uso de m.price (WEB-836) | Auditor / Usuario | Corregir perversión del Capital Base y la Cuota Inicial | Aprobado (v8.3.4) |
 
 ---
-*Última actualización: 2026-05-17 por Antigravity (Fase GSD New Project)*
+*Última actualización: 2026-05-18 por Antigravity (Protocolo de Sincronía Documental)*

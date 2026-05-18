@@ -1,13 +1,15 @@
-# Estado Actual: DEPLOYED_v8.3.4
-**Fase Activa:** N/A (Ciclo Completado)
+# Estado Actual: DEPLOYED_v8.3.4 (UAT COMPLETO)
+
+**Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
+
 **Decisiones Clave:**
 - Se eliminó el acoplamiento a la base de datos `config`.
 - `firestore.rules` garantiza lectura pública no autenticada para `configuracion/general/sedes` y `configuracion/general_info`.
-
+- **WEB-836 (Hotfix):** El simulador administrativo utiliza `m.price` para preservar la pureza del cálculo financiero de capital base y cuota inicial.
 
 **Versión:** v8.3.4 (Simulator canonical price fix - WEB-836)
-**Estado:** DEPLOYED_v8.3.4
-**Último Hito:** Corrección quirúrgica del simulador de crédito administrativo usando el precio canónico y fallback robusto, verificado al 100% con compilación y linteo.
+**Estado:** DEPLOYED_v8.3.4 (UAT Aprobado)
+**Último Hito:** Corrección quirúrgica del simulador de crédito administrativo usando el precio canónico y fallback robusto, verificado al 100% con compilación, linteo y UAT en Beta.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -40,7 +42,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 * **Purga de Interfaces (v8.3.1):** Cero métodos redundantes o llamadas directas descentralizadas a `addDoc`.
 * **Mitigación de Deuda Técnica (v8.3.2):** Eliminación física del nodo huérfano `src/app/admin/leads` y sus dependencias de Next.js.
 * **Migración en progreso (v8.3.3):** Reemplazo sistemático del path heredado `config` por `configuracion` con paridad 1:1 absoluta.
-* **Hotfix del Simulador (v8.3.4):** Corrección quirúrgica del simulador administrativo WEB-836 para usar precio canónico.
+* **Hotfix del Simulador (v8.3.4):** Corrección quirúrgica del simulador administrativo WEB-836 para usar precio canónico. UAT verificado y cerrado.
 
 ### Tareas Rápidas Completadas
 
