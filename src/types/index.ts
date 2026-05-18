@@ -45,6 +45,7 @@ export interface Moto {
     id: string;
     referencia: string;
     precio: number;
+    price?: number; // [NEW] Valor base canónico
     marca: string;
     imagen_url: string;
     frenosABS: boolean;

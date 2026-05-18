@@ -105,9 +105,10 @@ export default function SimulatorPage() {
         // Imperative Sincronization: Update derived price data immediately in the same cycle
         const m = motos.find(mt => mt.id === motoId);
         if (m) {
-            setPrice(m.precio);
+            const basePrice = m.price || m.precio;
+            setPrice(basePrice);
             
-            const calculatedDownPayment = Math.floor(m.precio * (matrix?.default_down_payment_ratio || 0.10));
+            const calculatedDownPayment = Math.floor(basePrice * (matrix?.default_down_payment_ratio || 0.10));
             setDownPayment(calculatedDownPayment);
             
             const isPatineta = m.category?.toUpperCase() === 'PATINETA'

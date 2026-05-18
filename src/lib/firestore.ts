@@ -111,6 +111,7 @@ export async function getCatalogoMotos(): Promise<Moto[]> {
                 id: doc.id,
                 referencia: finalReferencia,
                 precio: Number(data["precio"]) || 0,
+                price: Number(data["price"]) || Number(data["precio"]) || 0, // [NEW] Mapeo de precio canónico
                 marca: data["Marca-de-la-moto"] || data["marca"] || "Genérico",
                 imagen_url: finalImage,
                 frenosABS: data["frenosABS"] === "Si",
