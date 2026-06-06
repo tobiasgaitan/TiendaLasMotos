@@ -68,3 +68,4 @@
 
 ## Tareas Rápidas y Hotfixes (Quick Tasks)
 - [x] **Quick-006 (WEB-836):** Simulator Price Fix. Uso de `price` canónico en lugar de `precio` en `handleMotoChange`. Completado, UAT Verificado (2026-05-18) con Coherence Score 1.000.
+- [x] **Quick-007 (WEB-836):** Corrección de integración Socrata API (TIBC) y blindaje de actualización en batch (syncedWithUsura) en Cloud Functions. Completado (2026-06-05).
