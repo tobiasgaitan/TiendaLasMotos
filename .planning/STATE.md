@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.3.4 (UAT COMPLETO)
+# Estado Actual: DEPLOYED_v8.3.5 (PENDING DEPLOY)
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -6,10 +6,11 @@
 - Se eliminó el acoplamiento a la base de datos `config`.
 - `firestore.rules` garantiza lectura pública no autenticada para `configuracion/general/sedes` y `configuracion/general_info`.
 - **WEB-836 (Hotfix):** El simulador administrativo utiliza `m.price` para preservar la pureza del cálculo financiero de capital base y cuota inicial.
+- **WEB-836 (Usury Bot Fix):** Corrección del endpoint Socrata (32sa-8pi3→pare-7x5i), esquema actualizado (interes_bancario_corriente con % suffix), cálculo IBC×1.5 para tasa de usura, y guard syncedWithUsura===true.
 
-**Versión:** v8.3.4 (Simulator canonical price fix - WEB-836)
-**Estado:** DEPLOYED_v8.3.4 (UAT Aprobado)
-**Último Hito:** Corrección quirúrgica del simulador de crédito administrativo usando el precio canónico y fallback robusto, verificado al 100% con compilación, linteo y UAT en Beta.
+**Versión:** v8.3.5 (Usury Rate Bot Fix - WEB-836)
+**Estado:** PENDING_DEPLOY
+**Último Hito:** Corrección crítica del UsuryRateBot: dataset ID, schema keys, modalidad filter, cálculo de usura, y guard syncedWithUsura. Verificado con script aislado y compilación TypeScript limpia.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -49,6 +50,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | # | Descripción | Fecha | Commit | Directorio |
 |---|-------------|-------|--------|------------|
 | 006 | Corrección de precio en el simulador administrativo (WEB-836) | 2026-05-18 | `fadf5e3` | `006-web836-simulator-precio-fix` |
+| 007 | Usury Rate Bot Fix: Socrata dataset/schema + syncedWithUsura guard (WEB-836) | 2026-06-05 | `e33e5fc` | `007-web836-usury-bot-fix` |
 
 ---
-*Última actualización: 2026-05-18 por Antigravity*
+*Última actualización: 2026-06-05 por Antigravity*
