@@ -3,6 +3,7 @@ import { defineString } from 'firebase-functions/params';
 
 const smtpEmail = defineString('SMTP_EMAIL');
 const smtpPassword = defineString('SMTP_PASSWORD');
+const adminAlertEmails = defineString('ADMIN_ALERT_EMAILS');
 
 // Configure Transporter
 // Requires Firebase params: SMTP_EMAIL, SMTP_PASSWORD
@@ -14,6 +15,12 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+export interface SendErrorEmailOptions {
+    subject?: string;
+    title?: string;
+    actionLink?: string;
+}
+
 /**
  * Sends a fail-safe email alert using Nodemailer.
  * 
@@ -22,23 +29,34 @@ const transporter = nodemailer.createTransport({
  * 
  * @param error - The error object caught in the try-catch block.
  * @param contextInfo - A string describing where the error occurred (e.g. "Fetching API").
+ * @param options - Optional overrides for subject, title, and actionLink.
  */
-export const sendErrorEmail = async (error: any, contextInfo: string) => {
+export const sendErrorEmail = async (error: any, contextInfo: string, options: SendErrorEmailOptions = {}) => {
     const errorCode = error.code || error.message || "Unknown Error";
+
+    const subject = options.subject || 'Fallo Crítico en Sistema (Fail-Safe Alert)';
+    const title = options.title || 'Alerta de Error Automática';
+    
+    let actionHtml = '';
+    if (options.actionLink) {
+        actionHtml = `
+            <br/>
+            <p>Por favor, revise la situación o realice la actualización manual inmediatamente:</p>
+            <a href="${options.actionLink}" style="background-color: #CE1126; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir a la Acción Requerida</a>
+            <br/><br/>
+        `;
+    }
 
     const mailOptions = {
         from: '"Antigravity Bot" <conexion@tiendalasmotos.com>',
-        to: 'conexion@tiendalasmotos.com',
-        subject: 'problema para actualizar tasa de interes en calculadora financiera las motos',
+        to: adminAlertEmails.value() || 'conexion@tiendalasmotos.com',
+        subject: subject,
         html: `
-            <h2>Fallo en Actualización Automática de Tasas</h2>
-            <p>Se ha detectado un error al intentar actualizar la Tasa de Usura.</p>
+            <h2>${title}</h2>
+            <p>Se ha detectado un error al intentar ejecutar una operación del sistema.</p>
             <p><strong>Contexto:</strong> ${contextInfo}</p>
             <p><strong>Error:</strong> ${errorCode}</p>
-            <br/>
-            <p>Por favor, realice la actualización manual inmediatamente:</p>
-            <a href="https://tiendalasmotos-beta.web.app/admin/financial-parameters" style="background-color: #CE1126; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Panel Administrativo</a>
-            <br/><br/>
+            ${actionHtml}
             <small>Este es un mensaje automático del sistema de Fail-Safe.</small>
         `
     };

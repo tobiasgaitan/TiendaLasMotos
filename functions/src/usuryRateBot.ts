@@ -145,7 +145,11 @@ export const updateUsuryRates = functions.runWith({ memory: "512MB" }).pubsub
                 console.error("Socrata API Response Body:", JSON.stringify(error.response.data));
             }
             // FAIL-SAFE TRIGGER
-            await sendErrorEmail(error, "Cloud Function: updateUsuryRates (Monthly Cron)");
+            await sendErrorEmail(error, "Cloud Function: updateUsuryRates (Monthly Cron)", {
+                subject: 'problema para actualizar tasa de interes en calculadora financiera las motos',
+                title: 'Fallo en Actualización Automática de Tasas',
+                actionLink: 'https://tiendalasmotos-beta.web.app/admin/financial-parameters'
+            });
             // Re-throw to ensure Cloud Functions logs it as a failure
             throw error;
         }

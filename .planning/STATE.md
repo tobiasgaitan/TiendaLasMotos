@@ -10,9 +10,9 @@
 - **BOT-TECH-DEBT-837:** Migración de `functions.config()` a `firebase-functions/params` (`defineString`) en los servicios de correo `mailer.ts` y `sendUserInvitation.ts` para evitar fallos de Runtime Config en v2.
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
 
-**Versión:** v8.3.8 (Cloud Functions v2 Migration - BOT-TECH-DEBT-838)
+**Versión:** v8.3.9 (Global Fall-Safe Mailer Refactor - BOT-TECH-DEBT-839)
 **Estado:** DEPLOYED
-**Último Hito:** Migración de sendUserInvitation.ts a Cloud Functions v2, firma con CallableRequest, validado con prueba unitaria sendUserInvitation.spec.ts.
+**Último Hito:** Refactor de sendErrorEmail para actuar como interceptor global Fail-Safe con inyección de destinatarios dinámicos mediante ADMIN_ALERT_EMAILS.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -58,6 +58,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 008 | Deploy updateUsuryRates Cloud Function (WEB-836) | 2026-06-05 | — | `008-web836-deploy-usury-function` |
 | 009 | Migración SMTP a params (BOT-TECH-DEBT-837) | 2026-06-05 | `pending` | `functions/src` |
 | 010 | Migración Cloud Functions v2 en sendUserInvitation (BOT-TECH-DEBT-838) | 2026-06-05 | `pending` | `functions/src` |
+| 011 | Refactor global Fall-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `pending` | `functions/src` |
 
 ---
 *Última actualización: 2026-06-05 22:15 COT por Antigravity*
