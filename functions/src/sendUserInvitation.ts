@@ -1,6 +1,6 @@
-import * as functions from 'firebase-functions';
 import * as nodemailer from 'nodemailer';
 import { defineString } from 'firebase-functions/params';
+import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 
 const smtpEmail = defineString('SMTP_EMAIL');
 const smtpPassword = defineString('SMTP_PASSWORD');
@@ -20,10 +20,12 @@ interface InvitationData {
     role: 'superadmin' | 'admin' | 'vendedor';
 }
 
-export const sendUserInvitation = functions.https.onCall(async (data: InvitationData, context) => {
+export const sendUserInvitation = onCall(async (request: CallableRequest<InvitationData>) => {
+    const { data, auth } = request;
+
     // Security: Verify the caller is authenticated
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
+    if (!auth) {
+        throw new HttpsError(
             'unauthenticated',
             'Solo usuarios autenticados pueden enviar invitaciones.'
         );
@@ -31,7 +33,7 @@ export const sendUserInvitation = functions.https.onCall(async (data: Invitation
 
     // Validate input data
     if (!data.name || !data.email || !data.role) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             'invalid-argument',
             'Datos incompletos: se requiere nombre, email y rol.'
         );
@@ -49,7 +51,7 @@ export const sendUserInvitation = functions.https.onCall(async (data: Invitation
     // Check if SMTP is configured
     if (!smtpEmail.value() || !smtpPassword.value()) {
         console.warn('SMTP credentials not configured. Email will not be sent.');
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             'failed-precondition',
             'El servidor de correo no está configurado. Contacte al administrador del sistema.'
         );
@@ -228,7 +230,7 @@ export const sendUserInvitation = functions.https.onCall(async (data: Invitation
         };
     } catch (error: any) {
         console.error('Error sending invitation email:', error);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             'internal',
             `Error al enviar el correo: ${error.message}`
         );
