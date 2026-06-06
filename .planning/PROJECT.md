@@ -1,4 +1,4 @@
-# Estado del Proyecto Web & Documento Maestro (v8.3.4)
+# Estado del Proyecto Web & Documento Maestro (v8.3.9)
 
 ## Hito Principal: WEB-835 — Migración Estructural de Contratos de Datos
 
@@ -29,6 +29,18 @@ Corregir de forma quirúrgica e integral la violación de lógica financiera y c
 
 ---
 
+## Hito Ad-hoc: BOT-TECH-DEBT-839 — Fail-Safe Mailer Refactor
+
+### Descripción
+Refactorizar y desacoplar la utilidad `sendErrorEmail` en `functions/src/mailer.ts` de la lógica exclusiva de "Tasa de Usura". Se generalizó el módulo para permitir su reutilización como interceptor global de errores en toda la arquitectura de Cloud Functions, parametrizando los correos destinatarios de alerta de administración mediante la variable `ADMIN_ALERT_EMAILS`.
+
+### Métricas de Calidad
+- **Coherence Score:** 1.000 (Certificado por GSD Framework)
+- **Tipo de Cierre:** Unit Tests exitosos y validación de soporte multi-correo.
+- **Rama Remota de Despliegue:** `beta`
+
+---
+
 ## Decisiones Clave
 
 | Decisión | Origen | Razón | Resultado |
@@ -37,6 +49,7 @@ Corregir de forma quirúrgica e integral la violación de lógica financiera y c
 | Flujo GSD Standard | Usuario | Granularidad de plan atómico formal debido al impacto en God Node | Aprobado |
 | Tracking Físico Git | Usuario (PSD) | Auditoría forense obligatoria de estado y roadmap | Aprobado |
 | Uso de m.price (WEB-836) | Auditor / Usuario | Corregir perversión del Capital Base y la Cuota Inicial | Aprobado (v8.3.4) |
+| Desacoplamiento de Mailer | Usuario (BOT-TECH-DEBT-839) | Modularización de utilidades para Cloud Functions | Aprobado (v8.3.9) |
 
 ---
-*Última actualización: 2026-05-18 por Antigravity (Protocolo de Sincronía Documental)*
+*Última actualización: 2026-06-05 por Antigravity (Protocolo de Sincronía Documental v8.3.9)*
