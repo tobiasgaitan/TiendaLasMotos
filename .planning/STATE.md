@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.3.5 (PENDING DEPLOY)
+# Estado Actual: DEPLOYED_v8.3.5
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -9,7 +9,7 @@
 - **WEB-836 (Usury Bot Fix):** Corrección del endpoint Socrata (32sa-8pi3→pare-7x5i), esquema actualizado (interes_bancario_corriente con % suffix), cálculo IBC×1.5 para tasa de usura, y guard syncedWithUsura===true.
 
 **Versión:** v8.3.5 (Usury Rate Bot Fix - WEB-836)
-**Estado:** PENDING_DEPLOY
+**Estado:** DEPLOYED
 **Último Hito:** Corrección crítica del UsuryRateBot: dataset ID, schema keys, modalidad filter, cálculo de usura, y guard syncedWithUsura. Verificado con script aislado y compilación TypeScript limpia.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
@@ -51,6 +51,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 |---|-------------|-------|--------|------------|
 | 006 | Corrección de precio en el simulador administrativo (WEB-836) | 2026-05-18 | `fadf5e3` | `006-web836-simulator-precio-fix` |
 | 007 | Usury Rate Bot Fix: Socrata dataset/schema + syncedWithUsura guard (WEB-836) | 2026-06-05 | `e33e5fc` | `007-web836-usury-bot-fix` |
+| 008 | Deploy updateUsuryRates Cloud Function (WEB-836) | 2026-06-05 | — | `008-web836-deploy-usury-function` |
 
 ---
-*Última actualización: 2026-06-05 por Antigravity*
+*Última actualización: 2026-06-05 21:17 COT por Antigravity*
