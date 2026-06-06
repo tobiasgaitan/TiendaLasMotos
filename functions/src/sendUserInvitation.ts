@@ -1,5 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as nodemailer from 'nodemailer';
+import { defineString } from 'firebase-functions/params';
+
+const smtpEmail = defineString('SMTP_EMAIL');
+const smtpPassword = defineString('SMTP_PASSWORD');
 
 /**
  * Cloud Function to send invitation emails to new admin users.
@@ -37,13 +41,13 @@ export const sendUserInvitation = functions.https.onCall(async (data: Invitation
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: functions.config().smtp?.email || "conexion@tiendalasmotos.com",
-            pass: functions.config().smtp?.password || "placeholder_pass"
+            user: smtpEmail.value() || "conexion@tiendalasmotos.com",
+            pass: smtpPassword.value() || "placeholder_pass"
         }
     });
 
     // Check if SMTP is configured
-    if (!functions.config().smtp?.email || !functions.config().smtp?.password) {
+    if (!smtpEmail.value() || !smtpPassword.value()) {
         console.warn('SMTP credentials not configured. Email will not be sent.');
         throw new functions.https.HttpsError(
             'failed-precondition',

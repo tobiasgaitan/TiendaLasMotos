@@ -1,20 +1,23 @@
 import * as nodemailer from 'nodemailer';
-import * as functions from 'firebase-functions';
+import { defineString } from 'firebase-functions/params';
+
+const smtpEmail = defineString('SMTP_EMAIL');
+const smtpPassword = defineString('SMTP_PASSWORD');
 
 // Configure Transporter
-// Requires Firebase config: functions:config:set smtp.email="user@gmail.com" smtp.password="app-password"
+// Requires Firebase params: SMTP_EMAIL, SMTP_PASSWORD
 const transporter = nodemailer.createTransport({
     service: 'gmail', // Can be customized or use host/port
     auth: {
-        user: functions.config().smtp?.email || "conexion@tiendalasmotos.com",
-        pass: functions.config().smtp?.password || "placeholder_pass"
+        user: smtpEmail.value() || "conexion@tiendalasmotos.com",
+        pass: smtpPassword.value() || "placeholder_pass"
     }
 });
 
 /**
  * Sends a fail-safe email alert using Nodemailer.
  * 
- * Uses SMTP credentials from Cloud Functions config (smtp.email, smtp.password).
+ * Uses SMTP credentials from Cloud Functions params (SMTP_EMAIL, SMTP_PASSWORD).
  * If config is missing, logs a warning but does not crash.
  * 
  * @param error - The error object caught in the try-catch block.
@@ -41,7 +44,7 @@ export const sendErrorEmail = async (error: any, contextInfo: string) => {
     };
 
     try {
-        if (!functions.config().smtp?.email) {
+        if (!smtpEmail.value()) {
             console.warn("SMTP config missing. Email not sent, but logged.");
             return;
         }

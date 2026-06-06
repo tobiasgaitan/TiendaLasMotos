@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.3.5
+# Estado Actual: DEPLOYED_v8.3.6
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -7,10 +7,11 @@
 - `firestore.rules` garantiza lectura pública no autenticada para `configuracion/general/sedes` y `configuracion/general_info`.
 - **WEB-836 (Hotfix):** El simulador administrativo utiliza `m.price` para preservar la pureza del cálculo financiero de capital base y cuota inicial.
 - **WEB-836 (Usury Bot Fix):** Corrección del endpoint Socrata (32sa-8pi3→pare-7x5i), esquema actualizado (interes_bancario_corriente con % suffix), cálculo IBC×1.5 para tasa de usura, y guard syncedWithUsura===true.
+- **BOT-TECH-DEBT-837:** Migración de `functions.config()` a `firebase-functions/params` (`defineString`) en los servicios de correo `mailer.ts` y `sendUserInvitation.ts` para evitar fallos de Runtime Config en v2.
 
-**Versión:** v8.3.5 (Usury Rate Bot Fix - WEB-836)
+**Versión:** v8.3.6 (SMTP Migration to Params - BOT-TECH-DEBT-837)
 **Estado:** DEPLOYED
-**Último Hito:** Corrección crítica del UsuryRateBot: dataset ID, schema keys, modalidad filter, cálculo de usura, y guard syncedWithUsura. Verificado con script aislado y compilación TypeScript limpia.
+**Último Hito:** Migración de credenciales SMTP a firebase-functions/params (v2), validación mediante prueba unitaria mailer.spec.ts para evitar strings vacíos, y compilación TypeScript exitosa.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -44,6 +45,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 * **Mitigación de Deuda Técnica (v8.3.2):** Eliminación física del nodo huérfano `src/app/admin/leads` y sus dependencias de Next.js.
 * **Migración en progreso (v8.3.3):** Reemplazo sistemático del path heredado `config` por `configuracion` con paridad 1:1 absoluta.
 * **Hotfix del Simulador (v8.3.4):** Corrección quirúrgica del simulador administrativo WEB-836 para usar precio canónico. UAT verificado y cerrado.
+* **Deuda Técnica SMTP (v8.3.6):** Sustitución de functions.config() por defineString de params de firebase-functions.
 
 ### Tareas Rápidas Completadas
 
@@ -52,6 +54,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 006 | Corrección de precio en el simulador administrativo (WEB-836) | 2026-05-18 | `fadf5e3` | `006-web836-simulator-precio-fix` |
 | 007 | Usury Rate Bot Fix: Socrata dataset/schema + syncedWithUsura guard (WEB-836) | 2026-06-05 | `e33e5fc` | `007-web836-usury-bot-fix` |
 | 008 | Deploy updateUsuryRates Cloud Function (WEB-836) | 2026-06-05 | — | `008-web836-deploy-usury-function` |
+| 009 | Migración SMTP a params (BOT-TECH-DEBT-837) | 2026-06-05 | `pending` | `functions/src` |
 
 ---
-*Última actualización: 2026-06-05 21:17 COT por Antigravity*
+*Última actualización: 2026-06-05 21:41 COT por Antigravity*
