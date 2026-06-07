@@ -1,4 +1,4 @@
-# Estado del Proyecto Web & Documento Maestro (v8.3.9)
+# Estado del Proyecto Web & Documento Maestro (v8.4.0)
 
 ## Hito Principal: WEB-835 — Migración Estructural de Contratos de Datos
 
@@ -41,6 +41,17 @@ Refactorizar y desacoplar la utilidad `sendErrorEmail` en `functions/src/mailer.
 
 ---
 
+## Hito de Despliegue: WEB-DEPLOY-MAIN-v8.4.0 — Lanzamiento en Producción
+
+### Descripción
+Fusión e integración en la rama `main` de la versión v8.3.9 desde `beta` y despliegue síncrono secuencial en el entorno de producción (`tiendalasmotos`). Esto incluye la actualización de Cloud Functions a v2 (incluyendo `sendUserInvitation`), la inyección inline de parámetros SMTP para evitar prompts interactivos y la publicación de la aplicación Next.js en Firebase Hosting.
+
+### Métricas de Calidad
+- **Coherence Score:** 1.000 (Certificado por GSD Framework)
+- **Verificación:** Pruebas unitarias locales aprobadas (4/4), validación estática de compilación Next.js, y verificación de respuesta 200 OK en urls de producción.
+
+---
+
 ## Decisiones Clave
 
 | Decisión | Origen | Razón | Resultado |
@@ -50,6 +61,8 @@ Refactorizar y desacoplar la utilidad `sendErrorEmail` en `functions/src/mailer.
 | Tracking Físico Git | Usuario (PSD) | Auditoría forense obligatoria de estado y roadmap | Aprobado |
 | Uso de m.price (WEB-836) | Auditor / Usuario | Corregir perversión del Capital Base y la Cuota Inicial | Aprobado (v8.3.4) |
 | Desacoplamiento de Mailer | Usuario (BOT-TECH-DEBT-839) | Modularización de utilidades para Cloud Functions | Aprobado (v8.3.9) |
+| Inyección de Parámetros Inline | Auditor / Usuario (WEB-DEPLOY-MAIN) | Evitar flujos interactivos en CLI no interactivo sin crear archivos `.env` | Aprobado (v8.4.0) |
 
 ---
-*Última actualización: 2026-06-05 por Antigravity (Protocolo de Sincronía Documental v8.3.9)*
+*Última actualización: 2026-06-06 por Antigravity (Protocolo de Sincronía Documental v8.4.0)*
+

@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.3.8
+# Estado Actual: DEPLOYED_v8.4.0
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -9,10 +9,11 @@
 - **WEB-836 (Usury Bot Fix):** Corrección del endpoint Socrata (32sa-8pi3→pare-7x5i), esquema actualizado (interes_bancario_corriente con % suffix), cálculo IBC×1.5 para tasa de usura, y guard syncedWithUsura===true.
 - **BOT-TECH-DEBT-837:** Migración de `functions.config()` a `firebase-functions/params` (`defineString`) en los servicios de correo `mailer.ts` y `sendUserInvitation.ts` para evitar fallos de Runtime Config en v2.
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
+- **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
 
-**Versión:** v8.3.9 (Global Fall-Safe Mailer Refactor - BOT-TECH-DEBT-839)
+**Versión:** v8.4.0 (Production Release - WEB-DEPLOY-MAIN-v8.3.9)
 **Estado:** DEPLOYED
-**Último Hito:** Refactor de sendErrorEmail para actuar como interceptor global Fail-Safe con inyección de destinatarios dinámicos mediante ADMIN_ALERT_EMAILS.
+**Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
 #### 1. Stack Tecnológico (Cloud Native)
@@ -56,9 +57,11 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 006 | Corrección de precio en el simulador administrativo (WEB-836) | 2026-05-18 | `fadf5e3` | `006-web836-simulator-precio-fix` |
 | 007 | Usury Rate Bot Fix: Socrata dataset/schema + syncedWithUsura guard (WEB-836) | 2026-06-05 | `e33e5fc` | `007-web836-usury-bot-fix` |
 | 008 | Deploy updateUsuryRates Cloud Function (WEB-836) | 2026-06-05 | — | `008-web836-deploy-usury-function` |
-| 009 | Migración SMTP a params (BOT-TECH-DEBT-837) | 2026-06-05 | `pending` | `functions/src` |
-| 010 | Migración Cloud Functions v2 en sendUserInvitation (BOT-TECH-DEBT-838) | 2026-06-05 | `pending` | `functions/src` |
-| 011 | Refactor global Fall-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `pending` | `functions/src` |
+| 009 | Migración SMTP a params (BOT-TECH-DEBT-837) | 2026-06-05 | `034428a` | `functions/src` |
+| 010 | Migración Cloud Functions v2 en sendUserInvitation (BOT-TECH-DEBT-838) | 2026-06-05 | `c01cc03` | `functions/src` |
+| 011 | Refactor global Fail-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `8fb1332` | `functions/src` |
+| 012 | Fusión y Despliegue Secuencial a Producción (WEB-DEPLOY-MAIN-v8.3.9) | 2026-06-06 | `pending` | `.` |
 
 ---
-*Última actualización: 2026-06-05 22:15 COT por Antigravity*
+*Última actualización: 2026-06-06 21:50 COT por Antigravity*
+
