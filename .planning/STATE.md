@@ -63,8 +63,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 011 | Refactor global Fail-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `8fb1332` | `functions/src` |
 | 012 | Fusión y Despliegue Secuencial a Producción (WEB-DEPLOY-MAIN-v8.3.9) | 2026-06-06 | `pending` | `.` |
 | 013 | Implementar panel AnomaliesBanner con escucha activa (WEB-ANOMALY-UI-841) | 2026-06-29 | `8e7df54` | `013-catalog-anomaly-panel` |
+| 014 | Implementar suite de pruebas unitarias para AnomaliesBanner y validación de aserciones (WEB-ANOMALY-TEST-842) | 2026-06-29 | `70dda74` | `014-anomalies-banner-test` |
 
 ---
-*Última actualización: 2026-06-29 14:05 COT por Antigravity*
+*Última actualización: 2026-06-29 14:20 COT por Antigravity*
 
 
