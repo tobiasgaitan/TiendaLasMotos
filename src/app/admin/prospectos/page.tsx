@@ -8,6 +8,7 @@ import { UserRound, Flame, Phone, Check, CheckCheck, AlertCircle, AlertTriangle 
 import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
 import CampaignControl from '@/components/admin/CampaignControl';
+import AnomaliesBanner, { Anomaly } from '@/components/admin/AnomaliesBanner';
 
 // Status Configuration Map (Must match Modal)
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -45,6 +46,8 @@ export default function ProspectsPage() {
     // [ARCH-BULK-META-008] Tab switcher: useState only (no new dependency — contrato v2.0.0)
     // [FRONTEND-ENVIO-MASIVO-TAB] Tercer estado añadido — contrato v2.1.0
     const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva' | 'envio_masivo'>('dashboard');
+    // [WEB-ANOMALY-UI-841] Canal de anomalías críticas
+    const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -72,6 +75,34 @@ export default function ProspectsPage() {
         );
 
         // Cleanup al desmontar
+        return () => unsubscribe();
+    }, []);
+
+    // [WEB-ANOMALY-UI-841] Segundo hook useEffect para escuchar la colección 'anomalias'
+    useEffect(() => {
+        const q = query(
+            collection(db, "anomalias"),
+            orderBy("fecha", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q,
+            (snapshot) => {
+                const anomaliesData: Anomaly[] = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Anomaly));
+
+                setAnomalies(anomaliesData);
+            },
+            (err) => {
+                console.error("[WEB-ANOMALY-UI-841] Error fetching anomalies:", err);
+                // Zero-Silent-Failures: no silenciar el error real
+                toast.error("Error al cargar alertas en tiempo real", {
+                    description: err instanceof Error ? err.message : "Verifica permisos en Firestore."
+                });
+            }
+        );
+
         return () => unsubscribe();
     }, []);
 
@@ -489,6 +520,12 @@ export default function ProspectsPage() {
                     <span className="ml-1 bg-gray-700 text-gray-300 text-xs px-1.5 py-0.5 rounded-full font-mono">{filteredLeads.length}</span>
                 </button>
             </div>
+
+            {/* [WEB-ANOMALY-UI-841] Panel reactivo de anomalías de catálogo */}
+            <AnomaliesBanner 
+                anomalies={anomalies}
+                onDismiss={(id) => setAnomalies(prev => prev.filter(a => a.id !== id))}
+            />
 
             {/* [ARCH-BULK-META-008] Tab Switcher — useState only, Bypass Nuclear compliant (no library) */}
             <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #374151', paddingBottom: '0' }}>
