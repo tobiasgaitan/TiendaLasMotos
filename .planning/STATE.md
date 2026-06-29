@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.0
+# Estado Actual: DEPLOYED_v8.4.1
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -11,8 +11,9 @@
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
 - **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
 
-**Versión:** v8.4.0 (Production Release - WEB-DEPLOY-MAIN-v8.3.9)
+**Versión:** v8.4.1 (Beta Release - WEB-ANOMALY-UI-841)
 **Estado:** DEPLOYED
+
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
 **Coherence Score:** 1.000 (Certificado por GSD Framework)
 
@@ -61,7 +62,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 010 | Migración Cloud Functions v2 en sendUserInvitation (BOT-TECH-DEBT-838) | 2026-06-05 | `c01cc03` | `functions/src` |
 | 011 | Refactor global Fail-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `8fb1332` | `functions/src` |
 | 012 | Fusión y Despliegue Secuencial a Producción (WEB-DEPLOY-MAIN-v8.3.9) | 2026-06-06 | `pending` | `.` |
+| 013 | Implementar panel AnomaliesBanner con escucha activa (WEB-ANOMALY-UI-841) | 2026-06-29 | `8e7df54` | `013-catalog-anomaly-panel` |
 
 ---
-*Última actualización: 2026-06-06 21:50 COT por Antigravity*
+*Última actualización: 2026-06-29 14:05 COT por Antigravity*
+
 
