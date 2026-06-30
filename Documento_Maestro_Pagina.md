@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.1  
+**Versión del Stack & Hitos:** v8.4.2  
 **Última Actualización:** 2026-06-29  
 **Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados)
 
@@ -29,6 +29,7 @@ El sistema implementa patrones reactivos mediante el SDK de Firestore para asegu
 *   **Componente:** `AnomaliesBanner` (v8.4.1)
 *   **Colección de Firestore:** `anomalias` (o anomalías detectadas en items de catálogo).
 *   **Comportamiento:** Suscripción activa en tiempo real que captura incoherencias de datos de motos (e.g., precios fuera de rango, imágenes rotas o vacías) y renderiza alertas de alta visibilidad para los administradores, cumpliendo con los estándares de contraste WCAG.
+*   **Enlace de Navegación (v8.4.2):** Nodo de navegación hacia la ruta `/admin/novedades` utilizando el icono `Bell` de Lucide React, con la escala del contenedor ampliada de forma quirúrgica a `max-h-80` para evitar truncamientos en la interfaz.
 
 ---
 
