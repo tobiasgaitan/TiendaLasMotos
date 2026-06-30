@@ -19,7 +19,8 @@ import {
     MapPin,
     Building2,
     CreditCard,
-    Globe
+    Globe,
+    Bell
 } from "lucide-react";
 import { deleteSession } from "@/app/admin/login/actions";
 
@@ -166,7 +167,7 @@ export default function AdminSidebar() {
                         {openGroups['config'] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
 
-                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['config'] ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['config'] ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
                         <Link
                             href="/admin/config"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/config') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -180,6 +181,13 @@ export default function AdminSidebar() {
                         >
                             <FileText className="w-4 h-4" />
                             Matrículas / SOAT
+                        </Link>
+                        <Link
+                            href="/admin/novedades"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/novedades') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <Bell className="w-4 h-4" />
+                            Reportes / Novedades
                         </Link>
                         <Link
                             href="/admin/sedes"
