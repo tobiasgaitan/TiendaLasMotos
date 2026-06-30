@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.1
+# Estado Actual: DEPLOYED_v8.4.2
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -11,7 +11,7 @@
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
 - **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
 
-**Versión:** v8.4.1 (Beta Release - WEB-ANOMALY-UI-841)
+**Versión:** v8.4.2 (Beta Release - WEB-ANOMALY-PAGE-842)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -66,8 +66,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 014 | Implementar suite de pruebas unitarias para AnomaliesBanner y validación de aserciones (WEB-ANOMALY-TEST-842) | 2026-06-29 | `70dda74` | `014-anomalies-banner-test` |
 | 015 | Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1 | 2026-06-29 | `a680804` | `015-inicializar-documento-maestro-pagina` |
 | 016 | Ampliación de contenedor y adición de ruta /admin/novedades (Bell) | 2026-06-29 | `e0ad94e` | `016-hotfix-sidebar-novedades` |
+| 017 | Crear página administrativa de novedades y auditoría de anomalías | 2026-06-30 | `eb0e71f` | `017-hotfix-crear-pagina-novedades` |
 
 ---
-*Última actualización: 2026-06-29 21:59 COT por Antigravity*
+*Última actualización: 2026-06-30 03:25 COT por Antigravity*
 
 
