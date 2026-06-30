@@ -72,3 +72,4 @@
 - [x] **Quick-009 (BOT-TECH-DEBT-837):** Migración SMTP a params (v2) en mailer.ts y sendUserInvitation.ts con pruebas en mailer.spec.ts. Completado (2026-06-05).
 - [x] **Quick-010 (BOT-TECH-DEBT-838):** Migración de sendUserInvitation.ts a Cloud Functions v2 onCall, con tests unitarios correspondientes. Completado (2026-06-05).
 - [x] **Quick-011 (BOT-TECH-DEBT-839):** Refactor global Fail-Safe mailer para desacoplar `sendErrorEmail` y parametrizar correos vía `ADMIN_ALERT_EMAILS`. Completado (2026-06-05) con Coherence Score 1.000.
+- [x] **Quick-015 (WEB-DOC-INIT-843):** Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1. Completado (2026-06-29).
