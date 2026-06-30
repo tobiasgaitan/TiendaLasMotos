@@ -65,8 +65,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 013 | Implementar panel AnomaliesBanner con escucha activa (WEB-ANOMALY-UI-841) | 2026-06-29 | `8e7df54` | `013-catalog-anomaly-panel` |
 | 014 | Implementar suite de pruebas unitarias para AnomaliesBanner y validación de aserciones (WEB-ANOMALY-TEST-842) | 2026-06-29 | `70dda74` | `014-anomalies-banner-test` |
 | 015 | Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1 | 2026-06-29 | `a680804` | `015-inicializar-documento-maestro-pagina` |
+| 016 | Ampliación de contenedor y adición de ruta /admin/novedades (Bell) | 2026-06-29 | `e0ad94e` | `016-hotfix-sidebar-novedades` |
 
 ---
-*Última actualización: 2026-06-29 19:58 COT por Antigravity*
+*Última actualización: 2026-06-29 21:59 COT por Antigravity*
 
 
