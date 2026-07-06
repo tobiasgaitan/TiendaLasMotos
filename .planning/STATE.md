@@ -67,8 +67,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 015 | Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1 | 2026-06-29 | `a680804` | `015-inicializar-documento-maestro-pagina` |
 | 016 | Ampliación de contenedor y adición de ruta /admin/novedades (Bell) | 2026-06-29 | `e0ad94e` | `016-hotfix-sidebar-novedades` |
 | 017 | Crear página administrativa de novedades y auditoría de anomalías | 2026-06-30 | `eb0e71f` | `017-hotfix-crear-pagina-novedades` |
+| 018 | Unificación reactiva de sys_alerts y anomalias en novedades y prospectos | 2026-07-06 | `ab2cf03` | `018-hotfix-web-837-sys-alerts` |
 
 ---
-*Última actualización: 2026-06-30 03:25 COT por Antigravity*
+*Última actualización: 2026-07-06 00:00 COT por Antigravity*
 
 
