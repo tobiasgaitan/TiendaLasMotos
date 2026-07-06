@@ -29,6 +29,8 @@ import AnomaliesBanner, { Anomaly } from '@/components/admin/AnomaliesBanner';
  */
 export default function NovedadesPage() {
     const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+    const [catalogAnoms, setCatalogAnoms] = useState<Anomaly[]>([]);
+    const [systemAlerts, setSystemAlerts] = useState<Anomaly[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export default function NovedadesPage() {
                         id: doc.id,
                         ...doc.data()
                     } as Anomaly));
-                    setAnomalies(data);
+                    setCatalogAnoms(data);
                     setLoading(false);
                 },
                 (err: any) => {
@@ -79,6 +81,58 @@ export default function NovedadesPage() {
         return () => unsubscribe();
     }, []);
 
+    // 1.2. Escucha reactiva en tiempo real sobre la colección de Firestore "sys_alerts"
+    useEffect(() => {
+        let unsubscribe = () => {};
+
+        try {
+            const q = query(
+                collection(db, 'sys_alerts'),
+                orderBy('fecha', 'desc')
+            );
+
+            unsubscribe = onSnapshot(
+                q,
+                (snapshot) => {
+                    const data = snapshot.docs.map((doc) => {
+                        const docData = doc.data();
+                        return {
+                            id: doc.id,
+                            severity: 'critical', // Asignación forzada de severity: critical según ticket
+                            user_id: `INFRA:${docData.service || 'SYSTEM'}`,
+                            query: `${docData.error_code || 'NET_ERROR'} | ${docData.endpoint || 'N/A'}`,
+                            message: `[FALLO DE RED] ${docData.message || 'Error de infraestructura externa.'}`,
+                            fecha: docData.fecha
+                        } as Anomaly;
+                    });
+                    setSystemAlerts(data);
+                },
+                (err: any) => {
+                    // ZERO-SILENT-FAILURES: Log forense obligatorio del error original
+                    console.error('[FORENSIC ERROR] Failed to subscribe to collection "sys_alerts":', err);
+                    toast.error('Error al cargar alertas de sistema en tiempo real', {
+                        description: err?.message || 'Permisos insuficientes o fallo de red.'
+                    });
+                }
+            );
+        } catch (err: any) {
+            // ZERO-SILENT-FAILURES: Captura del error de inicialización
+            console.error('[FORENSIC ERROR] Synchronous catch in sys_alerts onSnapshot initialization:', err);
+        }
+
+        return () => unsubscribe();
+    }, []);
+
+    // 1.3. Consolidador de Alertas reactivo
+    useEffect(() => {
+        const unified = [...catalogAnoms, ...systemAlerts].sort((a, b) => {
+            const timeA = a.fecha?.toDate ? a.fecha.toDate().getTime() : (a.fecha ? new Date(a.fecha).getTime() : 0);
+            const timeB = b.fecha?.toDate ? b.fecha.toDate().getTime() : (b.fecha ? new Date(b.fecha).getTime() : 0);
+            return timeB - timeA;
+        });
+        setAnomalies(unified);
+    }, [catalogAnoms, systemAlerts]);
+
     // Formateador de fechas de Firestore
     const formatTimestamp = (timestamp: any) => {
         if (!timestamp) return 'N/A';
@@ -97,7 +151,9 @@ export default function NovedadesPage() {
     // Descartar/Eliminar una anomalía individual de Firestore
     const handleDismiss = async (id: string) => {
         try {
-            await deleteDoc(doc(db, 'anomalias', id));
+            const isSystemAlert = systemAlerts.some(a => a.id === id);
+            const collectionName = isSystemAlert ? 'sys_alerts' : 'anomalias';
+            await deleteDoc(doc(db, collectionName, id));
             toast.success('Reporte de anomalía descartado correctamente');
         } catch (err: any) {
             // ZERO-SILENT-FAILURES: Registro del fallo con metadatos del ID
@@ -118,9 +174,13 @@ export default function NovedadesPage() {
         setClearing(true);
         try {
             const batch = writeBatch(db);
-            const querySnapshot = await getDocs(collection(db, 'anomalias'));
-            
-            querySnapshot.docs.forEach((docSnap) => {
+            const anomaliesSnapshot = await getDocs(collection(db, 'anomalias'));
+            anomaliesSnapshot.docs.forEach((docSnap) => {
+                batch.delete(docSnap.ref);
+            });
+
+            const sysAlertsSnapshot = await getDocs(collection(db, 'sys_alerts'));
+            sysAlertsSnapshot.docs.forEach((docSnap) => {
                 batch.delete(docSnap.ref);
             });
 
@@ -128,7 +188,7 @@ export default function NovedadesPage() {
             toast.success('Todos los reportes de auditoría han sido depurados');
         } catch (err: any) {
             // ZERO-SILENT-FAILURES: Registro de error de lote completo
-            console.error('[FORENSIC ERROR] Failed to execute batch delete on "anomalias":', err);
+            console.error('[FORENSIC ERROR] Failed to execute batch delete on "anomalias" and "sys_alerts":', err);
             toast.error('Fallo en la depuración masiva de reportes', {
                 description: err?.message || 'Fallo de escritura en lote.'
             });

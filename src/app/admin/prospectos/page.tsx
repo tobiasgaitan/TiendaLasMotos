@@ -48,6 +48,8 @@ export default function ProspectsPage() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'carga_masiva' | 'envio_masivo'>('dashboard');
     // [WEB-ANOMALY-UI-841] Canal de anomalías críticas
     const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+    const [catalogAnoms, setCatalogAnoms] = useState<Anomaly[]>([]);
+    const [systemAlerts, setSystemAlerts] = useState<Anomaly[]>([]);
 
     useEffect(() => {
         // 1. Referencia a la colección
@@ -92,7 +94,7 @@ export default function ProspectsPage() {
                     ...doc.data()
                 } as Anomaly));
 
-                setAnomalies(anomaliesData);
+                setCatalogAnoms(anomaliesData);
             },
             (err) => {
                 console.error("[WEB-ANOMALY-UI-841] Error fetching anomalies:", err);
@@ -105,6 +107,51 @@ export default function ProspectsPage() {
 
         return () => unsubscribe();
     }, []);
+
+    // [WEB-837] Tercer hook useEffect para escuchar la colección 'sys_alerts'
+    useEffect(() => {
+        const q = query(
+            collection(db, "sys_alerts"),
+            orderBy("fecha", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q,
+            (snapshot) => {
+                const systemData: Anomaly[] = snapshot.docs.map(doc => {
+                    const docData = doc.data();
+                    return {
+                        id: doc.id,
+                        severity: 'critical', // Asignación forzada de severity: critical según ticket
+                        user_id: `INFRA:${docData.service || 'SYSTEM'}`,
+                        query: `${docData.error_code || 'NET_ERROR'} | ${docData.endpoint || 'N/A'}`,
+                        message: `[FALLO DE RED] ${docData.message || 'Error de infraestructura externa.'}`,
+                        fecha: docData.fecha
+                    } as Anomaly;
+                });
+
+                setSystemAlerts(systemData);
+            },
+            (err) => {
+                console.error("[WEB-837] Error fetching system alerts:", err);
+                // Zero-Silent-Failures: no silenciar el error real
+                toast.error("Error al cargar alertas de sistema en tiempo real", {
+                    description: err instanceof Error ? err.message : "Verifica permisos en Firestore."
+                });
+            }
+        );
+
+        return () => unsubscribe();
+    }, []);
+
+    // [WEB-837] Consolidador de Alertas reactivo
+    useEffect(() => {
+        const unified = [...catalogAnoms, ...systemAlerts].sort((a, b) => {
+            const timeA = a.fecha?.toDate ? a.fecha.toDate().getTime() : (a.fecha ? new Date(a.fecha).getTime() : 0);
+            const timeB = b.fecha?.toDate ? b.fecha.toDate().getTime() : (b.fecha ? new Date(b.fecha).getTime() : 0);
+            return timeB - timeA;
+        });
+        setAnomalies(unified);
+    }, [catalogAnoms, systemAlerts]);
 
     // Filter Logic — [UI-HOMOLOGACION-PENDING-001]
     // Comparación directa: todos los documentos persisten el enum canónico en inglés.
