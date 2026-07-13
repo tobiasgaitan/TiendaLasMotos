@@ -41,15 +41,14 @@
  * @returns Object with maxLoanAmount and maxBikePrice
  */
 export const calculateMaxLoan = (
-    dailyBudget: number,
+    monthlyBudget: number,
     initialPayment: number,
     months: number = 48,
     interestRate: number = 2.3, // Default if not provided
     fngRate: number = 20.66,    // Default if not provided
     insuranceRate: number = 0.1126 // Default if not provided
 ) => {
-    // 1. Monthly Budget
-    const monthlyBudget = dailyBudget * 30;
+    // 1. Monthly Budget is received directly as monthlyBudget
 
     // 2. Reverse Annuity Formula
     // PMT = Loan * [ r(1+r)^n ] / [ (1+r)^n - 1 ]
