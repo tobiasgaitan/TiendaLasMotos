@@ -68,7 +68,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 016 | Ampliación de contenedor y adición de ruta /admin/novedades (Bell) | 2026-06-29 | `e0ad94e` | `016-hotfix-sidebar-novedades` |
 | 017 | Crear página administrativa de novedades y auditoría de anomalías | 2026-06-30 | `eb0e71f` | `017-hotfix-crear-pagina-novedades` |
 | 018 | Unificación reactiva de sys_alerts y anomalias en novedades y prospectos | 2026-07-06 | `ab2cf03` | `018-hotfix-web-837-sys-alerts` |
-| 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837) | 2026-07-13 | `e1f80b7` | `019-correccion-cupo-presupuesto` |
+| 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837-REVISED) | 2026-07-13 | `858de27` | `019-correccion-cupo-presupuesto` |
 
 ---
 *Última actualización: 2026-07-13 00:00 COT por Antigravity*
