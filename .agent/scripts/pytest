@@ -19,7 +19,23 @@ if (lint.status !== 0) {
   process.exit(1);
 }
 
+console.log('\nStep 3/4: Running reverseCalculator unit tests...');
+const calcTest = spawnSync('npx', ['tsx', 'src/test/utils/reverseCalculator.test.ts'], { stdio: 'inherit', shell: true });
+
+if (calcTest.status !== 0) {
+  console.error('\n❌ ERROR: reverseCalculator mathematical integrity test failed.');
+  process.exit(1);
+}
+
+console.log('\nStep 4/4: Running AnomaliesBanner unit tests...');
+const bannerTest = spawnSync('npx', ['tsx', 'src/test/components/AnomaliesBanner.test.tsx'], { stdio: 'inherit', shell: true });
+
+if (bannerTest.status !== 0) {
+  console.error('\n❌ ERROR: AnomaliesBanner test failed.');
+  process.exit(1);
+}
+
 console.log('\n.');
-console.log('1 passed in 0.01s');
+console.log('All tests passed successfully');
 console.log('━━━ VALIDATION SUCCESSFUL ━━━\n');
 process.exit(0);
