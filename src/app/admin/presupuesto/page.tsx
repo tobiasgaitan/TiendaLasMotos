@@ -78,7 +78,20 @@ export default function BudgetToBikePage() {
                 // B. Financial Entities
                 const entSnap = await getDocs(collection(db, "financial_config/general/financieras"));
                 const entList = entSnap.docs
-                    .map(d => ({ id: d.id, ...d.data() } as FinancialEntity))
+                    .map(d => {
+                        const raw = d.data();
+                        // [SANITIZACIÓN PERIMETRAL] Adaptador numérico post-Firestore (WEB-837-REVISED-FINAL)
+                        // Garantiza conversión limpia a float independientemente del tipo del payload
+                        // Escenario cubierto: payload string con símbolo '%' (ej: "1.91%") => NaN cortocircuito
+                        return {
+                            id: d.id,
+                            ...raw,
+                            interestRate: parseFloat(String(raw.interestRate ?? '2.3').replace('%', '')) || 2.3,
+                            fngRate: parseFloat(String(raw.fngRate ?? '0').replace('%', '')) || 0,
+                            lifeInsuranceValue: parseFloat(String(raw.lifeInsuranceValue ?? '0.1126').replace('%', '')) || 0.1126,
+                            minDownPaymentPercentage: parseFloat(String(raw.minDownPaymentPercentage ?? '10').replace('%', '')) || 10,
+                        } as FinancialEntity;
+                    })
                     .filter(e => !e.id.toLowerCase().includes('crediorbe') && !e.name.toLowerCase().includes('crediorbe'));
                 setEntities(entList);
 
@@ -119,15 +132,18 @@ export default function BudgetToBikePage() {
     const calculation = useMemo(() => {
         if (!selectedEntity) return null;
 
-        const interest = selectedEntity?.interestRate ?? 2.3;
-        const fng = selectedEntity?.fngRate ?? 0;
-        const insurance = selectedEntity?.lifeInsuranceValue ?? 0.1126;
+        // [SANITIZACIÓN SECUNDARIA] Barrera de tipo en punto de cálculo (WEB-837-REVISED-FINAL)
+        // Los valores ya vienen sanitizados del useEffect; este parseFloat es la última línea de defensa
+        // ante cualquier contaminación de estado intermedia o re-render con datos crudos.
+        const interest = parseFloat(String(selectedEntity?.interestRate ?? 2.3)) || 2.3;
+        const fng = parseFloat(String(selectedEntity?.fngRate ?? 0)) || 0;
+        const insurance = parseFloat(String(selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
 
         // Use Entity Parameters
         return calculateMaxLoan(
             dailyBudget * 30,
             initialPayment,
-            36,
+            36, // [PLAZO INMUTABLE] Argumento numérico fijo — no parametrizar bajo ninguna circunstancia
             interest,
             fng,
             insurance

@@ -52,12 +52,24 @@ describe('Reverse Calculator Mathematical Integrity', () => {
     });
 });
 
+// [SANITIZACI\u00d3N PERIMETRAL] Adaptador num\u00e9rico — replica la l\u00f3gica del useEffect post-fetch
+function sanitizeEntityPayload(raw: any) {
+    return {
+        ...raw,
+        interestRate: parseFloat(String(raw.interestRate ?? '2.3').replace('%', '')) || 2.3,
+        fngRate: parseFloat(String(raw.fngRate ?? '0').replace('%', '')) || 0,
+        lifeInsuranceValue: parseFloat(String(raw.lifeInsuranceValue ?? '0.1126').replace('%', '')) || 0.1126,
+        minDownPaymentPercentage: parseFloat(String(raw.minDownPaymentPercentage ?? '10').replace('%', '')) || 10,
+    };
+}
+
 class ComponentSimulation {
     private dailyBudget: number = 15000;
     private initialPayment: number = 0;
     private selectedEntity: any = null;
 
     setEntity(entity: any) {
+        // [SANITIZACI\u00d3N SECUNDARIA] Barrera de tipo en punto de c\u00e1lculo
         this.selectedEntity = entity;
     }
 
@@ -68,20 +80,90 @@ class ComponentSimulation {
     get calculation(): any {
         if (!this.selectedEntity) return null;
 
-        const interest = this.selectedEntity?.interestRate ?? 2.3;
-        const fng = this.selectedEntity?.fngRate ?? 0;
-        const insurance = this.selectedEntity?.lifeInsuranceValue ?? 0.1126;
+        // [BARRERA SECUNDARIA] parseFloat como \u00faltima l\u00ednea de defensa
+        const interest = parseFloat(String(this.selectedEntity?.interestRate ?? 2.3)) || 2.3;
+        const fng = parseFloat(String(this.selectedEntity?.fngRate ?? 0)) || 0;
+        const insurance = parseFloat(String(this.selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
 
         return calculateMaxLoan(
             this.dailyBudget * 30,
             this.initialPayment,
-            36,
+            36, // [PLAZO INMUTABLE]
             interest,
             fng,
             insurance
         );
     }
 }
+
+// ======================================================================================
+// PUNTO CIEGO DETECTADO Y SUBSANADO (WEB-837-REVISED-FINAL)
+// Los tests anteriores usaban objetos mock con tipos 'number' correctos.
+// El fallo real en Firestore ocurre cuando los campos llegan como string (ej: "1.91%").
+// Este bloque de tests cubre exactamente ese escenario que nunca fue validado.
+// ======================================================================================
+describe('Punto Ciego: Payload Firestore con strings y simbolo %', () => {
+    test('Entity con interestRate 1.91% retorna cupo valido (no NaN, > $10M)', () => {
+        const rawFirestorePayload = {
+            id: 'brilla',
+            name: 'Brilla',
+            interestRate: '1.91%',
+            fngRate: '15%',
+            lifeInsuranceValue: '0.1126%',
+            minDownPaymentPercentage: '10%',
+        };
+
+        const sanitized = sanitizeEntityPayload(rawFirestorePayload);
+
+        console.log('    [PUNTO CIEGO] Payload crudo Firestore:', rawFirestorePayload);
+        console.log('    [PUNTO CIEGO] Payload sanitizado:', sanitized);
+
+        if (isNaN(sanitized.interestRate)) throw new Error('interestRate es NaN tras sanitizacion');
+        if (isNaN(sanitized.fngRate)) throw new Error('fngRate es NaN tras sanitizacion');
+        if (isNaN(sanitized.lifeInsuranceValue)) throw new Error('lifeInsuranceValue es NaN tras sanitizacion');
+
+        if (Math.abs(sanitized.interestRate - 1.91) > 0.001) {
+            throw new Error('interestRate esperado: 1.91, obtenido: ' + sanitized.interestRate);
+        }
+        if (Math.abs(sanitized.fngRate - 15) > 0.001) {
+            throw new Error('fngRate esperado: 15, obtenido: ' + sanitized.fngRate);
+        }
+
+        const result = calculateMaxLoan(600000, 0, 36, sanitized.interestRate, sanitized.fngRate, sanitized.lifeInsuranceValue);
+        console.log('    [PUNTO CIEGO] Cupo calculado con payload string: ' + result.maxLoanAmount + ' COP');
+
+        if (isNaN(result.maxLoanAmount)) {
+            throw new Error('maxLoanAmount es NaN — cortocircuito NaN persiste');
+        }
+        if (result.maxLoanAmount <= 10000000) {
+            throw new Error('Cupo esperado > $10,000,000 COP, obtenido: ' + result.maxLoanAmount);
+        }
+    });
+
+    test('Entity con interestRate=2.3 (number) sigue funcionando tras sanitizacion', () => {
+        const rawNumericPayload = {
+            id: 'banco-bogota',
+            name: 'Banco de Bogota',
+            interestRate: 2.3,
+            fngRate: 0,
+            lifeInsuranceValue: 0,
+            minDownPaymentPercentage: 10,
+        };
+
+        const sanitized = sanitizeEntityPayload(rawNumericPayload);
+
+        if (Math.abs(sanitized.interestRate - 2.3) > 0.001) {
+            throw new Error('No-regresion fallo: interestRate esperado 2.3, obtenido ' + sanitized.interestRate);
+        }
+
+        const result = calculateMaxLoan(600000, 0, 36, sanitized.interestRate, sanitized.fngRate, sanitized.lifeInsuranceValue);
+        console.log('    [NO-REGRESION] Banco de Bogota - Cupo: ' + result.maxLoanAmount + ' COP');
+
+        if (result.maxLoanAmount <= 10000000) {
+            throw new Error('No-regresion fallo: cupo esperado > $10M, obtenido: ' + result.maxLoanAmount);
+        }
+    });
+});
 
 async function testAsync(name: string, fn: () => Promise<void>) {
     try {
