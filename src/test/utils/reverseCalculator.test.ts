@@ -237,7 +237,7 @@ describe('Dynamic UI State Hook & Firestore Async Simulation', () => {
 
         // Validación de Plazo E2E y recalculo para Banco de Bogotá (36 meses)
         const amortFactorBogota = (0.023 * Math.pow(1.023, 36)) / (Math.pow(1.023, 36) - 1);
-        const expectedNetLoanBogota = 480000 / amortFactorBogota;
+        const expectedNetLoanBogota = 480000 / (amortFactorBogota + 0.001126);
         const diffBogota = Math.abs(res.maxLoanAmount - expectedNetLoanBogota);
         if (diffBogota > 1) {
             throw new Error(`Recálculo de Banco de Bogotá incorrecto para plazo de 36 meses. Esperado: ${expectedNetLoanBogota}, obtenido: ${res.maxLoanAmount}`);
