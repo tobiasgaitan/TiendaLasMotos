@@ -144,7 +144,20 @@ export default function BudgetToBikePage() {
         // ante cualquier contaminación de estado intermedia o re-render con datos crudos.
         const interest = parseFloat(String(selectedEntity?.interestRate ?? 2.3)) || 2.3;
         const fng = parseFloat(String(selectedEntity?.fngRate ?? 0)) || 0;
-        const insurance = parseFloat(String(selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
+        
+        let insurance = parseFloat(String(selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
+        if (selectedEntity?.lifeInsuranceType === 'fixed') {
+            const r = interest / 100;
+            const n = 36;
+            const amortFactor = r > 0 ? (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : 1 / n;
+            const budget = dailyBudget * 30;
+            if (budget > insurance) {
+                // [WEB-838] Convert monthly fixed insurance cost to equivalent percentage rate for calculateMaxLoan
+                insurance = 100 * (insurance * amortFactor) / (budget - insurance);
+            } else {
+                insurance = 0;
+            }
+        }
 
         // Use Entity Parameters
         return calculateMaxLoan(

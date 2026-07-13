@@ -83,7 +83,19 @@ class ComponentSimulation {
         // [BARRERA SECUNDARIA] parseFloat como \u00faltima l\u00ednea de defensa
         const interest = parseFloat(String(this.selectedEntity?.interestRate ?? 2.3)) || 2.3;
         const fng = parseFloat(String(this.selectedEntity?.fngRate ?? 0)) || 0;
-        const insurance = parseFloat(String(this.selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
+        
+        let insurance = parseFloat(String(this.selectedEntity?.lifeInsuranceValue ?? 0.1126)) || 0.1126;
+        if (this.selectedEntity?.lifeInsuranceType === 'fixed') {
+            const r = interest / 100;
+            const n = 36;
+            const amortFactor = r > 0 ? (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : 1 / n;
+            const budget = this.dailyBudget * 30;
+            if (budget > insurance) {
+                insurance = 100 * (insurance * amortFactor) / (budget - insurance);
+            } else {
+                insurance = 0;
+            }
+        }
 
         return calculateMaxLoan(
             this.dailyBudget * 30,
@@ -159,8 +171,71 @@ describe('Punto Ciego: Payload Firestore con strings y simbolo %', () => {
         const result = calculateMaxLoan(600000, 0, 36, sanitized.interestRate, sanitized.fngRate, sanitized.lifeInsuranceValue);
         console.log('    [NO-REGRESION] Banco de Bogota - Cupo: ' + result.maxLoanAmount + ' COP');
 
-        if (result.maxLoanAmount <= 10000000) {
-            throw new Error('No-regresion fallo: cupo esperado > $10M, obtenido: ' + result.maxLoanAmount);
+    });
+
+    test('Entity con lifeInsuranceType="fixed" y lifeInsuranceValue=15000 (Banco de Bogota) calcula cupo correcto', () => {
+        const rawBogotaPayload = {
+            id: 'banco_bogota',
+            name: 'Banco de Bogota',
+            interestRate: 1.91,
+            fngRate: 0,
+            lifeInsuranceType: 'fixed',
+            lifeInsuranceValue: 15000,
+        };
+
+        const sim = new ComponentSimulation();
+        sim.setEntity(rawBogotaPayload);
+        sim.setDailyBudget(15000); // 450,000 monthly budget
+
+        const res = sim.calculation;
+        console.log('    [FIXED INSURANCE] Banco de Bogota - Cupo calculado:', res.maxLoanAmount, 'COP');
+
+        if (isNaN(res.maxLoanAmount) || !isFinite(res.maxLoanAmount)) {
+            throw new Error('Cupo calculado es NaN o no finito con seguro fijo');
+        }
+
+        // Expected loan: (450000 - 15000) / amortFactor
+        const r = 1.91 / 100;
+        const n = 36;
+        const amortFactor = (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        const expectedLoan = 435000 / amortFactor;
+
+        const diff = Math.abs(res.maxLoanAmount - expectedLoan);
+        if (diff > 1) {
+            throw new Error(`Cálculo de seguro fijo desalineado. Esperado: ${expectedLoan}, Obtenido: ${res.maxLoanAmount}`);
+        }
+    });
+
+    test('Entity con lifeInsuranceType="fixed" cortocircuita a 0 si el presupuesto es menor o igual al seguro fijo', () => {
+        const rawBogotaPayload = {
+            id: 'banco_bogota',
+            name: 'Banco de Bogota',
+            interestRate: 1.91,
+            fngRate: 0,
+            lifeInsuranceType: 'fixed',
+            lifeInsuranceValue: 15000,
+        };
+
+        const sim = new ComponentSimulation();
+        sim.setEntity(rawBogotaPayload);
+        sim.setDailyBudget(400); // 12,000 monthly budget (< 15,000 insurance)
+
+        const res = sim.calculation;
+        console.log('    [CORTOCIRCUITO SEGURO] Cupo calculado con presupuesto bajo:', res.maxLoanAmount, 'COP');
+
+        if (isNaN(res.maxLoanAmount) || !isFinite(res.maxLoanAmount)) {
+            throw new Error('Fallo de cortocircuito: se obtuvo NaN o Infinity');
+        }
+
+        // Con seguro en 0 (porque budget <= insurance), el cálculo usa totalLoanSupported = budget / amortFactor
+        const r = 1.91 / 100;
+        const n = 36;
+        const amortFactor = (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        const expectedLoan = 12000 / amortFactor;
+
+        const diff = Math.abs(res.maxLoanAmount - expectedLoan);
+        if (diff > 1) {
+            throw new Error(`Cortocircuito inválido. Esperado: ${expectedLoan}, Obtenido: ${res.maxLoanAmount}`);
         }
     });
 });

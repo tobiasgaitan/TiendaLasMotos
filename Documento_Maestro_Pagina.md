@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.6  
+**Versión del Stack & Hitos:** v8.4.7  
 **Última Actualización:** 2026-07-13  
-**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-838-HYDRATION-SYNCHRONY-BARRIER)
+**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-838-INSURANCE-SCALE-FIX)
 
 ---
 
@@ -88,4 +88,16 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
     3.  **Retorno Seguro**: Retornar `null` si `!isMounted` para forzar a Next.js a procesar la renderización de las ecuaciones matemáticas y el catálogo únicamente del lado del cliente hidratado.
     4.  **Preservación de Lógica**: Mantenimiento intacto del cálculo de plazo de 36 meses y los adaptadores `parseFloat` perimetrales e intermedios.
     5.  **Certificación**: Compilación de producción local con `npm run build` exitosa y código de salida 0 en la suite de pruebas unitarias `.agent/scripts/pytest`.
+
+---
+
+## 7. Normalización de Seguro de Vida Fijo (WEB-838-INSURANCE-SCALE-FIX)
+*   **Problema:** Inyección errónea del costo fijo absoluto del seguro de vida ($15.000 COP) directamente en el parámetro `insuranceRate` de `calculateMaxLoan` para Banco de Bogotá y Brilla, interpretándolo como una tasa mensual del 15.000%, lo que colapsaba el cupo de crédito a $11.997 COP.
+*   **Solución Aplicada:**
+    1.  **Inmutabilidad del Núcleo**: Se mantuvo intacto el archivo central `reverseCalculator.ts` sin alterar ninguna línea de cálculo de `calculateMaxLoan`.
+    2.  **Capa Adaptadora en useMemo**: Se inyectó una capa adaptadora matemática en el hook `useMemo` de `src/app/buscador/page.tsx`, `src/app/admin/presupuesto/page.tsx` y en el componente de simulación de pruebas `reverseCalculator.test.ts`.
+    3.  **Fórmula de Tasa Equivalente**: Se calcula dinámicamente la tasa mensual equivalente que deduzca del presupuesto mensual el valor fijo del seguro: `insurance = 100 * (insurance * amortFactor) / (budget - insurance)`.
+    4.  **Blindaje contra División por Cero**: Si el presupuesto es menor o igual al seguro de vida mensual, se cortocircuita la tasa a `0` para evitar divisiones por cero o valores indeterminados (`NaN`, `Infinity`).
+    5.  **Suite de Pruebas Unitarias**: Se agregaron dos pruebas específicas en `reverseCalculator.test.ts` para verificar la exactitud matemática y el comportamiento del cortocircuito de seguridad.
+
 
