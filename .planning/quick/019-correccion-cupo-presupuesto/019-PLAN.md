@@ -1,55 +1,57 @@
 ---
-task: 019
-name: Corrección Cupo Presupuesto y Remoción Crediorbe
-description: Aislamiento a 36 meses, creación de pruebas unitarias de caracterización y exclusión perimetral refinada de Crediorbe (insensible a mayúsculas/minúsculas).
+task: "019"
+name: "Corrección Cupo Presupuesto — Sanitización Perimetral y Plazo 36m"
+description: "WEB-837-REVISED-FINAL-PRODUCTION: Cortocircuito NaN por tipos String con % desde Firestore"
 ---
 
-# Quick Task 019: Corrección Cupo Presupuesto y Remoción Crediorbe
+# Quick Task 019: Sanitización Perimetral Post-Fetch + Plazo Inmutable 36m
 
 ## Objective
-Aislar el cálculo del cupo a 36 meses, crear pruebas unitarias de caracterización matemática en src/test/utils/reverseCalculator.test.ts para evitar futuros falsos positivos, refinar el filtro de exclusión de Crediorbe y actualizar la integración en el validador pytest del agente.
+Implementar adaptador numérico parseFloat post-fetch en useEffect de buscador y admin/presupuesto,
+y confirmar argumento 36 como inmutable en useMemo de calculateMaxLoan. Añadir test de caso borde
+con payload string tipo "1.91%" que era el punto ciego de la suite anterior.
 
 ## Tasks
 
 <task type="auto">
-  <name>Modificar reverseCalculator.ts</name>
-  <files>src/lib/utils/reverseCalculator.ts</files>
-  <action>Establecer el parámetro meses por defecto en 36.</action>
-  <verify>npx tsx -e "import { calculateMaxLoan } from './src/lib/utils/reverseCalculator'; console.log(calculateMaxLoan(450000, 0).maxLoanAmount)"</verify>
-  <done>La firma tiene 36 como parámetro por defecto.</done>
-</task>
-
-<task type="auto">
-  <name>Crear reverseCalculator.test.ts</name>
-  <files>src/test/utils/reverseCalculator.test.ts</files>
-  <action>Crear suite de pruebas unitarias con aserciones para cupo > 10M y tasas 0 (Banco de Bogotá).</action>
-  <verify>npx tsx src/test/utils/reverseCalculator.test.ts</verify>
-  <done>Las pruebas se ejecutan y pasan exitosamente.</done>
-</task>
-
-<task type="auto">
-  <name>Integrar tests en pytest</name>
-  <files>.agent/scripts/pytest</files>
-  <action>Modificar el script para correr las pruebas unitarias de frontend automáticamente.</action>
-  <verify>node .agent/scripts/pytest</verify>
-  <done>El shim ejecuta tanto tsc, eslint como las suites de pruebas unitarias.</done>
-</task>
-
-<task type="auto">
-  <name>Modificar buscador/page.tsx</name>
-  <files>src/app/buscador/page.tsx</files>
-  <action>Cambiar argumento a 36 en useMemo, refinar filtro de Crediorbe para id y name.</action>
-  <verify>node .agent/scripts/pytest</verify>
-  <done>El componente compila y pasa todas las validaciones.</done>
-</task>
-
-<task type="auto">
-  <name>Modificar admin/presupuesto/page.tsx</name>
+  <name>Bloque 1: Sanitización post-fetch en admin/presupuesto/page.tsx</name>
   <files>src/app/admin/presupuesto/page.tsx</files>
-  <action>Cambiar argumento a 36 en useMemo, refinar filtro de Crediorbe para id y name.</action>
-  <verify>node .agent/scripts/pytest</verify>
-  <done>El componente compila y pasa todas las validaciones.</done>
+  <action>Reemplazar el .map(d => ({ id: d.id, ...d.data() } as FinancialEntity)) con adaptador parseFloat</action>
+  <verify>grep -n "parseFloat" src/app/admin/presupuesto/page.tsx | grep interestRate</verify>
+  <done>grep devuelve la línea con parseFloat(String(raw.interestRate</done>
+</task>
+
+<task type="auto">
+  <name>Bloque 2: Barrera secundaria useMemo en admin/presupuesto/page.tsx</name>
+  <files>src/app/admin/presupuesto/page.tsx</files>
+  <action>Reemplazar lectura directa ?? por parseFloat en interest/fng/insurance + comentario [PLAZO INMUTABLE]</action>
+  <verify>grep -n "parseFloat\|PLAZO INMUTABLE" src/app/admin/presupuesto/page.tsx</verify>
+  <done>Ambas líneas presentes</done>
+</task>
+
+<task type="auto">
+  <name>Bloque 3: Sanitización post-fetch en buscador/page.tsx</name>
+  <files>src/app/buscador/page.tsx</files>
+  <action>Reemplazar el .map(d => ({ id: d.id, ...d.data() } as FinancialEntity)) con adaptador parseFloat</action>
+  <verify>grep -n "parseFloat" src/app/buscador/page.tsx | grep interestRate</verify>
+  <done>grep devuelve la línea con parseFloat(String(raw.interestRate</done>
+</task>
+
+<task type="auto">
+  <name>Bloque 4: Barrera secundaria useMemo en buscador/page.tsx</name>
+  <files>src/app/buscador/page.tsx</files>
+  <action>Reemplazar lectura directa ?? por parseFloat en interest/fng/insurance + comentario [PLAZO INMUTABLE]</action>
+  <verify>grep -n "parseFloat\|PLAZO INMUTABLE" src/app/buscador/page.tsx</verify>
+  <done>Ambas líneas presentes</done>
+</task>
+
+<task type="auto">
+  <name>Bloque 5: Test de caso borde string con % en reverseCalculator.test.ts</name>
+  <files>src/test/utils/reverseCalculator.test.ts</files>
+  <action>Añadir test que simule payload Firestore con tipos string "1.91%" para cubrir el punto ciego</action>
+  <verify>npx tsx src/test/utils/reverseCalculator.test.ts</verify>
+  <done>Todos los tests pasan con PASSED</done>
 </task>
 
 ---
-*Created: 2026-07-13*
+*Created: 2026-07-13 COT by Antigravity*
