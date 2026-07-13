@@ -75,3 +75,4 @@
 - [x] **Quick-015 (WEB-DOC-INIT-843):** Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1. Completado (2026-06-29).
 - [x] **Quick-018 (WEB-837):** Unificación reactiva de sys_alerts y anomalias en novedades y prospectos. Completado (2026-07-06) con Coherence Score 1.000.
 - [x] **Quick-019 (WEB-837-REVISED-FINAL):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
+- [x] **Quick-020 (WEB-838):** Barrera de sincronía isMounted en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.

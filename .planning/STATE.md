@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.5
+# Estado Actual: DEPLOYED_v8.4.6
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -11,8 +11,9 @@
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
 - **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
 - **WEB-837-REVISED-FINAL (Hotfix):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en el buscador público y administrativo.
+- **WEB-838-HYDRATION-SYNCHRONY-BARRIER (Hotfix):** Implementación de la barrera de montaje isMounted en buscador y admin/presupuesto para eliminar discrepancias de hidratación en pre-renderizado.
 
-**Versión:** v8.4.5 (Beta Release - WEB-837-REVISED-FINAL)
+**Versión:** v8.4.6 (Beta Release - WEB-838-HYDRATION-SYNCHRONY-BARRIER)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -70,8 +71,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 017 | Crear página administrativa de novedades y auditoría de anomalías | 2026-06-30 | `eb0e71f` | `017-hotfix-crear-pagina-novedades` |
 | 018 | Unificación reactiva de sys_alerts y anomalias en novedades y prospectos | 2026-07-06 | `ab2cf03` | `018-hotfix-web-837-sys-alerts` |
 | 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837-REVISED) | 2026-07-13 | `b69bd65` | `019-correccion-cupo-presupuesto` |
+| 020 | Barrera de Sincronía isMounted en buscador y admin/presupuesto (WEB-838) | 2026-07-13 | `da5e9c8` | `019-correccion-cupo-presupuesto` |
 
 ---
-*Última actualización: 2026-07-13 00:00 COT por Antigravity*
+*Última actualización: 2026-07-13 00:32 COT por Antigravity*
 
 
