@@ -37,7 +37,7 @@ export default function BuscadorPublicoPage() {
         if (!selectedEntity) return null;
 
         return calculateMaxLoan(
-            dailyBudget,
+            dailyBudget * 30,
             initialPayment,
             48,
             selectedEntity.interestRate || 2.3,
@@ -91,11 +91,13 @@ export default function BuscadorPublicoPage() {
 
                 // B. Financial Entities
                 const entSnap = await getDocs(collection(db, "financial_config/general/financieras"));
-                const entList = entSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialEntity));
+                const entList = entSnap.docs
+                    .map(d => ({ id: d.id, ...d.data() } as FinancialEntity))
+                    .filter(e => e.id.toLowerCase() !== 'crediorbe' && !e.name.toLowerCase().includes('crediorbe'));
                 setEntities(entList);
 
-                // Select Crediorbe by default or first available
-                const defaultEnt = entList.find(e => e.name.toLowerCase().includes('crediorbe')) || entList[0];
+                // Select default or first available remaining entity (e.g., Brilla)
+                const defaultEnt = entList[0];
                 if (defaultEnt) {
                     setSelectedEntityId(defaultEnt.id);
                     setSelectedEntity(defaultEnt);
