@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.5  
+**Versión del Stack & Hitos:** v8.4.6  
 **Última Actualización:** 2026-07-13  
-**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-837-REVISED-FINAL)
+**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-838-HYDRATION-SYNCHRONY-BARRIER)
 
 ---
 
@@ -77,3 +77,15 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
         ```
     2.  **Sincronización a 36 Meses**: Se garantiza que el tercer argumento de la función `calculateMaxLoan` esté fijado de forma inmutable en el valor numérico `36` en ambas páginas, garantizando paridad matemática.
     3.  **Certificación**: Validación exitosa del tipado TypeScript y pruebas unitarias standalone de rango matemático de `reverseCalculator` en el script local `.agent/scripts/pytest`.
+
+---
+
+## 6. Barrera de Sincronía de Hidratación en App Router (WEB-838-HYDRATION-SYNCHRONY-BARRIER)
+*   **Problema:** Discrepancia de hidratación (Hydration Mismatch) asíncrona en Next.js. El servidor pre-renderiza de forma estática la vista del cliente ('use client') antes de que Firestore instancie el payload flotante, atrapando el estado reactivo en los valores de fallback mínimos por defecto.
+*   **Solución Aplicada:**
+    1.  **Barrera isMounted**: Inyección de un estado controlado de montaje `isMounted` en `src/app/buscador/page.tsx` y `src/app/admin/presupuesto/page.tsx`.
+    2.  **Ciclo de Montaje Síncrono**: Activar el estado en un `useEffect` local de montaje (con bypass de ESLint de cascading renders).
+    3.  **Retorno Seguro**: Retornar `null` si `!isMounted` para forzar a Next.js a procesar la renderización de las ecuaciones matemáticas y el catálogo únicamente del lado del cliente hidratado.
+    4.  **Preservación de Lógica**: Mantenimiento intacto del cálculo de plazo de 36 meses y los adaptadores `parseFloat` perimetrales e intermedios.
+    5.  **Certificación**: Compilación de producción local con `npm run build` exitosa y código de salida 0 en la suite de pruebas unitarias `.agent/scripts/pytest`.
+

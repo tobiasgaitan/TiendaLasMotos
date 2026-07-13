@@ -19,6 +19,13 @@ import Link from "next/link";
  * @returns {JSX.Element} The budget finder page
  */
 export default function BuscadorPublicoPage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsMounted(true);
+    }, []);
+
     const [loading, setLoading] = useState(true);
     const [allMotos, setAllMotos] = useState<Moto[]>([]);
 
@@ -182,6 +189,8 @@ export default function BuscadorPublicoPage() {
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
     };
+
+    if (!isMounted) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">

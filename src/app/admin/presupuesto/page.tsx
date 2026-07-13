@@ -12,6 +12,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default function BudgetToBikePage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsMounted(true);
+    }, []);
+
     const [loading, setLoading] = useState(true);
     const [allMotos, setAllMotos] = useState<Moto[]>([]);
 
@@ -193,6 +200,8 @@ export default function BudgetToBikePage() {
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
     };
+
+    if (!isMounted) return null;
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
