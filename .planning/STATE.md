@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.2
+# Estado Actual: DEPLOYED_v8.4.5
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -10,8 +10,9 @@
 - **BOT-TECH-DEBT-837:** Migración de `functions.config()` a `firebase-functions/params` (`defineString`) en los servicios de correo `mailer.ts` y `sendUserInvitation.ts` para evitar fallos de Runtime Config en v2.
 - **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
 - **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
+- **WEB-837-REVISED-FINAL (Hotfix):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en el buscador público y administrativo.
 
-**Versión:** v8.4.2 (Beta Release - WEB-ANOMALY-PAGE-842)
+**Versión:** v8.4.5 (Beta Release - WEB-837-REVISED-FINAL)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.

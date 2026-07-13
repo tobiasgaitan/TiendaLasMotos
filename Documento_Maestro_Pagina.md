@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.4  
-**Última Actualización:** 2026-07-06  
-**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados)
+**Versión del Stack & Hitos:** v8.4.5  
+**Última Actualización:** 2026-07-13  
+**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-837-REVISED-FINAL)
 
 ---
 
@@ -63,3 +63,17 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 3.  **Registro de Payloads de Red:** Si ocurre un fallo en una API externa (Meta, Socrata, Firebase), el log debe incluir el cuerpo completo de la petición y el texto crudo de la respuesta de error del proveedor (`e.response.text` o equivalente).
 4.  **Anti-Null Masking:** Prohibido el uso de encadenamientos opcionales (`?.`) o métodos tolerantes a fallas (`.get()`) en llaves de configuración críticas para evitar enmascarar propiedades renombradas o eliminadas. Si falta una llave requerida por el LLM, el sistema debe arrojar un error explícito.
 5.  **Bypass de Componentes Vacíos:** Para APIs de Meta, no se deben enviar arrays vacíos (`[]`) en llaves críticas de componentes si el proveedor externo no lo tolera. Se requiere lógica condicional para omitir la llave entera.
+
+---
+
+## 5. Normalización de Parámetros de UI y Plazo a 36 Meses (WEB-837-REVISED-FINAL)
+*   **Problema:** Desincronización de escala de variables asíncronas en los hooks `useMemo` de las calculadoras de cupo/presupuesto. Las páginas frontend continuaban inyectando el argumento rígido de 48 meses al calculador, y el factor de seguros sin normalizar provocaba un cortocircuito NaN que congelaba el cupo estimado en $11,997 COP.
+*   **Solución Aplicada:**
+    1.  **Normalización de Parámetros**: Modificación de los bloques `useMemo` de cálculo derivado en `src/app/buscador/page.tsx` y `src/app/admin/presupuesto/page.tsx` para evaluar la existencia real y limpia de las propiedades de la entidad financiera seleccionada utilizando el operador de coalescencia nula `??` para evitar la coerción incorrecta de tasas en $0$.
+        ```typescript
+        const interest = selectedEntity?.interestRate ?? 2.3;
+        const fng = selectedEntity?.fngRate ?? 0;
+        const insurance = selectedEntity?.lifeInsuranceValue ?? 0.1126;
+        ```
+    2.  **Sincronización a 36 Meses**: Se garantiza que el tercer argumento de la función `calculateMaxLoan` esté fijado de forma inmutable en el valor numérico `36` en ambas páginas, garantizando paridad matemática.
+    3.  **Certificación**: Validación exitosa del tipado TypeScript y pruebas unitarias standalone de rango matemático de `reverseCalculator` en el script local `.agent/scripts/pytest`.
