@@ -36,13 +36,17 @@ export default function BuscadorPublicoPage() {
     const calculation = useMemo(() => {
         if (!selectedEntity) return null;
 
+        const interest = selectedEntity?.interestRate ?? 2.3;
+        const fng = selectedEntity?.fngRate ?? 0;
+        const insurance = selectedEntity?.lifeInsuranceValue ?? 0.1126;
+
         return calculateMaxLoan(
             dailyBudget * 30,
             initialPayment,
             36,
-            selectedEntity.interestRate || 2.3,
-            selectedEntity.fngRate || 0,
-            selectedEntity.lifeInsuranceValue || 0.1126
+            interest,
+            fng,
+            insurance
         );
     }, [dailyBudget, initialPayment, selectedEntity]);
 
