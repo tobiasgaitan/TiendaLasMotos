@@ -43,7 +43,7 @@
 export const calculateMaxLoan = (
     monthlyBudget: number,
     initialPayment: number,
-    months: number = 48,
+    months: number = 36,
     interestRate: number = 2.3, // Default if not provided
     fngRate: number = 20.66,    // Default if not provided
     insuranceRate: number = 0.1126 // Default if not provided
