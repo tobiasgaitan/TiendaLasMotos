@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.6
+# Estado Actual: DEPLOYED_v8.4.7
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -12,8 +12,9 @@
 - **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
 - **WEB-837-REVISED-FINAL (Hotfix):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en el buscador público y administrativo.
 - **WEB-838-HYDRATION-SYNCHRONY-BARRIER (Hotfix):** Implementación de la barrera de montaje isMounted en buscador y admin/presupuesto para eliminar discrepancias de hidratación en pre-renderizado.
+- **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 
-**Versión:** v8.4.6 (Beta Release - WEB-838-HYDRATION-SYNCHRONY-BARRIER)
+**Versión:** v8.4.7 (Beta Release - WEB-838-INSURANCE-SCALE-FIX)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -72,8 +73,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 018 | Unificación reactiva de sys_alerts y anomalias en novedades y prospectos | 2026-07-06 | `ab2cf03` | `018-hotfix-web-837-sys-alerts` |
 | 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837-REVISED) | 2026-07-13 | `b69bd65` | `019-correccion-cupo-presupuesto` |
 | 020 | Barrera de Sincronía isMounted en buscador y admin/presupuesto (WEB-838) | 2026-07-13 | `da5e9c8` | `019-correccion-cupo-presupuesto` |
+| 021 | Normalización de Seguro de Vida Fijo y protección división cero (WEB-838) | 2026-07-13 | `b71a7c0` | `019-correccion-cupo-presupuesto` |
 
 ---
-*Última actualización: 2026-07-13 00:32 COT por Antigravity*
+*Última actualización: 2026-07-13 10:07 COT por Antigravity*
 
 
