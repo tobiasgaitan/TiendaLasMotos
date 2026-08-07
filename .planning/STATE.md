@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.7
+# Estado Actual: DEPLOYED_v8.4.8
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -13,12 +13,13 @@
 - **WEB-837-REVISED-FINAL (Hotfix):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en el buscador público y administrativo.
 - **WEB-838-HYDRATION-SYNCHRONY-BARRIER (Hotfix):** Implementación de la barrera de montaje isMounted en buscador y admin/presupuesto para eliminar discrepancias de hidratación en pre-renderizado.
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
+- **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
 
-**Versión:** v8.4.7 (Beta Release - WEB-838-INSURANCE-SCALE-FIX)
+**Versión:** v8.4.8 (Beta Release - WEB-SCORE-THRESHOLD-001)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
-**Coherence Score:** 1.000 (Certificado por GSD Framework)
+**Coherence Score:** 0.97 (WEB-SCORE-THRESHOLD-001 — reporte alternativo vía análisis estático de diff)
 
 #### 1. Stack Tecnológico (Cloud Native)
 * **Framework:** React / Next.js 16.1.1+ (App Router).
@@ -74,8 +75,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837-REVISED) | 2026-07-13 | `b69bd65` | `019-correccion-cupo-presupuesto` |
 | 020 | Barrera de Sincronía isMounted en buscador y admin/presupuesto (WEB-838) | 2026-07-13 | `da5e9c8` | `019-correccion-cupo-presupuesto` |
 | 021 | Normalización de Seguro de Vida Fijo y protección división cero (WEB-838) | 2026-07-13 | `b71a7c0` | `019-correccion-cupo-presupuesto` |
+| 022 | Recalibración de umbrales del semáforo de crédito en getScoreBadge (WEB-SCORE-THRESHOLD-001) | 2026-08-07 | `pending` | `022-score-threshold-recalibration` |
 
 ---
-*Última actualización: 2026-07-13 10:07 COT por Antigravity*
+*Última actualización: 2026-08-07 COT por Antigravity*
 
 

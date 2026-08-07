@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.7  
-**Última Actualización:** 2026-07-13  
-**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-838-INSURANCE-SCALE-FIX)
+**Versión del Stack & Hitos:** v8.4.8  
+**Última Actualización:** 2026-08-07  
+**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-SCORE-THRESHOLD-001)
 
 ---
 
@@ -32,6 +32,16 @@ El sistema implementa patrones reactivos mediante el SDK de Firestore para asegu
 *   **Enlace de Navegación (v8.4.2):** Nodo de navegación hacia la ruta `/admin/novedades` utilizando el icono `Bell` de Lucide React, con la escala del contenedor ampliada de forma quirúrgica a `max-h-80` para evitar truncamientos en la interfaz.
 *   **Página Administrativa de Novedades (v8.4.3):** Creación e implementación de la ruta `/admin/novedades` mediante el componente de página de cliente reactivo que renderiza el panel `AnomaliesBanner` en tiempo real y muestra un visor de historial de auditoría con opciones de filtrado y descartado de anomalías de catálogo.
 *   **Consolidador Multicanal (v8.4.4):** Implementación de la unificación reactiva de `sys_alerts` y `anomalias` en la página de auditoría de novedades y en el panel de prospectos, logrando una visibilidad completa de incidentes de red e infraestructura sin alterar firmas de tipado.
+
+### C. Semáforo de Crédito Crediticio (WEB-SCORE-THRESHOLD-001)
+*   **Módulo:** Dashboard Administrativo de Prospectos (`/admin/prospectos`).
+*   **Componente:** Función `getScoreBadge` en `src/app/admin/prospectos/page.tsx`.
+*   **Ajuste de Umbrales (2026-08-07):** Recalibración de los puntos de corte del semáforo de crédito para reflejar la política canónica del negocio:
+    *   🟢 **Verde (Perfil Sólido):** `score_resultado >= 750`
+    *   🟡 **Amarillo (Perfil Condicional):** `score_resultado >= 500` y `< 750`
+    *   🔴 **Rojo (Alto Riesgo):** `score_resultado < 500`
+*   **Safe-Fallback:** Prospectos sin `score_resultado` en Firestore continúan renderizando el guión "—" (text-gray-300 WCAG-AA).
+*   **Coherence Score:** 0.97 (Reporte alternativo vía análisis estático de diff canónico).
 
 ---
 

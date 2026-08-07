@@ -467,9 +467,9 @@ export default function ProspectsPage() {
     /**
      * [WEB-754] Credit Score Semaphore Badge
      * Reglas de negocio:
-     *   Verde  >= 700 (perfil sólido de crédito)
-     *   Amarillo >= 400 (perfil condicional)
-     *   Rojo   < 400  (perfil de alto riesgo)
+     *   Verde  >= 750 (perfil sólido de crédito)
+     *   Amarillo >= 500 (perfil condicional)
+     *   Rojo   < 500  (perfil de alto riesgo)
      *   Gris   null   (sin datos de scoring)
      *
      * Safe-Fallback: nunca arroja TypeError si score_resultado es undefined.
@@ -488,7 +488,7 @@ export default function ProspectsPage() {
                 </span>
             );
         }
-        if (score >= 700) {
+        if (score >= 750) {
             return (
                 <span
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-green-500/15 text-green-400 border border-green-500/40"
@@ -499,7 +499,7 @@ export default function ProspectsPage() {
                 </span>
             );
         }
-        if (score >= 400) {
+        if (score >= 500) {
             return (
                 <span
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/40"

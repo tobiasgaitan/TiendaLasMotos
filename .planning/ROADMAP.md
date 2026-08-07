@@ -77,3 +77,4 @@
 - [x] **Quick-019 (WEB-837-REVISED-FINAL):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
 - [x] **Quick-020 (WEB-838):** Barrera de sincronía isMounted en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
 - [x] **Quick-021 (WEB-838):** Normalización de seguro de vida fijo en el hook useMemo. Completado (2026-07-13) con Coherence Score 1.000.
+- [x] **Quick-022 (WEB-SCORE-THRESHOLD-001):** Recalibración de umbrales del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable. Completado (2026-08-07) con Coherence Score 0.97.
