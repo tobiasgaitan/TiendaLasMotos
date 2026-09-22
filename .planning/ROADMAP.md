@@ -78,3 +78,31 @@
 - [x] **Quick-020 (WEB-838):** Barrera de sincronía isMounted en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
 - [x] **Quick-021 (WEB-838):** Normalización de seguro de vida fijo en el hook useMemo. Completado (2026-07-13) con Coherence Score 1.000.
 - [x] **Quick-022 (WEB-SCORE-THRESHOLD-001):** Recalibración de umbrales del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable. Completado (2026-08-07) con Coherence Score 0.97.
+
+---
+
+# MILESTONE 3: Módulo de Gestión de Créditos (CRUD) — Fase 8
+
+## Progreso
+
+| Fase | Nombre | Estado | Planes | Fecha |
+|------|--------|--------|--------|-------|
+| 8 | Módulo de Gestión de Créditos (CRUD) | Planificado | 08-01..08-06 | 2026-09-22 |
+
+## Fases
+
+### Fase 8: Módulo de Gestión de Créditos (CRUD)
+**Meta:** CRUD operativo sobre las 6 colecciones canónicas con NAMING LOCK, Server
+Actions con `registrado_por` verificado, ledger `historial_auditoria` inmutable,
+nodo `CreditCard` en sidebar y rutas `/admin/creditos/...`.
+**Requisitos:** R-CR1 – R-CR12
+- [ ] 08-01: Contratos TS + esquema Firestore (NAMING LOCK, sección 1 verbatim)
+- [ ] 08-02: Reglas Firestore (bloqueo writes cliente + gate de constancia C2)
+- [ ] 08-03: Server Actions core + correlativo CRE-YYYY-XXXX (gate C7 pre-ejecución)
+- [ ] 08-04: Server Actions financieras (MULTA con motivo, remisiones con estados)
+- [ ] 08-05: Sidebar CreditCard + rutas + UI créditos/clientes (C3, C4)
+- [ ] 08-06: UI financieras + vista auditoría read-only + E2E en Beta
+
+**Gates bloqueantes:** R-CR11 (C7, confirmación del bot) antes de ejecutar 08-03;
+constancia C2 antes de desplegar reglas de 08-02. `/gsd-execute` prohibido hasta
+revisión y sello final del usuario.

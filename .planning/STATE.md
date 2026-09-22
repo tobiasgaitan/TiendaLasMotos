@@ -80,4 +80,23 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 ---
 *Última actualización: 2026-08-07 COT por Antigravity*
 
+---
+
+## Milestone 3 — Fase 8: Módulo de Gestión de Créditos (Planificado 2026-09-22)
+
+**Estado de fase:** Planificado (6 planes atómicos en `.planning/phases/08-gestion-creditos/`).
+**Decisiones clave (usuario):**
+- NAMING LOCK sobre las 7 colecciones; `sys_admin_users` fuera del alcance del módulo.
+- `clientes_credito` bajo NAMING LOCK físico: claves inmutables `cedula`, `nombres`,
+  `celular`, `direccion`, `fecha_registro` (evidencia doc `XSh6FVoyUGKrfMkCFnvR`); `cedula`
+  no sustituible; `created_at` no aplica ahí (SSOT = `fecha_registro`).
+- CRUD total en `creditos`; alta/edición en las 4 financieras; `historial_auditoria`
+  append-only; prohibido borrado físico (baja lógica por colección).
+- `registrado_por` = uid verificado vía `verifyIdToken`; matriz de operaciones por colección.
+**Gates bloqueantes:**
+- R-CR11/C7: confirmación de Tobias sobre escrituras del bot antes de ejecutar 08-03.
+- C2: constancia escrita de ausencia de writers client-SDK antes de desplegar reglas 08-02.
+- `/gsd-execute` prohibido hasta revisión y sello final del usuario.
+**Última actividad:** 2026-09-22 — Fase 8 planificada (aditivo, histórico v8.4.8 intacto).
+
 

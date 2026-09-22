@@ -24,3 +24,31 @@ Estos requisitos representan los cambios estructurales e integración necesarios
 
 ---
 *Última actualización: 2026-05-17 por Antigravity*
+
+# Módulo de Gestión de Créditos — Fase 8 (CRUD)
+
+## Visión General
+Construir el CRUD del Módulo de Gestión de Créditos sobre las 6 colecciones canónicas
+(`clientes_credito`, `creditos`, `historial_auditoria`, `pagos_inversores`,
+`pagos_y_multas`, `remisiones_dinero`) con NAMING LOCK, Server Actions con
+`registrado_por` verificado y ledger inmutable. `sys_admin_users` fuera de alcance.
+
+## V1 — Obligatorio (Must Have)
+
+| ID    | Requisito | Plan | Estado |
+|-------|-----------|------|--------|
+| R-CR1 | Contratos TS + esquema Firestore con NAMING LOCK (sección 1 verbatim). | 08-01 | Planificado |
+| R-CR2 | Reglas: lectura autenticada + bloqueo de writes de cliente en las 6 colecciones; gate de constancia C2 pre-deploy. | 08-02 | Planificado |
+| R-CR3 | Server Actions core: `requireActor` (verifyIdToken), `appendAuditoria`, CRUD `creditos`, alta/edición `clientes_credito`. Gate C7 pre-ejecución. | 08-03 | Planificado |
+| R-CR4 | Server Actions financieras: `pagos_inversores`, `pagos_y_multas` (motivo obligatorio en MULTA), `remisiones_dinero` (origen≠destino, máquina de estados). | 08-04 | Planificado |
+| R-CR5 | Sidebar: grupo "Gestión de Créditos" con `CreditCard`, clave `creditos`, 6 enlaces sin truncamiento; rutas `/admin/creditos/...` bajo el guard existente. | 08-05 | Planificado |
+| R-CR6 | UI créditos/clientes con C4 (Burst Mitigation, Faraday Cage, tolerancia celular legacy 10 dígitos). | 08-05 | Planificado |
+| R-CR7 | UI financieras + vista `historial_auditoria` estrictamente read-only. | 08-06 | Planificado |
+| R-CR8 | Correlativo `numero_credito = CRE-YYYY-XXXX` aditivo en `configuracion/counters` (`creditoCount`/`creditoYear`) vía `runTransaction`. | 08-03 | Planificado |
+| R-CR9 | Baja lógica (`activo=false` + `motivo_baja`/`fecha_baja`/`baja_por`) en las 5 colecciones operativas; prohibido `delete()` físico. | 08-03/04 | Planificado |
+| R-CR10 | `registrado_por` = uid verificado + append a `historial_auditoria` en TODA escritura. | 08-03/04 | Planificado |
+| R-CR11 | Gate C7: confirmación de Tobias sobre escrituras del bot antes de ejecutar 08-03. | 08-03 | Bloqueado |
+| R-CR12 | Verificación E2E en `https://tiendalasmotos-beta.web.app` con datos reales de Firestore. | 08-06 | Planificado |
+
+---
+*Última actualización: 2026-09-22 — Fase 8 planificada (aditivo, sin alterar R1–R9)*
