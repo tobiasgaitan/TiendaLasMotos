@@ -537,3 +537,617 @@ export async function softDeleteClienteCredito(id: string, motivo: string, actor
         return fail(error instanceof Error ? error.message : "Error al dar de baja el cliente.");
     }
 }
+
+// ==========================================
+// 3. PAGOS A INVERSORES (Plan 08-04 T1)
+// ==========================================
+
+/** Verifica que el crédito exista y esté activo. Rechaza huérfanos silenciosos. */
+async function assertCreditoActivo(credito_id: string): Promise<{ ok: boolean; message?: string }> {
+    const adminDb = getDb();
+    const snap = await adminDb.collection("creditos").doc(credito_id).get();
+    if (!snap.exists) {
+        return { ok: false, message: "El crédito no existe." };
+    }
+    const data = snap.data() as Record<string, unknown>;
+    if (data.activo === false) {
+        return { ok: false, message: "El crédito no existe o está inactivo." };
+    }
+    return { ok: true };
+}
+
+const createPagoInversorSchema = z.object({
+    credito_id: z.string().min(1, { message: "El crédito es obligatorio" }),
+    inversionista_id: z.string().min(1, { message: "El inversionista es obligatorio" }),
+    monto: z.coerce.number().min(0, { message: "El monto debe ser ≥ 0" }),
+    fecha_pago: z.string().min(1, { message: "La fecha de pago es obligatoria" }),
+    metodo_pago: z.enum(["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "OTRO"]),
+    referencia: z.string().trim().optional(),
+});
+
+export async function createPagoInversor(input: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = createPagoInversorSchema.safeParse(input);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+    const fechaPago = new Date(validated.data.fecha_pago);
+    if (isNaN(fechaPago.getTime())) {
+        return fail("Fecha de pago inválida.", { fecha_pago: ["Fecha inválida"] });
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const check = await assertCreditoActivo(validated.data.credito_id);
+        if (!check.ok) {
+            return fail(check.message as string);
+        }
+        const adminDb = getDb();
+        const now = new Date();
+
+        const payload: Record<string, unknown> = {
+            credito_id: validated.data.credito_id,
+            inversionista_id: validated.data.inversionista_id,
+            monto: validated.data.monto,
+            fecha_pago: fechaPago,
+            metodo_pago: validated.data.metodo_pago,
+            referencia: validated.data.referencia ?? null,
+            estado: "PENDIENTE",
+            registrado_por: actorData.uid,
+            registrado_por_email: actorData.email ?? null,
+            activo: true,
+            created_at: now,
+            updated_at: now,
+        };
+
+        const docRef = await adminDb.collection("pagos_inversores").add(payload);
+        await appendAuditoria({
+            coleccion: "pagos_inversores",
+            documentoId: docRef.id,
+            operacion: "CREATE",
+            antes: null,
+            despues: payload,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-inversores");
+        return { success: true, message: "Pago a inversor registrado.", id: docRef.id };
+    } catch (error) {
+        console.error("[creditos] createPagoInversor falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al registrar el pago.");
+    }
+}
+
+const updatePagoInversorSchema = createPagoInversorSchema.partial();
+
+export async function updatePagoInversor(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = updatePagoInversorSchema.safeParse(patch);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("pagos_inversores").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("El pago no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("El pago está inactivo (baja lógica).");
+        }
+
+        const patchData = { ...validated.data } as Record<string, unknown>;
+        // Reasignación prohibida: se descartan si vienen.
+        delete patchData.credito_id;
+        delete patchData.inversionista_id;
+        if (typeof patchData.fecha_pago === "string") {
+            const f = new Date(patchData.fecha_pago);
+            if (isNaN(f.getTime())) {
+                return fail("Fecha de pago inválida.", { fecha_pago: ["Fecha inválida"] });
+            }
+            patchData.fecha_pago = f;
+        }
+
+        const now = new Date();
+        const updatePayload: Record<string, unknown> = {
+            ...patchData,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(updatePayload);
+        const despues = { ...antes, ...updatePayload };
+        await appendAuditoria({
+            coleccion: "pagos_inversores",
+            documentoId: id,
+            operacion: "UPDATE",
+            antes,
+            despues,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-inversores");
+        return { success: true, message: "Pago a inversor actualizado.", id };
+    } catch (error) {
+        console.error("[creditos] updatePagoInversor falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al actualizar el pago.");
+    }
+}
+
+export async function softDeletePagoInversor(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    if (!motivo || motivo.trim().length === 0) {
+        return fail("La baja lógica exige un motivo.");
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("pagos_inversores").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("El pago no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("El pago ya está inactivo.");
+        }
+
+        // Baja lógica. PROHIBIDO delete() físico.
+        const now = new Date();
+        const bajaPayload: Record<string, unknown> = {
+            activo: false,
+            motivo_baja: motivo.trim(),
+            fecha_baja: now,
+            baja_por: actorData.uid,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(bajaPayload);
+        await appendAuditoria({
+            coleccion: "pagos_inversores",
+            documentoId: id,
+            operacion: "SOFT_DELETE",
+            antes,
+            despues: { ...antes, ...bajaPayload },
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-inversores");
+        return { success: true, message: "Pago dado de baja (lógica).", id };
+    } catch (error) {
+        console.error("[creditos] softDeletePagoInversor falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al dar de baja el pago.");
+    }
+}
+
+// ==========================================
+// 4. PAGOS Y MULTAS (Plan 08-04 T2)
+// Regla: motivo obligatorio cuando tipo === 'MULTA'.
+// ==========================================
+
+const pagoYMultaBase = z.object({
+    credito_id: z.string().min(1, { message: "El crédito es obligatorio" }),
+    tipo: z.enum(["PAGO", "MULTA"]),
+    monto: z.coerce.number().min(0, { message: "El monto debe ser ≥ 0" }),
+    fecha: z.string().min(1, { message: "La fecha es obligatoria" }),
+    metodo_pago: z.enum(["EFECTIVO", "TRANSFERENCIA", "TARJETA", "PSE"]).optional(),
+    motivo: z.string().trim().optional(),
+    referencia: z.string().trim().optional(),
+});
+
+const createPagoYMultaSchema = pagoYMultaBase.refine(
+    (data) => data.tipo !== "MULTA" || (data.motivo ?? "").trim().length > 0,
+    {
+        message: "La multa exige motivo",
+        path: ["motivo"],
+    }
+);
+
+export async function createPagoYMulta(input: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = createPagoYMultaSchema.safeParse(input);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+    const fecha = new Date(validated.data.fecha);
+    if (isNaN(fecha.getTime())) {
+        return fail("Fecha inválida.", { fecha: ["Fecha inválida"] });
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const check = await assertCreditoActivo(validated.data.credito_id);
+        if (!check.ok) {
+            return fail(check.message as string);
+        }
+        const adminDb = getDb();
+        const now = new Date();
+
+        const payload: Record<string, unknown> = {
+            credito_id: validated.data.credito_id,
+            tipo: validated.data.tipo,
+            monto: validated.data.monto,
+            fecha,
+            metodo_pago: validated.data.metodo_pago ?? null,
+            motivo: validated.data.motivo?.trim() ?? null,
+            referencia: validated.data.referencia ?? null,
+            estado: "PENDIENTE",
+            registrado_por: actorData.uid,
+            registrado_por_email: actorData.email ?? null,
+            activo: true,
+            created_at: now,
+            updated_at: now,
+        };
+
+        const docRef = await adminDb.collection("pagos_y_multas").add(payload);
+        await appendAuditoria({
+            coleccion: "pagos_y_multas",
+            documentoId: docRef.id,
+            operacion: "CREATE",
+            antes: null,
+            despues: payload,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-multas");
+        return { success: true, message: validated.data.tipo === "MULTA" ? "Multa registrada." : "Pago registrado.", id: docRef.id };
+    } catch (error) {
+        console.error("[creditos] createPagoYMulta falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al registrar.");
+    }
+}
+
+const updatePagoYMultaSchema = pagoYMultaBase.partial();
+
+export async function updatePagoYMulta(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = updatePagoYMultaSchema.safeParse(patch);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("pagos_y_multas").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("El registro no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("El registro está inactivo (baja lógica).");
+        }
+
+        const patchData = { ...validated.data } as Record<string, unknown>;
+        // Conversión PAGO↔MULTA y reasignación prohibidas: se descartan si vienen.
+        delete patchData.credito_id;
+        delete patchData.tipo;
+        if (typeof patchData.fecha === "string") {
+            const f = new Date(patchData.fecha);
+            if (isNaN(f.getTime())) {
+                return fail("Fecha inválida.", { fecha: ["Fecha inválida"] });
+            }
+            patchData.fecha = f;
+        }
+        // Si el doc es MULTA, el patch no puede vaciar el motivo.
+        if (antes.tipo === "MULTA" && "motivo" in patchData) {
+            const m = patchData.motivo;
+            if (typeof m !== "string" || m.trim().length === 0) {
+                return fail("La multa exige motivo.", { motivo: ["La multa exige motivo"] });
+            }
+            patchData.motivo = m.trim();
+        }
+
+        const now = new Date();
+        const updatePayload: Record<string, unknown> = {
+            ...patchData,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(updatePayload);
+        const despues = { ...antes, ...updatePayload };
+        await appendAuditoria({
+            coleccion: "pagos_y_multas",
+            documentoId: id,
+            operacion: "UPDATE",
+            antes,
+            despues,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-multas");
+        return { success: true, message: "Registro actualizado.", id };
+    } catch (error) {
+        console.error("[creditos] updatePagoYMulta falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al actualizar.");
+    }
+}
+
+export async function softDeletePagoYMulta(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    if (!motivo || motivo.trim().length === 0) {
+        return fail("La baja lógica exige un motivo.");
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("pagos_y_multas").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("El registro no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("El registro ya está inactivo.");
+        }
+
+        // Baja lógica. PROHIBIDO delete() físico.
+        const now = new Date();
+        const bajaPayload: Record<string, unknown> = {
+            activo: false,
+            motivo_baja: motivo.trim(),
+            fecha_baja: now,
+            baja_por: actorData.uid,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(bajaPayload);
+        await appendAuditoria({
+            coleccion: "pagos_y_multas",
+            documentoId: id,
+            operacion: "SOFT_DELETE",
+            antes,
+            despues: { ...antes, ...bajaPayload },
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/pagos-multas");
+        return { success: true, message: "Registro dado de baja (lógica).", id };
+    } catch (error) {
+        console.error("[creditos] softDeletePagoYMulta falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al dar de baja.");
+    }
+}
+
+// ==========================================
+// 5. REMISIONES DE DINERO (Plan 08-04 T3)
+// Reglas: origen !== destino; estados PENDIENTE→ENVIADO→RECIBIDO o ANULADO.
+// ==========================================
+
+const ORDEN_ESTADOS_REMISION = ["PENDIENTE", "ENVIADO", "RECIBIDO"] as const;
+
+const remisionBase = z.object({
+    origen: z.string().trim().min(1, { message: "El origen es obligatorio" }),
+    destino: z.string().trim().min(1, { message: "El destino es obligatorio" }),
+    monto: z.coerce.number().min(0, { message: "El monto debe ser ≥ 0" }),
+    fecha_remision: z.string().min(1, { message: "La fecha es obligatoria" }),
+    metodo: z.enum(["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "OTRO"]),
+    comprobante_url: z.string().trim().optional(),
+    responsable_recepcion: z.string().trim().optional(),
+});
+
+const createRemisionSchema = remisionBase.refine((data) => data.origen !== data.destino, {
+    message: "Origen y destino deben diferir",
+    path: ["destino"],
+});
+
+export async function createRemisionDinero(input: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = createRemisionSchema.safeParse(input);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+    const fecha = new Date(validated.data.fecha_remision);
+    if (isNaN(fecha.getTime())) {
+        return fail("Fecha de remisión inválida.", { fecha_remision: ["Fecha inválida"] });
+    }
+    if (validated.data.comprobante_url && !/^https?:\/\/.+/.test(validated.data.comprobante_url)) {
+        return fail("URL de comprobante inválida.", { comprobante_url: ["Debe ser una URL válida"] });
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const now = new Date();
+
+        const payload: Record<string, unknown> = {
+            origen: validated.data.origen,
+            destino: validated.data.destino,
+            monto: validated.data.monto,
+            fecha_remision: fecha,
+            metodo: validated.data.metodo,
+            comprobante_url: validated.data.comprobante_url ?? null,
+            responsable_recepcion: validated.data.responsable_recepcion ?? null,
+            estado: "PENDIENTE",
+            registrado_por: actorData.uid,
+            registrado_por_email: actorData.email ?? null,
+            activo: true,
+            created_at: now,
+            updated_at: now,
+        };
+
+        const docRef = await adminDb.collection("remisiones_dinero").add(payload);
+        await appendAuditoria({
+            coleccion: "remisiones_dinero",
+            documentoId: docRef.id,
+            operacion: "CREATE",
+            antes: null,
+            despues: payload,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/remisiones");
+        return { success: true, message: "Remisión registrada.", id: docRef.id };
+    } catch (error) {
+        console.error("[creditos] createRemisionDinero falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al registrar la remisión.");
+    }
+}
+
+const updateRemisionSchema = remisionBase.partial().extend({
+    estado: z.enum(["PENDIENTE", "ENVIADO", "RECIBIDO", "ANULADO"]).optional(),
+});
+
+export async function updateRemisionDinero(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    const validated = updateRemisionSchema.safeParse(patch);
+    if (!validated.success) {
+        return fail("Por favor corrige los errores del formulario.", validated.error.flatten().fieldErrors as Record<string, string[]>);
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("remisiones_dinero").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("La remisión no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("La remisión está inactiva (baja lógica).");
+        }
+
+        const patchData = { ...validated.data } as Record<string, unknown>;
+        if (typeof patchData.fecha_remision === "string") {
+            const f = new Date(patchData.fecha_remision);
+            if (isNaN(f.getTime())) {
+                return fail("Fecha de remisión inválida.", { fecha_remision: ["Fecha inválida"] });
+            }
+            patchData.fecha_remision = f;
+        }
+        if (typeof patchData.comprobante_url === "string" && patchData.comprobante_url.length > 0 && !/^https?:\/\/.+/.test(patchData.comprobante_url)) {
+            return fail("URL de comprobante inválida.", { comprobante_url: ["Debe ser una URL válida"] });
+        }
+
+        // Máquina de estados: PENDIENTE→ENVIADO→RECIBIDO, o ANULADO desde cualquiera.
+        // El servidor es la autoridad final (el cliente solo asiste).
+        if (typeof patchData.estado === "string" && patchData.estado !== antes.estado) {
+            const next = patchData.estado as string;
+            if (next !== "ANULADO") {
+                const curIdx = (ORDEN_ESTADOS_REMISION as readonly string[]).indexOf(antes.estado as string);
+                const nextIdx = (ORDEN_ESTADOS_REMISION as readonly string[]).indexOf(next);
+                if (curIdx === -1 || nextIdx !== curIdx + 1) {
+                    return fail(`Transición de estado inválida: ${String(antes.estado)} → ${next}.`, {
+                        estado: ["Transición no permitida"],
+                    });
+                }
+            }
+        }
+        // Origen y destino resultantes deben seguir difiriendo.
+        const origenFinal = (patchData.origen as string | undefined) ?? antes.origen;
+        const destinoFinal = (patchData.destino as string | undefined) ?? antes.destino;
+        if (origenFinal === destinoFinal) {
+            return fail("Origen y destino deben diferir.", { destino: ["Origen y destino deben diferir"] });
+        }
+
+        const now = new Date();
+        const updatePayload: Record<string, unknown> = {
+            ...patchData,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(updatePayload);
+        const despues = { ...antes, ...updatePayload };
+        await appendAuditoria({
+            coleccion: "remisiones_dinero",
+            documentoId: id,
+            operacion: "UPDATE",
+            antes,
+            despues,
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/remisiones");
+        return { success: true, message: "Remisión actualizada.", id };
+    } catch (error) {
+        console.error("[creditos] updateRemisionDinero falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al actualizar la remisión.");
+    }
+}
+
+export async function softDeleteRemisionDinero(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
+    const parsedActor = actorSchema.safeParse(actor);
+    if (!parsedActor.success) {
+        return fail("Actor inválido: se requiere uid + idToken.");
+    }
+    if (!motivo || motivo.trim().length === 0) {
+        return fail("La baja lógica exige un motivo.");
+    }
+
+    try {
+        const actorData = await requireActor(parsedActor.data.idToken);
+        const adminDb = getDb();
+        const docRef = adminDb.collection("remisiones_dinero").doc(id);
+        const snap = await docRef.get();
+        if (!snap.exists) {
+            return fail("La remisión no existe.");
+        }
+        const antes = snap.data() as Record<string, unknown>;
+        if (antes.activo === false) {
+            return fail("La remisión ya está inactiva.");
+        }
+
+        // Baja lógica. PROHIBIDO delete() físico.
+        const now = new Date();
+        const bajaPayload: Record<string, unknown> = {
+            activo: false,
+            motivo_baja: motivo.trim(),
+            fecha_baja: now,
+            baja_por: actorData.uid,
+            actualizado_por: actorData.uid,
+            updated_at: now,
+        };
+
+        await docRef.update(bajaPayload);
+        await appendAuditoria({
+            coleccion: "remisiones_dinero",
+            documentoId: id,
+            operacion: "SOFT_DELETE",
+            antes,
+            despues: { ...antes, ...bajaPayload },
+            actor: actorData,
+        });
+
+        revalidatePath("/admin/creditos/remisiones");
+        return { success: true, message: "Remisión dada de baja (lógica).", id };
+    } catch (error) {
+        console.error("[creditos] softDeleteRemisionDinero falló:", error);
+        return fail(error instanceof Error ? error.message : "Error al dar de baja la remisión.");
+    }
+}
