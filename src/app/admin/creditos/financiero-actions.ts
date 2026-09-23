@@ -8,10 +8,9 @@ import type { CreditoCondiciones } from "@/types/creditos";
 import {
     requireActor,
     appendAuditoria,
-    actorSchema,
-    moneySchema,
     type ActionResult,
 } from "./actions";
+import { actorSchema, moneySchema } from "@/lib/actions/creditos-schemas";
 
 /**
  * Server Actions financieras — Fase 9 (Regla A + M3 + M4).

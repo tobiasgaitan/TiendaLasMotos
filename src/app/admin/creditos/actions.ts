@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb, getAdminAuth } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import type { OperacionAuditoria } from "@/types/creditos";
+import { actorSchema, moneySchema, intSchema } from "@/lib/actions/creditos-schemas";
 
 /**
  * Server Actions core — Módulo de Gestión de Créditos y Renting (Fase 9).
@@ -16,20 +17,9 @@ import type { OperacionAuditoria } from "@/types/creditos";
  */
 
 // ==========================================
-// 0. Esquemas compartidos
+// 0. Esquemas compartidos (vía @/lib/actions/creditos-schemas —
+//    los archivos 'use server' solo pueden exportar funciones async)
 // ==========================================
-
-export const actorSchema = z.object({
-    uid: z.string().min(1),
-    idToken: z.string().min(1),
-});
-
-export type ActorInput = z.infer<typeof actorSchema>;
-
-// Float (double) para dinero — Int64/Float del Módulo 1
-export const moneySchema = z.coerce.number().finite().min(0);
-// Int64 para contadores/enteros
-export const intSchema = z.coerce.number().int().min(0);
 
 export type ActionResult = {
     success: boolean;
