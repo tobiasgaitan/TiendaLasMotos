@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.5.0  
 **Última Actualización:** 2026-09-23  
-**Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-SCORE-THRESHOLD-001)
+**Estado:** DEPLOYED (Beta v8.5.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
