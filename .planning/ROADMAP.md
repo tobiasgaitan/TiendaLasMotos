@@ -1,6 +1,99 @@
-# ROADMAP
-- [x] Deuda 3: Migración middleware.ts -> proxy.ts (2026-09-24)
-- [ ] Deuda 1: Sync a Producción (Pendiente de decisión del Director)
-- [ ] Deuda 2: Heterogeneidad FK en sys_admin_users
-- [ ] Deuda 4: Workflow CI node-version 20 vs 22
-- [ ] Deuda 5: MaxListenersExceededWarning en Cloud Run
+# ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
+
+## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
+- **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
+- **Tareas**:
+  - [x] Refactorizar `LeadForm.tsx` (Completado)
+  - [x] Refactorizar `SmartQuotaSlider.tsx` (Completado)
+  - [x] Refactorizar `QuoteGenerator.tsx` (Completado - WEB-831)
+  - [x] Verificación de integridad con `agent-cli eval`
+  - [x] Despliegue y validación manual en Beta
+
+## Fase 2: Auditoría y Cierre de Deuda Técnica [COMPLETADO]
+- **Objetivo**: Asegurar que no existan llamadas residuales a `addDoc` en la colección `prospectos` en todo el repositorio.
+- **Tareas**:
+  - [x] Grep exhaustivo de `addDoc(collection(db, "prospectos")`
+  - [x] Verificación de normalización de 12 dígitos en Firestore real.
+
+## Fase 3: Reactividad y Depuración Estructural [COMPLETADO]
+- **Objetivo**: Implementar reactividad en tiempo real en el Dashboard y eliminar código legacy redundante.
+- **Tareas**:
+  - [x] Tarea 3.2: Implementación de reactividad `onSnapshot` en el Dashboard de Prospectos (Confirmada).
+  - [x] Tarea 3.3: Purga de código legacy - Eliminación del nodo huérfano `src/app/admin/leads` (WEB-833).
+
+---
+
+# MILESTONE 2: Migración Estructural de Contratos de Datos (WEB-835)
+
+## Progreso
+
+| Fase | Nombre | Estado | Plan | Fecha |
+|------|--------|--------|------|-------|
+| 4 | Planificación y Diseño Técnico | Completado | XML Plan | 2026-05-17 |
+| 5 | Migración de Servicios y Componentes de Consulta | Completado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
+| 6 | Migración de Formularios de Administración y Simulador | Completado | 01-migrate-config-references-PLAN.md | 2026-05-17 |
+| 7 | Verificación E2E y Despliegue en Beta | Completado | 006-UAT.md | 2026-05-18 |
+
+## Fases
+
+### Fase 4: Planificación y Diseño Técnico
+**Meta:** Establecer los planos y el Documento Técnico de Planificación en español con paridad JSON Voorhees.
+**Requisitos:** R1-R8
+- [x] Documento Técnico de Planificación con paridad 1:1 de llaves de Firestore
+- [x] Planes atómicos XML de la migración estructural
+
+### Fase 5: Migración de Servicios y Componentes de Consulta
+**Meta:** Actualizar las consultas públicas y generación de transacciones atómicas.
+**Requisitos:** R1, R2, R3, R4
+- [x] Modificar `actions/quotation.ts` (counters -> configuracion)
+- [x] Modificar `components/TopBar.tsx` (general_info -> configuracion)
+- [x] Modificar `components/SmartFooter.tsx` (general_info, sedes -> configuracion)
+- [x] Modificar `app/sedes/page.tsx` (sedes -> configuracion)
+
+### Fase 6: Migración de Formularios de Administración y Simulador
+**Meta:** Actualizar la lectura y escritura de administración y la carga del simulador.
+**Requisitos:** R5, R6, R7
+- [x] Modificar `admin/general/page.tsx` (general_info -> configuracion)
+- [x] Modificar `admin/sedes/page.tsx` (sedes -> configuracion)
+- [x] Modificar `admin/simulador/page.tsx` (sedes -> configuracion)
+
+### Fase 7: Verificación E2E y Despliegue en Beta
+**Meta:** Validar de extremo a extremo que no haya fallos silenciosos y desplegar en Beta.
+**Requisitos:** R8
+- [x] Ejecutar `npx agent-cli eval`
+- [x] Subir cambios a rama `beta` e iniciar despliegue en Google Cloud Run / Firebase Hosting
+- [x] Validar físicamente sobre `https://tiendalasmotos-beta.web.app`
+
+---
+
+## Tareas Rápidas y Hotfixes (Quick Tasks)
+- [x] **Quick-006 (WEB-836):** Simulator Price Fix. Uso de `price` canónico en lugar de `precio` en `handleMotoChange`. Completado, UAT Verificado (2026-05-18) con Coherence Score 1.000.
+- [x] **Quick-007 (WEB-836):** Corrección de integración Socrata API (TIBC) y blindaje de actualización en batch (syncedWithUsura) en Cloud Functions. Completado (2026-06-05).
+- [x] **Quick-009 (BOT-TECH-DEBT-837):** Migración SMTP a params (v2) en mailer.ts y sendUserInvitation.ts con pruebas en mailer.spec.ts. Completado (2026-06-05).
+- [x] **Quick-010 (BOT-TECH-DEBT-838):** Migración de sendUserInvitation.ts a Cloud Functions v2 onCall, con tests unitarios correspondientes. Completado (2026-06-05).
+- [x] **Quick-011 (BOT-TECH-DEBT-839):** Refactor global Fail-Safe mailer para desacoplar `sendErrorEmail` y parametrizar correos vía `ADMIN_ALERT_EMAILS`. Completado (2026-06-05) con Coherence Score 1.000.
+- [x] **Quick-015 (WEB-DOC-INIT-843):** Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1. Completado (2026-06-29).
+- [x] **Quick-018 (WEB-837):** Unificación reactiva de sys_alerts y anomalias en novedades y prospectos. Completado (2026-07-06) con Coherence Score 1.000.
+- [x] **Quick-019 (WEB-837-REVISED-FINAL):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
+- [x] **Quick-020 (WEB-838):** Barrera de sincronía isMounted en buscador público y administrativo. Completado (2026-07-13) con Coherence Score 1.000.
+- [x] **Quick-021 (WEB-838):** Normalización de seguro de vida fijo en el hook useMemo. Completado (2026-07-13) con Coherence Score 1.000.
+- [x] **Quick-022 (WEB-SCORE-THRESHOLD-001):** Recalibración de umbrales del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable. Completado (2026-08-07) con Coherence Score 0.97.
+
+---
+
+# MILESTONE 3: Módulo de Gestión de Créditos (CRUD) — Fase 8 (REVERTIDA)
+
+## Progreso
+
+| Fase | Nombre | Estado | Planes | Fecha |
+|------|--------|--------|--------|-------|
+| 8 | Módulo de Gestión de Créditos (CRUD) | REVERTIDA | 08-01..08-06 | 2026-09-22 |
+
+## Fases
+
+### Fase 8: Módulo de Gestión de Créditos (CRUD) — REVERTIDA
+**Meta:** CRUD operativo sobre las 6 colecciones canónicas con NAMING LOCK, Server Actions con registrado_por verificado, ledger historial_auditoria inmutable, nodo CreditCard en sidebar y rutas /admin/creditos/....
+**Estado:** REVERTIDA (mismatch contractual con el Documento de Negocio; la Fase 9 impone su propio esquema sobre colecciones limpias).
+**Commits de revert:** 1a6f54b (remove Fase 8 code, rules, and counters), 7e59b72 (remove Fase 8 block — contract reverted).
+
+- [x] **Quick-023 (Deuda 3):** Migración middleware.ts a proxy.ts (Next 16.1.1). Completado (2026-09-23) con paridad perimetral 1:1 certificada.
