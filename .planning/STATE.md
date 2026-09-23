@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.4.8
+# Estado Actual: DEPLOYED_v8.5.2
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -15,7 +15,7 @@
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 - **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
 
-**Versión:** v8.5.1 (Beta Release - WEB-SCORE-THRESHOLD-001)
+**Versión:** v8.5.2 (Beta Release - WEB-SCORE-THRESHOLD-001)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -92,3 +92,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 ---
 ## Deudas Técnicas Resueltas (2026-09-23)
 - **Deuda 3 (Middleware a Proxy):** Migración de `middleware.ts` a `proxy.ts` usando el codemod canónico de Next.js 16, preservando el NAMING LOCK perimetral de 7 puntos. Commit `0a4b5fa`.
+- **Deuda 4 (CI Node 22):** Alineación de workflows CI a node-version: 22. Paridad con engines, Dockerfile y Documento Maestro. Commit `a252065`.
+
+### Decisión Clave — 2026-09-24
+*   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.

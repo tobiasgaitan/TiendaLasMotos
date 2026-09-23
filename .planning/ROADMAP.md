@@ -97,3 +97,5 @@
 **Commits de revert:** 1a6f54b (remove Fase 8 code, rules, and counters), 7e59b72 (remove Fase 8 block — contract reverted).
 
 - [x] **Quick-023 (Deuda 3):** Migración middleware.ts a proxy.ts (Next 16.1.1). Completado (2026-09-23) con paridad perimetral 1:1 certificada.
+
+- [x] **Quick-024 (Deuda 4):** Alineación CI Node 22 (deploy-beta.yml, deploy-prod.yml). Completado (2026-09-24) con certificación runtime CI #35932474469.
