@@ -31,7 +31,8 @@ export default function AdminSidebar() {
     // State for Collapsible Groups
     const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
         simuladores: true,  // Default Open
-        config: false
+        config: false,
+        creditos: false  // Fase 9: Gestión de Créditos y Renting
     });
 
     const toggleGroup = (key: string) => {
@@ -129,6 +130,60 @@ export default function AdminSidebar() {
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Buscador Presupuesto
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="my-2 border-t border-slate-800/50" />
+
+                {/* --- GROUP: GESTIÓN DE CRÉDITOS (Fase 9) --- */}
+                <div className="space-y-1">
+                    <button
+                        onClick={() => toggleGroup('creditos')}
+                        className="w-full flex items-center justify-between p-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <CreditCard className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
+                            <span>Gestión de Créditos</span>
+                        </div>
+                        {openGroups['creditos'] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+
+                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['creditos'] ? 'max-h-[22rem] opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <Link
+                            href="/admin/creditos"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Contratos
+                        </Link>
+                        <Link
+                            href="/admin/creditos/pagos"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/pagos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Terminal de Cobro
+                        </Link>
+                        <Link
+                            href="/admin/creditos/remisiones"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/remisiones') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Cierre de Caja
+                        </Link>
+                        <Link
+                            href="/admin/creditos/inversores"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/inversores') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Inversores
+                        </Link>
+                        <Link
+                            href="/admin/creditos/auditoria"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/auditoria') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Auditoría
                         </Link>
                     </div>
                 </div>

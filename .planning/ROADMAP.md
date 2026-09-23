@@ -106,3 +106,33 @@ nodo `CreditCard` en sidebar y rutas `/admin/creditos/...`.
 **Gates bloqueantes:** R-CR11 (C7, confirmación del bot) antes de ejecutar 08-03;
 constancia C2 antes de desplegar reglas de 08-02. `/gsd-execute` prohibido hasta
 revisión y sello final del usuario.
+
+---
+
+# MILESTONE 4: Sistema de Gestión de Créditos y Renting — Fase 9
+
+## Progreso
+
+| Fase | Nombre | Estado | Planes | Fecha |
+|------|--------|--------|------|-------|
+| 9 | Sistema de Gestión de Créditos y Renting | Ejecutado (código) | 09-01..09-06 | 2026-09-22 |
+
+## Fases
+
+### Fase 9: Sistema de Gestión de Créditos y Renting
+**Meta:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de
+cobro, cierre de caja, inversores, auditoría) con Server Actions verificadas
+(`registrado_por`), ledger `historial_auditoria` append-only vía `add()`, Regla A
+(comisión en servidor) y Regla B (mora renting), grupo "Gestión de Créditos" en el
+sidebar y reglas Firestore con delete denegado.
+**Requisitos:** R9-1 – R9-10
+- [x] 09-01: Contratos TS + esquema Firestore canónico + cálculo renting puro
+- [x] 09-02: Reglas Firestore (lectura autenticada, writes/deletes de cliente denegados; deploy diferido)
+- [x] 09-03: Server Actions core (`requireActor`, `appendAuditoria` con `add()`, creditos, clientes_credito, correlativo CRE-YYYY-XXXX)
+- [x] 09-04: Server Actions financieras (comisión Regla A en servidor, giros, remisiones pendiente→recibido)
+- [x] 09-05: Sidebar CreditCard + 5 enlaces + UI Módulo 1 (contratos, cliente inline, dropdowns sys_admin_users)
+- [x] 09-06: UI Módulos 2–5 (cobro, remisiones, inversores, auditoría read-only) + tsc/build/lint limpios
+- [ ] E2E en Beta (task 09-06 pendiente de instrucciones runtime del Auditor; sin deploys)
+
+**Gates:** C2 superado por escrito; deploy de reglas y E2E en beta diferidos hasta
+instrucciones de verificación runtime del Auditor.

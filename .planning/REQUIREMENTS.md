@@ -52,3 +52,31 @@ Construir el CRUD del Módulo de Gestión de Créditos sobre las 6 colecciones c
 
 ---
 *Última actualización: 2026-09-22 — Fase 8 planificada (aditivo, sin alterar R1–R9)*
+
+# Sistema de Gestión de Créditos y Renting — Fase 9
+
+## Visión General
+Implementar los 5 módulos del Documento de Negocio Fase 9 sobre colecciones limpias
+(Fase 8 revertida, sin migración): contratos con mapas `vehiculo`/`condiciones`/
+`asignaciones`, terminal de cobro con cálculo de comisión en servidor, cierre de caja
+con máquina de estados, dashboard de inversores y auditoría read-only. Overrides QWEN:
+`clientes_credito`, `registrado_por`, auth modular v11, ledger con `add()`, rutas
+`/admin/creditos/...`.
+
+## V1 — Obligatorio (Must Have)
+
+| ID   | Requisito | Plan | Estado |
+|------|-----------|------|--------|
+| R9-1 | Contratos TS + esquema Firestore canónico (Documento verbatim + overrides; NAMING LOCK). | 09-01 | Ejecutado |
+| R9-2 | Reglas: lectura autenticada + bloqueo de writes/deletes de cliente en las 6 colecciones; gate C2. | 09-02 | Ejecutado (deploy diferido) |
+| R9-3 | Server Actions core: `requireActor` (verifyIdToken), `appendAuditoria` con `add()`, CRUD `creditos`, alta/edición `clientes_credito`, validación Int64/Float. | 09-03 | Ejecutado |
+| R9-4 | Server Actions financieras: `pagos_y_multas` (comisión Regla A en servidor, motivo en MULTA), `pagos_inversores` (giro), `remisiones_dinero` (pendiente→recibido). | 09-04 | Ejecutado |
+| R9-5 | Cálculo renting/mora (Regla B) puro y reutilizable (UI + servidor). | 09-01 | Ejecutado |
+| R9-6 | Sidebar: grupo "Gestión de Créditos" con `CreditCard`, clave `creditos`, 5 enlaces sin truncamiento; rutas bajo el guard existente. | 09-05 | Ejecutado |
+| R9-7 | UI Módulo 1 Contratos: cliente inline o existente, mapas, dropdowns `sys_admin_users`, validación number. | 09-05 | Ejecutado |
+| R9-8 | UI Módulos 2–5: cobro (búsqueda placa/documento + desglose), remisiones (cobrador/admin), inversores (dashboard + giro), auditoría read-only. | 09-06 | Ejecutado |
+| R9-9 | Inmutabilidad: ledger append-only con `add()` (prohibido `batch.set()`); `registrado_por` verificado + entrada de auditoría en toda escritura; prohibido `delete()` físico. | 09-03/04 | Ejecutado |
+| R9-10 | Verificación E2E en `https://tiendalasmotos-beta.web.app` con datos reales. | 09-06 | Pendiente (runtime) |
+
+---
+*Última actualización: 2026-09-22 — Fase 9 ejecutada (aditivo, sin alterar R1–R9 ni R-CR1–R-CR12)*
