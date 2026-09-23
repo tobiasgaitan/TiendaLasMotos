@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.5.0  
+**Versión del Stack & Hitos:** v8.5.1  
 **Última Actualización:** 2026-09-23  
-**Estado:** DEPLOYED (Beta v8.5.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Estado:** DEPLOYED (Beta v8.5.1) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -191,3 +191,10 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 *Última actualización: 2026-09-23 COT por Antigravity*
+
+---
+## 9. Resolución de Deudas Técnicas (2026-09-24)
+### A. Deuda 3: Migración middleware.ts → proxy.ts (Next 16.1.1)
+*   **Problema:** Next.js 16 deprecó la convención `middleware.ts` en favor de `proxy.ts` (Node.js runtime).
+*   **Solución:** Ejecución del codemod canónico `@next/codemod@canary middleware-to-proxy` con paridad perimetral 1:1 (NAMING LOCK de 7 puntos: cookie `__session`, bypass `.csv`, protección `/admin/*`).
+*   **Certificación:** Matriz Runtime (a-f) validada en Beta. Commit `0a4b5fa`.
