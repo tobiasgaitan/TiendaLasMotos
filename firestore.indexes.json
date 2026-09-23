@@ -1,1 +1,192 @@
-{ "indexes": [], "fieldOverrides": [] }
+{
+  "indexes": [
+    {
+      "collectionGroup": "compradores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contact.name", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "listaProductos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categorias", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sucursal", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clientes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visto", "order": "ASCENDING" },
+        { "fieldPath": "ultimoContacto", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date.attender.id", "order": "ASCENDING" },
+        { "fieldPath": "date.dateMoment", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categorias", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ciudadRef", "order": "ASCENDING" },
+        { "fieldPath": "inicia", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date.status", "order": "ASCENDING" },
+        { "fieldPath": "model", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inputs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "nombre", "order": "ASCENDING" },
+        { "fieldPath": "index", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date.attender.id", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date.dateMoment", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "productId", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clientes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tags", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "registrado", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date.attender.id", "order": "ASCENDING" },
+        { "fieldPath": "date.dateMoment", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchBy", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "id", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entradas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchBy", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "id", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pagos_y_multas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "registrado_por", "order": "ASCENDING" },
+        { "fieldPath": "fecha_registro", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "creditos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vehiculo.placa", "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "creditos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_cliente", "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
