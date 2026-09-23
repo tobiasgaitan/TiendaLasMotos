@@ -81,58 +81,17 @@
 
 ---
 
-# MILESTONE 3: Módulo de Gestión de Créditos (CRUD) — Fase 8
+# MILESTONE 3: Módulo de Gestión de Créditos (CRUD) — Fase 8 (REVERTIDA)
 
 ## Progreso
 
 | Fase | Nombre | Estado | Planes | Fecha |
 |------|--------|--------|--------|-------|
-| 8 | Módulo de Gestión de Créditos (CRUD) | Planificado | 08-01..08-06 | 2026-09-22 |
+| 8 | Módulo de Gestión de Créditos (CRUD) | REVERTIDA | 08-01..08-06 | 2026-09-22 |
 
 ## Fases
 
-### Fase 8: Módulo de Gestión de Créditos (CRUD)
-**Meta:** CRUD operativo sobre las 6 colecciones canónicas con NAMING LOCK, Server
-Actions con `registrado_por` verificado, ledger `historial_auditoria` inmutable,
-nodo `CreditCard` en sidebar y rutas `/admin/creditos/...`.
-**Requisitos:** R-CR1 – R-CR12
-- [ ] 08-01: Contratos TS + esquema Firestore (NAMING LOCK, sección 1 verbatim)
-- [ ] 08-02: Reglas Firestore (bloqueo writes cliente + gate de constancia C2)
-- [ ] 08-03: Server Actions core + correlativo CRE-YYYY-XXXX (gate C7 pre-ejecución)
-- [ ] 08-04: Server Actions financieras (MULTA con motivo, remisiones con estados)
-- [ ] 08-05: Sidebar CreditCard + rutas + UI créditos/clientes (C3, C4)
-- [ ] 08-06: UI financieras + vista auditoría read-only + E2E en Beta
-
-**Gates bloqueantes:** R-CR11 (C7, confirmación del bot) antes de ejecutar 08-03;
-constancia C2 antes de desplegar reglas de 08-02. `/gsd-execute` prohibido hasta
-revisión y sello final del usuario.
-
----
-
-# MILESTONE 4: Sistema de Gestión de Créditos y Renting — Fase 9
-
-## Progreso
-
-| Fase | Nombre | Estado | Planes | Fecha |
-|------|--------|--------|------|-------|
-| 9 | Sistema de Gestión de Créditos y Renting | Ejecutado (código) | 09-01..09-06 | 2026-09-22 |
-
-## Fases
-
-### Fase 9: Sistema de Gestión de Créditos y Renting
-**Meta:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de
-cobro, cierre de caja, inversores, auditoría) con Server Actions verificadas
-(`registrado_por`), ledger `historial_auditoria` append-only vía `add()`, Regla A
-(comisión en servidor) y Regla B (mora renting), grupo "Gestión de Créditos" en el
-sidebar y reglas Firestore con delete denegado.
-**Requisitos:** R9-1 – R9-10
-- [x] 09-01: Contratos TS + esquema Firestore canónico + cálculo renting puro
-- [x] 09-02: Reglas Firestore (lectura autenticada, writes/deletes de cliente denegados; deploy diferido)
-- [x] 09-03: Server Actions core (`requireActor`, `appendAuditoria` con `add()`, creditos, clientes_credito, correlativo CRE-YYYY-XXXX)
-- [x] 09-04: Server Actions financieras (comisión Regla A en servidor, giros, remisiones pendiente→recibido)
-- [x] 09-05: Sidebar CreditCard + 5 enlaces + UI Módulo 1 (contratos, cliente inline, dropdowns sys_admin_users)
-- [x] 09-06: UI Módulos 2–5 (cobro, remisiones, inversores, auditoría read-only) + tsc/build/lint limpios
-- [ ] E2E en Beta (task 09-06 pendiente de instrucciones runtime del Auditor; sin deploys)
-
-**Gates:** C2 superado por escrito; deploy de reglas y E2E en beta diferidos hasta
-instrucciones de verificación runtime del Auditor.
+### Fase 8: Módulo de Gestión de Créditos (CRUD) — REVERTIDA
+**Meta:** CRUD operativo sobre las 6 colecciones canónicas con NAMING LOCK, Server Actions con registrado_por verificado, ledger historial_auditoria inmutable, nodo CreditCard en sidebar y rutas /admin/creditos/....
+**Estado:** REVERTIDA (mismatch contractual con el Documento de Negocio; la Fase 9 impone su propio esquema sobre colecciones limpias).
+**Commits de revert:** 1a6f54b (remove Fase 8 code, rules, and counters), 7e59b72 (remove Fase 8 block — contract reverted).

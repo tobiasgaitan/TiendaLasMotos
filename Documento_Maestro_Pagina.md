@@ -1,6 +1,6 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.4.8  
-**Última Actualización:** 2026-08-07  
+**Versión del Stack & Hitos:** v8.5.0  
+**Última Actualización:** 2026-09-23  
 **Estado:** DEPLOYED (Entorno Beta & Producción Sincronizados - Hotfix WEB-SCORE-THRESHOLD-001)
 
 ---
@@ -36,7 +36,7 @@ El sistema implementa patrones reactivos mediante el SDK de Firestore para asegu
 ### C. Semáforo de Crédito Crediticio (WEB-SCORE-THRESHOLD-001)
 *   **Módulo:** Dashboard Administrativo de Prospectos (`/admin/prospectos`).
 *   **Componente:** Función `getScoreBadge` en `src/app/admin/prospectos/page.tsx`.
-*   **Ajuste de Umbrales (2026-08-07):** Recalibración de los puntos de corte del semáforo de crédito para reflejar la política canónica del negocio:
+*   **Ajuste de Umbrales (2026-09-23):** Recalibración de los puntos de corte del semáforo de crédito para reflejar la política canónica del negocio:
     *   🟢 **Verde (Perfil Sólido):** `score_resultado >= 750`
     *   🟡 **Amarillo (Perfil Condicional):** `score_resultado >= 500` y `< 750`
     *   🔴 **Rojo (Alto Riesgo):** `score_resultado < 500`
@@ -111,3 +111,83 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
     5.  **Suite de Pruebas Unitarias**: Se agregaron dos pruebas específicas en `reverseCalculator.test.ts` para verificar la exactitud matemática y el comportamiento del cortocircuito de seguridad.
 
 
+
+---
+
+## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-09-23)
+
+### A. Arquitectura del Módulo
+*   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
+*   **Sidebar:** Grupo "Gestión de Créditos" con icono `CreditCard` ámbar.
+*   **Colecciones Firestore:** 6 colecciones (`clientes_credito`, `creditos`, `pagos_y_multas`, `pagos_inversores`, `remisiones_dinero`, `historial_auditoria`) con reglas de lectura autenticada y writes/deletes de cliente denegados.
+
+### B. Contratos de Datos (NAMING LOCK)
+*   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
+*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`uid_admin`/`uid_usuario`/`uid_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
+*   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
+*   **`pagos_inversores`:** Giro de salida con `uid_admin`/`uid_inversor`/`monto`.
+*   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
+*   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
+
+### C. Reglas de Negocio (Server Actions)
+*   **Regla A (Comisión):** Calculada en servidor (`src/lib/actions/creditos-calc.ts`). `pago_cuota`: comisión = valor × porcentaje; `multa`/`nota_credito`: comisión = 0. Cliente no inyecta `valor_comision`/`valor_neto_empresa` (Faraday Cage).
+*   **Regla B (Mora Renting):** Días cobrables = días posteriores a `fecha_registro` hasta hoy, excluyendo domingos. Exigible = días × cuota. Mora = exigible - recibido. Estado `en_mora` si mora > 0.
+*   **`nota_credito`:** Único mecanismo de ajuste contable negativo (prohibido borrado físico de registros financieros).
+
+### D. Índices Compuestos (21 totales)
+*   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
+*   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
+
+### E. Verificación E2E (2026-09-23)
+*   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
+*   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
+
+### F. Commits Clave
+*   `4a8c0fe`: Ejecución de planes 09-01..09-06 (código + reglas).
+*   `e0e2c05`: Fix de exports no-función en archivos `'use server'` (Next.js module restriction).
+*   `e4ddd31`: Declaración de 21 índices compuestos (18 legacy + 3 Fase 9) con merge pre-deploy.
+
+**Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
+
+---
+*Última actualización: 2026-09-23 COT por Antigravity*
+
+---
+
+## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-09-23)
+
+### A. Arquitectura del Módulo
+*   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
+*   **Sidebar:** Grupo "Gestión de Créditos" con icono `CreditCard` ámbar.
+*   **Colecciones Firestore:** 6 colecciones (`clientes_credito`, `creditos`, `pagos_y_multas`, `pagos_inversores`, `remisiones_dinero`, `historial_auditoria`) con reglas de lectura autenticada y writes/deletes de cliente denegados.
+
+### B. Contratos de Datos (NAMING LOCK)
+*   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
+*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`uid_admin`/`uid_usuario`/`uid_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
+*   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
+*   **`pagos_inversores`:** Giro de salida con `uid_admin`/`uid_inversor`/`monto`.
+*   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
+*   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
+
+### C. Reglas de Negocio (Server Actions)
+*   **Regla A (Comisión):** Calculada en servidor (`src/lib/actions/creditos-calc.ts`). `pago_cuota`: comisión = valor × porcentaje; `multa`/`nota_credito`: comisión = 0. Cliente no inyecta `valor_comision`/`valor_neto_empresa` (Faraday Cage).
+*   **Regla B (Mora Renting):** Días cobrables = días posteriores a `fecha_registro` hasta hoy, excluyendo domingos. Exigible = días × cuota. Mora = exigible - recibido. Estado `en_mora` si mora > 0.
+*   **`nota_credito`:** Único mecanismo de ajuste contable negativo (prohibido borrado físico de registros financieros).
+
+### D. Índices Compuestos (21 totales)
+*   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
+*   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
+
+### E. Verificación E2E (2026-09-23)
+*   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
+*   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
+
+### F. Commits Clave
+*   `4a8c0fe`: Ejecución de planes 09-01..09-06 (código + reglas).
+*   `e0e2c05`: Fix de exports no-función en archivos `'use server'` (Next.js module restriction).
+*   `e4ddd31`: Declaración de 21 índices compuestos (18 legacy + 3 Fase 9) con merge pre-deploy.
+
+**Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
+
+---
+*Última actualización: 2026-09-23 COT por Antigravity*

@@ -82,46 +82,9 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 
 ---
 
-## Milestone 3 — Fase 8: Módulo de Gestión de Créditos (Planificado 2026-09-22)
+## Milestone 3 — Fase 8: Módulo de Gestión de Créditos (REVERTIDA 2026-09-22)
 
-**Estado de fase:** Planificado (6 planes atómicos en `.planning/phases/08-gestion-creditos/`).
-**Decisiones clave (usuario):**
-- NAMING LOCK sobre las 7 colecciones; `sys_admin_users` fuera del alcance del módulo.
-- `clientes_credito` bajo NAMING LOCK físico: claves inmutables `cedula`, `nombres`,
-  `celular`, `direccion`, `fecha_registro` (evidencia doc `XSh6FVoyUGKrfMkCFnvR`); `cedula`
-  no sustituible; `created_at` no aplica ahí (SSOT = `fecha_registro`).
-- CRUD total en `creditos`; alta/edición en las 4 financieras; `historial_auditoria`
-  append-only; prohibido borrado físico (baja lógica por colección).
-- `registrado_por` = uid verificado vía `verifyIdToken`; matriz de operaciones por colección.
-**Gates bloqueantes:**
-- R-CR11/C7: confirmación de Tobias sobre escrituras del bot antes de ejecutar 08-03.
-- C2: constancia escrita de ausencia de writers client-SDK antes de desplegar reglas 08-02.
-- `/gsd-execute` prohibido hasta revisión y sello final del usuario.
-**Última actividad:** 2026-09-22 — Fase 8 planificada (aditivo, histórico v8.4.8 intacto).
-
----
-
-## Milestone 4 — Fase 9: Sistema de Gestión de Créditos y Renting (Ejecutado 2026-09-22)
-
-**Estado de fase:** Ejecutado (código) — 6 planes atómicos en
-`.planning/phases/09-gestion-creditos-renting/` con sello [APROBADO] del Auditor QWEN.
-**Decisiones clave (usuario + Auditor):**
-- La Fase 8 fue revertida (código eliminado, reglas limpias, colecciones vacías);
-  la Fase 9 impone su propio esquema sobre colecciones limpias (sin migración).
-- Overrides QWEN aplicados: `clientes_credito` (5 claves inmutables), `registrado_por`,
-  auth modular v11.1.0 (`useAuth` + `getIdToken` / `verifyIdToken`), ledger append-only
-  con `add()` (prohibido `batch.set()`), rutas bajo `/admin/creditos/...`.
-- Esquema verbatim del Documento de Negocio: mapas `vehiculo`/`condiciones`/`asignaciones`
-  en `creditos`; FK `id_cliente`/`id_credito`/`uid_admin`/`uid_inversor`/`uid_usuario`;
-  `valor_pagado_cliente`/`tipo_transaccion`/`valor_comision`/`valor_neto_empresa`.
-- Regla A (comisión) y Regla B (mora renting) implementadas como funciones puras en
-  `src/lib/actions/creditos-calc.ts`; la comisión se recalcula en servidor.
-- Aditivos sellados por QWEN (H1): `numero_credito` (CRE-YYYY-XXXX) y `nota_credito`.
-**Gates:**
-- C2 superado por escrito (0 writers client-SDK); despliegue de reglas a beta DIFERIDO.
-- Gate C7 (bot) cubierto por la aprobación de ejecución de Tobias.
-- E2E en Beta (task 09-06) y todo deploy PENDIENTES de las instrucciones de
-  verificación runtime del Auditor.
-**Última actividad:** 2026-09-22 — Fase 9 ejecutada (tsc + build + lint limpios).
-
-
+**Estado de fase:** REVERTIDA (código eliminado, reglas limpias, colecciones vacías).
+**Razón:** Mismatch contractual con el Documento de Negocio; la Fase 9 impone su propio esquema sobre colecciones limpias (sin migración).
+**Commits de revert:** `1a6f54b` (remove Fase 8 code, rules, and counters), `7e59b72` (remove Fase 8 block — contract reverted).
+**Última actividad:** 2026-09-22 — Fase 8 revertida.
