@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.5.2  
+**Versión del Stack & Hitos:** v8.5.3  
 **Última Actualización:** 2026-09-24  
-**Estado:** DEPLOYED (Beta v8.5.2) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Estado:** DEPLOYED (Beta v8.5.3) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -123,9 +123,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ### B. Contratos de Datos (NAMING LOCK)
 *   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
-*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`uid_admin`/`uid_usuario`/`uid_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
+*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`email_admin`/`email_usuario`/`email_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
 *   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
-*   **`pagos_inversores`:** Giro de salida con `uid_admin`/`uid_inversor`/`monto`.
+*   **`pagos_inversores`:** Giro de salida con `email_admin`/`email_inversor`/`monto`.
 *   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
 *   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
 
@@ -163,9 +163,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ### B. Contratos de Datos (NAMING LOCK)
 *   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
-*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`uid_admin`/`uid_usuario`/`uid_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
+*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`email_admin`/`email_usuario`/`email_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
 *   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
-*   **`pagos_inversores`:** Giro de salida con `uid_admin`/`uid_inversor`/`monto`.
+*   **`pagos_inversores`:** Giro de salida con `email_admin`/`email_inversor`/`monto`.
 *   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
 *   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
 
@@ -204,3 +204,11 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Solución:** Reemplazo atómico `node-version: 20` → `node-version: 22` en línea 20 de ambos workflows.
 *   **Certificación:** Run CI #35932474469 verde con Node 22.23.2. Paridad 1:1 con engines, Dockerfile y Documento Maestro.
 *   **Commits:** `a252065` (fix), `2850148` (docs planning).
+
+### C. Deuda 2: Unificación FK sys_admin_users a email canónico (2026-09-24)
+*   **Problema:** Heterogeneidad de FK: los campos `uid_admin`/`uid_usuario`/`uid_inversor` en `creditos`/`pagos_inversores` almacenaban emails o docId, nunca UIDs de Auth; integridad referencial rota.
+*   **Solución:** Ruta A': renombre a `email_admin`/`email_usuario`/`email_inversor`/`email_cobrador`; dropdowns emiten email normalizado (toLowerCase/trim). NAMING LOCK §8.B reescrito a FK-por-email; el concepto `uid` queda reservado a `registrado_por` (Auth uid).
+*   **Certificación:** Forenses Firestore con claves email_* en runtime; consolas limpias en Safari y en Chrome sin proxy; `M_ID` tipificado como causa ambiental (Urban VPN Proxy × bundle prod Chrome); refactor `fb365b9` exonerado. Commits `fb365b9` + `f21500b`; CI run #135 verde.
+*   **Purga E2E:** 11 docIds eliminados (cliente, crédito, giro, remisión, pago_y_multas y 6 asientos del ledger) + reset de `creditoCount` a 0. Paridad 1:1 con el Gate 2.
+*   **Riesgo de entorno:** Urban VPN Proxy debe permanecer OFF durante auditorías y uso del admin.
+*   **Observación no bloqueante:** 22 Issues de Chrome (autofill/accesibilidad: id/name y label en campos de formulario) — candidata a ticket menor separado.

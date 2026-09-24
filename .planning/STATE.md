@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.5.2
+# Estado Actual: DEPLOYED_v8.5.3
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -15,7 +15,7 @@
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 - **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
 
-**Versión:** v8.5.2 (Beta Release - WEB-SCORE-THRESHOLD-001)
+**Versión:** v8.5.3 (Beta Release - WEB-SCORE-THRESHOLD-001)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -96,3 +96,6 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 
 ### Decisión Clave — 2026-09-24
 *   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.
+
+### Decisión Clave — 2026-09-24 (Deuda 2)
+*   **FK sys_admin_users unificada a email canónico (Ruta A').** Campos `email_admin`/`email_usuario`/`email_inversor`/`email_cobrador`; SSOT §8.B reescrito. `M_ID` de Chrome tipificado como causa ambiental (Urban VPN Proxy); refactor `fb365b9` exonerado. Purga E2E de 11 docIds + reset de counters certificada.
