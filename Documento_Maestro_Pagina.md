@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.5.3  
+**Versión del Stack & Hitos:** v8.5.4  
 **Última Actualización:** 2026-09-24  
-**Estado:** DEPLOYED (Beta v8.5.3) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Estado:** DEPLOYED (Beta v8.5.4) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -212,3 +212,8 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Purga E2E:** 11 docIds eliminados (cliente, crédito, giro, remisión, pago_y_multas y 6 asientos del ledger) + reset de `creditoCount` a 0. Paridad 1:1 con el Gate 2.
 *   **Riesgo de entorno:** Urban VPN Proxy debe permanecer OFF durante auditorías y uso del admin.
 *   **Observación no bloqueante:** 22 Issues de Chrome (autofill/accesibilidad: id/name y label en campos de formulario) — candidata a ticket menor separado.
+
+### D. Deuda 5: Silenciamiento de MaxListenersExceededWarning (Quick-026)
+*   **Problema:** Warning de runtime Node 22 en Cloud Run Beta (`11 uncaughtException listeners added to [process]`) causado por la acumulación de handlers de error por parte de `next-server.js` y `router-server.js` durante los ciclos de arranque en frío del adaptador `firebase-frameworks`.
+*   **Solución:** Creación del hook oficial `src/instrumentation.ts` con la función `register()` exportada, inyectando `process.setMaxListeners(25)` para elevar el umbral de Node.js sin alterar la semántica de captura de errores de Next.js.
+*   **Certificación:** Forense de logs `stderr` en revisión `ssrtiendalasmotosbeta-00552-sop` post-deploy devuelve `[]` (cero warnings) tras tráfico inducido y cold start. Commit `bbeeaed`.
