@@ -100,3 +100,4 @@
 
 - [x] **Quick-024 (Deuda 4):** Alineación CI Node 22 (deploy-beta.yml, deploy-prod.yml). Completado (2026-09-24) con certificación runtime CI #35932474469.
 - [x] **Quick-025 (Deuda 2 / WEB-DEBT-002):** Unificación FK sys_admin_users a email canónico (Ruta A'). Completado (2026-09-24) con certificación runtime multi-navegador y purga E2E 1:1.
+- [x] **Quick-026 (Deuda 5):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Completado (2026-09-24) con certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop`.

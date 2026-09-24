@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.5.3
+# Estado Actual: DEPLOYED_v8.5.4
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -15,7 +15,7 @@
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 - **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
 
-**Versión:** v8.5.3 (Beta Release - WEB-SCORE-THRESHOLD-001)
+**Versión:** v8.5.4 (Beta Release - WEB-SCORE-THRESHOLD-001)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -76,9 +76,13 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 020 | Barrera de Sincronía isMounted en buscador y admin/presupuesto (WEB-838) | 2026-07-13 | `da5e9c8` | `019-correccion-cupo-presupuesto` |
 | 021 | Normalización de Seguro de Vida Fijo y protección división cero (WEB-838) | 2026-07-13 | `b71a7c0` | `019-correccion-cupo-presupuesto` |
 | 022 | Recalibración de umbrales del semáforo de crédito en getScoreBadge (WEB-SCORE-THRESHOLD-001) | 2026-08-07 | `pending` | `022-score-threshold-recalibration` |
+| 023 | Migración middleware.ts a proxy.ts (Deuda 3) | 2026-09-23 | `0a4b5fa` | `023-middleware-to-proxy` |
+| 024 | Alineación CI Node 22 (Deuda 4) | 2026-09-24 | `a252065` | `024-ci-node22` |
+| 025 | Unificación FK sys_admin_users a email canónico (Deuda 2) | 2026-09-24 | `fb365b9` | `025-fk-email-canonical` |
+| 026 | Silenciamiento de MaxListenersExceededWarning (Deuda 5) | 2026-09-24 | `bbeeaed` | `026-instrumentation-max-listeners` |
 
 ---
-*Última actualización: 2026-08-07 COT por Antigravity*
+*Última actualización: 2026-09-24 COT por Antigravity*
 
 ---
 
@@ -93,6 +97,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 ## Deudas Técnicas Resueltas (2026-09-23)
 - **Deuda 3 (Middleware a Proxy):** Migración de `middleware.ts` a `proxy.ts` usando el codemod canónico de Next.js 16, preservando el NAMING LOCK perimetral de 7 puntos. Commit `0a4b5fa`.
 - **Deuda 4 (CI Node 22):** Alineación de workflows CI a node-version: 22. Paridad con engines, Dockerfile y Documento Maestro. Commit `a252065`.
+- **Deuda 5 (MaxListeners):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Causa raíz: acumulación de handlers `uncaughtException` por runtime Next.js 16 + adaptador firebase-frameworks durante arranques fríos. Certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop` devuelve `[]` post-deploy. Commit `bbeeaed`.
 
 ### Decisión Clave — 2026-09-24
 *   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.
