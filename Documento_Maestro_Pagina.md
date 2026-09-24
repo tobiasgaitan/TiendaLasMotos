@@ -217,3 +217,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Problema:** Warning de runtime Node 22 en Cloud Run Beta (`11 uncaughtException listeners added to [process]`) causado por la acumulación de handlers de error por parte de `next-server.js` y `router-server.js` durante los ciclos de arranque en frío del adaptador `firebase-frameworks`.
 *   **Solución:** Creación del hook oficial `src/instrumentation.ts` con la función `register()` exportada, inyectando `process.setMaxListeners(25)` para elevar el umbral de Node.js sin alterar la semántica de captura de errores de Next.js.
 *   **Certificación:** Forense de logs `stderr` en revisión `ssrtiendalasmotosbeta-00552-sop` post-deploy devuelve `[]` (cero warnings) tras tráfico inducido y cold start. Commit `bbeeaed`.
+
+### E. Observación Pendiente: Fragilidad Estructural en `src/lib/firebase-admin.ts`
+*   **Problema:** Lógica de inicialización duplicada en `getDb()` y `getAdminAuth()` (ambas contienen bloques `if (!globalAny._firebaseAdminApp)` independientes), lo que multiplica el riesgo de ejecuciones redundantes si el caché de módulos falla.
+*   **Intento de resolución fallido (QUICK-023):** Refactor hacia singleton estricto con imports ES6 estáticos causó regresión runtime `ERR_MODULE_NOT_FOUND` en Cloud Run Beta (revisión `00548-men`). Revertido con commit `b96f486`.
+*   **Causa raíz del fallo:** El adaptador `firebase-frameworks` + Turbopack genera externals hasheados inexistentes en el runtime de Cloud Run cuando se usan imports ES6 estáticos de `firebase-admin`. El patrón `eval("require(...)")` actual es estructuralmente necesario bajo este stack.
+*   **Requisito para resolución futura:** Plan que resuelva el empaquetado de externals de `firebase-admin` bajo firebase-frameworks + Turbopack antes de reintentar la unificación de lógica de inicialización.
