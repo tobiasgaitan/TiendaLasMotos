@@ -12,7 +12,7 @@ import type { CreditoConId, PagoYMultaConId, PagoInversorConId } from "@/types/c
 const inputCls = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500";
 const labelCls = "block text-xs font-medium text-gray-400 mb-1";
 
-type SysUser = { uid: string; label: string };
+type SysUser = { email: string; label: string };
 
 function toDate(v: unknown): Date | null {
     if (!v) return null;
@@ -30,7 +30,7 @@ function fmtCOP(n: unknown): string {
 }
 
 type FilaInversor = {
-    uid: string;
+    email: string;
     label: string;
     placas: string[];
     neto: number;
@@ -46,7 +46,7 @@ export default function InversoresPage() {
     const [giros, setGiros] = useState<PagoInversorConId[]>([]);
     const [sysUsers, setSysUsers] = useState<SysUser[]>([]);
 
-    const [uidInversor, setUidInversor] = useState('');
+    const [emailInversor, setEmailInversor] = useState('');
     const [idCredito, setIdCredito] = useState('');
     const [monto, setMonto] = useState('');
     const [metodo, setMetodo] = useState('');
@@ -65,9 +65,10 @@ export default function InversoresPage() {
                 getDocs(query(collection(db, "pagos_inversores"), where("activo", "==", true))),
             ]);
             const users = usersSnap.docs.map((d) => {
-                const data = d.data() as { uid?: string; email?: string; nombre?: string; role?: string; rol?: string };
+                const data = d.data() as { email?: string; nombre?: string; role?: string; rol?: string };
+                const email = (data.email || d.id).toLowerCase().trim();
                 return {
-                    uid: data.uid || d.id,
+                    email,
                     label: `${data.email || data.nombre || d.id} (${data.role || data.rol || 'sin rol'})`,
                 };
             });
@@ -91,24 +92,24 @@ export default function InversoresPage() {
             const giradoPorInversor: Record<string, number> = {};
             girosList.forEach((g) => {
                 if (typeof g.monto === 'number' && Number.isFinite(g.monto)) {
-                    giradoPorInversor[g.uid_inversor] = (giradoPorInversor[g.uid_inversor] ?? 0) + g.monto;
+                    giradoPorInversor[g.email_inversor] = (giradoPorInversor[g.email_inversor] ?? 0) + g.monto;
                 }
             });
             const porInversor = new Map<string, { placas: string[]; neto: number }>();
             creds.forEach((c) => {
-                const inv = c.asignaciones?.uid_inversor;
+                const inv = c.asignaciones?.email_inversor;
                 if (!inv) return;
                 const cur = porInversor.get(inv) ?? { placas: [], neto: 0 };
                 if (c.vehiculo?.placa) cur.placas.push(c.vehiculo.placa);
                 cur.neto += netoPorCredito[c.id] ?? 0;
                 porInversor.set(inv, cur);
             });
-            const filasCalc: FilaInversor[] = [...porInversor.entries()].map(([uid, v]) => ({
-                uid,
-                label: users.find((u) => u.uid === uid)?.label || uid,
+            const filasCalc: FilaInversor[] = [...porInversor.entries()].map(([email, v]) => ({
+                email,
+                label: users.find((u) => u.email === email)?.label || email,
                 placas: v.placas,
                 neto: Math.round(v.neto * 100) / 100,
-                girado: Math.round((giradoPorInversor[uid] ?? 0) * 100) / 100,
+                girado: Math.round((giradoPorInversor[email] ?? 0) * 100) / 100,
             }));
             setFilas(filasCalc);
         } catch (error) {
@@ -121,15 +122,15 @@ export default function InversoresPage() {
 
     useEffect(() => { if (mounted) fetchData(); }, [mounted, fetchData]);
 
-    const creditosDelInversor = uidInversor
-        ? creditos.filter((c) => c.asignaciones?.uid_inversor === uidInversor)
+    const creditosDelInversor = emailInversor
+        ? creditos.filter((c) => c.asignaciones?.email_inversor === emailInversor)
         : [];
 
     const handleGiro = async (e: React.FormEvent) => {
         e.preventDefault();
         if (saving || !user) return;
         const m = Number(monto);
-        if (!uidInversor || !idCredito || !Number.isFinite(m) || m < 0) {
+        if (!emailInversor || !idCredito || !Number.isFinite(m) || m < 0) {
             toast.error("Selecciona inversor y crédito, y un monto ≥ 0.");
             return;
         }
@@ -137,7 +138,7 @@ export default function InversoresPage() {
         try {
             const res = await createPagoInversor({
                 id_credito: idCredito,
-                uid_inversor: uidInversor,
+                email_inversor: emailInversor,
                 monto: m,
                 ...(metodo ? { metodo_pago: metodo } : {}),
                 ...(referencia.trim() ? { referencia: referencia.trim() } : {}),
@@ -186,7 +187,7 @@ export default function InversoresPage() {
                     </thead>
                     <tbody>
                         {filas.map((f) => (
-                            <tr key={f.uid} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                            <tr key={f.email} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                                 <td className="px-4 py-3 text-white text-xs font-mono break-all max-w-64">{f.label}</td>
                                 <td className="px-4 py-3 text-gray-300">{f.placas.join(', ') || '—'}</td>
                                 <td className="px-4 py-3 text-emerald-300 font-semibold">{fmtCOP(f.neto)}</td>
@@ -206,12 +207,12 @@ export default function InversoresPage() {
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">Pago / giro al inversor</h2>
                     <form onSubmit={handleGiro} className="space-y-3">
                         <div><label className={labelCls}>Inversor *</label>
-                            <select value={uidInversor} onChange={(e) => { setUidInversor(e.target.value); setIdCredito(''); }} className={inputCls}>
+                            <select value={emailInversor} onChange={(e) => { setEmailInversor(e.target.value); setIdCredito(''); }} className={inputCls}>
                                 <option value="">Seleccionar…</option>
-                                {sysUsers.map((u) => <option key={u.uid} value={u.uid}>{u.label}</option>)}
+                                {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
                         <div><label className={labelCls}>Crédito *</label>
-                            <select value={idCredito} onChange={(e) => setIdCredito(e.target.value)} className={inputCls} disabled={!uidInversor}>
+                            <select value={idCredito} onChange={(e) => setIdCredito(e.target.value)} className={inputCls} disabled={!emailInversor}>
                                 <option value="">Seleccionar…</option>
                                 {creditosDelInversor.map((c) => (
                                     <option key={c.id} value={c.id}>
@@ -247,7 +248,7 @@ export default function InversoresPage() {
                         {giros.map((g) => (
                             <div key={g.id} className="bg-gray-800/50 border border-gray-700/60 rounded-lg px-3 py-2 text-xs">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400 font-mono break-all max-w-48">{g.uid_inversor.slice(0, 20)}…</span>
+                                    <span className="text-gray-400 font-mono break-all max-w-48">{g.email_inversor.slice(0, 30)}…</span>
                                     <span className="text-white font-semibold">{fmtCOP(g.monto)}</span>
                                 </div>
                                 <div className="text-gray-500 mt-1">

@@ -162,9 +162,9 @@ const condicionesSchema = z.object({
 });
 
 const asignacionesSchema = z.object({
-    uid_admin: z.string().min(1),
-    uid_usuario: z.string().min(1),
-    uid_inversor: z.string().min(1),
+    email_admin: z.string().min(1),
+    email_usuario: z.string().min(1),
+    email_inversor: z.string().min(1),
 });
 
 const creditoSchema = z.object({

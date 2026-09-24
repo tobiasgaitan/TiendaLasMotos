@@ -281,7 +281,7 @@ export async function softDeletePagoYMulta(id: string, motivo: string, actor: un
 
 const pagoInversorSchema = z.object({
     id_credito: z.string().min(1),
-    uid_inversor: z.string().min(1),
+    email_inversor: z.string().min(1),
     monto: moneySchema,
     metodo_pago: z.enum(['efectivo', 'transferencia', 'cheque', 'otro']).optional(),
     referencia: z.string().optional(),
@@ -296,6 +296,10 @@ export async function createPagoInversor(input: unknown, actor: unknown): Promis
     }
     try {
         const me = await requireActor(a.idToken);
+        const actorEmail = (me.email ?? '').toLowerCase().trim();
+        if (!actorEmail) {
+            return { success: false, message: 'La cuenta no tiene email verificado.' };
+        }
         const adminDb = getDb();
         const data = validated.data;
 
@@ -309,8 +313,8 @@ export async function createPagoInversor(input: unknown, actor: unknown): Promis
 
         const payload: Record<string, unknown> = {
             id_credito: data.id_credito,
-            uid_admin: me.uid, // el uid VERIFICADO es el admin que gira
-            uid_inversor: data.uid_inversor.trim(),
+            email_admin: actorEmail, // email canónico del admin que gira (Ruta A')
+            email_inversor: data.email_inversor.trim(),
             monto: data.monto,
             fecha_registro: new Date(),
             registrado_por: me.uid,
@@ -357,9 +361,9 @@ export async function updatePagoInversor(id: string, patch: unknown, actor: unkn
         if (!snap.exists) return { success: false, message: 'El giro no existe.' };
         const antes = snap.data() as Record<string, unknown>;
 
-        // id_credito / uid_inversor / uid_admin son inmutables (prohibido reasignar).
+        // id_credito / email_inversor / email_admin son inmutables (prohibido reasignar).
         const rawPatch = (patch ?? {}) as Record<string, unknown>;
-        if ('id_credito' in rawPatch || 'uid_inversor' in rawPatch || 'uid_admin' in rawPatch) {
+        if ('id_credito' in rawPatch || 'email_inversor' in rawPatch || 'email_admin' in rawPatch) {
             console.warn('[creditos] updatePagoInversor: intento de reasignar FK — descartado', { id });
         }
 
@@ -432,6 +436,10 @@ export async function generarCierreCaja(actor: unknown): Promise<RemisionResult>
     if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
     try {
         const me = await requireActor(a.idToken);
+        const actorEmail = (me.email ?? '').toLowerCase().trim();
+        if (!actorEmail) {
+            return { success: false, message: 'La cuenta no tiene email verificado.' };
+        }
         const adminDb = getDb();
         const { inicio, fin } = rangoDiaBogota();
 
@@ -450,8 +458,8 @@ export async function generarCierreCaja(actor: unknown): Promise<RemisionResult>
         monto = Math.round(monto * 100) / 100;
 
         const payload = {
-            uid_usuario: me.uid,
-            uid_admin: '',
+            email_cobrador: actorEmail,
+            email_admin: '',
             monto,
             fecha_registro: new Date(),
             estado: 'pendiente' as const,
@@ -481,6 +489,10 @@ export async function aprobarRemision(id: string, actor: unknown): Promise<Actio
     try {
         const me = await requireActor(a.idToken);
         await requireAdmin(me.uid, me.email);
+        const actorEmail = (me.email ?? '').toLowerCase().trim();
+        if (!actorEmail) {
+            return { success: false, message: 'La cuenta no tiene email verificado.' };
+        }
         const adminDb = getDb();
         const docRef = adminDb.collection('remisiones_dinero').doc(id);
         const snap = await docRef.get();
@@ -491,7 +503,7 @@ export async function aprobarRemision(id: string, actor: unknown): Promise<Actio
         }
         const updates = {
             estado: 'recibido',
-            uid_admin: me.uid,
+            email_admin: actorEmail,
             updated_at: new Date(),
             actualizado_por: me.uid,
         };

@@ -11,7 +11,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { updateCredito } from "../../actions";
 import type { CreditoConId, ModalidadCredito } from "@/types/creditos";
 
-type SysUser = { uid: string; label: string };
+type SysUser = { email: string; label: string };
 
 const inputCls = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500";
 const labelCls = "block text-xs font-medium text-gray-400 mb-1";
@@ -48,9 +48,9 @@ export default function EditarCreditoPage({ params }: { params: Promise<{ id: st
     const [valorCuota, setValorCuota] = useState('');
     const [excluirDomingos, setExcluirDomingos] = useState(true);
     const [modalidad, setModalidad] = useState<ModalidadCredito>('renting');
-    const [uidAdmin, setUidAdmin] = useState('');
-    const [uidUsuario, setUidUsuario] = useState('');
-    const [uidInversor, setUidInversor] = useState('');
+    const [emailAdmin, setEmailAdmin] = useState('');
+    const [emailUsuario, setEmailUsuario] = useState('');
+    const [emailInversor, setEmailInversor] = useState('');
 
     useEffect(() => { setMounted(true); }, []);
 
@@ -78,13 +78,14 @@ export default function EditarCreditoPage({ params }: { params: Promise<{ id: st
                 setValorCuota(c.condiciones ? String(c.condiciones.valor_cuota) : '');
                 setExcluirDomingos(c.condiciones?.excluir_domingos ?? true);
                 setModalidad(c.condiciones?.modalidad_credito || 'renting');
-                setUidAdmin(c.asignaciones?.uid_admin || '');
-                setUidUsuario(c.asignaciones?.uid_usuario || '');
-                setUidInversor(c.asignaciones?.uid_inversor || '');
+                setEmailAdmin(c.asignaciones?.email_admin || '');
+                setEmailUsuario(c.asignaciones?.email_usuario || '');
+                setEmailInversor(c.asignaciones?.email_inversor || '');
                 setSysUsers(usersSnap.docs.map((d) => {
-                    const data = d.data() as { uid?: string; email?: string; nombre?: string; role?: string; rol?: string };
+                    const data = d.data() as { email?: string; nombre?: string; role?: string; rol?: string };
+                    const email = (data.email || d.id).toLowerCase().trim();
                     return {
-                        uid: data.uid || d.id,
+                        email,
                         label: `${data.email || data.nombre || d.id} (${data.role || data.rol || 'sin rol'})`,
                     };
                 }));
@@ -137,9 +138,9 @@ export default function EditarCreditoPage({ params }: { params: Promise<{ id: st
                     modalidad_credito: modalidad,
                 },
                 asignaciones: {
-                    uid_admin: uidAdmin,
-                    uid_usuario: uidUsuario,
-                    uid_inversor: uidInversor,
+                    email_admin: emailAdmin,
+                    email_usuario: emailUsuario,
+                    email_inversor: emailInversor,
                 },
             }, { uid: user.uid, idToken: await user.getIdToken() });
             if (res.success) {
@@ -220,19 +221,19 @@ export default function EditarCreditoPage({ params }: { params: Promise<{ id: st
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">Asignaciones</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div><label className={labelCls}>Admin *</label>
-                            <select value={uidAdmin} onChange={(e) => setUidAdmin(e.target.value)} className={inputCls}>
+                            <select value={emailAdmin} onChange={(e) => setEmailAdmin(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
-                                {sysUsers.map((u) => <option key={u.uid} value={u.uid}>{u.label}</option>)}
+                                {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
                         <div><label className={labelCls}>Cobrador *</label>
-                            <select value={uidUsuario} onChange={(e) => setUidUsuario(e.target.value)} className={inputCls}>
+                            <select value={emailUsuario} onChange={(e) => setEmailUsuario(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
-                                {sysUsers.map((u) => <option key={u.uid} value={u.uid}>{u.label}</option>)}
+                                {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
                         <div><label className={labelCls}>Inversor *</label>
-                            <select value={uidInversor} onChange={(e) => setUidInversor(e.target.value)} className={inputCls}>
+                            <select value={emailInversor} onChange={(e) => setEmailInversor(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
-                                {sysUsers.map((u) => <option key={u.uid} value={u.uid}>{u.label}</option>)}
+                                {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
                     </div>
                 </section>

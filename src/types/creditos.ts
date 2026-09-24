@@ -73,10 +73,11 @@ export interface CreditoCondiciones {
 }
 
 export interface CreditoAsignaciones {
-    // Los 3 son FK a sys_admin_users.uid
-    uid_admin: string;
-    uid_usuario: string;
-    uid_inversor: string;
+    // Los 3 son FK lógicas a sys_admin_users por email canónico (docId = email).
+    // Ruta A' (Deuda 2): el concepto "uid" se reserva a registrado_por (Auth uid).
+    email_admin: string;
+    email_usuario: string;
+    email_inversor: string;
 }
 
 export interface Credito extends BaseAuditable {
@@ -121,8 +122,8 @@ export type PagoYMultaConId = PagoYMulta & { id: string };
 
 export interface PagoInversor extends BaseAuditable {
     id_credito: string; // FK a creditos.id
-    uid_admin: string; // FK a sys_admin_users.uid (admin que gira)
-    uid_inversor: string; // FK a sys_admin_users.uid (inversor receptor)
+    email_admin: string; // FK a sys_admin_users por email (admin que gira)
+    email_inversor: string; // FK a sys_admin_users por email (inversor receptor)
     monto: number;
     fecha_registro: Timestamp;
     metodo_pago?: 'efectivo' | 'transferencia' | 'cheque' | 'otro';
@@ -138,8 +139,8 @@ export type PagoInversorConId = PagoInversor & { id: string };
 export type EstadoRemision = 'pendiente' | 'recibido' | 'anulado';
 
 export interface RemisionDinero extends BaseAuditable {
-    uid_usuario: string; // cobrador que genera el cierre
-    uid_admin: string; // admin que aprueba
+    email_cobrador: string; // cobrador que genera el cierre (email canónico)
+    email_admin: string; // admin que aprueba (email canónico)
     monto: number; // suma valor_neto_empresa del día
     fecha_registro: Timestamp;
     estado: EstadoRemision;

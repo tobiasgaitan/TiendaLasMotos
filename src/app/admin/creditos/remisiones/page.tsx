@@ -51,10 +51,15 @@ export default function CierreCajaPage() {
         if (!user) return;
         setLoading(true);
         try {
-            const [pagosSnap, remSnap] = await Promise.all([
-                getDocs(query(collection(db, "pagos_y_multas"), where("registrado_por", "==", user.uid))),
-                getDocs(query(collection(db, "remisiones_dinero"), where("uid_usuario", "==", user.uid))),
-            ]);
+            // Ruta A': las remisiones se filtran por email_cobrador (email canónico).
+            const emailCobrador = (user.email ?? '').toLowerCase().trim();
+            const pagosSnap = await getDocs(query(collection(db, "pagos_y_multas"), where("registrado_por", "==", user.uid)));
+            let mias: RemisionDineroConId[] = [];
+            if (emailCobrador) {
+                const remSnap = await getDocs(query(collection(db, "remisiones_dinero"), where("email_cobrador", "==", emailCobrador)));
+                mias = remSnap.docs.map((d) => ({ id: d.id, ...d.data() } as RemisionDineroConId));
+                mias.sort((a, b) => (toDate(b.fecha_registro)?.getTime() ?? 0) - (toDate(a.fecha_registro)?.getTime() ?? 0));
+            }
             let suma = 0;
             pagosSnap.docs.forEach((d) => {
                 const p = d.data() as PagoYMultaConId;
@@ -66,8 +71,6 @@ export default function CierreCajaPage() {
             });
             setAcumuladoHoy(Math.round(suma * 100) / 100);
 
-            const mias = remSnap.docs.map((d) => ({ id: d.id, ...d.data() } as RemisionDineroConId));
-            mias.sort((a, b) => (toDate(b.fecha_registro)?.getTime() ?? 0) - (toDate(a.fecha_registro)?.getTime() ?? 0));
             setMisRemisiones(mias);
 
             if (isAdmin) {
@@ -209,7 +212,7 @@ export default function CierreCajaPage() {
                             <div key={r.id} className="flex items-center justify-between gap-3 bg-gray-800/50 border border-gray-700/60 rounded-lg px-3 py-2 text-sm">
                                 <div>
                                     <p className="text-white font-semibold">{fmtCOP(r.monto)}</p>
-                                    <p className="text-xs text-gray-500 font-mono">{r.uid_usuario} · {toDate(r.fecha_registro)?.toLocaleString('es-CO') || '—'}</p>
+                                    <p className="text-xs text-gray-500 font-mono">{r.email_cobrador} · {toDate(r.fecha_registro)?.toLocaleString('es-CO') || '—'}</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => handleAprobar(r.id)} disabled={procesando === r.id}

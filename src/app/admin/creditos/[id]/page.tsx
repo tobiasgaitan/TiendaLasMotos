@@ -137,9 +137,9 @@ export default function CreditoDetailPage({ params }: { params: Promise<{ id: st
 
             <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                 <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide mb-2">Asignaciones</h2>
-                <Row k="uid_admin" v={credito.asignaciones?.uid_admin || '—'} />
-                <Row k="uid_usuario" v={credito.asignaciones?.uid_usuario || '—'} />
-                <Row k="uid_inversor" v={credito.asignaciones?.uid_inversor || '—'} />
+                <Row k="email_admin" v={credito.asignaciones?.email_admin || '—'} />
+                <Row k="email_usuario" v={credito.asignaciones?.email_usuario || '—'} />
+                <Row k="email_inversor" v={credito.asignaciones?.email_inversor || '—'} />
             </section>
 
             <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
