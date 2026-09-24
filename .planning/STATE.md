@@ -98,6 +98,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 - **Deuda 3 (Middleware a Proxy):** Migración de `middleware.ts` a `proxy.ts` usando el codemod canónico de Next.js 16, preservando el NAMING LOCK perimetral de 7 puntos. Commit `0a4b5fa`.
 - **Deuda 4 (CI Node 22):** Alineación de workflows CI a node-version: 22. Paridad con engines, Dockerfile y Documento Maestro. Commit `a252065`.
 - **Deuda 5 (MaxListeners):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Causa raíz: acumulación de handlers `uncaughtException` por runtime Next.js 16 + adaptador firebase-frameworks durante arranques fríos. Certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop` devuelve `[]` post-deploy. Commit `bbeeaed`.
+- **Deuda P2 (Singleton firebase-admin):** Unificación de la inicialización en `getAdminApp()` privada; `eval("require(...)")` conservado (blindaje contra externals hasheados `firebase-admin-<hash>`). Firmas intactas; 34 call sites sin tocar. Autopsia 1-7 verde + runtime en revisión `ssrtiendalasmotosbeta-00560-liz` (`ERR_MODULE_NOT_FOUND` → `[]`, `MaxListenersExceeded` → `[]`). Coherence Score 0.99. Commit `fe37ca6`.
 
 ### Decisión Clave — 2026-09-24
 *   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.
