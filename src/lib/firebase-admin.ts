@@ -1,55 +1,55 @@
-export const getDb = () => {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - Dynamic require for ESM compatibility
-  const adminApp = eval("require('firebase-admin/app')");
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - Dynamic require for ESM compatibility
-  const adminFirestore = eval("require('firebase-admin/firestore')");
+import 'server-only';
 
-  // 🛡️ PERSISTENCIA GLOBAL: Evita que el App se pierda en el contexto de Cloud Run
-  const globalAny: any = global;
-  
-  if (!globalAny._firebaseAdminApp) {
-    const apps = adminApp.getApps();
-    if (apps.length > 0) {
-      globalAny._firebaseAdminApp = apps[0];
-    } else {
-      try {
-        globalAny._firebaseAdminApp = adminApp.initializeApp({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
-        });
-        console.log('✅ [Firebase Admin] Nueva instancia inicializada vía ADC');
-      } catch (error) {
-        console.error('⚠️ [Firebase Admin] Error crítico de inicio:', error);
-        throw error;
-      }
-    }
-  }
+import { initializeApp, getApps, getApp, type App } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getAuth, type Auth } from 'firebase-admin/auth';
 
-  // Pasamos la instancia global explícitamente para evitar el error de "Default app"
-  return adminFirestore.getFirestore(globalAny._firebaseAdminApp);
+/**
+ * Firebase Admin SDK — singleton estricto (QUICK-023).
+ *
+ * - Cero `eval` / `require` dinámico: imports ES6 estáticos para que Node.js
+ *   respete su caché de módulos nativo.
+ * - `server-only`: el build falla si este módulo se bundela en el cliente.
+ * - `initializeApp` se ejecuta exactamente una vez por instancia (Cloud Run).
+ */
+
+type GlobalWithAdminApp = typeof globalThis & {
+    __firebaseAdminApp?: App;
 };
 
-export const getAdminAuth = () => {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - Dynamic require for ESM compatibility
-  const adminApp = eval("require('firebase-admin/app')");
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - Dynamic require for ESM compatibility
-  const adminAuth = eval("require('firebase-admin/auth')");
+/**
+ * Única función privada de inicialización. `getDb` y `getAdminAuth`
+ * se limitan a consumirla (Regla del Cirujano).
+ */
+function getAdminApp(): App {
+    const g = globalThis as GlobalWithAdminApp;
 
-  const globalAny: any = global;
-
-  if (!globalAny._firebaseAdminApp) {
-    const apps = adminApp.getApps();
-    if (apps.length > 0) {
-      globalAny._firebaseAdminApp = apps[0];
-    } else {
-      globalAny._firebaseAdminApp = adminApp.initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos'
-      });
+    if (g.__firebaseAdminApp) {
+        return g.__firebaseAdminApp;
     }
-  }
 
-  return adminAuth.getAuth(globalAny._firebaseAdminApp);
+    if (getApps().length > 0) {
+        g.__firebaseAdminApp = getApp();
+        return g.__firebaseAdminApp;
+    }
+
+    try {
+        g.__firebaseAdminApp = initializeApp({
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tiendalasmotos',
+        });
+        console.log('✅ [Firebase Admin] Nueva instancia inicializada vía ADC');
+    } catch (error) {
+        console.error('⚠️ [Firebase Admin] Error crítico de inicio:', error);
+        throw error;
+    }
+
+    return g.__firebaseAdminApp;
+}
+
+export const getDb = (): Firestore => {
+    return getFirestore(getAdminApp());
+};
+
+export const getAdminAuth = (): Auth => {
+    return getAuth(getAdminApp());
 };
