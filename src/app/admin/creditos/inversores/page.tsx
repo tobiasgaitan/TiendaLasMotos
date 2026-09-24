@@ -206,13 +206,13 @@ export default function InversoresPage() {
                 <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">Pago / giro al inversor</h2>
                     <form onSubmit={handleGiro} className="space-y-3">
-                        <div><label className={labelCls}>Inversor *</label>
-                            <select value={emailInversor} onChange={(e) => { setEmailInversor(e.target.value); setIdCredito(''); }} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="giro-inversor">Inversor *</label>
+                            <select id="giro-inversor" name="giro-inversor" value={emailInversor} onChange={(e) => { setEmailInversor(e.target.value); setIdCredito(''); }} className={inputCls}>
                                 <option value="">Seleccionar…</option>
                                 {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
-                        <div><label className={labelCls}>Crédito *</label>
-                            <select value={idCredito} onChange={(e) => setIdCredito(e.target.value)} className={inputCls} disabled={!emailInversor}>
+                        <div><label className={labelCls} htmlFor="giro-credito">Crédito *</label>
+                            <select id="giro-credito" name="giro-credito" value={idCredito} onChange={(e) => setIdCredito(e.target.value)} className={inputCls} disabled={!emailInversor}>
                                 <option value="">Seleccionar…</option>
                                 {creditosDelInversor.map((c) => (
                                     <option key={c.id} value={c.id}>
@@ -220,18 +220,18 @@ export default function InversoresPage() {
                                     </option>
                                 ))}
                             </select></div>
-                        <div><label className={labelCls}>Monto *</label>
-                            <input value={monto} onChange={(e) => setMonto(e.target.value)} className={inputCls} inputMode="decimal" placeholder="1000000" /></div>
-                        <div><label className={labelCls}>Método</label>
-                            <select value={metodo} onChange={(e) => setMetodo(e.target.value)} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="giro-monto">Monto *</label>
+                            <input id="giro-monto" name="giro-monto" value={monto} onChange={(e) => setMonto(e.target.value)} className={inputCls} inputMode="decimal" placeholder="1000000" /></div>
+                        <div><label className={labelCls} htmlFor="giro-metodo">Método</label>
+                            <select id="giro-metodo" name="giro-metodo" value={metodo} onChange={(e) => setMetodo(e.target.value)} className={inputCls}>
                                 <option value="">—</option>
                                 <option value="efectivo">efectivo</option>
                                 <option value="transferencia">transferencia</option>
                                 <option value="cheque">cheque</option>
                                 <option value="otro">otro</option>
                             </select></div>
-                        <div><label className={labelCls}>Referencia</label>
-                            <input value={referencia} onChange={(e) => setReferencia(e.target.value)} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="giro-referencia">Referencia</label>
+                            <input id="giro-referencia" name="giro-referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} className={inputCls} /></div>
                         <button type="submit" disabled={saving}
                             className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

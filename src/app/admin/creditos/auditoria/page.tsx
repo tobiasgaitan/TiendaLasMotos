@@ -104,22 +104,22 @@ export default function AuditoriaPage() {
 
             <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div><label className={labelCls}>Colección</label>
-                        <select value={fColeccion} onChange={(e) => setFColeccion(e.target.value)} className={inputCls}>
+                    <div><label className={labelCls} htmlFor="filtro-coleccion">Colección</label>
+                        <select id="filtro-coleccion" name="filtro-coleccion" value={fColeccion} onChange={(e) => setFColeccion(e.target.value)} className={inputCls}>
                             <option value="">Todas</option>
                             {COLECCIONES.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select></div>
-                    <div><label className={labelCls}>Operación</label>
-                        <select value={fOperacion} onChange={(e) => setFOperacion(e.target.value)} className={inputCls}>
+                    <div><label className={labelCls} htmlFor="filtro-operacion">Operación</label>
+                        <select id="filtro-operacion" name="filtro-operacion" value={fOperacion} onChange={(e) => setFOperacion(e.target.value)} className={inputCls}>
                             <option value="">Todas</option>
                             {OPERACIONES.map((o) => <option key={o} value={o}>{o}</option>)}
                         </select></div>
-                    <div><label className={labelCls}>Actor (uid)</label>
-                        <input value={fActor} onChange={(e) => setFActor(e.target.value)} className={inputCls} placeholder="uid…" /></div>
-                    <div><label className={labelCls}>Desde</label>
-                        <input type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} className={inputCls} /></div>
-                    <div><label className={labelCls}>Hasta</label>
-                        <input type="date" value={fHasta} onChange={(e) => setFHasta(e.target.value)} className={inputCls} /></div>
+                    <div><label className={labelCls} htmlFor="filtro-actor">Actor (uid)</label>
+                        <input id="filtro-actor" name="filtro-actor" value={fActor} onChange={(e) => setFActor(e.target.value)} className={inputCls} placeholder="uid…" /></div>
+                    <div><label className={labelCls} htmlFor="filtro-desde">Desde</label>
+                        <input id="filtro-desde" name="filtro-desde" type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} className={inputCls} /></div>
+                    <div><label className={labelCls} htmlFor="filtro-hasta">Hasta</label>
+                        <input id="filtro-hasta" name="filtro-hasta" type="date" value={fHasta} onChange={(e) => setFHasta(e.target.value)} className={inputCls} /></div>
                 </div>
             </section>
 

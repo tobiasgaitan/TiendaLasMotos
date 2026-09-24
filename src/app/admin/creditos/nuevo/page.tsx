@@ -242,7 +242,7 @@ export default function NuevoCreditoPage() {
             <section className={sectionCls}>
                 <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">1 · Cliente</h2>
                 <div className="flex gap-2">
-                    <input value={cedulaSearch} onChange={(e) => setCedulaSearch(e.target.value)}
+                    <input id="buscar-cedula" name="buscar-cedula" aria-label="Buscar cliente por cédula" value={cedulaSearch} onChange={(e) => setCedulaSearch(e.target.value)}
                         placeholder="Buscar por cédula…" className={inputCls} />
                     <button type="button" onClick={handleSearchClient} disabled={searching}
                         className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm">
@@ -259,14 +259,14 @@ export default function NuevoCreditoPage() {
                 )}
                 {showNewClient && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-gray-800">
-                        <div><label className={labelCls}>Cédula *</label>
-                            <input value={newClient.cedula} onChange={(e) => setNewClient({ ...newClient, cedula: e.target.value })} className={inputCls} /></div>
-                        <div><label className={labelCls}>Nombres *</label>
-                            <input value={newClient.nombres} onChange={(e) => setNewClient({ ...newClient, nombres: e.target.value })} className={inputCls} /></div>
-                        <div><label className={labelCls}>Celular *</label>
-                            <input value={newClient.celular} onChange={(e) => setNewClient({ ...newClient, celular: e.target.value })} className={inputCls} /></div>
-                        <div><label className={labelCls}>Dirección *</label>
-                            <input value={newClient.direccion} onChange={(e) => setNewClient({ ...newClient, direccion: e.target.value })} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="cliente-cedula">Cédula *</label>
+                            <input id="cliente-cedula" name="cliente-cedula" value={newClient.cedula} onChange={(e) => setNewClient({ ...newClient, cedula: e.target.value })} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="cliente-nombres">Nombres *</label>
+                            <input id="cliente-nombres" name="cliente-nombres" value={newClient.nombres} onChange={(e) => setNewClient({ ...newClient, nombres: e.target.value })} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="cliente-celular">Celular *</label>
+                            <input id="cliente-celular" name="cliente-celular" value={newClient.celular} onChange={(e) => setNewClient({ ...newClient, celular: e.target.value })} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="cliente-direccion">Dirección *</label>
+                            <input id="cliente-direccion" name="cliente-direccion" value={newClient.direccion} onChange={(e) => setNewClient({ ...newClient, direccion: e.target.value })} className={inputCls} /></div>
                         <div className="md:col-span-2">
                             <button type="button" onClick={handleCreateClient} disabled={saving}
                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm">
@@ -283,16 +283,16 @@ export default function NuevoCreditoPage() {
                 <section className={sectionCls}>
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">2 · Vehículo</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div><label className={labelCls}>Placa *</label>
-                            <input value={placa} onChange={(e) => setPlaca(e.target.value)} className={inputCls} placeholder="ABC123" /></div>
-                        <div><label className={labelCls}>Marca</label>
-                            <input value={marca} onChange={(e) => setMarca(e.target.value)} className={inputCls} /></div>
-                        <div><label className={labelCls}>Modelo</label>
-                            <input value={modelo} onChange={(e) => setModelo(e.target.value)} className={inputCls} /></div>
-                        <div><label className={labelCls}>Año (Int64)</label>
-                            <input value={anio} onChange={(e) => setAnio(e.target.value)} className={inputCls} inputMode="numeric" placeholder="2024" /></div>
-                        <div><label className={labelCls}>Color</label>
-                            <input value={color} onChange={(e) => setColor(e.target.value)} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="vehiculo-placa">Placa *</label>
+                            <input id="vehiculo-placa" name="vehiculo-placa" value={placa} onChange={(e) => setPlaca(e.target.value)} className={inputCls} placeholder="ABC123" /></div>
+                        <div><label className={labelCls} htmlFor="vehiculo-marca">Marca</label>
+                            <input id="vehiculo-marca" name="vehiculo-marca" value={marca} onChange={(e) => setMarca(e.target.value)} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="vehiculo-modelo">Modelo</label>
+                            <input id="vehiculo-modelo" name="vehiculo-modelo" value={modelo} onChange={(e) => setModelo(e.target.value)} className={inputCls} /></div>
+                        <div><label className={labelCls} htmlFor="vehiculo-anio">Año (Int64)</label>
+                            <input id="vehiculo-anio" name="vehiculo-anio" value={anio} onChange={(e) => setAnio(e.target.value)} className={inputCls} inputMode="numeric" placeholder="2024" /></div>
+                        <div><label className={labelCls} htmlFor="vehiculo-color">Color</label>
+                            <input id="vehiculo-color" name="vehiculo-color" value={color} onChange={(e) => setColor(e.target.value)} className={inputCls} /></div>
                     </div>
                 </section>
 
@@ -300,19 +300,19 @@ export default function NuevoCreditoPage() {
                 <section className={sectionCls}>
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">3 · Condiciones</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><label className={labelCls}>Modalidad</label>
-                            <select value={modalidad} onChange={(e) => setModalidad(e.target.value as ModalidadCredito)} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="cond-modalidad">Modalidad</label>
+                            <select id="cond-modalidad" name="cond-modalidad" value={modalidad} onChange={(e) => setModalidad(e.target.value as ModalidadCredito)} className={inputCls}>
                                 <option value="renting">renting</option>
                                 <option value="credito">credito</option>
                                 <option value="contado">contado</option>
                             </select></div>
-                        <div><label className={labelCls}>Valor cuota (Float ≥ 0) *</label>
-                            <input value={valorCuota} onChange={(e) => setValorCuota(e.target.value)} className={inputCls} inputMode="decimal" placeholder="50000" /></div>
-                        <div><label className={labelCls}>Porcentaje comisión (Float ≥ 0) *</label>
-                            <input value={porcentaje} onChange={(e) => setPorcentaje(e.target.value)} className={inputCls} inputMode="decimal" placeholder="0.10 = 10%" /></div>
+                        <div><label className={labelCls} htmlFor="cond-valor-cuota">Valor cuota (Float ≥ 0) *</label>
+                            <input id="cond-valor-cuota" name="cond-valor-cuota" value={valorCuota} onChange={(e) => setValorCuota(e.target.value)} className={inputCls} inputMode="decimal" placeholder="50000" /></div>
+                        <div><label className={labelCls} htmlFor="cond-porcentaje-comision">Porcentaje comisión (Float ≥ 0) *</label>
+                            <input id="cond-porcentaje-comision" name="cond-porcentaje-comision" value={porcentaje} onChange={(e) => setPorcentaje(e.target.value)} className={inputCls} inputMode="decimal" placeholder="0.10 = 10%" /></div>
                         <div className="flex items-end pb-2">
-                            <label className="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked={excluirDomingos} onChange={(e) => setExcluirDomingos(e.target.checked)}
+                            <label className="flex items-center gap-2 text-sm text-gray-300" htmlFor="cond-excluir-domingos">
+                                <input id="cond-excluir-domingos" name="cond-excluir-domingos" type="checkbox" checked={excluirDomingos} onChange={(e) => setExcluirDomingos(e.target.checked)}
                                     className="w-4 h-4 accent-amber-500" />
                                 Excluir domingos (renting)
                             </label>
@@ -324,18 +324,18 @@ export default function NuevoCreditoPage() {
                 <section className={sectionCls}>
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">4 · Asignaciones (sys_admin_users)</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div><label className={labelCls}>Admin *</label>
-                            <select value={emailAdmin} onChange={(e) => setEmailAdmin(e.target.value)} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="asig-admin">Admin *</label>
+                            <select id="asig-admin" name="asig-admin" value={emailAdmin} onChange={(e) => setEmailAdmin(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
                                 {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
-                        <div><label className={labelCls}>Cobrador *</label>
-                            <select value={emailUsuario} onChange={(e) => setEmailUsuario(e.target.value)} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="asig-cobrador">Cobrador *</label>
+                            <select id="asig-cobrador" name="asig-cobrador" value={emailUsuario} onChange={(e) => setEmailUsuario(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
                                 {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>
-                        <div><label className={labelCls}>Inversor *</label>
-                            <select value={emailInversor} onChange={(e) => setEmailInversor(e.target.value)} className={inputCls}>
+                        <div><label className={labelCls} htmlFor="asig-inversor">Inversor *</label>
+                            <select id="asig-inversor" name="asig-inversor" value={emailInversor} onChange={(e) => setEmailInversor(e.target.value)} className={inputCls}>
                                 <option value="">Seleccionar…</option>
                                 {sysUsers.map((u) => <option key={u.email} value={u.email}>{u.label}</option>)}
                             </select></div>

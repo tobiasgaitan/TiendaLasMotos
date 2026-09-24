@@ -186,7 +186,7 @@ export default function TerminalCobroPage() {
             </div>
 
             <div className="flex gap-2">
-                <input value={search} onChange={(e) => setSearch(e.target.value)}
+                <input id="buscar-placa-documento" name="buscar-placa-documento" aria-label="Buscar crédito por placa o documento" value={search} onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                     placeholder="Placa (ABC123) o cédula…" className={inputCls} />
                 <button type="button" onClick={handleSearch} disabled={searching}
@@ -225,28 +225,28 @@ export default function TerminalCobroPage() {
                             </div>
                         )}
                         <form onSubmit={handleCobro} className="space-y-3">
-                            <div><label className={labelCls}>Valor pagado por el cliente *</label>
-                                <input value={valor} onChange={(e) => setValor(e.target.value)} className={inputCls} inputMode="decimal" placeholder="50000" /></div>
-                            <div><label className={labelCls}>Tipo de transacción</label>
-                                <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoTransaccion)} className={inputCls}>
+                            <div><label className={labelCls} htmlFor="pago-valor">Valor pagado por el cliente *</label>
+                                <input id="pago-valor" name="pago-valor" value={valor} onChange={(e) => setValor(e.target.value)} className={inputCls} inputMode="decimal" placeholder="50000" /></div>
+                            <div><label className={labelCls} htmlFor="pago-tipo">Tipo de transacción</label>
+                                <select id="pago-tipo" name="pago-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoTransaccion)} className={inputCls}>
                                     <option value="pago_cuota">pago_cuota</option>
                                     <option value="multa">multa</option>
                                     <option value="nota_credito">nota_credito (ajuste)</option>
                                 </select></div>
                             {tipo === 'multa' && (
-                                <div><label className={labelCls}>Motivo *</label>
-                                    <input value={motivo} onChange={(e) => setMotivo(e.target.value)} className={inputCls} placeholder="Motivo de la multa" /></div>
+                                <div><label className={labelCls} htmlFor="pago-motivo">Motivo *</label>
+                                    <input id="pago-motivo" name="pago-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} className={inputCls} placeholder="Motivo de la multa" /></div>
                             )}
-                            <div><label className={labelCls}>Método de pago</label>
-                                <select value={metodo} onChange={(e) => setMetodo(e.target.value)} className={inputCls}>
+                            <div><label className={labelCls} htmlFor="pago-metodo">Método de pago</label>
+                                <select id="pago-metodo" name="pago-metodo" value={metodo} onChange={(e) => setMetodo(e.target.value)} className={inputCls}>
                                     <option value="">—</option>
                                     <option value="efectivo">efectivo</option>
                                     <option value="transferencia">transferencia</option>
                                     <option value="tarjeta">tarjeta</option>
                                     <option value="pse">pse</option>
                                 </select></div>
-                            <div><label className={labelCls}>Referencia</label>
-                                <input value={referencia} onChange={(e) => setReferencia(e.target.value)} className={inputCls} /></div>
+                            <div><label className={labelCls} htmlFor="pago-referencia">Referencia</label>
+                                <input id="pago-referencia" name="pago-referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} className={inputCls} /></div>
                             <button type="submit" disabled={saving}
                                 className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">
                                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
