@@ -4,9 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
+import type { Accion, ColeccionPermiso } from "@/types/roles";
+
 interface ProtectedRouteProps {
     children: ReactNode;
     allowedRoles?: string[];
+    /** P5: si se provee, la autorización usa la matriz en vez de allowedRoles. */
+    requiredPermiso?: { coleccion: ColeccionPermiso; accion: Accion };
 }
 
 /**
@@ -19,23 +23,28 @@ interface ProtectedRouteProps {
  * 
  * @param allowedRoles Array de strings con los roles permitidos (ej: ['admin', 'superadmin']).
  */
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-    const { user, role, loading } = useAuth();
+export default function ProtectedRoute({ children, allowedRoles, requiredPermiso }: ProtectedRouteProps) {
+    const { user, role, loading, puedeAccion } = useAuth();
     const router = useRouter();
+
+    // P5: requiredPermiso tiene prioridad sobre allowedRoles (matriz configurable).
+    const sinPermiso = requiredPermiso
+        ? !!user && !!role && !puedeAccion(requiredPermiso.coleccion, requiredPermiso.accion)
+        : !!(allowedRoles && role && !allowedRoles.includes(role));
 
     useEffect(() => {
         if (!loading) {
             if (!user) {
                 // Si no hay usuario, ir a login
                 router.push("/admin/login");
-            } else if (allowedRoles && role && !allowedRoles.includes(role)) {
+            } else if (sinPermiso) {
                 // Si hay usuario pero el rol no es permitido
                 // Podríamos redirigir a una página de 403 o al home
                 alert("Acceso denegado: No tienes permisos suficientes.");
                 router.push("/");
             }
         }
-    }, [user, role, loading, allowedRoles, router]);
+    }, [user, role, loading, sinPermiso, router]);
 
     if (loading) {
         return (
@@ -49,7 +58,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     if (!user) return null;
 
     // Si hay roles requeridos y el usuario no cumple, null (mientras redirige)
-    if (allowedRoles && role && !allowedRoles.includes(role)) return null;
+    if (sinPermiso) return null;
 
     return <>{children}</>;
 }

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import '@/app/globals.css';
 import AdminSidebar from '@/components/AdminSidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { ROLES } from '@/types/roles';
 
 /**
  * Layout principal del panel administrativo.
@@ -23,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+        <ProtectedRoute allowedRoles={[...ROLES]}>
             <div className="flex h-screen bg-black text-white overflow-hidden relative">
 
                 {/* 1. DESKTOP SIDEBAR (Static, hidden on mobile) */}

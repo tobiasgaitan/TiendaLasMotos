@@ -25,8 +25,23 @@ import {
 import { deleteSession } from "@/app/admin/login/actions";
 
 export default function AdminSidebar() {
-    const { user, role, loading, logout } = useAuth();
+    const { user, role, loading, logout, puedeAccion } = useAuth();
     const pathname = usePathname();
+
+    // P5: visibilidad por matriz (durante carga/rol pendiente se muestra todo).
+    const ver = (
+        coleccion: Parameters<typeof puedeAccion>[0],
+        accion: Parameters<typeof puedeAccion>[1]
+    ): boolean => {
+        if (loading || !role) return true;
+        return puedeAccion(coleccion, accion);
+    };
+    const verCreditos =
+        ver('creditos', 'read') ||
+        ver('pagos_y_multas', 'read') ||
+        ver('remisiones_dinero', 'read') ||
+        ver('pagos_inversores', 'read') ||
+        ver('historial_auditoria', 'read');
 
     // State for Collapsible Groups
     const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
@@ -136,7 +151,8 @@ export default function AdminSidebar() {
 
                 <div className="my-2 border-t border-slate-800/50" />
 
-                {/* --- GROUP: GESTIÓN DE CRÉDITOS (Fase 9) --- */}
+                {/* --- GROUP: GESTIÓN DE CRÉDITOS (Fase 9) — visible según matriz P5 --- */}
+                {verCreditos && (
                 <div className="space-y-1">
                     <button
                         onClick={() => toggleGroup('creditos')}
@@ -150,6 +166,7 @@ export default function AdminSidebar() {
                     </button>
 
                     <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['creditos'] ? 'max-h-[22rem] opacity-100' : 'max-h-0 opacity-0'}`}>
+                        {ver('creditos', 'read') && (
                         <Link
                             href="/admin/creditos"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -157,6 +174,8 @@ export default function AdminSidebar() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Contratos
                         </Link>
+                        )}
+                        {ver('pagos_y_multas', 'create') && (
                         <Link
                             href="/admin/creditos/pagos"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/pagos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -164,6 +183,8 @@ export default function AdminSidebar() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Terminal de Cobro
                         </Link>
+                        )}
+                        {ver('remisiones_dinero', 'read') && (
                         <Link
                             href="/admin/creditos/remisiones"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/remisiones') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -171,6 +192,8 @@ export default function AdminSidebar() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Cierre de Caja
                         </Link>
+                        )}
+                        {ver('pagos_inversores', 'read') && (
                         <Link
                             href="/admin/creditos/inversores"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/inversores') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -178,6 +201,8 @@ export default function AdminSidebar() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Inversores
                         </Link>
+                        )}
+                        {ver('historial_auditoria', 'read') && (
                         <Link
                             href="/admin/creditos/auditoria"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/auditoria') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -185,8 +210,10 @@ export default function AdminSidebar() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Auditoría
                         </Link>
+                        )}
                     </div>
                 </div>
+                )}
 
                 <div className="my-2 border-t border-slate-800/50" />
 
@@ -251,6 +278,7 @@ export default function AdminSidebar() {
                             <MapPin className="w-4 h-4" />
                             Sedes / Ciudades
                         </Link>
+                        {ver('sys_admin_users', 'read') && (
                         <Link
                             href="/admin/users"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/users') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -258,6 +286,7 @@ export default function AdminSidebar() {
                             <Users className="w-4 h-4" />
                             Config. Usuarios
                         </Link>
+                        )}
                         <Link
                             href="/admin/general"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/general') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}

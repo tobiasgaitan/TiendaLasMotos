@@ -34,7 +34,7 @@ function esHoyBogota(d: Date | null): boolean {
 }
 
 export default function CierreCajaPage() {
-    const { user, role } = useAuth();
+    const { user, puedeAccion } = useAuth();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [acumuladoHoy, setAcumuladoHoy] = useState(0);
@@ -43,7 +43,8 @@ export default function CierreCajaPage() {
     const [generando, setGenerando] = useState(false);
     const [procesando, setProcesando] = useState<string | null>(null);
 
-    const isAdmin = ['admin', 'superadmin'].includes((role || '').toLowerCase());
+    // P5: panel de aprobación visible si puede actualizar remisiones.
+    const isAdmin = puedeAccion('remisiones_dinero', 'update');
 
     useEffect(() => { setMounted(true); }, []);
 

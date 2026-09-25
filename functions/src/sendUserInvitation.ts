@@ -17,7 +17,8 @@ const smtpPassword = defineString('SMTP_PASSWORD');
 interface InvitationData {
     name: string;
     email: string;
-    role: 'superadmin' | 'admin' | 'vendedor';
+    // P5: roles canónicos (vendedor → cobrador).
+    role: 'superadmin' | 'admin' | 'cobrador' | 'inversor' | 'auditor';
 }
 
 export const sendUserInvitation = onCall(async (request: CallableRequest<InvitationData>) => {
@@ -61,7 +62,9 @@ export const sendUserInvitation = onCall(async (request: CallableRequest<Invitat
     const roleNames: Record<string, string> = {
         'superadmin': 'Super Administrador',
         'admin': 'Administrador',
-        'vendedor': 'Vendedor'
+        'cobrador': 'Cobrador',
+        'inversor': 'Inversor',
+        'auditor': 'Auditor'
     };
 
     const roleName = roleNames[data.role] || data.role;

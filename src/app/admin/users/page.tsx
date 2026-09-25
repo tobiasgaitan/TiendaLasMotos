@@ -1,20 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, deleteField, Timestamp, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Plus, Trash2, Edit2, Shield, User, Search, RefreshCw, Mail, Lock } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { ROLES, type Rol } from '@/types/roles';
+import { resolverRol } from '@/lib/auth/resolve-rol';
 
 interface AdminUser {
     id: string; // Email is ID
     name: string;
     email: string;
-    role: 'superadmin' | 'admin' | 'vendedor';
+    /** Canónica P5: `rol`. `role` es legacy (solo lectura). */
+    rol?: Rol | string;
+    role?: string;
     active: boolean;
     createdAt: string;
 }
 
+/** Rol efectivo para display (resiliente rol ?? role, legacy vendedor→cobrador). */
+function rolDe(u: AdminUser): string {
+    return resolverRol(u as unknown as Record<string, unknown>);
+}
+
 export default function UsersPage() {
+    const { user: me, role: miRol, loading: authLoading, puedeAccion } = useAuth();
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState(''); // Error Boundary State
@@ -23,7 +34,7 @@ export default function UsersPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-    const [formData, setFormData] = useState({ name: '', email: '', role: 'admin', active: true });
+    const [formData, setFormData] = useState<{ name: string; email: string; role: Rol; active: boolean }>({ name: '', email: '', role: 'admin', active: true });
     const [saving, setSaving] = useState(false);
 
     const fetchUsers = async () => {
@@ -54,10 +65,13 @@ export default function UsersPage() {
             const docId = editingUser ? editingUser.id : emailKey;
             const docRef = doc(db, 'sys_admin_users', docId);
 
+            // P5: escritura estandarizada a la clave canónica `rol`;
+            // se elimina la legacy `role` si existiera.
             await setDoc(docRef, {
                 name: formData.name,
                 email: emailKey,
-                role: formData.role,
+                rol: formData.role,
+                role: deleteField(),
                 active: formData.active,
                 createdAt: editingUser?.createdAt || new Date().toISOString()
             }, { merge: true });
@@ -108,10 +122,11 @@ export default function UsersPage() {
         if (user) {
             setEditingUser(user);
             // Ensure values are never undefined to prevent 'uncontrolled' input warning/state blocking
+            const rolActual = rolDe(user);
             setFormData({
                 name: user.name || '',
                 email: user.email || '',
-                role: (user.role || 'admin') as string,
+                role: (rolActual === 'guest' ? 'admin' : rolActual) as Rol,
                 active: user.active === true // Strict check: undefined/false -> false
             });
         } else {
@@ -130,6 +145,21 @@ export default function UsersPage() {
         const search = (searchTerm ?? '').toLowerCase();
         return name.includes(search) || email.includes(search);
     });
+
+    // P5: guard de página — solo quien puede leer sys_admin_users.
+    if (authLoading || (me && miRol === null)) {
+        return <div className="p-8 text-center text-gray-400">Cargando...</div>;
+    }
+    if (me && !puedeAccion('sys_admin_users', 'read')) {
+        return (
+            <div className="p-8 max-w-7xl mx-auto">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                    <strong className="font-bold">Acceso denegado: </strong>
+                    <span>No tienes permisos para gestionar usuarios.</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -192,10 +222,10 @@ export default function UsersPage() {
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
-                                        user.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${rolDe(user) === 'superadmin' ? 'bg-purple-100 text-purple-700' :
+                                        rolDe(user) === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                                         }`}>
-                                        {user.role}
+                                        {rolDe(user)}
                                     </span>
                                 </td>
                                 <td className="p-4">
@@ -262,9 +292,11 @@ export default function UsersPage() {
                                     <select
                                         className="w-full px-4 py-2 border rounded-lg outline-none text-slate-900 bg-white"
                                         value={formData.role}
-                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value as Rol })}
                                     >
-                                        <option value="vendedor">Vendedor</option>
+                                        <option value="cobrador">Cobrador</option>
+                                        <option value="inversor">Inversor</option>
+                                        <option value="auditor">Auditor</option>
                                         <option value="admin">Administrador</option>
                                         <option value="superadmin">Super Admin</option>
                                     </select>
