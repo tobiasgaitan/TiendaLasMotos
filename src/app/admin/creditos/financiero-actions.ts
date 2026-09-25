@@ -11,6 +11,7 @@ import {
     type ActionResult,
 } from "./actions";
 import { actorSchema, moneySchema } from "@/lib/actions/creditos-schemas";
+import { requirePermiso } from "@/lib/auth/require-permiso";
 
 /**
  * Server Actions financieras — Fase 9 (Regla A + M3 + M4).
@@ -38,26 +39,7 @@ function validarActor(actor: unknown) {
     return parsed.success ? parsed.data : null;
 }
 
-/** Solo admin/superadmin (resolución de rol vía sys_admin_users por email). */
-async function requireAdmin(uid: string, email?: string): Promise<void> {
-    try {
-        const adminDb = getDb();
-        let rol: string | null = null;
-        if (email) {
-            const q = await adminDb.collection('sys_admin_users').where('email', '==', email).limit(1).get();
-            if (!q.empty) {
-                const data = q.docs[0].data() as { role?: string; rol?: string };
-                rol = String(data.role || data.rol || '').toLowerCase();
-            }
-        }
-        if (rol !== 'admin' && rol !== 'superadmin') {
-            throw new Error('Operación reservada al administrador.');
-        }
-    } catch (error) {
-        console.error('[creditos] requireAdmin falló:', { uid, error });
-        throw new Error('Operación reservada al administrador.');
-    }
-}
+/** Autorización P5: requireAdmin absorbido por requirePermiso (matriz configurable). */
 
 /** Rango del día actual en America/Bogota (UTC-5 fijo, sin DST). */
 function rangoDiaBogota(): { inicio: Date; fin: Date } {
@@ -118,6 +100,8 @@ export async function createPagoYMulta(input: unknown, actor: unknown): Promise<
         if (!credito.condiciones) {
             return { success: false, message: 'El crédito no tiene condiciones registradas.' };
         }
+        const asignCobro = (creditoSnap.data() as { asignaciones?: { email_usuario?: string | null } }).asignaciones;
+        await requirePermiso(me, 'pagos_y_multas', 'create', { email_usuario: asignCobro?.email_usuario ?? null });
 
         // Regla A — cálculo en SERVIDOR; se ignoran valores del cliente.
         const { valor_comision, valor_neto_empresa } = calcularComision(
@@ -183,6 +167,9 @@ export async function updatePagoYMulta(id: string, patch: unknown, actor: unknow
         const snap = await docRef.get();
         if (!snap.exists) return { success: false, message: 'El registro no existe.' };
         const antes = snap.data() as Record<string, unknown>;
+        const creditoPrevio = await adminDb.collection('creditos').doc(String(antes.id_credito)).get();
+        const asignPrevia = (creditoPrevio.data() as { asignaciones?: { email_usuario?: string | null } } | undefined)?.asignaciones;
+        await requirePermiso(me, 'pagos_y_multas', 'update', { email_usuario: asignPrevia?.email_usuario ?? null });
 
         // id_credito y tipo_transaccion son inmutables (prohibido PAGO↔MULTA).
         const rawPatch = (patch ?? {}) as Record<string, unknown>;
@@ -253,6 +240,9 @@ export async function softDeletePagoYMulta(id: string, motivo: string, actor: un
         const snap = await docRef.get();
         if (!snap.exists) return { success: false, message: 'El registro no existe.' };
         const antes = snap.data() as Record<string, unknown>;
+        const creditoBaja = await adminDb.collection('creditos').doc(String(antes.id_credito)).get();
+        const asignBaja = (creditoBaja.data() as { asignaciones?: { email_usuario?: string | null } } | undefined)?.asignaciones;
+        await requirePermiso(me, 'pagos_y_multas', 'update', { email_usuario: asignBaja?.email_usuario ?? null });
         const updates = {
             activo: false,
             motivo_baja: String(motivo).trim(),
@@ -310,6 +300,7 @@ export async function createPagoInversor(input: unknown, actor: unknown): Promis
         if ((creditoSnap.data() as { activo?: boolean } | undefined)?.activo === false) {
             return { success: false, message: 'El crédito está dado de baja.' };
         }
+        await requirePermiso(me, 'pagos_inversores', 'create');
 
         const payload: Record<string, unknown> = {
             id_credito: data.id_credito,
@@ -360,6 +351,7 @@ export async function updatePagoInversor(id: string, patch: unknown, actor: unkn
         const snap = await docRef.get();
         if (!snap.exists) return { success: false, message: 'El giro no existe.' };
         const antes = snap.data() as Record<string, unknown>;
+        await requirePermiso(me, 'pagos_inversores', 'update');
 
         // id_credito / email_inversor / email_admin son inmutables (prohibido reasignar).
         const rawPatch = (patch ?? {}) as Record<string, unknown>;
@@ -403,6 +395,7 @@ export async function softDeletePagoInversor(id: string, motivo: string, actor: 
         const snap = await docRef.get();
         if (!snap.exists) return { success: false, message: 'El giro no existe.' };
         const antes = snap.data() as Record<string, unknown>;
+        await requirePermiso(me, 'pagos_inversores', 'update');
         const updates = {
             activo: false,
             motivo_baja: String(motivo).trim(),
@@ -441,6 +434,7 @@ export async function generarCierreCaja(actor: unknown): Promise<RemisionResult>
             return { success: false, message: 'La cuenta no tiene email verificado.' };
         }
         const adminDb = getDb();
+        await requirePermiso(me, 'remisiones_dinero', 'create', { email_usuario: actorEmail });
         const { inicio, fin } = rangoDiaBogota();
 
         // Suma de valor_neto_empresa del día del cobrador (registrado_por = uid).
@@ -488,7 +482,7 @@ export async function aprobarRemision(id: string, actor: unknown): Promise<Actio
     if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
     try {
         const me = await requireActor(a.idToken);
-        await requireAdmin(me.uid, me.email);
+        await requirePermiso(me, 'remisiones_dinero', 'update');
         const actorEmail = (me.email ?? '').toLowerCase().trim();
         if (!actorEmail) {
             return { success: false, message: 'La cuenta no tiene email verificado.' };
@@ -529,7 +523,7 @@ export async function anularRemision(id: string, motivo: string, actor: unknown)
     }
     try {
         const me = await requireActor(a.idToken);
-        await requireAdmin(me.uid, me.email);
+        await requirePermiso(me, 'remisiones_dinero', 'update');
         const adminDb = getDb();
         const docRef = adminDb.collection('remisiones_dinero').doc(id);
         const snap = await docRef.get();

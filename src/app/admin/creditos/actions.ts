@@ -5,6 +5,7 @@ import { getDb, getAdminAuth } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import type { OperacionAuditoria } from "@/types/creditos";
 import { actorSchema, moneySchema, intSchema } from "@/lib/actions/creditos-schemas";
+import { requirePermiso } from "@/lib/auth/require-permiso";
 
 /**
  * Server Actions core — Módulo de Gestión de Créditos y Renting (Fase 9).
@@ -184,6 +185,7 @@ export async function createCredito(input: unknown, actor: unknown): Promise<Act
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'creditos', 'create');
         const adminDb = getDb();
         const data = validated.data;
 
@@ -237,6 +239,7 @@ export async function updateCredito(id: string, patch: unknown, actor: unknown):
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'creditos', 'update');
         const adminDb = getDb();
         const docRef = adminDb.collection('creditos').doc(id);
         const snap = await docRef.get();
@@ -280,6 +283,7 @@ export async function softDeleteCredito(id: string, motivo: string, actor: unkno
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'creditos', 'update');
         const adminDb = getDb();
         const docRef = adminDb.collection('creditos').doc(id);
         const snap = await docRef.get();
@@ -332,6 +336,7 @@ export async function createClienteCredito(input: unknown, actor: unknown): Prom
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'clientes_credito', 'create');
         const adminDb = getDb();
         const data = validated.data;
 
@@ -399,6 +404,7 @@ export async function updateClienteCredito(id: string, patch: unknown, actor: un
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'clientes_credito', 'update');
         const adminDb = getDb();
         const docRef = adminDb.collection('clientes_credito').doc(id);
         const snap = await docRef.get();
@@ -457,6 +463,7 @@ export async function softDeleteClienteCredito(id: string, motivo: string, actor
     }
     try {
         const me = await requireActor(a.idToken);
+        await requirePermiso(me, 'clientes_credito', 'update');
         const adminDb = getDb();
         const docRef = adminDb.collection('clientes_credito').doc(id);
         const snap = await docRef.get();
