@@ -25,23 +25,8 @@ import {
 import { deleteSession } from "@/app/admin/login/actions";
 
 export default function AdminSidebar() {
-    const { user, role, loading, logout, puedeAccion } = useAuth();
+    const { user, role, loading, logout, puedeVerNodo, verGrupoCreditos } = useAuth();
     const pathname = usePathname();
-
-    // P5: visibilidad por matriz (durante carga/rol pendiente se muestra todo).
-    const ver = (
-        coleccion: Parameters<typeof puedeAccion>[0],
-        accion: Parameters<typeof puedeAccion>[1]
-    ): boolean => {
-        if (loading || !role) return true;
-        return puedeAccion(coleccion, accion);
-    };
-    const verCreditos =
-        ver('creditos', 'read') ||
-        ver('pagos_y_multas', 'read') ||
-        ver('remisiones_dinero', 'read') ||
-        ver('pagos_inversores', 'read') ||
-        ver('historial_auditoria', 'read');
 
     // State for Collapsible Groups
     const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
@@ -118,7 +103,8 @@ export default function AdminSidebar() {
             {/* Navigation */}
             <nav className="flex-1 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
 
-                {/* --- GROUP: SIMULADORES --- */}
+                {/* --- GROUP: SIMULADORES (solo superadmin/admin) --- */}
+                {puedeVerNodo('simuladores') && (
                 <div className="space-y-1">
                     <button
                         onClick={() => toggleGroup('simuladores')}
@@ -148,11 +134,12 @@ export default function AdminSidebar() {
                         </Link>
                     </div>
                 </div>
+                )}
 
                 <div className="my-2 border-t border-slate-800/50" />
 
                 {/* --- GROUP: GESTIÓN DE CRÉDITOS (Fase 9) — visible según matriz P5 --- */}
-                {verCreditos && (
+                {verGrupoCreditos() && (
                 <div className="space-y-1">
                     <button
                         onClick={() => toggleGroup('creditos')}
@@ -166,7 +153,7 @@ export default function AdminSidebar() {
                     </button>
 
                     <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['creditos'] ? 'max-h-[22rem] opacity-100' : 'max-h-0 opacity-0'}`}>
-                        {ver('creditos', 'read') && (
+                        {puedeVerNodo('creditos-contratos') && (
                         <Link
                             href="/admin/creditos"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -175,7 +162,7 @@ export default function AdminSidebar() {
                             Contratos
                         </Link>
                         )}
-                        {ver('pagos_y_multas', 'create') && (
+                        {puedeVerNodo('creditos-pagos') && (
                         <Link
                             href="/admin/creditos/pagos"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/pagos') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -184,7 +171,7 @@ export default function AdminSidebar() {
                             Terminal de Cobro
                         </Link>
                         )}
-                        {ver('remisiones_dinero', 'read') && (
+                        {puedeVerNodo('creditos-remisiones') && (
                         <Link
                             href="/admin/creditos/remisiones"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/remisiones') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -193,7 +180,7 @@ export default function AdminSidebar() {
                             Cierre de Caja
                         </Link>
                         )}
-                        {ver('pagos_inversores', 'read') && (
+                        {puedeVerNodo('creditos-inversores') && (
                         <Link
                             href="/admin/creditos/inversores"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/inversores') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -202,7 +189,7 @@ export default function AdminSidebar() {
                             Inversores
                         </Link>
                         )}
-                        {ver('historial_auditoria', 'read') && (
+                        {puedeVerNodo('creditos-auditoria') && (
                         <Link
                             href="/admin/creditos/auditoria"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/creditos/auditoria') ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -217,7 +204,8 @@ export default function AdminSidebar() {
 
                 <div className="my-2 border-t border-slate-800/50" />
 
-                {/* --- SINGLE ITEMS --- */}
+                {/* --- SINGLE ITEMS (solo superadmin/admin) --- */}
+                {puedeVerNodo('inventario') && (
                 <Link
                     href="/admin/inventory"
                     className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/inventory') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
@@ -225,18 +213,21 @@ export default function AdminSidebar() {
                     <Tag className="w-5 h-5" />
                     Inventario
                 </Link>
-
+                )}
+                {puedeVerNodo('prospectos') && (
                 <Link
                     href="/admin/prospectos"
-                    className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/prospectos') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/prospectos') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                 >
                     <Users className="w-5 h-5" />
                     Prospectos
                 </Link>
+                )}
 
                 <div className="my-2 border-t border-slate-800/50" />
 
-                {/* --- GROUP: CONFIGURACIÓN DEL SISTEMA --- */}
+                {/* --- GROUP: CONFIGURACIÓN DEL SISTEMA (respaldado por sys_admin_users) --- */}
+                {puedeVerNodo('config') && (
                 <div className="space-y-1">
                     <button
                         onClick={() => toggleGroup('config')}
@@ -278,7 +269,7 @@ export default function AdminSidebar() {
                             <MapPin className="w-4 h-4" />
                             Sedes / Ciudades
                         </Link>
-                        {ver('sys_admin_users', 'read') && (
+                        {puedeVerNodo('config-usuarios') && (
                         <Link
                             href="/admin/users"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/users') ? 'bg-purple-600/10 text-purple-400 border border-purple-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -296,6 +287,7 @@ export default function AdminSidebar() {
                         </Link>
                     </div>
                 </div>
+                )}
 
             </nav>
 

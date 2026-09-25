@@ -20,6 +20,7 @@ import {
     type Rol,
 } from "@/types/roles";
 import { resolverRol } from "@/lib/auth/resolve-rol";
+import { puedeVerNodo as puedeVerNodoPuro, verGrupoCreditos as verGrupoCreditosPuro, type NodoSidebar } from "@/lib/auth/sidebar-visibility";
 
 // Define the shape of our context
 interface AuthContextType {
@@ -30,6 +31,10 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     /** Gating visual por matriz (no es barrera de seguridad; el servidor re-valida). */
     puedeAccion: (coleccion: ColeccionPermiso, accion: Accion) => boolean;
+    /** Gating visual de nodos del sidebar (contrato P5 + fail-closed). */
+    puedeVerNodo: (nodo: NodoSidebar) => boolean;
+    /** Visibilidad del grupo Gestión de Créditos. */
+    verGrupoCreditos: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -174,8 +179,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         [matriz, role]
     );
 
+    const puedeVerNodo = useCallback(
+        (nodo: NodoSidebar): boolean => {
+            // Sin rol resuelto aún: visible (evita parpadeo; el layout ya exige login).
+            if (loading || !role) return true;
+            return puedeVerNodoPuro(role, matriz, nodo);
+        },
+        [matriz, role, loading]
+    );
+
+    const verGrupoCreditos = useCallback((): boolean => {
+        if (loading || !role) return true;
+        return verGrupoCreditosPuro(role, matriz);
+    }, [matriz, role, loading]);
+
     return (
-        <AuthContext.Provider value={{ user, role, loading, logout, loginWithGoogle, puedeAccion }}>
+        <AuthContext.Provider value={{ user, role, loading, logout, loginWithGoogle, puedeAccion, puedeVerNodo, verGrupoCreditos }}>
             {children}
         </AuthContext.Provider>
     );
