@@ -30,7 +30,7 @@ function fmtCOP(n: number): string {
 }
 
 export default function CreditosListPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading, puedeAccion } = useAuth();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [creditos, setCreditos] = useState<CreditoConId[]>([]);
@@ -119,12 +119,14 @@ export default function CreditosListPage() {
                     <h1 className="text-2xl font-bold text-white">Gestión de Contratos</h1>
                     <p className="text-sm text-gray-400">Créditos y renting — {creditos.length} activos</p>
                 </div>
+                {!authLoading && puedeAccion('creditos', 'create') && (
                 <Link
                     href="/admin/creditos/nuevo"
                     className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                     <Plus className="w-4 h-4" /> Nuevo crédito
                 </Link>
+                )}
             </div>
 
             <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
@@ -183,14 +185,18 @@ export default function CreditosListPage() {
                                                 className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
                                                 <Eye className="w-4 h-4" />
                                             </Link>
+                                            {!authLoading && puedeAccion('creditos', 'update') && (
                                             <Link href={`/admin/creditos/${c.id}/editar`} title="Editar"
                                                 className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
                                                 <Pencil className="w-4 h-4" />
                                             </Link>
+                                            )}
+                                            {!authLoading && puedeAccion('creditos', 'update') && (
                                             <button onClick={() => handleBaja(c.id)} title="Baja lógica"
                                                 className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10">
                                                 <Ban className="w-4 h-4" />
                                             </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

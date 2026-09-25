@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, ArrowLeft, Pencil, Receipt } from "lucide-react";
 import type { CreditoConId, ClienteCreditoConId } from "@/types/creditos";
 
@@ -37,6 +38,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 
 export default function CreditoDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const { loading: authLoading, puedeAccion } = useAuth();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [credito, setCredito] = useState<CreditoConId | null>(null);
@@ -94,14 +96,18 @@ export default function CreditoDetailPage({ params }: { params: Promise<{ id: st
                     </h1>
                     <p className="text-sm text-gray-400">Detalle de solo lectura</p>
                 </div>
+                {!authLoading && puedeAccion('creditos', 'update') && (
                 <Link href={`/admin/creditos/${credito.id}/editar`}
                     className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
                     <Pencil className="w-4 h-4" /> Editar
                 </Link>
+                )}
+                {!authLoading && puedeAccion('pagos_y_multas', 'create') && (
                 <Link href="/admin/creditos/pagos"
                     className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm">
                     <Receipt className="w-4 h-4" /> Cobrar
                 </Link>
+                )}
             </div>
 
             <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
