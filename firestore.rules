@@ -12,8 +12,8 @@ service cloud.firestore {
     match /pagina/catalogo/items/{item} { allow read: if true; allow write: if request.auth != null; }
     match /leads/{lead} { allow create: if true; allow read, update, delete: if request.auth != null; }
     match /prospectos/{document} { allow create: if true; allow read, update, delete: if request.auth != null; }
-    match /sys_admin_users/{document} { allow read: if request.auth != null; allow write: if false; }
-    match /sys_permissions_matrix/{document} { allow read: if request.auth != null; allow write: if false; }
+    match /sys_admin_users/{document} { allow get: if true; allow list: if request.auth != null; allow write: if false; }
+    match /sys_permissions_matrix/{document} { allow read: if true; allow write: if false; }
 
     // 2. Desbloqueo para el Panel Viejo (Legacy)
     // Agregamos 'configuracion' y 'settings' que son vitales para los formularios

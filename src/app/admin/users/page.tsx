@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc, deleteField, Timestamp, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { createUser, updateUser, deleteUser } from './actions';
 import { Plus, Trash2, Edit2, Shield, User, Search, RefreshCw, Mail, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES, type Rol } from '@/types/roles';
@@ -58,23 +59,32 @@ export default function UsersPage() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!me) {
+            alert("Sesión inválida. Vuelve a iniciar sesión.");
+            return;
+        }
         setSaving(true);
         try {
-            const emailKey = formData.email.toLowerCase().trim();
-            // Use existing ID if editing, otherwise new email key
-            const docId = editingUser ? editingUser.id : emailKey;
-            const docRef = doc(db, 'sys_admin_users', docId);
-
-            // P5: escritura estandarizada a la clave canónica `rol`;
-            // se elimina la legacy `role` si existiera.
-            await setDoc(docRef, {
-                name: formData.name,
-                email: emailKey,
-                rol: formData.role,
-                role: deleteField(),
-                active: formData.active,
-                createdAt: editingUser?.createdAt || new Date().toISOString()
-            }, { merge: true });
+            // WEB-029: escrituras vía Server Actions (Admin SDK). El SDK cliente
+            // solo lee; las reglas deniegan writes de cliente.
+            const actor = { uid: me.uid, idToken: await me.getIdToken() };
+            const res = editingUser
+                ? await updateUser(editingUser.id, {
+                    name: formData.name.trim(),
+                    rol: formData.role,
+                    active: formData.active,
+                }, actor)
+                : await createUser({
+                    name: formData.name.trim(),
+                    email: formData.email,
+                    rol: formData.role,
+                    active: formData.active,
+                }, actor);
+            if (!res.success) {
+                alert(res.message || "Error guardando usuario");
+                return;
+            }
+            const emailKey = (editingUser ? editingUser.id : formData.email).toLowerCase().trim();
 
             // Send invitation email for new users
             if (!editingUser) {
@@ -109,9 +119,18 @@ export default function UsersPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm(`¿Eliminar acceso a ${id}? Esto no borra la cuenta de Auth, solo revoca acceso al panel.`)) return;
+        if (!confirm(`¿Revocar acceso a ${id}? Esto no borra la cuenta de Auth, solo desactiva el acceso al panel (baja lógica).`)) return;
+        if (!me) {
+            alert("Sesión inválida. Vuelve a iniciar sesión.");
+            return;
+        }
         try {
-            await deleteDoc(doc(db, 'sys_admin_users', id));
+            // WEB-029: baja lógica vía Server Action (Admin SDK). PROHIBIDO delete() físico.
+            const res = await deleteUser(id, { uid: me.uid, idToken: await me.getIdToken() });
+            if (!res.success) {
+                alert(res.message || "Error eliminando");
+                return;
+            }
             fetchUsers();
         } catch (error) {
             alert("Error eliminando");
