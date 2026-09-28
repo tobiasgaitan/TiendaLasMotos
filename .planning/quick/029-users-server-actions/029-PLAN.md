@@ -51,6 +51,24 @@ Secuencia obligatoria:
 - **Invariantes:** `createUser`, `deleteUser`, `firestore.rules`, `users/page.tsx`,
   `sendUserInvitation.ts` — cero cambios.
 
+## WEB-029-FIX-2 — Accessor blindado de FieldValue (2026-09-28)
+- **Regresión:** el fix 79ad583 añadió `import { FieldValue } from
+  "firebase-admin/firestore"` (ES6 estático) en `src/app/admin/users/actions.ts`.
+  Bajo firebase-frameworks + Turbopack los externals se hashean y el import no
+  resuelve en Cloud Run ⇒ ERR_MODULE_NOT_FOUND / HTTP 500 en las tres actions.
+  Evidencia: sondas runtime 27/sep 10:02 p.m. (create también falla con 500).
+  Regresión del precedente QUICK-023 / Deuda P2.
+- **Fix:** eliminado el import ES6; nuevo accessor `getFieldValue()` en
+  `src/lib/firebase-admin.ts` con literal `eval("require('firebase-admin/firestore')")`
+  idéntico al de `getDb` (Valla de Chesterton); `updateUser` consume
+  `getFieldValue().delete()` dentro del batch atómico de un solo commit.
+- **Regla vinculante:** *"Cero imports ES6 de `firebase-admin/*` en `src/` fuera del
+  módulo blindado `src/lib/firebase-admin.ts`."* Excepciones: `src/lib/db-check.ts` y
+  `src/scripts/migrate-images.ts` (scripts CLI ejecutados con `tsx`, no bundleados).
+- **Invariantes FIX-2:** `users-schemas.ts` puro sin centinelas; ledger JSON-plano con
+  clave ausente; lógica `createUser`/`deleteUser` intacta; `firestore.rules`,
+  `users/page.tsx`, `sendUserInvitation.ts` sin cambios.
+
 ---
 *Created: 2026-09-25 by Antigravity*
 *Ticket: WEB-029*

@@ -48,3 +48,17 @@ export const getAdminAuth = () => {
 
   return adminAuth.getAuth(getAdminApp());
 };
+
+/**
+ * Centinela de borrado de campo (FieldValue.delete) vía require blindado.
+ * Literal eval idéntico al de getDb (Valla de Chesterton, WEB-029-FIX-2):
+ * los imports ES6 de firebase-admin/* fuera de este módulo generan externals
+ * hasheados inexistentes en Cloud Run (QUICK-023, rev 00548-men).
+ */
+export const getFieldValue = () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
+  const adminFirestore = eval("require('firebase-admin/firestore')");
+
+  return adminFirestore.FieldValue;
+};

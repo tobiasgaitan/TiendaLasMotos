@@ -1,7 +1,6 @@
 'use server';
 
-import { getDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { getDb, getFieldValue } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 import {
     requireActor,
@@ -118,7 +117,7 @@ export async function updateUser(
         const batch = adminDb.batch();
         batch.set(docRef, {
             ...updates,
-            ...(limpiarRole ? { role: FieldValue.delete() } : {}),
+            ...(limpiarRole ? { role: getFieldValue().delete() } : {}),
         }, { merge: true });
         await batch.commit();
         // Ledger JSON-plano: la clave eliminada se refleja ausente (sin centinelas).
