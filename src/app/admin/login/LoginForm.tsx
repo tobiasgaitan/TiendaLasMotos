@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
+import { verificarWhitelist } from '@/app/admin/users/whitelist-actions';
 import { createSession } from '@/app/actions/auth';
 
 export default function LoginForm() {
@@ -59,13 +59,12 @@ export default function LoginForm() {
         }
 
         try {
-            // 1. Check Whitelist in Firestore (SKIP for Admin Restoration)
+            // 1. Check Whitelist vía Server Action (Admin SDK, WEB-031).
+            // SKIP for Admin Restoration. Sin requirePermiso (pre-auth) y con rate-limit.
             if (email !== 'admin@tiendalasmotos.com') {
-                const emailKey = email.toLowerCase().trim();
-                const whitelistRef = doc(db, 'sys_admin_users', emailKey);
-                const whitelistSnap = await getDoc(whitelistRef);
+                const wl = await verificarWhitelist(email);
 
-                if (!whitelistSnap.exists() || !whitelistSnap.data()?.active) {
+                if (!wl.exists || !wl.active) {
                     setError('Este correo no está autorizado para acceder. Contacta al SuperAdmin.');
                     setLoading(false);
                     return;

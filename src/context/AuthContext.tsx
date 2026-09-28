@@ -8,7 +8,7 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "firebase/auth";
-import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import {
     DEFAULT_MATRIZ,
@@ -109,19 +109,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (currentUser) {
                 setUser(currentUser);
 
-                // Fetch Role from Firestore 'sys_admin_users'
+                // Fetch Role from Firestore 'sys_admin_users' por docId (get, WEB-031).
+                // El docId es el email canónico; no usa list (endurecido por rol).
                 try {
-                    const q = query(
-                        collection(db, "sys_admin_users"),
-                        where("email", "==", currentUser.email)
-                    );
-                    const querySnapshot = await getDocs(q);
+                    const emailKey = (currentUser.email ?? "").toLowerCase().trim();
+                    const docSnap = await getDoc(doc(db, "sys_admin_users", emailKey));
 
-                    if (!querySnapshot.empty && mounted) {
-                        // Assuming email is unique and we take the first match
-                        const userDoc = querySnapshot.docs[0].data();
+                    if (docSnap.exists() && mounted) {
                         // P5: lectura resiliente rol ?? role (+ legacy vendedor→cobrador)
-                        setRole(resolverRol(userDoc as Record<string, unknown>));
+                        setRole(resolverRol(docSnap.data() as Record<string, unknown>));
                     } else if (mounted) {
                         // User exists in Auth but not in our DB
                         setRole("guest");

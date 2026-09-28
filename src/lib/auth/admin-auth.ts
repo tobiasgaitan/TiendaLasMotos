@@ -1,6 +1,6 @@
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -20,15 +20,11 @@ export async function loginAdminWithGoogle() {
         const userCredential = await signInWithPopup(auth, googleProvider);
         const user = userCredential.user;
 
-        // Security Check: Verify email in whitelist
-        const q = query(
-            collection(db, "sys_admin_users"),
-            where("email", "==", user.email)
-        );
+        // Security Check: Verify email in whitelist por docId (get, WEB-031).
+        const emailKey = (user.email ?? "").toLowerCase().trim();
+        const docSnap = await getDoc(doc(db, "sys_admin_users", emailKey));
 
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
+        if (!docSnap.exists()) {
             await signOut(auth); // Force logout if not unauthorized
             throw new Error("ACCESO DENEGADO: Tu correo no está registrado como administrador.");
         }
