@@ -32,7 +32,7 @@ function parseIntField(v: string): number | undefined {
 
 export default function EditarCreditoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { user } = useAuth();
+    const { user, loading: authLoading, puedeAccion } = useAuth();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -157,10 +157,22 @@ export default function EditarCreditoPage({ params }: { params: Promise<{ id: st
         }
     };
 
-    if (!mounted || loading) {
+    if (!mounted || loading || authLoading) {
         return (
             <div className="flex items-center justify-center py-20 text-gray-400">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" /> Cargando…
+            </div>
+        );
+    }
+
+    // R-edit-route: gate de página — solo roles con creditos:update ven el formulario.
+    // (Fail-open transitorio solo durante authLoading, cubierto arriba; el servidor rechaza de todos modos.)
+    if (!puedeAccion('creditos', 'update')) {
+        return (
+            <div className="max-w-3xl">
+                <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg text-sm">
+                    <strong>Acceso denegado:</strong> no tienes permiso para editar créditos.
+                </div>
             </div>
         );
     }

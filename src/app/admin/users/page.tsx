@@ -193,12 +193,14 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
                     <p className="text-gray-500">Administra el acceso al panel (Lista Blanca).</p>
                 </div>
+                {!authLoading && puedeAccion('sys_admin_users', 'create') && (
                 <button
                     onClick={() => openModal()}
                     className="bg-brand-blue text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-800 transition shadow-lg"
                 >
                     <Plus size={20} /> Nuevo Usuario
                 </button>
+                )}
             </header>
 
             {/* Search */}
@@ -256,12 +258,16 @@ export default function UsersPage() {
                                 </td>
                                 <td className="p-4">
                                     <div className="flex gap-2">
+                                        {!authLoading && puedeAccion('sys_admin_users', 'update') && (
                                         <button onClick={() => openModal(user)} className="p-2 text-gray-400 hover:text-brand-blue hover:bg-blue-50 rounded-lg transition">
                                             <Edit2 size={18} />
                                         </button>
+                                        )}
+                                        {!authLoading && puedeAccion('sys_admin_users', 'delete') && (
                                         <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
                                             <Trash2 size={18} />
                                         </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
