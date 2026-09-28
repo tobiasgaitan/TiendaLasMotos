@@ -1,6 +1,7 @@
 'use server';
 
 import { getDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
 import {
     requireActor,
@@ -15,6 +16,7 @@ import {
     emailCanonSchema,
     esAutoBorrado,
     construirPayloadUsuario,
+    DEBE_LIMPIAR_ROLE_LEGACY,
 } from "@/lib/actions/users-schemas";
 
 /**
@@ -110,13 +112,24 @@ export async function updateUser(
 
         const updates = construirPayloadUsuario(validated.data);
         updates.actualizado_por = me.uid;
-        await docRef.set(updates, { merge: true });
+        // WEB-029-FIX-1: limpieza legacy con centinela del Admin SDK dentro del
+        // mismo batch atómico. Un único batch.commit(); cero escrituras parciales.
+        const limpiarRole = DEBE_LIMPIAR_ROLE_LEGACY(antes);
+        const batch = adminDb.batch();
+        batch.set(docRef, {
+            ...updates,
+            ...(limpiarRole ? { role: FieldValue.delete() } : {}),
+        }, { merge: true });
+        await batch.commit();
+        // Ledger JSON-plano: la clave eliminada se refleja ausente (sin centinelas).
+        const despues: Record<string, unknown> = { ...antes, ...updates };
+        if (limpiarRole) delete despues.role;
         await appendAuditoria({
             coleccion: "sys_admin_users",
             documentoId: emailParsed.data,
             operacion: "UPDATE",
             antes,
-            despues: { ...antes, ...updates },
+            despues,
             actor: me,
         });
         revalidatePath("/admin/users");

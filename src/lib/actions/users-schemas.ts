@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { deleteField } from "firebase/firestore";
 import { ROLES, type Rol } from "@/types/roles";
 
 /**
@@ -44,8 +43,10 @@ export function esAutoBorrado(emailKey: string, actorEmail?: string | null): boo
 }
 
 /**
- * Construye el payload de updateUser. Incluye el sentinel deleteField() sobre
- * la clave legacy 'role' (limpieza P5; los lectores usan `rol` con fallback).
+ * Construye el payload de updateUser. Retorna ÚNICAMENTE campos de merge
+ * JSON-serializables (updated_at, name?, rol?, active?). NUNCA incluye la
+ * clave 'role': la limpieza legacy vive en el Server Action con
+ * FieldValue.delete() del Admin SDK (WEB-029-FIX-1).
  */
 export function construirPayloadUsuario(patch: {
     name?: string;
@@ -58,6 +59,13 @@ export function construirPayloadUsuario(patch: {
     if (patch.name !== undefined) payload.name = patch.name;
     if (patch.rol !== undefined) payload.rol = patch.rol;
     if (patch.active !== undefined) payload.active = patch.active;
-    payload.role = deleteField();
     return payload;
+}
+
+/**
+ * ¿Debe limpiarse la clave legacy 'role'? true si y solo si el documento
+ * previo la contiene. Decisión pura testeable a nivel de esquema.
+ */
+export function DEBE_LIMPIAR_ROLE_LEGACY(antes: Record<string, unknown> | null): boolean {
+    return !!antes && "role" in antes;
 }

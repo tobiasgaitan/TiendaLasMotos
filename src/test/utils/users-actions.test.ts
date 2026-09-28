@@ -1,10 +1,10 @@
-import { deleteField } from "firebase/firestore";
 import { createUser, updateUser, deleteUser } from "@/app/admin/users/actions";
 import {
     userCreateSchema,
     userPatchSchema,
     esAutoBorrado,
     construirPayloadUsuario,
+    DEBE_LIMPIAR_ROLE_LEGACY,
 } from "@/lib/actions/users-schemas";
 
 /**
@@ -15,7 +15,8 @@ import {
  *  2. Rol fuera del enum ROLES → rechazo por el zod schema real (pre-auth).
  *  3. Email inválido → rechazo por el zod schema real (pre-auth).
  *  4. Anti-suicidio → helper puro esAutoBorrado (misma función que usa deleteUser).
- *  5. Payload de update → incluye sentinel deleteField() sobre 'role' legacy.
+ *  5. Payload de update → NO contiene la clave 'role' + borrado legacy
+ *     condicional a nivel de esquema (WEB-029-FIX-1).
  *  6. Token malformado → requireActor rechaza (anti-spoofing).
  *
  * NOTA DE COBERTURA: las ramas detrás de requireActor + Firestore (duplicados,
@@ -130,16 +131,24 @@ describe("users-actions — path de validación", () => {
         }
     });
 
-    test("payload de update incluye deleteField() sobre 'role' legacy", async () => {
+    test("payload de update NO contiene clave role + borrado legacy condicional", async () => {
         const payload = construirPayloadUsuario({ rol: "cobrador", active: true });
-        if (!("role" in payload)) throw new Error("falta la clave 'role' en el payload");
-        const sentinel = deleteField();
-        if (JSON.stringify(payload.role) !== JSON.stringify(sentinel)) {
-            throw new Error("la clave 'role' no es el sentinel deleteField()");
-        }
+        if ("role" in payload) throw new Error("el payload no debe contener 'role'");
         if (payload.rol !== "cobrador") throw new Error("falta rol canónico");
         if (payload.active !== true) throw new Error("falta active");
         if (!payload.updated_at) throw new Error("falta updated_at");
+        if (JSON.stringify(payload).includes("DeleteField")) {
+            throw new Error("el payload no debe contener centinelas");
+        }
+        if (DEBE_LIMPIAR_ROLE_LEGACY({ role: "admin" }) !== true) {
+            throw new Error("debió pedir limpieza con {role}");
+        }
+        if (DEBE_LIMPIAR_ROLE_LEGACY({ rol: "admin" }) !== false) {
+            throw new Error("no debió pedir limpieza con {rol}");
+        }
+        if (DEBE_LIMPIAR_ROLE_LEGACY(null) !== false) {
+            throw new Error("no debió pedir limpieza con null");
+        }
     });
 
     test("token malformado se rechaza en requireActor (anti-spoofing)", async () => {

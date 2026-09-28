@@ -33,6 +33,24 @@ Secuencia obligatoria:
 - `tsc`/`build` EXIT 0, `lint` 0 errores; suites existentes sin regresión.
 - Commit atómico `feat(p5-d2)` + push a `beta`. Sin merge a `main`.
 
+## WEB-029-FIX-1 — Eliminación del centinela de cliente (2026-09-27)
+- **Defecto:** `users-schemas.ts` (módulo puro) inyectaba `deleteField()` del SDK
+  cliente en `payload.role`; el Admin SDK lo rechaza (clase no serializable) y
+  `updateUser` fallaba al 100% en beta; el ledger heredaba el centinela vía spread.
+  Evidencia: error runtime 27/sep + autopsia grep (única ocurrencia).
+- **Fix:** `users-schemas.ts` sin import de `firebase/firestore`;
+  `construirPayloadUsuario` retorna solo campos JSON-planos (sin clave `role`);
+  nuevo export puro `DEBE_LIMPIAR_ROLE_LEGACY(antes) => ('role' in antes)`.
+- **`updateUser`:** importa `FieldValue` de `firebase-admin/firestore`; UNA sola
+  `batch.set(ref, { ...updates, ...(limpiar ? { role: FieldValue.delete() } : {}) },
+  { merge: true })` con un único `batch.commit()`; ledger `despues` JSON-plano con
+  `delete despues.role` cuando aplica la limpieza.
+- **Tests:** caso sentinel sustituido por "payload NO contiene clave role" +
+  "borrado legacy condicional" (true con `{role}`, false con `{rol}`/null);
+  suite mantiene 9 casos.
+- **Invariantes:** `createUser`, `deleteUser`, `firestore.rules`, `users/page.tsx`,
+  `sendUserInvitation.ts` — cero cambios.
+
 ---
 *Created: 2026-09-25 by Antigravity*
 *Ticket: WEB-029*
