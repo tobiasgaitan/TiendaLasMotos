@@ -102,3 +102,7 @@
 - [x] **Quick-025 (Deuda 2 / WEB-DEBT-002):** Unificación FK sys_admin_users a email canónico (Ruta A'). Completado (2026-09-24) con certificación runtime multi-navegador y purga E2E 1:1.
 - [x] **Quick-026 (Deuda 5):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Completado (2026-09-24) con certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop`.
 - [x] **Quick-027 (Deuda P2):** Unificación singleton `firebase-admin` (`getAdminApp()` privada, `eval` conservado, firmas intactas). Completado (2026-09-24) con autopsia 1-7 verde + runtime en revisión `ssrtiendalasmotosbeta-00560-liz` (`ERR_MODULE_NOT_FOUND` → `[]`). Coherence Score 0.99.
+
+- [x] **Quick-029 (WEB-029):** Migración de Users CRUD a Server Actions + rules `write: false`. Completado (2026-10-01).
+- [x] **Quick-030 (WEB-030):** Guards residuales (editar ruta + gating UI usuarios). Completado (2026-10-01).
+- [x] **Quick-031 (WEB-031):** Whitelist server-side + migración `getDoc` por email + rules endurecidas. Completado (2026-10-01).

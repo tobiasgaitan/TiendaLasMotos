@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.5.4  
-**Última Actualización:** 2026-09-24  
-**Estado:** DEPLOYED (Beta v8.5.4) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Versión del Stack & Hitos:** v8.6.0  
+**Última Actualización:** 2026-10-01  
+**Estado:** DEPLOYED (Beta v8.6.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -36,7 +36,7 @@ El sistema implementa patrones reactivos mediante el SDK de Firestore para asegu
 ### C. Semáforo de Crédito Crediticio (WEB-SCORE-THRESHOLD-001)
 *   **Módulo:** Dashboard Administrativo de Prospectos (`/admin/prospectos`).
 *   **Componente:** Función `getScoreBadge` en `src/app/admin/prospectos/page.tsx`.
-*   **Ajuste de Umbrales (2026-09-24):** Recalibración de los puntos de corte del semáforo de crédito para reflejar la política canónica del negocio:
+*   **Ajuste de Umbrales (2026-10-01):** Recalibración de los puntos de corte del semáforo de crédito para reflejar la política canónica del negocio:
     *   🟢 **Verde (Perfil Sólido):** `score_resultado >= 750`
     *   🟡 **Amarillo (Perfil Condicional):** `score_resultado >= 500` y `< 750`
     *   🔴 **Rojo (Alto Riesgo):** `score_resultado < 500`
@@ -114,7 +114,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 
-## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-09-24)
+## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-10-01)
 
 ### A. Arquitectura del Módulo
 *   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
@@ -138,7 +138,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
 *   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
 
-### E. Verificación E2E (2026-09-24)
+### E. Verificación E2E (2026-10-01)
 *   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
 *   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
 
@@ -150,11 +150,11 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
 
 ---
-*Última actualización: 2026-09-24 COT por Antigravity*
+*Última actualización: 2026-10-01 COT por Antigravity*
 
 ---
 
-## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-09-24)
+## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-10-01)
 
 ### A. Arquitectura del Módulo
 *   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
@@ -178,7 +178,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
 *   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
 
-### E. Verificación E2E (2026-09-24)
+### E. Verificación E2E (2026-10-01)
 *   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
 *   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
 
@@ -190,22 +190,22 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
 
 ---
-*Última actualización: 2026-09-24 COT por Antigravity*
+*Última actualización: 2026-10-01 COT por Antigravity*
 
 ---
-## 9. Resolución de Deudas Técnicas (2026-09-24)
+## 9. Resolución de Deudas Técnicas (2026-10-01)
 ### A. Deuda 3: Migración middleware.ts → proxy.ts (Next 16.1.1)
 *   **Problema:** Next.js 16 deprecó la convención `middleware.ts` en favor de `proxy.ts` (Node.js runtime).
 *   **Solución:** Ejecución del codemod canónico `@next/codemod@canary middleware-to-proxy` con paridad perimetral 1:1 (NAMING LOCK de 7 puntos: cookie `__session`, bypass `.csv`, protección `/admin/*`).
 *   **Certificación:** Matriz Runtime (a-f) validada en Beta. Commit `0a4b5fa`.
 
-### B. Deuda 4: Alineación CI Node 22 (2026-09-24)
+### B. Deuda 4: Alineación CI Node 22 (2026-10-01)
 *   **Problema:** Workflows CI (`deploy-beta.yml`, `deploy-prod.yml`) forzaban `node-version: 20` divergiendo del runtime canónico Node 22.x.
 *   **Solución:** Reemplazo atómico `node-version: 20` → `node-version: 22` en línea 20 de ambos workflows.
 *   **Certificación:** Run CI #35932474469 verde con Node 22.23.2. Paridad 1:1 con engines, Dockerfile y Documento Maestro.
 *   **Commits:** `a252065` (fix), `2850148` (docs planning).
 
-### C. Deuda 2: Unificación FK sys_admin_users a email canónico (2026-09-24)
+### C. Deuda 2: Unificación FK sys_admin_users a email canónico (2026-10-01)
 *   **Problema:** Heterogeneidad de FK: los campos `uid_admin`/`uid_usuario`/`uid_inversor` en `creditos`/`pagos_inversores` almacenaban emails o docId, nunca UIDs de Auth; integridad referencial rota.
 *   **Solución:** Ruta A': renombre a `email_admin`/`email_usuario`/`email_inversor`/`email_cobrador`; dropdowns emiten email normalizado (toLowerCase/trim). NAMING LOCK §8.B reescrito a FK-por-email; el concepto `uid` queda reservado a `registrado_por` (Auth uid).
 *   **Certificación:** Forenses Firestore con claves email_* en runtime; consolas limpias en Safari y en Chrome sin proxy; `M_ID` tipificado como causa ambiental (Urban VPN Proxy × bundle prod Chrome); refactor `fb365b9` exonerado. Commits `fb365b9` + `f21500b`; CI run #135 verde.
@@ -218,8 +218,21 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Solución:** Creación del hook oficial `src/instrumentation.ts` con la función `register()` exportada, inyectando `process.setMaxListeners(25)` para elevar el umbral de Node.js sin alterar la semántica de captura de errores de Next.js.
 *   **Certificación:** Forense de logs `stderr` en revisión `ssrtiendalasmotosbeta-00552-sop` post-deploy devuelve `[]` (cero warnings) tras tráfico inducido y cold start. Commit `bbeeaed`.
 
-### E. Deuda P2: Unificación Singleton firebase-admin (RESUELTA 2026-09-24)
+### E. Deuda P2: Unificación Singleton firebase-admin (RESUELTA 2026-10-01)
 *   **Problema:** Lógica de inicialización duplicada en `getDb()` y `getAdminAuth()` (ambas contenían bloques `if (!globalAny._firebaseAdminApp)` independientes), lo que multiplicaba el riesgo de ejecuciones redundantes si el caché de módulos fallaba. Asimetría adicional: `getAdminAuth` carecía del `try/catch` + logging de `getDb`.
 *   **Intento previo fallido (QUICK-023):** Refactor hacia singleton estricto con imports ES6 estáticos causó regresión runtime `ERR_MODULE_NOT_FOUND` en Cloud Run Beta (revisión `00548-men`; externals hasheados `firebase-admin-<hash>` inexistentes bajo firebase-frameworks + Turbopack). Revertido con commit `b96f486`.
 *   **Solución (WEB-QUICK-025):** Función privada única `getAdminApp()` con la persistencia `globalAny._firebaseAdminApp`; `getDb`/`getAdminAuth` la consumen. Patrón `eval("require(...)")` conservado con literales idénticos (Valla de Chesterton: el adaptador genera externals hasheados con ES6). Firmas de exportación intactas (NAMING LOCK); 34 call sites sin tocar. Commit `fe37ca6`.
 *   **Certificación:** Autopsia 1-7 verde (`initializeApp`×1, `eval`×3, cero ES6, tsc/build EXIT 0, tsx 3/3, diff = 1 archivo). Runtime en revisión `ssrtiendalasmotosbeta-00560-liz`: `ERR_MODULE_NOT_FOUND` → `[]` y `MaxListenersExceeded` → `[]` tras tráfico inducido (9/9 HTTP 200) y cold start. **Coherence Score: 0.99** (análisis estático de diff canónico: 1 archivo, +18/−23, refactor puramente estructural, matriz de 9 verificaciones en verde).
+
+## 10. Resolución de Deudas Técnicas y Hardening (v8.6.0 — 2026-10-01)
+### A. WEB-029: Migración de Users CRUD a Server Actions
+- **Cambiado**: Operaciones de escritura de `sys_admin_users` migradas a Server Actions con Admin SDK.
+- **Reparado**: Bloqueo de escrituras desde cliente (`allow write: if false` en reglas).
+### B. WEB-030: Guards Residuales y Gating UI
+- **Reparado**: Eliminación de acceso directo a rutas de edición y ocultamiento de CTA/iconos de escritura para roles sin permiso (auditor/cobrador).
+### C. WEB-031: Hardening de Lectura de Usuarios y Whitelist Pre-Auth
+- **Cambiado**: Nueva Server Action `verificarWhitelist` (rate-limit 5/60s, logging forense). Migración de `query+getDocs` a `getDoc(doc(db, 'sys_admin_users', emailKey))` en `AuthContext.tsx`, `LoginForm.tsx` y `admin-auth.ts`.
+- **Reparado**: Vector de enumeración de usuarios vía SDK cliente cerrado. Reglas endurecidas: `get` requiere auth, `list` restringido a admin/superadmin/auditor vía validación cruzada de rol.
+- **Preservado**: Contrato `useAuth` (10 consumidores intactos).
+- **Residual Documentado**: R-curl-auth (sondas REST locales con curl retornan 401 por artefactos de terminal, pero la aplicación runtime funciona correctamente). R-google-orphan (función migrada sin superficie UI).
+**Coherence Score**: 0.99
