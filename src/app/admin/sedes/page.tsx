@@ -262,7 +262,7 @@ export default function SedesPage() {
                             </div>
 
                             <div className="pt-2 border-t border-gray-800">
-                                <label className="block text-sm font-bold text-blue-400 mb-3">Financieras Visibles</label>
+                                <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="block text-sm font-bold text-blue-400 mb-3 p-0">Financieras Visibles</legend>
                                 <div className="space-y-2">
                                     {financialEntities.map(entity => (
                                         <label key={entity.id} htmlFor={`sede-fin-${entity.id}`} className="flex items-center gap-3 p-3 bg-gray-950 rounded-lg border border-gray-800 cursor-pointer hover:border-gray-700">
@@ -277,6 +277,7 @@ export default function SedesPage() {
                                         </label>
                                     ))}
                                 </div>
+                                </fieldset>
                             </div>
                         </div>
 

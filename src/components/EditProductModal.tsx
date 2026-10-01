@@ -241,7 +241,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     {/* IZQUIERDA */}
                     <div className="space-y-5">
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                            <label className="text-sm font-medium text-gray-300 mb-2 block">Imagen Principal</label>
+                            <div role="heading" aria-level={4} className="text-sm font-medium text-gray-300 mb-2 block">Imagen Principal</div>
                             <ImageUploader
                                 currentImage={formData.imagen_url}
                                 onImageUploaded={(url) => setFormData(prev => ({ ...prev, imagen_url: url }))}
@@ -249,8 +249,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1">Categoría*</label>
-                            <label className="text-xs text-gray-500 block mb-1">Categorías</label>
+                            <div role="heading" aria-level={4} className="text-xs text-gray-500 block mb-1">Categoría*</div>
+                            <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="text-xs text-gray-500 block mb-1 p-0">Categorías</legend>
                             <div className="grid grid-cols-2 gap-2 mb-4">
                                 {CATEGORIES_OFFICIAL.map(cat => (
                                     <button
@@ -266,6 +266,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                                     </button>
                                 ))}
                             </div>
+                            </fieldset>
                         </div>
 
                         <div>

@@ -321,7 +321,7 @@ export default function SimulatorPage() {
 
                         {/* 6. TERM */}
                         <div className="mb-2">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Plazo (Meses)</label>
+                            <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="block text-xs font-bold text-gray-400 uppercase mb-1 p-0">Plazo (Meses)</legend>
                             <div className="grid grid-cols-4 gap-2">
                                 {[12, 24, 36, 48, 60, 72].map(m => (
                                     <button
@@ -333,6 +333,7 @@ export default function SimulatorPage() {
                                     </button>
                                 ))}
                             </div>
+                            </fieldset>
                         </div>
 
                     </div>
