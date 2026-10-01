@@ -34,6 +34,8 @@ export default function InventoryTable({ products, onEdit }: Props) {
             {/* BARRA DE BÚSQUEDA */}
             <div className="relative">
                 <input
+                    id="inv-buscar"
+                    aria-label="Buscar moto en inventario"
                     type="text"
                     className="block w-full p-4 border border-gray-700 rounded-lg bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="🔍 Buscar moto..."

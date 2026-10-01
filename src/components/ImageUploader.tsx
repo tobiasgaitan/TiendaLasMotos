@@ -41,7 +41,7 @@ export default function ImageUploader({ currentImage, onImageUploaded }: Props) 
 
     return (
         <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">Imagen del Producto</label>
+            <label htmlFor="imgupload-archivo" className="block text-sm font-medium text-gray-300">Imagen del Producto</label>
 
             {/* FIX CRÍTICO: style={{ height: '200px' }} fuerza el espacio físico */}
             <div
@@ -76,6 +76,7 @@ export default function ImageUploader({ currentImage, onImageUploaded }: Props) 
                 )}
 
                 <input
+                    id="imgupload-archivo"
                     type="file"
                     accept="image/*"
                     onChange={handleUpload}

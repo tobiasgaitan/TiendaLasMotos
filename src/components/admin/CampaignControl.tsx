@@ -418,9 +418,9 @@ export default function CampaignControl() {
 
             {/* Área de Log */}
             <div>
-                <label style={{ ...styles.label, display: 'block', marginBottom: '10px' }}>
+                <div role="heading" aria-level={4} style={{ ...styles.label, display: 'block', marginBottom: '10px' }}>
                     📡 Log de Ejecución
-                </label>
+                </div>
                 <div style={styles.logArea}>
                     {logLines.length === 0 ? (
                         <span style={styles.logPlaceholder}>

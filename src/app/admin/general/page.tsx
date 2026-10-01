@@ -105,10 +105,11 @@ export default function GeneralConfigPage() {
 
                         <div className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Teléfono Principal</label>
+                                <label htmlFor="general-telefono" className="block text-sm font-medium text-gray-400 mb-2">Teléfono Principal</label>
                                 <div className="relative">
                                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-telefono"
                                         type="text"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="+57 300 123 4567"
@@ -119,10 +120,11 @@ export default function GeneralConfigPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Correo Electrónico Visible</label>
+                                <label htmlFor="general-email" className="block text-sm font-medium text-gray-400 mb-2">Correo Electrónico Visible</label>
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-email"
                                         type="email"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="conexion@tiendalasmotos.com"
@@ -133,10 +135,11 @@ export default function GeneralConfigPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">WhatsApp Link (Completo)</label>
+                                <label htmlFor="general-whatsapp" className="block text-sm font-medium text-gray-400 mb-2">WhatsApp Link (Completo)</label>
                                 <div className="relative">
                                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-whatsapp"
                                         type="url"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="https://wa.me/57300..."
@@ -159,10 +162,11 @@ export default function GeneralConfigPage() {
 
                         <div className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Facebook URL</label>
+                                <label htmlFor="general-facebook" className="block text-sm font-medium text-gray-400 mb-2">Facebook URL</label>
                                 <div className="relative">
                                     <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-facebook"
                                         type="url"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="https://facebook.com/tiendalasmotos"
@@ -173,10 +177,11 @@ export default function GeneralConfigPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Instagram URL</label>
+                                <label htmlFor="general-instagram" className="block text-sm font-medium text-gray-400 mb-2">Instagram URL</label>
                                 <div className="relative">
                                     <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-instagram"
                                         type="url"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="https://instagram.com/tiendalasmotos"
@@ -187,10 +192,11 @@ export default function GeneralConfigPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Twitter / X / TikTok URL</label>
+                                <label htmlFor="general-twitter" className="block text-sm font-medium text-gray-400 mb-2">Twitter / X / TikTok URL</label>
                                 <div className="relative">
                                     <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                     <input
+                                        id="general-twitter"
                                         type="url"
                                         className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors placeholder:text-gray-600"
                                         placeholder="https://users..."

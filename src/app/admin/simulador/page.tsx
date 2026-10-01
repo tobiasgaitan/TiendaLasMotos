@@ -229,8 +229,9 @@ export default function SimulatorPage() {
 
                         {/* 1. MOTO SELECTOR */}
                         <div className="mb-4">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Motocicleta Base</label>
+                            <label htmlFor="sim-moto" className="block text-xs font-bold text-gray-400 uppercase mb-1">Motocicleta Base</label>
                             <select
+                                id="sim-moto"
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedMotoId}
                                 onChange={(e) => handleMotoChange(e.target.value)}
@@ -244,8 +245,9 @@ export default function SimulatorPage() {
 
                         {/* 2. CITY SELECTOR */}
                         <div className="mb-4">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Ciudad de Matrícula</label>
+                            <label htmlFor="sim-ciudad" className="block text-xs font-bold text-gray-400 uppercase mb-1">Ciudad de Matrícula</label>
                             <select
+                                id="sim-ciudad"
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedCityId}
                                 onChange={(e) => handleCityChange(e.target.value)}
@@ -258,8 +260,9 @@ export default function SimulatorPage() {
 
                         {/* 3. ENTITY SELECTOR */}
                         <div className="mb-4">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Entidad Financiera</label>
+                            <label htmlFor="sim-entidad" className="block text-xs font-bold text-gray-400 uppercase mb-1">Entidad Financiera</label>
                             <select
+                                id="sim-entidad"
                                 className="w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5 focus:ring-brand-blue focus:border-brand-blue"
                                 value={selectedEntityId}
                                 onChange={(e) => handleEntityChange(e.target.value)}
@@ -274,10 +277,11 @@ export default function SimulatorPage() {
 
                         {/* 4. PRICE INPUT */}
                         <div className="mb-4">
-                            <label className="block text-xs font-bold text-brand-yellow uppercase mb-1">Precio Vehículo (Editable)</label>
+                            <label htmlFor="sim-precio" className="block text-xs font-bold text-brand-yellow uppercase mb-1">Precio Vehículo (Editable)</label>
                             <div className="relative">
                                 {/* V15.2: NumericFormat for Strict Integer Handling */}
                                 <NumericFormat
+                                    id="sim-precio"
                                     value={price}
                                     onValueChange={(values) => {
                                         handlePriceChange(values.floatValue || 0);
@@ -295,10 +299,11 @@ export default function SimulatorPage() {
 
                         {/* 5. DOWN PAYMENT */}
                         <div className="mb-4">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Cuota Inicial</label>
+                            <label htmlFor="sim-cuota-inicial" className="block text-xs font-bold text-gray-400 uppercase mb-1">Cuota Inicial</label>
                             <div className="relative">
                                 {/* V15.2: NumericFormat for Strict Integer Handling */}
                                 <NumericFormat
+                                    id="sim-cuota-inicial"
                                     value={downPayment}
                                     onValueChange={(values) => {
                                         handleDownPaymentChange(values.floatValue || 0);
@@ -316,7 +321,7 @@ export default function SimulatorPage() {
 
                         {/* 6. TERM */}
                         <div className="mb-2">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Plazo (Meses)</label>
+                            <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="block text-xs font-bold text-gray-400 uppercase mb-1 p-0">Plazo (Meses)</legend>
                             <div className="grid grid-cols-4 gap-2">
                                 {[12, 24, 36, 48, 60, 72].map(m => (
                                     <button
@@ -328,6 +333,7 @@ export default function SimulatorPage() {
                                     </button>
                                 ))}
                             </div>
+                            </fieldset>
                         </div>
 
                     </div>
@@ -356,8 +362,9 @@ export default function SimulatorPage() {
                                             <div className="flex flex-col items-end">
                                                 <span className="font-mono">{formatCurrency(quote.registrationPrice)}</span>
                                                 {/* CHECKBOX UI */}
-                                                <label className="flex items-center gap-1 mt-1 cursor-pointer">
+                                                <label htmlFor="sim-exento" className="flex items-center gap-1 mt-1 cursor-pointer">
                                                     <input
+                                                        id="sim-exento"
                                                         type="checkbox"
                                                         checked={isExempt}
                                                         onChange={(e) => handleExemptChange(e.target.checked)}

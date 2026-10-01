@@ -224,15 +224,18 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Solución (WEB-QUICK-025):** Función privada única `getAdminApp()` con la persistencia `globalAny._firebaseAdminApp`; `getDb`/`getAdminAuth` la consumen. Patrón `eval("require(...)")` conservado con literales idénticos (Valla de Chesterton: el adaptador genera externals hasheados con ES6). Firmas de exportación intactas (NAMING LOCK); 34 call sites sin tocar. Commit `fe37ca6`.
 *   **Certificación:** Autopsia 1-7 verde (`initializeApp`×1, `eval`×3, cero ES6, tsc/build EXIT 0, tsx 3/3, diff = 1 archivo). Runtime en revisión `ssrtiendalasmotosbeta-00560-liz`: `ERR_MODULE_NOT_FOUND` → `[]` y `MaxListenersExceeded` → `[]` tras tráfico inducido (9/9 HTTP 200) y cold start. **Coherence Score: 0.99** (análisis estático de diff canónico: 1 archivo, +18/−23, refactor puramente estructural, matriz de 9 verificaciones en verde).
 
-## 10. Resolución de Deudas Técnicas y Hardening (v8.6.0 — 2026-10-01)
-### A. WEB-029: Migración de Users CRUD a Server Actions
-- **Cambiado**: Operaciones de escritura de `sys_admin_users` migradas a Server Actions con Admin SDK.
-- **Reparado**: Bloqueo de escrituras desde cliente (`allow write: if false` en reglas).
-### B. WEB-030: Guards Residuales y Gating UI
-- **Reparado**: Eliminación de acceso directo a rutas de edición y ocultamiento de CTA/iconos de escritura para roles sin permiso (auditor/cobrador).
-### C. WEB-031: Hardening de Lectura de Usuarios y Whitelist Pre-Auth
-- **Cambiado**: Nueva Server Action `verificarWhitelist` (rate-limit 5/60s, logging forense). Migración de `query+getDocs` a `getDoc(doc(db, 'sys_admin_users', emailKey))` en `AuthContext.tsx`, `LoginForm.tsx` y `admin-auth.ts`.
-- **Reparado**: Vector de enumeración de usuarios vía SDK cliente cerrado. Reglas endurecidas: `get` requiere auth, `list` restringido a admin/superadmin/auditor vía validación cruzada de rol.
-- **Preservado**: Contrato `useAuth` (10 consumidores intactos).
-- **Residual Documentado**: R-curl-auth (sondas REST locales con curl retornan 401 por artefactos de terminal, pero la aplicación runtime funciona correctamente). R-google-orphan (función migrada sin superficie UI).
-**Coherence Score**: 0.99
+### F. Residual R-google-orphan: Purge de admin-auth.ts (CERRADO — WEB-032 + WEB-035)
+*   **Problema:** `src/lib/auth/admin-auth.ts` quedó huérfano tras WEB-032 (purgó `loginAdminWithGoogle` + imports muertos); su único export restante (`logoutAdmin`) tenía cero importadores. El logout real del sistema reside en `AuthContext.tsx:146-149` (`signOut(auth)` directo), consumido por `AdminSidebar` vía `useAuth()`.
+*   **Solución (WEB-035):** Eliminación completa del archivo (9 líneas). `grep -rn "admin-auth"` y `"logoutAdmin"` en `src/`, `scripts/`, `functions/src/` → vacíos pre y post. `AuthContext`, `AdminSidebar`, `LoginForm`, `firebase.ts`: cero cambios.
+
+### G. Accesibilidad estructural (WEB-033 + WEB-037)
+*   **Problema:** 22 Issues de Chrome (autofill/accesibilidad: id/name y label en campos de formulario).
+*   **Solución (WEB-033):** Remediación id/htmlFor en 21 archivos (170 atributos).
+*   **Solución (WEB-037):** Refactor de 6 labels huérfanos (títulos de sección → `div[role=heading]`; grupos de controles → `fieldset`+`legend` con reset UA `border-0 p-0 m-0 min-w-0`). Cero lógica/estilos alterados.
+
+### H. Hitos v8.6.0 — Octubre 2026
+*   **WEB-032:** Purge de `loginAdminWithGoogle` huérfana + imports muertos (`7a0e60a`).
+*   **WEB-033:** Remediación a11y id/htmlFor en 21 archivos — 3 commits (`39816c7`, `a5bd004`, `e399d15`) + plan (`34c0f9f`).
+*   **WEB-035:** Eliminación de `src/lib/auth/admin-auth.ts` (`b832897`) + docs (`0b11715`).
+*   **WEB-036:** Sincronización documental WEB-029..035 en ROADMAP (`835b28e`, solo docs).
+*   **WEB-037:** Refactor estructural a11y headings/fieldset+legend (`5a4fb48`) + docs (`b8a9f47`).

@@ -231,10 +231,11 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                             </p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
-                                    <label style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                                    <label htmlFor="bulk-plantilla" style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
                                         Plantilla WhatsApp
                                     </label>
                                     <input
+                                        id="bulk-plantilla"
                                         type="text"
                                         value={waTemplateName}
                                         onChange={(e) => setWaTemplateName(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
@@ -253,10 +254,11 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                                    <label htmlFor="bulk-phone-id" style={{ color: '#d1d5db', fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
                                         Número de Origen (Phone ID)
                                     </label>
                                     <input
+                                        id="bulk-phone-id"
                                         type="text"
                                         inputMode="numeric"
                                         value={waPhoneNumberId}

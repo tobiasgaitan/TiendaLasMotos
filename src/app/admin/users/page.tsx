@@ -207,6 +207,8 @@ export default function UsersPage() {
             <div className="relative max-w-md">
                 <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                 <input
+                    id="user-buscar"
+                    aria-label="Buscar por nombre o correo"
                     type="text"
                     placeholder="Buscar por nombre o correo..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-blue outline-none"
@@ -289,8 +291,9 @@ export default function UsersPage() {
 
                         <form onSubmit={handleSave} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                                <label htmlFor="user-nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
                                 <input
+                                    id="user-nombre"
                                     required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-blue outline-none text-slate-900 bg-white"
                                     value={formData.name}
@@ -299,8 +302,9 @@ export default function UsersPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (ID)</label>
+                                <label htmlFor="user-email" className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (ID)</label>
                                 <input
+                                    id="user-email"
                                     type="email"
                                     required
                                     disabled={!!editingUser} // ID cannot change
@@ -313,8 +317,9 @@ export default function UsersPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                                    <label htmlFor="user-rol" className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                                     <select
+                                        id="user-rol"
                                         className="w-full px-4 py-2 border rounded-lg outline-none text-slate-900 bg-white"
                                         value={formData.role}
                                         onChange={e => setFormData({ ...formData, role: e.target.value as Rol })}

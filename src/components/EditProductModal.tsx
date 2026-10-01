@@ -241,7 +241,7 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                     {/* IZQUIERDA */}
                     <div className="space-y-5">
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                            <label className="text-sm font-medium text-gray-300 mb-2 block">Imagen Principal</label>
+                            <div role="heading" aria-level={4} className="text-sm font-medium text-gray-300 mb-2 block">Imagen Principal</div>
                             <ImageUploader
                                 currentImage={formData.imagen_url}
                                 onImageUploaded={(url) => setFormData(prev => ({ ...prev, imagen_url: url }))}
@@ -249,8 +249,8 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1">Categoría*</label>
-                            <label className="text-xs text-gray-500 block mb-1">Categorías</label>
+                            <div role="heading" aria-level={4} className="text-xs text-gray-500 block mb-1">Categoría*</div>
+                            <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="text-xs text-gray-500 block mb-1 p-0">Categorías</legend>
                             <div className="grid grid-cols-2 gap-2 mb-4">
                                 {CATEGORIES_OFFICIAL.map(cat => (
                                     <button
@@ -266,27 +266,28 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                                     </button>
                                 ))}
                             </div>
+                            </fieldset>
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1">Marca*</label>
-                            <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
+                            <label htmlFor="producto-marca" className="text-xs text-gray-500 block mb-1">Marca*</label>
+                            <input id="producto-marca" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
                                 value={formData.brand}
                                 onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                                 placeholder="Ej: KTM"
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1">Modelo* (Generará ID)</label>
-                            <input className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
+                            <label htmlFor="producto-modelo" className="text-xs text-gray-500 block mb-1">Modelo* (Generará ID)</label>
+                            <input id="producto-modelo" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white"
                                 value={formData.model}
                                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                                 placeholder="Ej: Duke 200"
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-blue-300 block mb-1">URL de Referencia (Auteco)</label>
-                            <input className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white text-sm"
+                            <label htmlFor="producto-url" className="text-xs text-blue-300 block mb-1">URL de Referencia (Auteco)</label>
+                            <input id="producto-url" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white text-sm"
                                 value={formData.external_url}
                                 onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
                                 placeholder="https://www.auteco.com.co/moto..."
@@ -296,12 +297,14 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
                         <div className="flex gap-4">
                             <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700 flex-1">
                                 <span className="text-sm text-gray-300">¿Visible en Web?</span>
-                                <input type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />
+                                <input id="producto-visible" aria-label="¿Visible en Web?" type="checkbox" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="w-5 h-5 accent-green-500" />
                             </div>
                             {/* [NEW] Permanent Exemption Checkbox */}
                             <div className="flex items-center justify-between bg-blue-900/20 p-3 rounded-lg border border-blue-800 flex-1">
                                 <span className="text-sm text-blue-200 font-bold">Exenta Matrícula</span>
                                 <input
+                                    id="producto-exento"
+                                    aria-label="Exenta Matrícula"
                                     type="checkbox"
                                     checked={formData.exemptRegistration}
                                     onChange={(e) => setFormData({ ...formData, exemptRegistration: e.target.checked })}
@@ -313,15 +316,15 @@ export default function EditProductModal({ product, isOpen, onClose }: Props) {
 
                     {/* DERECHA */}
                     <div className="space-y-5">
-                        <div><label className="text-xs text-blue-300 block mb-1">Precio Compra</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} /></div>
-                        <div><label className="text-xs text-blue-300 block mb-1">Año</label><input type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} /></div>
-                        <div><label className="text-xs text-gray-500 block mb-1">Stock Disponible</label><input type="number" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} /></div>
+                        <div><label htmlFor="producto-precio" className="text-xs text-blue-300 block mb-1">Precio Compra</label><input id="producto-precio" type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} /></div>
+                        <div><label htmlFor="producto-anio" className="text-xs text-blue-300 block mb-1">Año</label><input id="producto-anio" type="number" className="w-full bg-gray-900 border border-blue-900/50 rounded-lg p-2.5 text-white" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} /></div>
+                        <div><label htmlFor="producto-stock" className="text-xs text-gray-500 block mb-1">Stock Disponible</label><input id="producto-stock" type="number" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} /></div>
 
                         <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-800/30 space-y-4">
                             <h4 className="text-xs font-bold text-purple-300">Bonos</h4>
                             <div className="grid grid-cols-2 gap-4">
-                                <input type="number" placeholder="Monto" className="w-full bg-gray-900 p-2 rounded text-white text-sm" value={formData.bonusAmount} onChange={(e) => setFormData({ ...formData, bonusAmount: Number(e.target.value) })} />
-                                <input type="date" className="w-full bg-gray-900 p-2 rounded text-white text-sm" value={formData.bonusEndDate} onChange={(e) => setFormData({ ...formData, bonusEndDate: e.target.value })} />
+                                <input id="producto-bono-monto" aria-label="Monto del bono" type="number" placeholder="Monto" className="w-full bg-gray-900 p-2 rounded text-white text-sm" value={formData.bonusAmount} onChange={(e) => setFormData({ ...formData, bonusAmount: Number(e.target.value) })} />
+                                <input id="producto-bono-fecha" aria-label="Fecha límite del bono" type="date" className="w-full bg-gray-900 p-2 rounded text-white text-sm" value={formData.bonusEndDate} onChange={(e) => setFormData({ ...formData, bonusEndDate: e.target.value })} />
                             </div>
                         </div>
                     </div>

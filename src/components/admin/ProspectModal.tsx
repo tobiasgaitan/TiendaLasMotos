@@ -342,8 +342,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Información PII</h3>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Nombre Completo (max 50)</label>
+                                    <label htmlFor="prospecto-nombre" className="text-xs text-gray-500 block mb-1">Nombre Completo (max 50)</label>
                                     <input 
+                                        id="prospecto-nombre"
                                         type="text"
                                         disabled={!isEditing}
                                         value={formData.nombre || ''}
@@ -352,8 +353,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Ciudad</label>
+                                    <label htmlFor="prospecto-ciudad" className="text-xs text-gray-500 block mb-1">Ciudad</label>
                                     <input 
+                                        id="prospecto-ciudad"
                                         type="text"
                                         disabled={!isEditing}
                                         value={formData.ciudad || ''}
@@ -367,8 +369,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Embudo (Funnel)</h3>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Moto de Interés</label>
+                                    <label htmlFor="prospecto-moto" className="text-xs text-gray-500 block mb-1">Moto de Interés</label>
                                     <input 
+                                        id="prospecto-moto"
                                         type="text"
                                         disabled={!isEditing}
                                         value={formData.moto_interes || formData.moto_interest || ''}
@@ -377,8 +380,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Forma de Pago</label>
+                                    <label htmlFor="prospecto-forma-pago" className="text-xs text-gray-500 block mb-1">Forma de Pago</label>
                                     <select 
+                                        id="prospecto-forma-pago"
                                         disabled={!isEditing}
                                         value={formData.forma_pago || ''}
                                         onChange={(e) => setFormData({...formData, forma_pago: e.target.value})}
@@ -401,8 +405,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Ocupación</label>
+                                <label htmlFor="prospecto-ocupacion" className="text-xs text-gray-500 block mb-1">Ocupación</label>
                                 <select 
+                                    id="prospecto-ocupacion"
                                     disabled={!isEditing}
                                     value={formData.ocupacion || ''}
                                     onChange={(e) => setFormData({...formData, ocupacion: e.target.value})}
@@ -417,8 +422,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Vivienda</label>
+                                <label htmlFor="prospecto-vivienda" className="text-xs text-gray-500 block mb-1">Vivienda</label>
                                 <select 
+                                    id="prospecto-vivienda"
                                     disabled={!isEditing}
                                     value={formData.vivienda || ''}
                                     onChange={(e) => setFormData({...formData, vivienda: e.target.value as any})}
@@ -431,8 +437,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Datacrédito (Score/Estado)</label>
+                                <label htmlFor="prospecto-datacredito" className="text-xs text-gray-500 block mb-1">Datacrédito (Score/Estado)</label>
                                 <input 
+                                    id="prospecto-datacredito"
                                     type="text"
                                     disabled={!isEditing}
                                     placeholder="Ej: Bueno / 650+"
@@ -442,8 +449,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Ingresos</label>
+                                <label htmlFor="prospecto-ingresos" className="text-xs text-gray-500 block mb-1">Ingresos</label>
                                 <input 
+                                    id="prospecto-ingresos"
                                     type="number"
                                     disabled={!isEditing}
                                     value={formData.ingresos || ''}
@@ -452,8 +460,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Gastos</label>
+                                <label htmlFor="prospecto-gastos" className="text-xs text-gray-500 block mb-1">Gastos</label>
                                 <input 
+                                    id="prospecto-gastos"
                                     type="number"
                                     disabled={!isEditing}
                                     value={formData.gastos || ''}
@@ -462,8 +471,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                 />
                             </div>
                             <div className="flex items-center gap-4 pt-6">
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                <label htmlFor="prospecto-servicios" className="flex items-center gap-2 cursor-pointer">
                                     <input 
+                                        id="prospecto-servicios"
                                         type="checkbox"
                                         disabled={!isEditing}
                                         checked={!!formData.servicios_publicos}
@@ -472,8 +482,9 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                                     />
                                     <span className="text-xs text-gray-400">Recibo Gas?</span>
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                <label htmlFor="prospecto-plan" className="flex items-center gap-2 cursor-pointer">
                                     <input 
+                                        id="prospecto-plan"
                                         type="checkbox"
                                         disabled={!isEditing}
                                         checked={!!formData.plan_celular}
@@ -717,6 +728,8 @@ export default function ProspectModal({ isOpen, onClose, prospect }: ProspectMod
                         {/* Input */}
                         <div className="flex gap-2 mb-6">
                             <input
+                                id="prospecto-nota"
+                                aria-label="Escribe una nota interna"
                                 type="text"
                                 value={newNote}
                                 onChange={(e) => setNewNote(e.target.value)}

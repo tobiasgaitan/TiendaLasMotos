@@ -361,8 +361,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
                 {/* --- MOTO & SEARCH --- */}
                 <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Vehículo</label>
+                    <label htmlFor="slider-buscar-moto" className="text-xs font-bold text-slate-500 uppercase mb-1 block">Vehículo</label>
                     <input
+                        id="slider-buscar-moto"
                         type="text"
                         placeholder="Buscar moto..."
                         className="w-full p-3 mb-2 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-blue"
@@ -370,6 +371,8 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         onChange={(e) => setFilterText(e.target.value)}
                     />
                     <select
+                        id="slider-moto-select"
+                        aria-label="Seleccionar moto"
                         className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue outline-none"
                         value={selectedMotoId}
                         onChange={(e) => setSelectedMotoId(e.target.value)}
@@ -384,18 +387,19 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                 <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
-                            <input type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
+                            <label htmlFor="slider-cliente" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
+                            <input id="slider-cliente" type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
                                 className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
-                            <input type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
+                            <label htmlFor="slider-whatsapp" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
+                            <input id="slider-whatsapp" type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
                                 className="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold" />
                         </div>
                     </div>
-                    <label className="flex items-start gap-2 cursor-pointer bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <label htmlFor="slider-habeas" className="flex items-start gap-2 cursor-pointer bg-slate-50 p-2 rounded-lg border border-slate-200">
                         <input
+                            id="slider-habeas"
                             type="checkbox"
                             checked={habeasAccepted}
                             onChange={e => setHabeasAccepted(e.target.checked)}
@@ -416,8 +420,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Edad</label>
+                                <label htmlFor="slider-edad" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Edad</label>
                                 <input 
+                                    id="slider-edad"
                                     type="number" 
                                     value={userProfile.age ?? ""} 
                                     onChange={(e) => {
@@ -429,8 +434,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Actividad</label>
+                                <label htmlFor="slider-actividad" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Actividad</label>
                                 <select 
+                                    id="slider-actividad"
                                     value={userProfile.activity} 
                                     onChange={(e) => {
                                         setHasInteractedWithProfile(true);
@@ -455,8 +461,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
                 {/* --- SCENARIO & PARAMS --- */}
                 <div>
-                    <label className="block text-xs font-bold text-slate-900 uppercase mb-1">Ubicación / Trámite</label>
+                    <label htmlFor="slider-ubicacion" className="block text-xs font-bold text-slate-900 uppercase mb-1">Ubicación / Trámite</label>
                     <select
+                        id="slider-ubicacion"
                         className="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-900 mb-3"
                         value={selectedScenarioId}
                         onChange={(e) => setSelectedScenarioId(e.target.value)}
@@ -468,8 +475,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                     {isCredit && (
                         <div className="space-y-3 animate-in fade-in">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Entidad Bancaria</label>
+                                <label htmlFor="slider-entidad" className="block text-xs font-bold text-slate-500 uppercase mb-1">Entidad Bancaria</label>
                                 <select
+                                    id="slider-entidad"
                                     className="w-full p-3 border border-slate-300 rounded-xl font-bold text-brand-blue"
                                     value={selectedFinancialId}
                                     onChange={(e) => setSelectedFinancialId(e.target.value)}
@@ -485,10 +493,11 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between items-center">
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cuota Inicial ($)</label>
+                                        <label htmlFor="slider-cuota-inicial" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cuota Inicial ($)</label>
                                         <span className="text-[10px] font-bold text-brand-blue">{((downPayment / selectedMoto.precio) * 100).toFixed(0)}%</span>
                                     </div>
                                     <input
+                                        id="slider-cuota-inicial"
                                         type="text"
                                         className="w-full p-2.5 border border-slate-300 rounded-xl font-black text-slate-900 bg-slate-50/50 focus:ring-2 focus:ring-brand-blue outline-none transition-all"
                                         value={downPaymentStr}
@@ -500,6 +509,8 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                         placeholder="0"
                                     />
                                     <input
+                                        id="slider-cuota-inicial-rango"
+                                        aria-label="Cuota inicial (deslizador)"
                                         type="range"
                                         min={Math.floor(selectedMoto.precio * 0.1)}
                                         max={Math.floor(selectedMoto.precio * 0.9)}
@@ -514,9 +525,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plazo Deseado: {months} Meses</label>
+                                    <label htmlFor="slider-plazo" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plazo Deseado: {months} Meses</label>
                                     <div className="relative pt-1">
-                                        <input type="range" min="12" max="60" step="12" className="w-full h-1.5 bg-slate-200 accent-brand-blue rounded-lg cursor-pointer"
+                                        <input id="slider-plazo" type="range" min="12" max="60" step="12" className="w-full h-1.5 bg-slate-200 accent-brand-blue rounded-lg cursor-pointer"
                                             value={months} onChange={(e) => setMonths(Number(e.target.value))} />
                                         <div className="flex justify-between text-[8px] font-bold text-slate-400 mt-1 uppercase">
                                             <span>12m</span>
@@ -534,8 +545,9 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
                     {/* CASH PARAMS */}
                     {!isCredit && (
                         <div className="animate-in fade-in">
-                            <label className="block text-xs font-bold text-red-500 uppercase mb-1">Descuento Especial ($)</label>
+                            <label htmlFor="slider-descuento" className="block text-xs font-bold text-red-500 uppercase mb-1">Descuento Especial ($)</label>
                             <input
+                                id="slider-descuento"
                                 type="text"
                                 className="w-full p-3 border border-red-200 bg-red-50 rounded-xl font-black text-red-600"
                                 value={discountStr}
@@ -585,8 +597,8 @@ export default function SmartQuotaSlider({ motos, soatRates, financialEntities: 
 
                         {/* EXEMPT CHECKBOX */}
                         <div className="flex justify-end pt-2">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" checked={isExempt} onChange={e => setIsExempt(e.target.checked)} className="text-brand-blue rounded" />
+                            <label htmlFor="slider-exento" className="flex items-center gap-1 cursor-pointer">
+                                <input id="slider-exento" type="checkbox" checked={isExempt} onChange={e => setIsExempt(e.target.checked)} className="text-brand-blue rounded" />
                                 <span className="text-[10px] uppercase font-bold text-brand-blue">Exento Matrícula</span>
                             </label>
                         </div>

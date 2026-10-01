@@ -220,8 +220,9 @@ export default function SedesPage() {
 
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Nombre Ciudad</label>
+                                <label htmlFor="sede-nombre" className="block text-sm font-medium text-gray-400 mb-1">Nombre Ciudad</label>
                                 <input
+                                    id="sede-nombre"
                                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -229,8 +230,9 @@ export default function SedesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Departamento</label>
+                                <label htmlFor="sede-departamento" className="block text-sm font-medium text-gray-400 mb-1">Departamento</label>
                                 <input
+                                    id="sede-departamento"
                                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
                                     value={formData.department}
                                     onChange={e => setFormData({ ...formData, department: e.target.value })}
@@ -238,8 +240,9 @@ export default function SedesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Costo Trámites (Opcional)</label>
+                                <label htmlFor="sede-costo" className="block text-sm font-medium text-gray-400 mb-1">Costo Trámites (Opcional)</label>
                                 <input
+                                    id="sede-costo"
                                     type="number"
                                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
                                     value={formData.documentationFee}
@@ -247,8 +250,9 @@ export default function SedesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Link Google Maps (Opcional)</label>
+                                <label htmlFor="sede-maps" className="block text-sm font-medium text-gray-400 mb-1">Link Google Maps (Opcional)</label>
                                 <input
+                                    id="sede-maps"
                                     type="url"
                                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none"
                                     value={formData.googleMapsUrl || ''}
@@ -258,11 +262,12 @@ export default function SedesPage() {
                             </div>
 
                             <div className="pt-2 border-t border-gray-800">
-                                <label className="block text-sm font-bold text-blue-400 mb-3">Financieras Visibles</label>
+                                <fieldset className="border-0 p-0 m-0 min-w-0"><legend className="block text-sm font-bold text-blue-400 mb-3 p-0">Financieras Visibles</legend>
                                 <div className="space-y-2">
                                     {financialEntities.map(entity => (
-                                        <label key={entity.id} className="flex items-center gap-3 p-3 bg-gray-950 rounded-lg border border-gray-800 cursor-pointer hover:border-gray-700">
+                                        <label key={entity.id} htmlFor={`sede-fin-${entity.id}`} className="flex items-center gap-3 p-3 bg-gray-950 rounded-lg border border-gray-800 cursor-pointer hover:border-gray-700">
                                             <input
+                                                id={`sede-fin-${entity.id}`}
                                                 type="checkbox"
                                                 className="w-5 h-5 rounded border-gray-600 bg-gray-900 text-blue-600 focus:ring-blue-500"
                                                 checked={formData.financialEntitiesIds?.includes(entity.id)}
@@ -272,6 +277,7 @@ export default function SedesPage() {
                                         </label>
                                     ))}
                                 </div>
+                                </fieldset>
                             </div>
                         </div>
 
