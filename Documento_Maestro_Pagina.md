@@ -227,3 +227,8 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 ### F. Residual R-google-orphan: Purge de admin-auth.ts (CERRADO — WEB-032 + WEB-035)
 *   **Problema:** `src/lib/auth/admin-auth.ts` quedó huérfano tras WEB-032 (purgó `loginAdminWithGoogle` + imports muertos); su único export restante (`logoutAdmin`) tenía cero importadores. El logout real del sistema reside en `AuthContext.tsx:146-149` (`signOut(auth)` directo), consumido por `AdminSidebar` vía `useAuth()`.
 *   **Solución (WEB-035):** Eliminación completa del archivo (9 líneas). `grep -rn "admin-auth"` y `"logoutAdmin"` en `src/`, `scripts/`, `functions/src/` → vacíos pre y post. `AuthContext`, `AdminSidebar`, `LoginForm`, `firebase.ts`: cero cambios.
+
+### G. Accesibilidad estructural (WEB-033 + WEB-037)
+*   **Problema:** 22 Issues de Chrome (autofill/accesibilidad: id/name y label en campos de formulario).
+*   **Solución (WEB-033):** Remediación id/htmlFor en 21 archivos (170 atributos).
+*   **Solución (WEB-037):** Refactor de 6 labels huérfanos (títulos de sección → `div[role=heading]`; grupos de controles → `fieldset`+`legend` con reset UA `border-0 p-0 m-0 min-w-0`). Cero lógica/estilos alterados.
