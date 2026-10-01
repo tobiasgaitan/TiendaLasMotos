@@ -73,8 +73,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
 
                 {/* --- FINANCIAL FIELDS ONLY --- */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Nombre Entidad</label>
+                    <label htmlFor="cfg-nombre" className="block text-sm font-medium text-gray-300 mb-1">Nombre Entidad</label>
                     <input
+                        id="cfg-nombre"
                         {...register("name", { required: true })}
                         type="text"
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
@@ -82,9 +83,10 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Tasa de Interés (% MV)</label>
+                        <label htmlFor="cfg-tasa-interes" className="block text-sm font-medium text-gray-300 mb-1">Tasa de Interés (% MV)</label>
                         <div className="flex gap-2">
                             <input
+                                id="cfg-tasa-interes"
                                 {...register("interestRate", { required: true, valueAsNumber: true })}
                                 type="number"
                                 step="0.01"
@@ -113,8 +115,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">% Cuota Inicial Mínima</label>
+                        <label htmlFor="cfg-cuota-inicial" className="block text-sm font-medium text-gray-300 mb-1">% Cuota Inicial Mínima</label>
                         <input
+                            id="cfg-cuota-inicial"
                             {...register("minDownPaymentPercentage", { required: true, valueAsNumber: true })}
                             type="number"
                             step="1"
@@ -127,8 +130,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 {/* --- SPECIAL MODEL CHARGES (Brilla/Other) --- */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Gestión Crédito Brilla (%)</label>
+                        <label htmlFor="cfg-brilla" className="block text-sm font-medium text-gray-300 mb-1">Gestión Crédito Brilla (%)</label>
                         <input
+                            id="cfg-brilla"
                             {...register("brillaManagementRate", { valueAsNumber: true })}
                             type="number"
                             step="0.01"
@@ -138,8 +142,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                         <p className="text-[10px] text-gray-500 mt-1">Calculado sobre ($P_1$)</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Cobertura de Acceso (%)</label>
+                        <label htmlFor="cfg-cobertura" className="block text-sm font-medium text-gray-300 mb-1">Cobertura de Acceso (%)</label>
                         <input
+                            id="cfg-cobertura"
                             {...register("coverageRate", { valueAsNumber: true })}
                             type="number"
                             step="0.01"
@@ -153,8 +158,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 {/* AGE LIMITS */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Edad Mínima</label>
+                        <label htmlFor="cfg-edad-minima" className="block text-sm font-medium text-gray-300 mb-1">Edad Mínima</label>
                         <input
+                            id="cfg-edad-minima"
                             {...register("minAge", { valueAsNumber: true })}
                             type="number"
                             placeholder="Ej. 18"
@@ -162,8 +168,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Edad Máxima</label>
+                        <label htmlFor="cfg-edad-maxima" className="block text-sm font-medium text-gray-300 mb-1">Edad Máxima</label>
                         <input
+                            id="cfg-edad-maxima"
                             {...register("maxAge", { valueAsNumber: true })}
                             type="number"
                             placeholder="Ej. 69"
@@ -178,8 +185,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 {/* LIFE INSURANCE */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Tipo Seguro Vida</label>
+                        <label htmlFor="cfg-seguro-tipo" className="block text-sm font-medium text-gray-300 mb-1">Tipo Seguro Vida</label>
                         <select
+                            id="cfg-seguro-tipo"
                             {...register("lifeInsuranceType")}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         >
@@ -188,8 +196,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Valor Seguro Vida</label>
+                        <label htmlFor="cfg-seguro-valor" className="block text-sm font-medium text-gray-300 mb-1">Valor Seguro Vida</label>
                         <input
+                            id="cfg-seguro-valor"
                             {...register("lifeInsuranceValue", { required: true, valueAsNumber: true })}
                             type="number"
                             step="0.0001"
@@ -202,8 +211,9 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                 {/* UNEMPLOYMENT INSURANCE & FNG */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">% FNG / Otros Seguros</label>
+                        <label htmlFor="cfg-fng" className="block text-sm font-medium text-gray-300 mb-1">% FNG / Otros Seguros</label>
                         <input
+                            id="cfg-fng"
                             {...register("fngRate", { valueAsNumber: true })}
                             type="number"
                             step="0.01"
@@ -213,9 +223,10 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                         <p className="text-[10px] text-gray-500 mt-1">Se suma al Capital Base</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Seguro Desempleo (Mensual)</label>
+                        <label htmlFor="cfg-desempleo-tipo" className="block text-sm font-medium text-gray-300 mb-1">Seguro Desempleo (Mensual)</label>
                         <div className="flex gap-2">
                             <select
+                                id="cfg-desempleo-tipo"
                                 {...register("unemploymentInsuranceType")}
                                 className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white w-1/2 text-xs"
                             >
@@ -223,6 +234,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }: Co
                                 <option value="percentage_monthly">% Cuota</option>
                             </select>
                             <input
+                                id="cfg-desempleo-valor"
                                 {...register("unemploymentInsuranceValue", { valueAsNumber: true })}
                                 type="number"
                                 step="0.01"

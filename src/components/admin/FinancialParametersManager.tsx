@@ -157,6 +157,8 @@ export default function FinancialParametersManager() {
                                 {/* REGISTRATION CREDIT */}
                                 <td className="p-2 border-r border-gray-700 bg-blue-900/5">
                                     <input
+                                        id={`finparam-credit-${row.id}`}
+                                        aria-label={`Matrícula crédito ${row.label}`}
                                         type="number"
                                         className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-blue-500/50 font-medium text-blue-100"
                                         value={row.registrationCredit}
@@ -167,6 +169,8 @@ export default function FinancialParametersManager() {
                                 {/* REGISTRATION CASH */}
                                 <td className="p-2 border-r border-gray-700 bg-emerald-900/5">
                                     <input
+                                        id={`finparam-cash-${row.id}`}
+                                        aria-label={`Matrícula contado ${row.label}`}
                                         type="number"
                                         className="w-full bg-transparent text-center focus:bg-gray-800 rounded outline-none py-1 border border-transparent focus:border-emerald-500/50 font-medium text-emerald-100"
                                         value={row.registrationCash}

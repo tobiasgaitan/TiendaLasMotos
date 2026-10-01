@@ -273,20 +273,21 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 {/* CONTACT INFO */}
                 <div className="grid grid-cols-1 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
-                        <input type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
+                        <label htmlFor="quote-cliente" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente *</label>
+                        <input id="quote-cliente" type="text" placeholder="Nombre Completo" value={userName} onChange={e => setUserName(e.target.value)}
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold" />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
-                        <input type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
+                            <label htmlFor="quote-whatsapp" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WhatsApp *</label>
+                            <input id="quote-whatsapp" type="tel" placeholder="300 000 0000" value={userPhone} onChange={e => setUserPhone(e.target.value)}
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold" />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-1">Lugar de Matrícula / Modalidad</label>
+                    <label htmlFor="quote-ubicacion" className="block text-sm font-bold text-gray-900 mb-1">Lugar de Matrícula / Modalidad</label>
                     <select
+                        id="quote-ubicacion"
                         className="w-full p-2 border rounded-xl bg-gray-50 font-bold text-gray-900"
                         value={selectedScenarioId}
                         onChange={(e) => setSelectedScenarioId(e.target.value)}
@@ -300,8 +301,9 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 {isCredit && (
                     <>
                         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                            <label className="block text-sm font-bold text-blue-900 mb-1">Entidad Financiera</label>
+                            <label htmlFor="quote-entidad" className="block text-sm font-bold text-blue-900 mb-1">Entidad Financiera</label>
                             <select
+                                id="quote-entidad"
                                 className="w-full p-2 border border-blue-200 rounded-xl bg-white font-bold text-gray-900"
                                 value={selectedFinancialId}
                                 onChange={(e) => setSelectedFinancialId(e.target.value)}
@@ -314,12 +316,13 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
 
                         <div>
                             <div className="grid grid-cols-2 gap-2 mb-1">
-                                <label className="block text-sm font-bold text-gray-900">Cuota Inicial</label>
+                                <label htmlFor="quote-cuota-inicial" className="block text-sm font-bold text-gray-900">Cuota Inicial</label>
                                 <span className="text-[10px] text-brand-blue font-bold text-right">Mín. 10% sugerido</span>
                             </div>
                             <div className="relative mb-2">
                                 <span className="absolute left-3 top-2 text-gray-500">$</span>
                                 <input
+                                    id="quote-cuota-inicial"
                                     type="text"
                                     className="w-full p-2 pl-6 border border-slate-300 rounded-xl bg-gray-50 font-bold text-gray-900"
                                     value={downPaymentStr}
@@ -332,6 +335,8 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                                 />
                             </div>
                             <input
+                                id="quote-cuota-inicial-rango"
+                                aria-label="Cuota inicial (deslizador)"
                                 type="range"
                                 min={Math.floor(moto.precio * 0.1)}
                                 max={Math.floor(moto.precio * 0.9)}
@@ -348,10 +353,11 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
 
                         <div>
                             <div className="flex justify-between mb-1">
-                                <label className="text-sm font-bold text-gray-900">Plazo</label>
+                                <label htmlFor="quote-plazo" className="text-sm font-bold text-gray-900">Plazo</label>
                                 <span className="text-sm font-bold text-brand-blue">{months} meses</span>
                             </div>
                             <input
+                                id="quote-plazo"
                                 type="range" min="12" max="60" step="12"
                                 className="w-full accent-brand-blue cursor-pointer h-2 bg-slate-200 rounded-lg"
                                 value={months}
@@ -367,8 +373,9 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                 {/* [NEW] Discount Input for Cash */}
                 {!isCredit && (
                     <div className="animate-in fade-in">
-                        <label className="block text-xs font-bold text-red-500 uppercase mb-1">Descuento Especial ($)</label>
+                        <label htmlFor="quote-descuento" className="block text-xs font-bold text-red-500 uppercase mb-1">Descuento Especial ($)</label>
                         <input
+                            id="quote-descuento"
                             type="text"
                             className="w-full p-3 border border-red-200 bg-red-50 rounded-xl font-black text-red-600"
                             value={discountStr}
@@ -403,8 +410,9 @@ export default function QuoteGenerator({ moto, soatRates, financialEntities }: P
                         <span className="font-medium">${((quote.registrationPrice || 0) + (quote.documentationFee || 0)).toLocaleString()}</span>
                     </div>
                     {/* MANUAL EXEMPTION CHECKBOX */}
-                    <label className="flex items-center gap-2 text-xs text-brand-blue cursor-pointer self-end bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors">
+                    <label htmlFor="quote-exento" className="flex items-center gap-2 text-xs text-brand-blue cursor-pointer self-end bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors">
                         <input
+                            id="quote-exento"
                             type="checkbox"
                             checked={isExempt}
                             onChange={(e) => setIsExempt(e.target.checked)}
