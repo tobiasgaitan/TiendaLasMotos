@@ -102,3 +102,9 @@
 - [x] **Quick-025 (Deuda 2 / WEB-DEBT-002):** Unificación FK sys_admin_users a email canónico (Ruta A'). Completado (2026-09-24) con certificación runtime multi-navegador y purga E2E 1:1.
 - [x] **Quick-026 (Deuda 5):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Completado (2026-09-24) con certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop`.
 - [x] **Quick-027 (Deuda P2):** Unificación singleton `firebase-admin` (`getAdminApp()` privada, `eval` conservado, firmas intactas). Completado (2026-09-24) con autopsia 1-7 verde + runtime en revisión `ssrtiendalasmotosbeta-00560-liz` (`ERR_MODULE_NOT_FOUND` → `[]`). Coherence Score 0.99.
+- [x] **Quick-029 (WEB-029):** Migración de Users CRUD a Server Actions con Admin SDK. Bloqueo de escrituras desde cliente. Completado (2026-09-28).
+- [x] **Quick-030 (WEB-030):** Guards residuales y gating UI para roles sin permiso (auditor/cobrador). Completado (2026-09-28).
+- [x] **Quick-031 (WEB-031):** Hardening de lectura de usuarios (verificarWhitelist + getDoc por docId) y endurecimiento de reglas Firestore. Completado (2026-09-28).
+- [x] **Quick-032 (WEB-032):** Purge de función huérfana loginAdminWithGoogle y imports exclusivos. Completado (2026-10-01).
+- [x] **Quick-033 (WEB-033):** Remediation de accesibilidad (170 atributos id+htmlFor en 21 archivos). Completado (2026-10-01).
+- [x] **Quick-035 (WEB-035):** Purge completo de src/lib/auth/admin-auth.ts (archivo huérfano, logout real en AuthContext). Completado (2026-10-01).
