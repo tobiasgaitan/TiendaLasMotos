@@ -265,10 +265,11 @@ export default function ConfigPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs text-gray-400 uppercase font-bold">
+                        <label htmlFor="config-confirmar" className="text-xs text-gray-400 uppercase font-bold">
                             Para confirmar, escriba <span className="text-white italic">EJECUTAR</span>
                         </label>
                         <input
+                            id="config-confirmar"
                             type="text"
                             value={saneamientoKeyword}
                             onChange={(e) => setSaneamientoKeyword(e.target.value.toUpperCase())}

@@ -233,12 +233,13 @@ export default function BudgetToBikePage() {
 
                     {/* Entity Selector (Always Rendered) */}
                     <div className="w-full md:w-72 space-y-1">
-                        <label className="text-xs text-slate-500 font-bold ml-1 uppercase tracking-wider">Entidad Financiera</label>
+                        <label htmlFor="presu-entidad" className="text-xs text-slate-500 font-bold ml-1 uppercase tracking-wider">Entidad Financiera</label>
                         <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center relative shadow-lg">
                             <div className="absolute left-3 text-emerald-500 pointer-events-none">
                                 <BankIcon />
                             </div>
                             <select
+                                id="presu-entidad"
                                 value={selectedEntityId}
                                 onChange={(e) => handleEntityChange(e.target.value)}
                                 className="w-full bg-transparent text-white font-medium py-3 pl-10 pr-4 outline-none appearance-none cursor-pointer hover:bg-slate-800/50 rounded-lg transition-colors"
@@ -267,7 +268,7 @@ export default function BudgetToBikePage() {
                         {/* Daily Budget */}
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <label className="text-lg font-medium text-blue-300 flex items-center gap-2">
+                                <label htmlFor="presu-pago-diario" className="text-lg font-medium text-blue-300 flex items-center gap-2">
                                     <DollarSign className="w-5 h-5" />
                                     Pago Diario
                                 </label>
@@ -276,6 +277,7 @@ export default function BudgetToBikePage() {
                                 </span>
                             </div>
                             <input
+                                id="presu-pago-diario"
                                 type="range"
                                 min="10000"
                                 max="60000"
