@@ -151,8 +151,9 @@ export default function LoginForm() {
             {mode === 'reset' ? (
                 <form onSubmit={handleResetPassword} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-800">Tu Correo Registrado</label>
+                        <label htmlFor="login-reset-email" className="text-sm font-bold text-gray-800">Tu Correo Registrado</label>
                         <input
+                            id="login-reset-email"
                             type="email"
                             required
                             className={inputStyle}
@@ -181,8 +182,9 @@ export default function LoginForm() {
             ) : (
                 <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-800">Correo Electrónico</label>
+                        <label htmlFor="login-email" className="text-sm font-bold text-gray-800">Correo Electrónico</label>
                         <input
+                            id="login-email"
                             type="email"
                             required
                             className={inputStyle}
@@ -193,8 +195,9 @@ export default function LoginForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-800">Contraseña</label>
+                        <label htmlFor="login-password" className="text-sm font-bold text-gray-800">Contraseña</label>
                         <input
+                            id="login-password"
                             type="password"
                             required
                             className={inputStyle}

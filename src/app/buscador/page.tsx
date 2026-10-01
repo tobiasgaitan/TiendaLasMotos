@@ -231,7 +231,7 @@ export default function BuscadorPublicoPage() {
                                 {/* Daily Budget Slider */}
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-lg font-bold text-slate-700 flex items-center gap-2">
+                                        <label htmlFor="buscar-pago-diario" className="text-lg font-bold text-slate-700 flex items-center gap-2">
                                             <DollarSign className="w-5 h-5 text-brand-yellow" />
                                             Pago Diario
                                         </label>
@@ -240,6 +240,7 @@ export default function BuscadorPublicoPage() {
                                         </span>
                                     </div>
                                     <input
+                                        id="buscar-pago-diario"
                                         type="range"
                                         min="10000"
                                         max="60000"
@@ -272,10 +273,11 @@ export default function BuscadorPublicoPage() {
                             <div className="space-y-6">
                                 {/* Entity Selector */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-600 uppercase tracking-wide">
+                                    <label htmlFor="buscar-entidad" className="text-sm font-bold text-slate-600 uppercase tracking-wide">
                                         Entidad Financiera
                                     </label>
                                     <select
+                                        id="buscar-entidad"
                                         value={selectedEntityId}
                                         onChange={(e) => handleEntityChange(e.target.value)}
                                         className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
