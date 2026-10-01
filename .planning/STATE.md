@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.5.4
+# Estado Actual: DEPLOYED_v8.6.0
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -15,7 +15,7 @@
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 - **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
 
-**Versión:** v8.5.4 (Beta Release - WEB-SCORE-THRESHOLD-001)
+**Versión:** v8.6.0 (Beta Release - WEB-SCORE-THRESHOLD-001)
 **Estado:** DEPLOYED
 
 **Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
@@ -101,6 +101,13 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 - **Deuda P2 (Singleton firebase-admin):** Unificación de la inicialización en `getAdminApp()` privada; `eval("require(...)")` conservado (blindaje contra externals hasheados `firebase-admin-<hash>`). Firmas intactas; 34 call sites sin tocar. Autopsia 1-7 verde + runtime en revisión `ssrtiendalasmotosbeta-00560-liz` (`ERR_MODULE_NOT_FOUND` → `[]`, `MaxListenersExceeded` → `[]`). Coherence Score 0.99. Commit `fe37ca6`.
 - **R-google-orphan (WEB-032 + WEB-035):** Purge de `loginAdminWithGoogle` huérfana y posterior eliminación completa de `src/lib/auth/admin-auth.ts` (cero importadores; logout real en `AuthContext.tsx`). Autopsia por grep vacía + tsc/build/lint verdes.
 - **A11y estructural (WEB-033 + WEB-037):** Remediación id/htmlFor en 21 archivos (WEB-033) + refactor de 6 labels huérfanos a headings y fieldset/legend con reset UA (WEB-037). Cero lógica/estilos alterados.
+
+### Hitos de octubre 2026 (v8.6.0)
+- **WEB-032:** Purge de `loginAdminWithGoogle` huérfana + imports muertos (`7a0e60a`).
+- **WEB-033:** Remediación a11y id/htmlFor en 21 archivos (`39816c7`, `a5bd004`, `e399d15`) + plan (`34c0f9f`).
+- **WEB-035:** Eliminación de `src/lib/auth/admin-auth.ts` (`b832897`) + docs (`0b11715`).
+- **WEB-036:** Sincronización documental WEB-029..035 en ROADMAP (`835b28e`, solo docs).
+- **WEB-037:** Refactor estructural a11y headings/fieldset+legend (`5a4fb48`) + docs (`b8a9f47`).
 
 ### Decisión Clave — 2026-09-24
 *   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.
