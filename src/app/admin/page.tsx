@@ -1,7 +1,9 @@
 import ScrapingControl from "@/components/admin/ScrapingControl";
+import RoleBasedRedirect from "@/components/RoleBasedRedirect";
 
 export default function AdminDashboard() {
     return (
+        <RoleBasedRedirect>
         <div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Dashboard</h1>
 
@@ -16,5 +18,6 @@ export default function AdminDashboard() {
                 </p>
             </div>
         </div>
+        </RoleBasedRedirect>
     );
 }

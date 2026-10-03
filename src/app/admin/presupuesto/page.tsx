@@ -10,8 +10,10 @@ import { Loader2, DollarSign, Wallet, AlertCircle, ChevronDown } from "lucide-re
 
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from '@/context/AuthContext';
 
 export default function BudgetToBikePage() {
+    const { loading: authLoading, puedeVerNodo } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -215,6 +217,21 @@ export default function BudgetToBikePage() {
     };
 
     if (!isMounted) return null;
+
+    // WEB-038: guard de ruta — solo roles con visibilidad del nodo 'simuladores'.
+    if (authLoading) return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+            <Loader2 className="animate-spin mr-2" /> Cargando...
+        </div>
+    );
+    if (!puedeVerNodo('simuladores')) return (
+        <div className="p-4 md:p-8">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                <strong className="font-bold">Acceso denegado: </strong>
+                <span>No tienes permisos para acceder al presupuesto.</span>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
