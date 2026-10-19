@@ -56,5 +56,23 @@ export default function RoleBasedRedirect({ children }: { children: React.ReactN
         return <EsperandoActivacion email={user.email ?? ''} />;
     }
 
+    // WEB-039 — supresión de flash: con flag de landing activo, en ruta landing,
+    // rol resuelto (no loading/guest) y destino ≠ ruta actual, el redirect está en
+    // vuelo ⇒ NUNCA renderizar children (el bloque de denegación no se pinta).
+    const redirectEnVuelo =
+        defaultLanding &&
+        esRutaLanding(pathname) &&
+        !!role &&
+        role !== 'guest' &&
+        landingPorRol(role) !== pathname;
+
+    if (redirectEnVuelo) {
+        return (
+            <div className="flex items-center justify-center py-20 text-gray-400">
+                Cargando…
+            </div>
+        );
+    }
+
     return <>{children}</>;
 }
