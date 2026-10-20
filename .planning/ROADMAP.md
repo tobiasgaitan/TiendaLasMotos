@@ -109,3 +109,5 @@
 - [x] **Quick-033 (WEB-033):** Remediation de accesibilidad (170 atributos id+htmlFor en 21 archivos). Completado (2026-10-01).
 - [x] **Quick-035 (WEB-035):** Purge completo de src/lib/auth/admin-auth.ts (archivo huérfano, logout real en AuthContext). Completado (2026-10-01).
 - [x] **Quick-037 (WEB-037):** Refactor estructural a11y (3 headings + 3 fieldset/legend con reset UA, 4 archivos). Completado (2026-10-01).
+- [x] **Quick-038 (WEB-038):** Landing por rol (`admin_creditos`), flag `defaultLanding` + `RoleBasedRedirect`, guards de ruta en 5 páginas y dropdown extendido. Completado (2026-10-18) con deploy beta.
+- [x] **Quick-039 (WEB-039):** Precedencia guard-dentro-de-wrapper + supresión de flash en `RoleBasedRedirect`. Completado (2026-10-19) con deploy beta run `39202182660` success.

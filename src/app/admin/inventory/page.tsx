@@ -6,6 +6,7 @@ import InventoryTable from '@/components/InventoryTable';
 import EditProductModal from '@/components/EditProductModal';
 
 import ScrapingControl from '@/components/admin/ScrapingControl';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * InventoryPage - Dashboard de Gestión de Inventario
@@ -21,6 +22,7 @@ import ScrapingControl from '@/components/admin/ScrapingControl';
  * - editingProduct: Data del producto a editar o NULL para crear.
  */
 export default function InventoryPage() {
+    const { loading: authLoading, puedeVerNodo } = useAuth();
     const { products, loading, error } = useInventory();
 
     // Estado del Modal
@@ -42,6 +44,28 @@ export default function InventoryPage() {
         setIsModalOpen(false);
         setEditingProduct(null);
     };
+
+    // WEB-038: guard de ruta — solo roles con visibilidad del nodo 'inventario'.
+    if (authLoading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+                    <p className="text-gray-400 animate-pulse">Cargando...</p>
+                </div>
+            </div>
+        );
+    }
+    if (!puedeVerNodo('inventario')) {
+        return (
+            <div className="p-8">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                    <strong className="font-bold">Acceso denegado: </strong>
+                    <span>No tienes permisos para acceder al inventario.</span>
+                </div>
+            </div>
+        );
+    }
 
     // Loading State simple
     if (loading) {

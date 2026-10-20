@@ -329,6 +329,7 @@ export default function UsersPage() {
                                         <option value="auditor">Auditor</option>
                                         <option value="admin">Administrador</option>
                                         <option value="superadmin">Super Admin</option>
+                                        <option value="admin_creditos">Admin Créditos</option>
                                     </select>
                                 </div>
                                 <div className="flex items-center gap-2 pt-6">

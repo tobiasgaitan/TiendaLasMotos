@@ -35,7 +35,7 @@ export default function LoginForm() {
             await createSession(tokenResult.token);
 
             // [FIX] Read Callback URL or default
-            const callbackUrl = searchParams.get('callbackUrl') || '/admin/simulador';
+            const callbackUrl = searchParams.get('callbackUrl') || '/admin/simulador?defaultLanding=1';
 
             console.log("Login Success. Server Session Created. Redirecting to:", callbackUrl);
             window.location.href = callbackUrl; // Force hard navigation to refresh middleware state
@@ -79,7 +79,7 @@ export default function LoginForm() {
 
             setSuccessMsg('Cuenta activada correctamente. Ingresando...');
             setTimeout(() => {
-                window.location.href = '/admin/simulador';
+                window.location.href = '/admin/simulador?defaultLanding=1';
             }, 1000);
 
         } catch (err: any) {

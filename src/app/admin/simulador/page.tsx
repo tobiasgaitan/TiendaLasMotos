@@ -10,6 +10,8 @@ import { Loader2 } from 'lucide-react';
 import { getCatalogoMotos } from '@/lib/firestore';
 import { NumericFormat } from 'react-number-format'; // V15.2
 import Image from "next/image";
+import { useAuth } from '@/context/AuthContext';
+import RoleBasedRedirect from '@/components/RoleBasedRedirect';
 
 /**
  * Simulador de Crédito - Interfaz Administrativa
@@ -26,6 +28,7 @@ import Image from "next/image";
 const OFFICIAL_CITIES: City[] = []; // Deprecated concept, used for init if needed but we prefer fetching.
 
 export default function SimulatorPage() {
+    const { loading: authLoading, puedeVerNodo } = useAuth();
     const [loading, setLoading] = useState(true);
 
     // --- DATA FETCHED FROM FIRESTORE ---
@@ -185,13 +188,26 @@ export default function SimulatorPage() {
     // --- HELPERS ---
     const formatCurrency = useCallback((val: number) => `$${Math.round(val).toLocaleString('es-CO')}`, []);
 
-    if (loading) return (
-        <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
-            <Loader2 className="animate-spin mr-2" /> Cargando Simulador...
-        </div>
-    );
-
+    // WEB-039: el wrapper monta SIEMPRE; el guard se evalúa DENTRO de children.
+    // (precedencia) → el bloque de denegación no se pinta antes de un redirect por rol.
     return (
+        <RoleBasedRedirect>
+        {authLoading ? (
+            <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+                <Loader2 className="animate-spin mr-2" /> Cargando...
+            </div>
+        ) : !puedeVerNodo('simuladores') ? (
+            <div className="p-6">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                    <strong className="font-bold">Acceso denegado: </strong>
+                    <span>No tienes permisos para acceder al simulador.</span>
+                </div>
+            </div>
+        ) : loading ? (
+            <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+                <Loader2 className="animate-spin mr-2" /> Cargando Simulador...
+            </div>
+        ) : (
         <div className="p-6 bg-gray-900 min-h-screen text-white space-y-6">
             <header className="flex items-center justify-between border-b border-gray-800 pb-4">
                 <div>
@@ -558,5 +574,7 @@ export default function SimulatorPage() {
                 </div >
             </div >
         </div >
+        )}
+        </RoleBasedRedirect>
     );
 }

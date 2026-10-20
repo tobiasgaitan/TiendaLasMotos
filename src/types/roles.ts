@@ -1,14 +1,14 @@
 /**
  * SSOT de roles y permisos (P5 — Matriz de Permisos Configurables).
  *
- * Roles canónicos: superadmin, admin, cobrador, inversor, auditor.
+ * Roles canónicos: superadmin, admin, cobrador, inversor, auditor, admin_creditos.
  * (`vendedor` es legacy y se normaliza a `cobrador` en resolve-rol.ts)
  *
  * Sin borrado físico en colecciones financieras: la matriz no otorga `delete`
  * en colecciones financieras; la baja es update de `activo=false`.
  */
 
-export const ROLES = ['superadmin', 'admin', 'cobrador', 'inversor', 'auditor'] as const;
+export const ROLES = ['superadmin', 'admin', 'cobrador', 'inversor', 'auditor', 'admin_creditos'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export type Accion = 'create' | 'read' | 'update' | 'delete';
@@ -117,5 +117,14 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['read'] },
+    },
+    admin_creditos: {
+        creditos: { acciones: ['create', 'read', 'update'] },
+        clientes_credito: { acciones: ['create', 'read', 'update'] },
+        pagos_y_multas: { acciones: ['create', 'read', 'update'] },
+        pagos_inversores: { acciones: ['create', 'read', 'update'] },
+        remisiones_dinero: { acciones: ['create', 'read', 'update'] },
+        historial_auditoria: { acciones: ['read'] },
+        anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
     },
 };

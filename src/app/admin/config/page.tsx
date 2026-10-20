@@ -8,8 +8,10 @@ import { Plus, Loader2, ShieldAlert, Terminal, Info } from "lucide-react";
 import ConfigTable from "@/components/admin/ConfigTable";
 import ConfigModal from "@/components/admin/ConfigModal";
 import ModalWrapper from "@/components/admin/ModalWrapper";
+import { useAuth } from '@/context/AuthContext';
 
 export default function ConfigPage() {
+    const { loading: authLoading, puedeVerNodo } = useAuth();
     const [loading, setLoading] = useState(true);
 
     // Data States
@@ -161,6 +163,21 @@ export default function ConfigPage() {
             }
         },
     ];
+
+    // WEB-038: guard de ruta — solo roles con visibilidad del nodo 'config'.
+    if (authLoading) return (
+        <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
+            <Loader2 className="animate-spin mr-2" /> Cargando...
+        </div>
+    );
+    if (!puedeVerNodo('config')) return (
+        <div className="p-8">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                <strong className="font-bold">Acceso denegado: </strong>
+                <span>No tienes permisos para acceder a la configuración.</span>
+            </div>
+        </div>
+    );
 
     return (
         <div className="p-8 space-y-8 bg-gray-900 min-h-screen">

@@ -9,6 +9,7 @@ import ProspectModal, { Prospect } from '@/components/admin/ProspectModal';
 import BulkImportModal from '@/components/admin/BulkImportModal';
 import CampaignControl from '@/components/admin/CampaignControl';
 import AnomaliesBanner, { Anomaly } from '@/components/admin/AnomaliesBanner';
+import { useAuth } from '@/context/AuthContext';
 
 // Status Configuration Map (Must match Modal)
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -30,6 +31,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
  * Permite filtrar por estado, ver detalles y gestionar el ciclo de vida del cliente.
  */
 export default function ProspectsPage() {
+    const { loading: authLoading, puedeVerNodo } = useAuth();
     const [leads, setLeads] = useState<Prospect[]>([]);
     const [filteredLeads, setFilteredLeads] = useState<Prospect[]>([]);
     const [loading, setLoading] = useState(true);
@@ -522,6 +524,28 @@ export default function ProspectsPage() {
     };
 
     // --- RENDERIZADO ---
+
+    // WEB-038: guard de ruta — solo roles con visibilidad del nodo 'prospectos'.
+    if (authLoading) {
+        return (
+            <div className="flex items-center justify-center p-12 min-h-[50vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+                    <p className="text-gray-400 animate-pulse">Cargando...</p>
+                </div>
+            </div>
+        );
+    }
+    if (!puedeVerNodo('prospectos')) {
+        return (
+            <div className="p-4 md:p-8">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                    <strong className="font-bold">Acceso denegado: </strong>
+                    <span>No tienes permisos para acceder a prospectos.</span>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
