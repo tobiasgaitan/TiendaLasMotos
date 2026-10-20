@@ -1,4 +1,4 @@
-# Estado Actual: DEPLOYED_v8.6.0
+# Estado Actual: DEPLOYED_v8.7.0
 
 **Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
 
@@ -14,12 +14,14 @@
 - **WEB-838-HYDRATION-SYNCHRONY-BARRIER (Hotfix):** Implementación de la barrera de montaje isMounted en buscador y admin/presupuesto para eliminar discrepancias de hidratación en pre-renderizado.
 - **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
 - **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
+- **WEB-038 (Landing por rol + guards):** Rol `admin_creditos` en `ROLES`/`DEFAULT_MATRIZ`; landing por rol vía flag `defaultLanding=1` + `RoleBasedRedirect` (scoped); guards de ruta en 5 páginas; dropdown extendido. Commits `19a8e0d`, `0061423`.
+- **WEB-039 (Precedencia guard-wrapper):** `RoleBasedRedirect` monta siempre; guard evaluado dentro de `children`; supresión de flash en redirect en vuelo. Commit `f4c1933`.
 
-**Versión:** v8.6.0 (Beta Release - WEB-SCORE-THRESHOLD-001)
-**Estado:** DEPLOYED
+**Versión:** v8.7.0 (Beta Release — WEB-038/039)
+**Estado:** DEPLOYED (beta)
 
-**Último Hito:** Fusión de beta a main y despliegue síncrono secuencial en producción.
-**Coherence Score:** 0.97 (WEB-SCORE-THRESHOLD-001 — reporte alternativo vía análisis estático de diff)
+**Último Hito:** Deploy beta v8.7.0 certificado (WEB-039) — run `39202182660` success sobre `f4c1933`.
+**Coherence Score:** 0.97 (v8.7.0 — sincronía documental, análisis estático de diff solo-docs)
 
 #### 1. Stack Tecnológico (Cloud Native)
 * **Framework:** React / Next.js 16.1.1+ (App Router).
@@ -82,7 +84,7 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 | 026 | Silenciamiento de MaxListenersExceededWarning (Deuda 5) | 2026-09-24 | `bbeeaed` | `026-instrumentation-max-listeners` |
 
 ---
-*Última actualización: 2026-09-24 COT por Antigravity*
+*Última actualización: 2026-10-19 COT por Antigravity*
 
 ---
 
@@ -108,6 +110,10 @@ Se garantiza la paridad absoluta con el backend v9.9.1.
 - **WEB-035:** Eliminación de `src/lib/auth/admin-auth.ts` (`b832897`) + docs (`0b11715`).
 - **WEB-036:** Sincronización documental WEB-029..035 en ROADMAP (`835b28e`, solo docs).
 - **WEB-037:** Refactor estructural a11y headings/fieldset+legend (`5a4fb48`) + docs (`b8a9f47`).
+
+### Hitos de octubre 2026 (v8.7.0)
+- **WEB-038:** Rol `admin_creditos` + landing por rol (`defaultLanding` + `RoleBasedRedirect`) + guards de ruta en 5 páginas (`19a8e0d`, `0061423`).
+- **WEB-039:** Precedencia guard-dentro-de-wrapper + supresión de flash (`f4c1933`); deploy beta run `39202182660` success.
 
 ### Decisión Clave — 2026-09-24
 *   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.

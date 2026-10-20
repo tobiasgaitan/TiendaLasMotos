@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.6.0  
-**Última Actualización:** 2026-10-01  
-**Estado:** DEPLOYED (Beta v8.6.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Versión del Stack & Hitos:** v8.7.0  
+**Última Actualización:** 2026-10-19  
+**Estado:** DEPLOYED (Beta v8.7.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -239,3 +239,28 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **WEB-035:** Eliminación de `src/lib/auth/admin-auth.ts` (`b832897`) + docs (`0b11715`).
 *   **WEB-036:** Sincronización documental WEB-029..035 en ROADMAP (`835b28e`, solo docs).
 *   **WEB-037:** Refactor estructural a11y headings/fieldset+legend (`5a4fb48`) + docs (`b8a9f47`).
+
+### I. Contratos de Permisos (Matriz P5) — Rol `admin_creditos`
+
+*   **SSOT:** `src/types/roles.ts` (`ROLES`, `DEFAULT_MATRIZ`) + colección configurable `sys_permissions_matrix/{rol}`.
+*   **Alta canónica:** `admin_creditos` incorporado a `ROLES` y `DEFAULT_MATRIZ` (commit `19a8e0d`).
+*   **Permisos financieros idénticos a `admin`:**
+    *   `creditos`, `clientes_credito`, `pagos_y_multas`, `pagos_inversores`, `remisiones_dinero` → `create`/`read`/`update`.
+    *   `historial_auditoria` → `read` (ledger append-only).
+    *   `anomalias` → `create`/`read`/`update`/`delete`.
+    *   Sin `delete` en colecciones financieras: la baja es actualización `activo=false` (NAMING LOCK §8.B intacto).
+*   **Exclusión explícita:** **sin** permiso sobre `sys_admin_users` ⇒ sin acceso a Configuración/Usuarios (fail-closed).
+*   **Navegación restringida a "Gestión de Créditos":** visibles los sub-nodos `creditos-contratos`, `creditos-pagos`, `creditos-remisiones`, `creditos-inversores`, `creditos-auditoria`. Ocultos `simuladores`, `inventario`, `prospectos` (`soloAdmin`) y `config` (requiere `sys_admin_users.read`).
+*   **Landing por rol:** `landingPorRol('admin_creditos') → /admin/creditos`; el resto de roles → `/admin/simulador`.
+
+### J. Hitos v8.7.0 — Octubre 2026
+
+*   **WEB-038 — Landing por rol + guards de ruta (commits `19a8e0d`, `0061423`):**
+    *   Rol `admin_creditos` en `ROLES`/`DEFAULT_MATRIZ` y dropdown de usuarios extendido.
+    *   Landing por rol vía flag `defaultLanding=1` + `RoleBasedRedirect` (alcance limitado a `/admin` y `/admin/simulador`; sin flag no hay redirect).
+    *   Guards de ruta fail-closed con `puedeVerNodo` en 5 páginas: `simulador`, `presupuesto`, `inventory`, `prospectos`, `config`.
+    *   `EsperandoActivacion` para `role='guest'` en rutas landing (polling de activación).
+*   **WEB-039 — Precedencia guard-dentro-de-wrapper + supresión de flash (commit `f4c1933`):**
+    *   `simulador/page.tsx`: `RoleBasedRedirect` monta **siempre**; el guard (`authLoading` → spinner / denegación `role="alert"` / `loading` → spinner de fetch / contenido) se evalúa **dentro de `children`**.
+    *   `RoleBasedRedirect.tsx`: supresión de render de `children` mientras el redirect está en vuelo (`defaultLanding && esRutaLanding(pathname) && role resuelto && landingPorRol(role) !== pathname`) ⇒ el bloque de denegación no se pinta ni un frame.
+    *   Autopsia: 8 suites en verde, `landing.test.ts` 10/10, `tsc`/`build`/`lint` EXIT 0.
