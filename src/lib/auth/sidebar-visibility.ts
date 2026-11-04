@@ -23,6 +23,8 @@ import {
 export type NodoSidebar =
     | 'simuladores'
     | 'inventario'
+    | 'inventario-asesor'
+    | 'inventario-aprobaciones'
     | 'prospectos'
     | 'config'
     | 'config-usuarios'
@@ -32,7 +34,9 @@ export type NodoSidebar =
     | 'creditos-inversores'
     | 'creditos-auditoria';
 
-type RequisitoNodo = { soloAdmin: true } | { coleccion: ColeccionPermiso; accion: Accion };
+type RequisitoNodo =
+    | { soloAdmin: true }
+    | { coleccion: ColeccionPermiso; accion: Accion; rolesPermitidos?: Rol[] };
 
 /** Mapeo explícito nodo → requisito. Todo nodo futuro DEBE registrarse aquí. */
 export const MAPA_NODOS: Record<NodoSidebar, RequisitoNodo> = {
@@ -48,6 +52,17 @@ export const MAPA_NODOS: Record<NodoSidebar, RequisitoNodo> = {
     'creditos-remisiones': { coleccion: 'remisiones_dinero', accion: 'read' },
     'creditos-inversores': { coleccion: 'pagos_inversores', accion: 'read' },
     'creditos-auditoria': { coleccion: 'historial_auditoria', accion: 'read' },
+    // WEB-038-UI: pantallas dedicadas de repuestos.
+    'inventario-asesor': {
+        coleccion: 'conteos_pendientes_repuestos',
+        accion: 'create',
+        rolesPermitidos: ['asesor'],
+    },
+    'inventario-aprobaciones': {
+        coleccion: 'conteos_pendientes_repuestos',
+        accion: 'update',
+        rolesPermitidos: ['admin', 'superadmin'],
+    },
 };
 
 export function esAdminLike(rol: string | null | undefined): boolean {
@@ -68,6 +83,9 @@ export function puedeVerNodo(
     if (!req) return esAdminLike(rol); // fail-closed por defecto
     if ('soloAdmin' in req) return esAdminLike(rol);
     if (typeof rol !== 'string' || !esRolValido(rol)) return false;
+    if (req.rolesPermitidos && !req.rolesPermitidos.includes(rol as Rol)) {
+        return false;
+    }
     return puede(matriz[rol as Rol], req.coleccion, req.accion);
 }
 

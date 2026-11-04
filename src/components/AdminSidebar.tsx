@@ -20,7 +20,9 @@ import {
     Building2,
     CreditCard,
     Globe,
-    Bell
+    Bell,
+    Camera,
+    ClipboardCheck
 } from "lucide-react";
 import { deleteSession } from "@/app/admin/login/actions";
 
@@ -212,6 +214,24 @@ export default function AdminSidebar() {
                 >
                     <Tag className="w-5 h-5" />
                     Inventario
+                </Link>
+                )}
+                {!loading && puedeVerNodo('inventario-asesor') && (
+                <Link
+                    href="/admin/inventario-asesor"
+                    className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/inventario-asesor') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <Camera className="w-5 h-5" />
+                    Conteo de Repuestos
+                </Link>
+                )}
+                {!loading && puedeVerNodo('inventario-aprobaciones') && (
+                <Link
+                    href="/admin/inventario-aprobaciones"
+                    className={`flex items-center gap-3 p-2 text-sm font-medium rounded-lg transition-colors ${isActive('/admin/inventario-aprobaciones') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <ClipboardCheck className="w-5 h-5" />
+                    Aprobaciones de Repuestos
                 </Link>
                 )}
                 {puedeVerNodo('prospectos') && (
