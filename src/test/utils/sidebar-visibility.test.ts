@@ -34,6 +34,25 @@ for (const rol of ['superadmin', 'admin'] as const) {
     check(`${rol} ve grupo créditos`, verGrupoCreditos(rol, M));
 }
 
+// --- WEB-038-UI: nodos dedicados de repuestos ---
+check('asesor ve conteo de repuestos',
+    puedeVerNodo('asesor', M, 'inventario-asesor'));
+check('asesor NO ve aprobaciones de repuestos',
+    !puedeVerNodo('asesor', M, 'inventario-aprobaciones'));
+check('asesor NO ve inventario de motos',
+    !puedeVerNodo('asesor', M, 'inventario'));
+for (const rol of ['superadmin', 'admin'] as const) {
+    check(`${rol} ve aprobaciones de repuestos`,
+        puedeVerNodo(rol, M, 'inventario-aprobaciones'));
+    check(`${rol} NO ve conteo de repuestos del asesor`,
+        !puedeVerNodo(rol, M, 'inventario-asesor'));
+}
+for (const rol of ['auditor', 'cobrador', 'inversor', 'guest'] as const) {
+    check(`${rol} NO ve nodos de repuestos`,
+        !puedeVerNodo(rol, M, 'inventario-asesor') &&
+        !puedeVerNodo(rol, M, 'inventario-aprobaciones'));
+}
+
 // --- cobrador: solo créditos propios + auditoría, sin config ni admin general ---
 check('cobrador NO ve simuladores/inventario/prospectos',
     !puedeVerNodo('cobrador', M, 'simuladores') && !puedeVerNodo('cobrador', M, 'inventario') && !puedeVerNodo('cobrador', M, 'prospectos'));

@@ -17,6 +17,9 @@ function check(name: string, cond: boolean) {
 // --- admin_creditos → /admin/creditos ---
 check('admin_creditos → /admin/creditos', landingPorRol('admin_creditos') === '/admin/creditos');
 
+// --- asesor → /admin/inventario-asesor ---
+check('asesor → /admin/inventario-asesor', landingPorRol('asesor') === '/admin/inventario-asesor');
+
 // --- resto de roles → /admin/simulador ---
 check('superadmin → /admin/simulador', landingPorRol('superadmin') === '/admin/simulador');
 check('admin → /admin/simulador', landingPorRol('admin') === '/admin/simulador');
