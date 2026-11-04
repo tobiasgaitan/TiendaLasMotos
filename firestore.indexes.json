@@ -186,6 +186,39 @@
         { "fieldPath": "id_cliente", "order": "ASCENDING" },
         { "fieldPath": "activo", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "conteos_pendientes_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "creado_en", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conteos_pendientes_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "asesor_email", "order": "ASCENDING" },
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "creado_en", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "fotos_inventario",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "conteo_id", "order": "ASCENDING" },
+        { "fieldPath": "creado_en", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "historial_auditoria_inventario",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "documento_id", "order": "ASCENDING" },
+        { "fieldPath": "creado_en", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

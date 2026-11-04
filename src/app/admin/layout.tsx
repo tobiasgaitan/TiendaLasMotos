@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import '@/app/globals.css';
 import AdminSidebar from '@/components/AdminSidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import OfflineIndicator from '@/components/OfflineIndicator';
 import { ROLES } from '@/types/roles';
 
 /**
@@ -81,6 +82,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {children}
                     </main>
                 </div>
+
+                <OfflineIndicator />
             </div>
         </ProtectedRoute>
     );

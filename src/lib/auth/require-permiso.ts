@@ -29,6 +29,7 @@ export interface ScopeDoc {
     email_usuario?: string | null;
     email_inversor?: string | null;
     email_admin?: string | null;
+    asesor_email?: string | null;
 }
 
 export interface ResultadoPermiso {

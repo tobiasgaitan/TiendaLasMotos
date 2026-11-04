@@ -2,7 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // Helpers WEB-038 — rol desde sys_admin_users por email canónico.
+    function emailActual() {
+      return request.auth.token.email.lower();
+    }
+
+    function rolActual() {
+      return get(
+        /databases/$(database)/documents/sys_admin_users/$(emailActual())
+      ).data.rol;
+    }
+
     // 0. Nota P5 — la autorización de ESCRITURAS vive en Server Actions
     // (Admin SDK, ignora reglas). Aquí: writes de cliente denegados en
     // sys_admin_users y sys_permissions_matrix; lecturas autenticadas
@@ -57,6 +68,42 @@ service cloud.firestore {
     match /pagos_inversores/{document}    { allow read: if request.auth != null; allow create, update, delete: if false; }
     match /remisiones_dinero/{document}   { allow read: if request.auth != null; allow create, update, delete: if false; }
     match /historial_auditoria/{document} { allow read: if request.auth != null; allow create, update, delete: if false; }
+
+    // 4. Inventario de repuestos (WEB-038) — NAMING LOCK
+    // Escrituras solo por Server Actions (Admin SDK). Cliente: solo lectura.
+    match /conteos_pendientes_repuestos/{conteo} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && (
+          rolActual() in ['superadmin', 'admin', 'auditor']
+          || resource.data.asesor_email == emailActual()
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /inventario_repuestos/{repuesto} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && rolActual() in ['superadmin', 'admin', 'asesor', 'auditor'];
+      allow create, update, delete: if false;
+    }
+
+    match /fotos_inventario/{foto} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && (
+          rolActual() in ['superadmin', 'admin', 'auditor']
+          || resource.data.asesor_email == emailActual()
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /historial_auditoria_inventario/{asiento} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && rolActual() in ['superadmin', 'admin', 'auditor', 'asesor'];
+      allow create, update, delete: if false;
+    }
 
     // Regla de seguridad por defecto
     match /{document=**} {

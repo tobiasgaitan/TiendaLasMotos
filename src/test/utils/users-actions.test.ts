@@ -85,6 +85,16 @@ describe("users-actions — path de validación", () => {
         }
     });
 
+    test("rol asesor es canónico y aceptado por el schema", () => {
+        const parsed = userCreateSchema.safeParse({
+            name: "Asesor Prueba",
+            email: "asesor@test.com",
+            rol: "asesor",
+            active: true,
+        });
+        if (!parsed.success) throw new Error("el schema debió aceptar el rol asesor");
+    });
+
     test("rol legacy 'vendedor' se rechaza (ya no es canónico)", async () => {
         const parsed = userCreateSchema.safeParse({
             name: "X",

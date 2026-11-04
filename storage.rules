@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helpers WEB-038 — rol desde sys_admin_users por email canónico.
+    function emailActual() {
+      return request.auth.token.email.lower();
+    }
+
+    function rolActual() {
+      return firestore.get(
+        /databases/(default)/documents/sys_admin_users/$(emailActual())
+      ).data.rol;
+    }
+
+    function esAdminOAuditor() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && rolActual() in ['superadmin', 'admin', 'auditor'];
+    }
+
+    // Cada asesor escribe solo en su prefijo. Admin/auditor pueden leer.
+    match /inventario_repuestos/{asesorEmail}/{archivo} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && (
+          emailActual() == asesorEmail
+          || esAdminOAuditor()
+        );
+
+      allow create, update: if request.auth != null
+        && request.auth.token.email != null
+        && emailActual() == asesorEmail
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+
+      allow delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

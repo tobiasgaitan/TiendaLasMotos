@@ -15,11 +15,19 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#dc2626",
 };
 
 export const metadata: Metadata = {
   title: "Tienda Las Motos",
   description: "Gestión de inventario y ventas",
+  manifest: "/manifest.json",
+  applicationName: "Tienda Las Motos",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "TLM Inventario",
+  },
 };
 
 import { Toaster } from "sonner";
@@ -28,6 +36,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
 import SmartFooter from "@/components/SmartFooter";
 import NavigationWrapper from "@/components/NavigationWrapper";
+import PwaRegistrar from "@/components/PwaRegistrar";
 
 export default function RootLayout({
   children,
@@ -62,6 +71,7 @@ export default function RootLayout({
       >
         <LeadModalProvider>
           <AuthProvider>
+            <PwaRegistrar />
             <Toaster position="top-right" expand={false} richColors />
             <NavigationWrapper />
             {children}

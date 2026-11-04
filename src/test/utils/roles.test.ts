@@ -22,7 +22,7 @@ function check(name: string, cond: boolean) {
 }
 
 // --- esRolValido ---
-check('roles canónicos válidos', ['superadmin', 'admin', 'cobrador', 'inversor', 'auditor'].every(esRolValido));
+check('roles canónicos válidos', ['superadmin', 'admin', 'asesor', 'cobrador', 'inversor', 'auditor', 'admin_creditos'].every(esRolValido));
 check('case-insensitive', esRolValido('Admin') && esRolValido('SUPERADMIN'));
 check('vendedor no es canónico', !esRolValido('vendedor'));
 check('guest no es canónico', !esRolValido('guest'));
@@ -32,6 +32,7 @@ check('basura rechazada', !esRolValido('root') && !esRolValido(null) && !esRolVa
 check('vendedor → cobrador', normalizarRol('vendedor') === 'cobrador');
 check('Vendedor (mayús) → cobrador', normalizarRol('Vendedor') === 'cobrador');
 check('admin pasa', normalizarRol('admin') === 'admin');
+check('asesor pasa', normalizarRol('asesor') === 'asesor');
 check('desconocido → guest', normalizarRol('root') === 'guest');
 check('no-string → guest', normalizarRol(null) === 'guest' && normalizarRol(undefined) === 'guest');
 
@@ -47,6 +48,26 @@ check('doc sin rol → guest', resolverRol({ email: 'x@y.z' }) === 'guest');
 const M: MatrizRol = DEFAULT_MATRIZ;
 check('admin crea creditos', puede(M.admin, 'creditos', 'create'));
 check('admin no borra pagos', !puede(M.admin, 'pagos_y_multas', 'delete'));
+check('asesor lee inventario de repuestos', puede(M.asesor, 'inventario_repuestos', 'read'));
+check('asesor NO escribe inventario de repuestos',
+    !puede(M.asesor, 'inventario_repuestos', 'create') &&
+    !puede(M.asesor, 'inventario_repuestos', 'update') &&
+    !puede(M.asesor, 'inventario_repuestos', 'delete'));
+check('asesor crea y lee conteos', puede(M.asesor, 'conteos_pendientes_repuestos', 'create') && puede(M.asesor, 'conteos_pendientes_repuestos', 'read'));
+check('asesor crea y lee fotos', puede(M.asesor, 'fotos_inventario', 'create') && puede(M.asesor, 'fotos_inventario', 'read'));
+check('asesor lee ledger de inventario', puede(M.asesor, 'historial_auditoria_inventario', 'read'));
+check('admin CRUD inventario de repuestos sin delete',
+    puede(M.admin, 'inventario_repuestos', 'create') &&
+    puede(M.admin, 'inventario_repuestos', 'read') &&
+    puede(M.admin, 'inventario_repuestos', 'update') &&
+    !puede(M.admin, 'inventario_repuestos', 'delete'));
+check('auditor lee inventario y ledger',
+    puede(M.auditor, 'inventario_repuestos', 'read') &&
+    puede(M.auditor, 'historial_auditoria_inventario', 'read'));
+check('cobrador sin acceso a inventario de repuestos',
+    !puede(M.cobrador, 'inventario_repuestos', 'read') &&
+    !puede(M.cobrador, 'conteos_pendientes_repuestos', 'read') &&
+    !puede(M.cobrador, 'fotos_inventario', 'read'));
 check('cobrador crea pagos', puede(M.cobrador, 'pagos_y_multas', 'create'));
 check('cobrador no crea creditos', !puede(M.cobrador, 'creditos', 'create'));
 check('cobrador no toca inversores', !puede(M.cobrador, 'pagos_inversores', 'read'));
@@ -64,6 +85,9 @@ check('undefined → false', !puede(undefined, 'creditos', 'read'));
 check('scope cobrador pagos', scopeDe(M.cobrador, 'pagos_y_multas') === 'email_usuario');
 check('scope inversor creditos', scopeDe(M.inversor, 'creditos') === 'email_inversor');
 check('admin sin scope', scopeDe(M.admin, 'creditos') === null);
+check('scope asesor conteos', scopeDe(M.asesor, 'conteos_pendientes_repuestos') === 'asesor_email');
+check('scope asesor fotos', scopeDe(M.asesor, 'fotos_inventario') === 'asesor_email');
+check('scope asesor inventario sin restricción', scopeDe(M.asesor, 'inventario_repuestos') === null);
 check('scopeDe undefined → null', scopeDe(undefined, 'creditos') === null);
 
 if (failures > 0) {
