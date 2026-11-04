@@ -5,10 +5,24 @@
  * de cualquier lectura/escritura.
  * Ejecutar con: npx tsx src/test/utils/inventario-actions.test.ts
  */
+import { readFileSync } from 'node:fs';
 import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
 import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
 import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
 import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
+import {
+    datosNuevosAprobacion,
+    reconciliarDatosNuevosLegado,
+} from '@/lib/actions/inventario-ledger';
+
+const APROBAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/aprobarConteo.ts',
+    'utf8'
+);
+const RECHAZAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/rechazarConteo.ts',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -40,6 +54,111 @@ const BASE = {
 };
 
 async function run() {
+    check(
+        'aprobarConteo no escribe estado_conteo en el ledger',
+        !APROBAR_SOURCE.includes('estado_conteo')
+    );
+    check(
+        'rechazarConteo usa la clave canonica estado y no estado_conteo',
+        RECHAZAR_SOURCE.includes("estado: 'rechazado'") &&
+            !RECHAZAR_SOURCE.includes('estado_conteo')
+    );
+
+    const datosAprobacion = datosNuevosAprobacion(
+        { stock: 7, ubicacion: 'A-01-05' },
+        UUID
+    );
+    const clavesEstadoAprobacion = Object.keys(datosAprobacion).filter(
+        (clave) => clave === 'estado' || clave === 'estado_conteo'
+    );
+    check(
+        'datosNuevosAprobacion produce solo la clave estado',
+        clavesEstadoAprobacion.length === 1 &&
+            clavesEstadoAprobacion[0] === 'estado' &&
+            datosAprobacion.estado === 'aprobado'
+    );
+    check(
+        'datosNuevosAprobacion conserva inventario y conteo_id',
+        datosAprobacion.stock === 7 &&
+            datosAprobacion.ubicacion === 'A-01-05' &&
+            datosAprobacion.conteo_id === UUID
+    );
+
+    const correccionCreate = reconciliarDatosNuevosLegado({
+        referencia: 'TEST-WEB038-001',
+        conteo_id: UUID,
+        estado_conteo: 'aprobado',
+    });
+    check(
+        'reconciliacion CREATE corrige estado_conteo a estado',
+        correccionCreate !== null &&
+            correccionCreate.estado === 'aprobado' &&
+            !('estado_conteo' in correccionCreate) &&
+            correccionCreate.referencia === 'TEST-WEB038-001'
+    );
+
+    const correccionUpdate = reconciliarDatosNuevosLegado({
+        stock: 7,
+        conteo_id: UUID,
+        estado_conteo: 'aprobado',
+    });
+    check(
+        'reconciliacion UPDATE conserva stock y usa estado',
+        correccionUpdate !== null &&
+            correccionUpdate.stock === 7 &&
+            correccionUpdate.estado === 'aprobado' &&
+            !('estado_conteo' in correccionUpdate)
+    );
+
+    check(
+        'reconciliacion de rechazo ya canonico devuelve null',
+        reconciliarDatosNuevosLegado({
+            estado: 'rechazado',
+            motivo_rechazo: 'Conteo con daño en embalaje',
+        }) === null
+    );
+
+    let ambiguedadDetectada = false;
+    try {
+        reconciliarDatosNuevosLegado({
+            estado: 'aprobado',
+            estado_conteo: 'aprobado',
+        });
+    } catch (error) {
+        if (
+            !(error instanceof Error) ||
+            !error.message.includes('ambiguo')
+        ) {
+            console.error(
+                '[inventario-actions.test] error inesperado en ambiguedad:',
+                error
+            );
+        }
+        ambiguedadDetectada =
+            error instanceof Error && error.message.includes('ambiguo');
+    }
+    check('reconciliacion detecta ambas claves como ambiguas', ambiguedadDetectada);
+
+    let estadoInvalidoDetectado = false;
+    try {
+        reconciliarDatosNuevosLegado({
+            estado_conteo: 'aprobado_por_error',
+        });
+    } catch (error) {
+        if (
+            !(error instanceof Error) ||
+            !error.message.includes('inválido')
+        ) {
+            console.error(
+                '[inventario-actions.test] error inesperado en estado inválido:',
+                error
+            );
+        }
+        estadoInvalidoDetectado =
+            error instanceof Error && error.message.includes('inválido');
+    }
+    check('reconciliacion rechaza estado_conteo invalido', estadoInvalidoDetectado);
+
     const crearSinActor = await crearConteoPendiente(BASE, {});
     check('crearConteoPendiente rechaza actor inválido', crearSinActor.success === false);
 
