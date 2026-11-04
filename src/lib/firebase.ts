@@ -1,8 +1,30 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import {
+    getFirestore,
+    enableIndexedDbPersistence,
+    clearIndexedDbPersistence,
+    terminate,
+    Firestore,
+} from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getFunctions, Functions } from "firebase/functions";
+
+export const CLAVE_FLAG_ASESOR = 'tlm_offline_asesor';
+export const CLAVE_RECARGA_OFFLINE = 'tlm_offline_reload_done';
+
+let persistenciaOfflineLista: Promise<void> = Promise.resolve();
+let persistenciaOfflineIntentada = false;
+
+function leerFlagOffline(): boolean {
+    if (typeof window === "undefined") return false;
+    try {
+        return window.localStorage.getItem(CLAVE_FLAG_ASESOR) === "1";
+    } catch (error) {
+        console.error("[firebase] No se pudo leer el flag offline:", error);
+        return false;
+    }
+}
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -36,8 +58,32 @@ try {
     storage = getStorage(app);
     functions = getFunctions(app);
 
+    // WEB-038: persistencia offline SOLO si el asesor ya fue detectado y
+    // dejó el flag. La recarga única la coordina AuthContext.
+    if (leerFlagOffline()) {
+        persistenciaOfflineIntentada = true;
+        try {
+            persistenciaOfflineLista = enableIndexedDbPersistence(db).catch(
+                (error) => {
+                    console.error(
+                        "[firebase] Persistencia offline no disponible:",
+                        error
+                    );
+                }
+            );
+        } catch (error) {
+            console.error(
+                "[firebase] Persistencia offline no disponible:",
+                error
+            );
+            persistenciaOfflineLista = Promise.resolve();
+        }
+    }
 } catch (error) {
-    console.warn("⚠️ [Firebase Client] Initialization failed. Using SOPHISTICATED MOCKS for build safety.");
+    console.error(
+        "⚠️ [Firebase Client] Initialization failed. Using SOPHISTICATED MOCKS for build safety.",
+        error
+    );
 
     // Create a safe Mock App
     app = {
@@ -80,4 +126,46 @@ try {
     functions = {} as Functions;
 }
 
-export { auth, db, storage, functions };
+/**
+ * WEB-038: purga de la persistencia offline al cerrar sesión.
+ *
+ * Si la persistencia nunca fue solicitada no se termina la instancia de
+ * Firestore (evita romper la sesión de admin). En todos los casos se eliminan
+ * el flag de asesor y el guard de recarga.
+ */
+export async function purgarPersistenciaOffline(): Promise<void> {
+    if (persistenciaOfflineIntentada) {
+        try {
+            await terminate(db);
+        } catch (error) {
+            console.error(
+                "[firebase] No se pudo terminar Firestore al cerrar sesión:",
+                error
+            );
+        }
+
+        try {
+            await clearIndexedDbPersistence(db);
+        } catch (error) {
+            console.error(
+                "[firebase] No se pudo purgar IndexedDB al cerrar sesión:",
+                error
+            );
+        }
+        persistenciaOfflineIntentada = false;
+    }
+
+    if (typeof window !== "undefined") {
+        try {
+            window.localStorage.removeItem(CLAVE_FLAG_ASESOR);
+            window.sessionStorage.removeItem(CLAVE_RECARGA_OFFLINE);
+        } catch (error) {
+            console.error(
+                "[firebase] No se pudo limpiar el flag offline al cerrar sesión:",
+                error
+            );
+        }
+    }
+}
+
+export { auth, db, storage, functions, persistenciaOfflineLista };

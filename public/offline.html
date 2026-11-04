@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#dc2626" />
+    <title>Sin conexión — Tienda Las Motos</title>
+    <link rel="manifest" href="/manifest.json" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --fondo: #020617;
+        --panel: #0f172a;
+        --borde: #1e293b;
+        --texto: #e2e8f0;
+        --suave: #94a3b8;
+        --rojo: #dc2626;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 50% 0%, #1e293b 0%, transparent 55%),
+          var(--fondo);
+        color: var(--texto);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+
+      main {
+        width: min(100%, 420px);
+        border: 1px solid var(--borde);
+        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.92);
+        padding: 32px 24px;
+        text-align: center;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      }
+
+      .icono {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 20px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        background: var(--rojo);
+        color: #fff;
+        font-size: 32px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 1.45rem;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: var(--suave);
+        line-height: 1.55;
+      }
+
+      .acciones {
+        display: grid;
+        gap: 10px;
+      }
+
+      button,
+      a {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      button {
+        border: 0;
+        background: var(--rojo);
+        color: #fff;
+        cursor: pointer;
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      a {
+        border: 1px solid var(--borde);
+        color: var(--texto);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="icono" aria-hidden="true">TLM</div>
+      <h1>Sin conexión</h1>
+      <p>
+        Los conteos nuevos se guardan localmente en este dispositivo y se
+        sincronizan cuando vuelvas a tener internet.
+      </p>
+      <div class="acciones">
+        <button type="button" onclick="window.location.reload()">
+          Reintentar
+        </button>
+        <a href="/admin/inventory?pwa=asesor">Ir al inventario</a>
+      </div>
+    </main>
+  </body>
+</html>

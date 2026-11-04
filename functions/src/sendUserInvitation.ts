@@ -18,7 +18,7 @@ interface InvitationData {
     name: string;
     email: string;
     // P5: roles canónicos (vendedor → cobrador).
-    role: 'superadmin' | 'admin' | 'cobrador' | 'inversor' | 'auditor';
+    role: 'superadmin' | 'admin' | 'asesor' | 'cobrador' | 'inversor' | 'auditor';
 }
 
 export const sendUserInvitation = onCall(async (request: CallableRequest<InvitationData>) => {
@@ -62,6 +62,7 @@ export const sendUserInvitation = onCall(async (request: CallableRequest<Invitat
     const roleNames: Record<string, string> = {
         'superadmin': 'Super Administrador',
         'admin': 'Administrador',
+        'asesor': 'Asesor',
         'cobrador': 'Cobrador',
         'inversor': 'Inversor',
         'auditor': 'Auditor'

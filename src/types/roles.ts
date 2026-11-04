@@ -1,14 +1,14 @@
 /**
  * SSOT de roles y permisos (P5 — Matriz de Permisos Configurables).
  *
- * Roles canónicos: superadmin, admin, cobrador, inversor, auditor, admin_creditos.
+ * Roles canónicos: superadmin, admin, asesor, cobrador, inversor, auditor, admin_creditos.
  * (`vendedor` es legacy y se normaliza a `cobrador` en resolve-rol.ts)
  *
  * Sin borrado físico en colecciones financieras: la matriz no otorga `delete`
  * en colecciones financieras; la baja es update de `activo=false`.
  */
 
-export const ROLES = ['superadmin', 'admin', 'cobrador', 'inversor', 'auditor', 'admin_creditos'] as const;
+export const ROLES = ['superadmin', 'admin', 'asesor', 'cobrador', 'inversor', 'auditor', 'admin_creditos'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export type Accion = 'create' | 'read' | 'update' | 'delete';
@@ -22,11 +22,21 @@ export const COLECCIONES = [
     'historial_auditoria',
     'anomalias',
     'sys_admin_users',
+    // Inventario de repuestos (WEB-038)
+    'inventario_repuestos',
+    'conteos_pendientes_repuestos',
+    'fotos_inventario',
+    'historial_auditoria_inventario',
 ] as const;
 export type ColeccionPermiso = (typeof COLECCIONES)[number];
 
 /** Campo de propiedad que debe igualar el email del actor para scope "propio". */
-export type ScopePropiedad = 'email_usuario' | 'email_inversor' | 'email_admin' | null;
+export type ScopePropiedad =
+    | 'email_usuario'
+    | 'email_inversor'
+    | 'email_admin'
+    | 'asesor_email'
+    | null;
 
 export interface PermisoColeccion {
     acciones: Accion[];
@@ -84,6 +94,10 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['create', 'read', 'update', 'delete'] },
+        inventario_repuestos: { acciones: ['create', 'read', 'update'] },
+        conteos_pendientes_repuestos: { acciones: ['create', 'read', 'update'] },
+        fotos_inventario: { acciones: ['create', 'read', 'update'] },
+        historial_auditoria_inventario: { acciones: ['read'] },
     },
     admin: {
         creditos: { acciones: ['create', 'read', 'update'] },
@@ -94,6 +108,16 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['read'] },
+        inventario_repuestos: { acciones: ['create', 'read', 'update'] },
+        conteos_pendientes_repuestos: { acciones: ['create', 'read', 'update'] },
+        fotos_inventario: { acciones: ['create', 'read', 'update'] },
+        historial_auditoria_inventario: { acciones: ['read'] },
+    },
+    asesor: {
+        inventario_repuestos: { acciones: ['read'] },
+        conteos_pendientes_repuestos: { acciones: ['create', 'read'], scope: 'asesor_email' },
+        fotos_inventario: { acciones: ['create', 'read'], scope: 'asesor_email' },
+        historial_auditoria_inventario: { acciones: ['read'] },
     },
     cobrador: {
         creditos: { acciones: ['read'], scope: 'email_usuario' },
@@ -117,6 +141,10 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['read'] },
+        inventario_repuestos: { acciones: ['read'] },
+        conteos_pendientes_repuestos: { acciones: ['read'] },
+        fotos_inventario: { acciones: ['read'] },
+        historial_auditoria_inventario: { acciones: ['read'] },
     },
     admin_creditos: {
         creditos: { acciones: ['create', 'read', 'update'] },
