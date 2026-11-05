@@ -198,6 +198,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const logout = async () => {
+        const uid = user ? user.uid : "";
         setLoading(true);
         try {
             await signOut(auth);
@@ -216,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             const resultados = await Promise.allSettled([
                 purgarPersistenciaOffline(),
-                limpiarOutbox(),
+                limpiarOutbox(uid),
                 limpiarCachesServiceWorker(),
             ]);
 

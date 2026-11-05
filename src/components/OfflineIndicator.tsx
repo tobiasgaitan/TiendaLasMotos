@@ -1,14 +1,29 @@
 "use client";
 
-import { useOfflineQueue } from "@/hooks/useOfflineQueue";
+import { useAuth } from "@/context/AuthContext";
+import { useOfflineQueueContext } from "@/hooks/useOfflineQueue";
 
 /**
  * WEB-038 — Indicador no bloqueante de conexión y outbox del asesor.
  * Se oculta cuando hay conexión, no hay pendientes y no hay replay activo.
+ * Nunca abre IndexedDB ni crea listeners por sí mismo.
  */
 export default function OfflineIndicator() {
-    const { online, pendientes, sincronizando, ultimoError } =
-        useOfflineQueue();
+    const { role, user, loading } = useAuth();
+    const contexto = useOfflineQueueContext();
+
+    if (
+        loading ||
+        !contexto ||
+        role !== "asesor" ||
+        !user ||
+        typeof user.uid !== "string" ||
+        !user.uid
+    ) {
+        return null;
+    }
+
+    const { online, pendientes, sincronizando, ultimoError } = contexto;
 
     if (online && pendientes === 0 && !sincronizando && !ultimoError) {
         return null;

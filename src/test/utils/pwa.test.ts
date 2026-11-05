@@ -162,7 +162,7 @@ function run() {
     check(
         'constantes de outbox canónicas',
         OUTBOX_DB_NAME === 'tlm_offline' &&
-            OUTBOX_DB_VERSION === 1 &&
+            OUTBOX_DB_VERSION === 2 &&
             OUTBOX_STORE_BORRADORES === 'borradores_conteos' &&
             OUTBOX_STORE_FOTOS === 'fotos_borrador'
     );
@@ -385,8 +385,9 @@ function run() {
         'utf8'
     );
     check(
-        'OfflineIndicator escucha cola y muestra estados',
-        offlineIndicator.includes('useOfflineQueue') &&
+        'OfflineIndicator consume contexto seguro y muestra estados',
+        offlineIndicator.includes('useOfflineQueueContext') &&
+            offlineIndicator.includes('role !== "asesor"') &&
             offlineIndicator.includes('Sin conexión') &&
             offlineIndicator.includes('pendiente') &&
             offlineIndicator.includes('Sincronizando')
@@ -438,8 +439,8 @@ function run() {
                 .length === 1
     );
     check(
-        'logout purga outbox, persistencia y cachés',
-        authSource.includes('limpiarOutbox') &&
+        'logout purga outbox del propietario, persistencia y cachés',
+        authSource.includes('limpiarOutbox(uid)') &&
             authSource.includes('limpiarCachesServiceWorker') &&
             authSource.includes('purgarPersistenciaOffline')
     );

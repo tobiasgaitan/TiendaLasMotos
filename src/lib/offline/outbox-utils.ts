@@ -5,7 +5,7 @@
  */
 
 export const OUTBOX_DB_NAME = 'tlm_offline';
-export const OUTBOX_DB_VERSION = 1;
+export const OUTBOX_DB_VERSION = 2;
 export const OUTBOX_STORE_BORRADORES = 'borradores_conteos';
 export const OUTBOX_STORE_FOTOS = 'fotos_borrador';
 export const EVENTO_OUTBOX = 'tlm-offline-outbox-changed';
@@ -30,6 +30,55 @@ export interface FotoSubida {
 export interface OpcionesEncolarConteo {
     conteoId?: string;
     fotoSubida?: FotoSubida;
+}
+
+export interface RegistroConPropietario {
+    propietario_uid?: unknown;
+}
+
+/**
+ * Solo un registro con propietario_uid string no vacío e igual al uid
+ * consultado pertenece a ese propietario. Cualquier registro legado sin
+ * propietario queda fuera.
+ */
+export function esBorradorDePropietario(
+    registro: RegistroConPropietario,
+    uid: string
+): boolean {
+    const uidCanon = typeof uid === 'string' ? uid.trim() : '';
+    if (!uidCanon) {
+        console.error('[offline] esBorradorDePropietario: uid vacío.');
+        return false;
+    }
+
+    const propietario = registro.propietario_uid;
+    if (typeof propietario !== 'string' || !propietario.trim()) {
+        return false;
+    }
+
+    return propietario.trim() === uidCanon;
+}
+
+/**
+ * Filtro defensivo adicional al índice de IndexedDB. Nunca deja pasar
+ * registros sin propietario ni registros de otro uid.
+ */
+export function filtrarPorPropietario<T extends RegistroConPropietario>(
+    registros: T[],
+    uid: string
+): T[] {
+    const uidCanon = typeof uid === 'string' ? uid.trim() : '';
+    if (!uidCanon) {
+        const error = new Error(
+            'No se puede filtrar el outbox sin un uid válido.'
+        );
+        console.error('[offline] filtrarPorPropietario:', error);
+        throw error;
+    }
+
+    return registros.filter((registro) =>
+        esBorradorDePropietario(registro, uidCanon)
+    );
 }
 
 export function esMimeFotoPermitido(value: string): value is MimeFoto {

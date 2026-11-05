@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    createContext,
+    createElement,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+    type ReactNode,
+} from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { ActorInput } from "@/lib/actions/inventario-schemas";
 import {
@@ -27,15 +36,20 @@ export interface UseOfflineQueueResult {
     refrescarPendientes: () => Promise<void>;
 }
 
+const OfflineQueueContext = createContext<UseOfflineQueueResult | null>(null);
+
 /**
  * WEB-038 — Estado y sincronización del outbox offline del asesor.
  *
- * - Reintenta al recuperar conexión, al montar y cada 30 s (con backoff).
- * - No descarta borradores: los errores quedan visibles en el indicador.
- * - Solo sincroniza con rol asesor y token Firebase vigente.
+ * El provider es la ÚNICA instancia que abre IndexedDB, registra listeners,
+ * crea el intervalo y sincroniza. Si el rol no es asesor, el efecto retorna
+ * antes de cualquier acceso a IndexedDB.
  */
-export function useOfflineQueue(): UseOfflineQueueResult {
+function useOfflineQueueInterno(): UseOfflineQueueResult {
     const { user, role } = useAuth();
+    const uid = user ? user.uid : "";
+    const activo = role === "asesor" && !!user && !!uid;
+
     const [online, setOnline] = useState<boolean>(() => {
         if (typeof navigator === "undefined") return true;
         return navigator.onLine;
@@ -46,8 +60,14 @@ export function useOfflineQueue(): UseOfflineQueueResult {
     const sincronizandoRef = useRef(false);
 
     const actualizarPendientes = useCallback(async (): Promise<void> => {
+        if (!activo || !uid) {
+            setPendientes(0);
+            setUltimoError(null);
+            return;
+        }
+
         try {
-            const borradores = await listarBorradores();
+            const borradores = await listarBorradores(uid);
             setPendientes(borradores.length);
 
             const conError = borradores.find(
@@ -69,12 +89,12 @@ export function useOfflineQueue(): UseOfflineQueueResult {
                     : "No se pudo leer la cola offline."
             );
         }
-    }, []);
+    }, [activo, uid]);
 
     const obtenerActor = useCallback(async (): Promise<ActorInput | null> => {
-        if (!user) {
+        if (!activo || !user) {
             console.error(
-                "[offline] No hay usuario autenticado para sincronizar."
+                "[offline] No hay usuario asesor activo para sincronizar."
             );
             return null;
         }
@@ -94,10 +114,10 @@ export function useOfflineQueue(): UseOfflineQueueResult {
             );
             return null;
         }
-    }, [user]);
+    }, [activo, user]);
 
     const sincronizarAhora = useCallback(async (): Promise<void> => {
-        if (role !== "asesor") return;
+        if (!activo || !uid) return;
         if (sincronizandoRef.current) return;
 
         sincronizandoRef.current = true;
@@ -127,7 +147,7 @@ export function useOfflineQueue(): UseOfflineQueueResult {
             setSincronizando(false);
             await actualizarPendientes();
         }
-    }, [role, obtenerActor, actualizarPendientes]);
+    }, [activo, uid, obtenerActor, actualizarPendientes]);
 
     const encolarConteo = useCallback(
         async (
@@ -136,7 +156,7 @@ export function useOfflineQueue(): UseOfflineQueueResult {
             asesorEmail: string,
             opciones?: OpcionesEncolarConteo
         ): Promise<string> => {
-            if (role !== "asesor") {
+            if (!activo || !user || !uid) {
                 const error = new Error(
                     "Solo el rol asesor puede encolar conteos offline."
                 );
@@ -144,9 +164,10 @@ export function useOfflineQueue(): UseOfflineQueueResult {
                 throw error;
             }
 
-            const emailSesion = user && user.email
-                ? user.email.trim().toLowerCase()
-                : "";
+            const emailSesion =
+                typeof user.email === "string"
+                    ? user.email.trim().toLowerCase()
+                    : "";
             const emailRecibido = asesorEmail.trim().toLowerCase();
             if (!emailSesion || emailRecibido !== emailSesion) {
                 const error = new Error(
@@ -160,6 +181,7 @@ export function useOfflineQueue(): UseOfflineQueueResult {
                 entrada,
                 foto,
                 emailRecibido,
+                uid,
                 opciones
             );
             await actualizarPendientes();
@@ -170,10 +192,18 @@ export function useOfflineQueue(): UseOfflineQueueResult {
 
             return resultado.conteo_id;
         },
-        [role, user, actualizarPendientes, sincronizarAhora]
+        [activo, user, uid, actualizarPendientes, sincronizarAhora]
     );
 
     useEffect(() => {
+        if (!activo || !uid) {
+            setPendientes(0);
+            setUltimoError(null);
+            setSincronizando(false);
+            sincronizandoRef.current = false;
+            return;
+        }
+
         setOnline(navigator.onLine);
 
         const alCambiarOutbox = () => {
@@ -209,7 +239,7 @@ export function useOfflineQueue(): UseOfflineQueueResult {
             window.removeEventListener("offline", alPerderConexion);
             window.clearInterval(intervalo);
         };
-    }, [actualizarPendientes, sincronizarAhora]);
+    }, [activo, uid, actualizarPendientes, sincronizarAhora]);
 
     return {
         online,
@@ -220,4 +250,33 @@ export function useOfflineQueue(): UseOfflineQueueResult {
         sincronizarAhora,
         refrescarPendientes: actualizarPendientes,
     };
+}
+
+export function OfflineQueueProvider({
+    children,
+}: {
+    children: ReactNode;
+}) {
+    const value = useOfflineQueueInterno();
+    return createElement(OfflineQueueContext.Provider, { value }, children);
+}
+
+export function useOfflineQueue(): UseOfflineQueueResult {
+    const contexto = useContext(OfflineQueueContext);
+    if (!contexto) {
+        const error = new Error(
+            "useOfflineQueue debe usarse dentro de OfflineQueueProvider."
+        );
+        console.error("[offline] Hook fuera del provider:", error);
+        throw error;
+    }
+    return contexto;
+}
+
+/**
+ * Variante segura para consumidores que pueden existir fuera del provider
+ * (por ejemplo, un indicador que debe ocultarse en rutas no asesor).
+ */
+export function useOfflineQueueContext(): UseOfflineQueueResult | null {
+    return useContext(OfflineQueueContext);
 }
