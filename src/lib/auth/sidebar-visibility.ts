@@ -23,6 +23,7 @@ import {
 export type NodoSidebar =
     | 'simuladores'
     | 'inventario'
+    | 'inventario-repuestos'
     | 'inventario-asesor'
     | 'inventario-aprobaciones'
     | 'prospectos'
@@ -53,6 +54,11 @@ export const MAPA_NODOS: Record<NodoSidebar, RequisitoNodo> = {
     'creditos-inversores': { coleccion: 'pagos_inversores', accion: 'read' },
     'creditos-auditoria': { coleccion: 'historial_auditoria', accion: 'read' },
     // WEB-038-UI: pantallas dedicadas de repuestos.
+    'inventario-repuestos': {
+        coleccion: 'inventario_repuestos',
+        accion: 'update',
+        rolesPermitidos: ['admin', 'superadmin'],
+    },
     'inventario-asesor': {
         coleccion: 'conteos_pendientes_repuestos',
         accion: 'create',
