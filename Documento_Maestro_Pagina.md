@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.7.0  
-**Última Actualización:** 2026-10-19  
-**Estado:** DEPLOYED (Beta v8.7.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Versión del Stack & Hitos:** v8.8.0  
+**Última Actualización:** 2026-11-06  
+**Estado:** DEPLOYED (Beta v8.8.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -264,3 +264,67 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
     *   `simulador/page.tsx`: `RoleBasedRedirect` monta **siempre**; el guard (`authLoading` → spinner / denegación `role="alert"` / `loading` → spinner de fetch / contenido) se evalúa **dentro de `children`**.
     *   `RoleBasedRedirect.tsx`: supresión de render de `children` mientras el redirect está en vuelo (`defaultLanding && esRutaLanding(pathname) && role resuelto && landingPorRol(role) !== pathname`) ⇒ el bloque de denegación no se pinta ni un frame.
     *   Autopsia: 8 suites en verde, `landing.test.ts` 10/10, `tsc`/`build`/`lint` EXIT 0.
+
+---
+
+## 10. WEB-038 — Inventario de Repuestos y Aislamiento Offline (2026-11-06)
+
+### A. Arquitectura del Módulo Inventario
+*   **Rutas:** 2 módulos operativos bajo `/admin/inventario-asesor` (conteo del asesor) y `/admin/inventario-aprobaciones` (panel de aprobaciones).
+*   **Sidebar:** Nodos "Inventario", "Conteo de Repuestos" (asesor), "Aprobaciones de Repuestos" (admin/superadmin).
+*   **Colecciones Firestore:** `conteos_pendientes_repuestos`, `fotos_inventario`, `inventario_repuestos`, `historial_auditoria_inventario`.
+*   **Colección IndexedDB local:** `tlm_offline` (v2) con stores `borradores_conteos` y `fotos_borrador`, índice `propietario_uid`.
+
+### B. Contratos de Datos (NAMING LOCK)
+*   **`conteos_pendientes_repuestos`:** Claves inmutables `conteo_id` (UUID v4, docId), `referencia_confirmada`, `referencia_sugerida`, `descripcion`, `cantidad_contada`, `ubicacion`, `anotaciones`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `asesor_email`, `asesor_uid`, `creado_en`, `revisado_por`, `revisado_en`, `motivo_rechazo`.
+*   **`fotos_inventario`:** Registro espejo de la foto con `conteo_id`, `asesor_email`, `asesor_uid`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `creado_en`.
+*   **`inventario_repuestos`:** Catálogo maestro con `referencia` (docId), `descripcion`, `fabricante`, `aplica_a`, `categoria`, `precio`, `ubicacion`, `stock`, `stock_minimo`, `imagen_url`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`.
+*   **`historial_auditoria_inventario`:** Ledger append-only vía `tx.create()` (prohibido `tx.set()`/`tx.update()`/`tx.delete()` sobre el ledger). Campo `registrado_por` = uid verificado vía `verifyIdToken()`. Clave canónica `estado` (NO `estado_conteo`, que queda como evidencia histórica reconciliable vía `reconciliarDatosNuevosLegado`).
+
+### C. Aislamiento Offline (H-14, H-15, N1-C) — CERRADO EN CÓDIGO + RUNTIME LOCAL
+*   **H-14 (Gate de rol):** `OfflineIndicator` consume `useOfflineQueueContext` (contexto seguro, no hook estricto) y retorna `null` si `role !== 'asesor'`. `admin/layout.tsx` ya no monta indicador global. Verificado en runtime: superadmin no abre `tlm_offline`, asesor sí.
+*   **H-15 (Provider único):** `OfflineQueueProvider` se monta una sola vez en `src/app/admin/inventario-asesor/page.tsx` con `key={user.uid}`. `OfflineIndicator` y `ConteoAsesorForm` dentro del mismo provider. Listener `outbox:1` (no duplicado). Listeners `online/offline:2` (el segundo par es el SDK de Firestore con persistencia, externo a la cola).
+*   **N1-C (Owner-scope):** Borradores locales llevan `propietario_uid` obligatorio. `listarBorradores(propietarioUid)` lee por índice + filtro defensivo. `sincronizarOutbox(actor)` filtra por `actor.uid`. `obtenerFoto` rechaza foto ajena. `marcarSincronizando`/`marcarError`/`eliminarBorrador` verifican propietario. `limpiarOutbox(uid)` purga solo el propietario; fallback global solo si falla owner-scoped con log forense. `AuthContext.logout` captura `uid` antes de `signOut` y llama `limpiarOutbox(uid)`.
+*   **Migración v1→v2:** `onupgradeneeded` crea índice `propietario_uid` en ambos stores, descarta registros legacy sin propietario con `cursor.delete()` y log forense.
+*   **Runtime local certificado:** Borrador propio con `owner = CwrnxDaVXvVgNRcGjrZ3tU210Ho1` (UID real de `conexion@tiendalasmotos.com`), borradores inyectados `foreign-runtime:uid-OTRO` y `legacy-runtime:NO_OWNER`. UI cuenta solo el propio (1, no 3). Sync no menciona ajenos (0 rastros en Red). Logout purga propio, conserva ajenos, sin fallback global.
+
+### D. Faraday Cage y Server Actions
+*   **`crearConteoPendiente.ts`:** `requireActorInventario(a.idToken)` → `verifyIdToken` → `me.uid`/`me.email`. `requirePermiso(me, 'conteos_pendientes_repuestos', 'create')` con gate `asesor`. Valida `foto_url`↔`storage_path` vía `extraerStoragePath` + `esStoragePathDeAsesor`. Idempotencia: si `conteo_id` existe con otro `asesor_email` → `throw`. Hardcodea `estado: 'pendiente_revision'`, `asesor_email: me.email`, `asesor_uid: me.uid`, `revisado_por: ''`. Cero inyección de `registrado_por` desde el cliente.
+*   **`aprobarConteo.ts` / `rechazarConteo.ts`:** `requireActorInventario` + `requirePermiso` con gate `admin`/`superadmin`. Transición de estado con guarda (`pendiente_revision` → `aprobado`/`rechazado`; idempotente si ya está en estado final). Ledger append-only vía `tx.create(ledgerRef, {...})` con `registrado_por: me.uid`. Cero `tx.set`/`tx.update`/`tx.delete` sobre el ledger.
+*   **`analizarImagenRepuesto.ts`:** Stateless, solo lectura de URL + llamada a Google Vision API. Valida host canónico (`firebasestorage.googleapis.com`) y prefijo `inventario_repuestos/{email}/` antes de descargar. Gate `asesor`/`admin`/`superadmin`. `GOOGLE_VISION_API_KEY` desde `process.env` con guarda. Cero escritura en Firestore/Storage.
+*   **`inventario-actor.ts`:** `requireActorInventario(idToken)` llama `adminAuth.verifyIdToken(idToken)` y devuelve `{ uid: decoded.uid, email }`. Cero confianza en `a.uid` del payload.
+*   **`inventario-schemas.ts`:** Schemas Zod con `safeParse`. `esStoragePathDeAsesor` compara `startsWith('inventario_repuestos/${email}/')`. `esEstadoConteo` valida contra enum canónico. `extraerStoragePath` exige host canónico. `crearConteoSchema` con `superRefine` de coherencia `foto_url`↔`storage_path`.
+
+### E. PWA y Service Worker (H-5b)
+*   **`public/sw.js`:** Manual (sin `next-pwa`). Cache shell versionado `tlm-shell-v2`. Navegación allowlisted `/admin/inventario-asesor` con `networkFirst` + fallback a `/offline.html`. Estáticos `/_next/static/` e `/icons/` con `cacheFirst`. Nunca cachea POST, `/api/`, `_rsc`, Firestore, Auth ni Storage. Zero-Silent-Failures en todos los `catch`.
+*   **`public/manifest.json`:** `start_url: /admin/inventario-asesor?pwa=asesor`, `scope: /`, `display: standalone`, iconos 192/512/maskable-512.
+*   **`PwaRegistrar.tsx`:** Registra SW solo en producción (`NODE_ENV === 'production'`) y solo si `role === 'asesor'`. Gate doble.
+*   **`limpiarCachesServiceWorker()`:** Invocado en `finally` de `AuthContext.logout`. Borra todas las caches del origen y desregistra todos los SWs. Zero-Silent-Failures.
+
+### F. God Node de Usuarios
+*   **`whitelist-actions.ts`:** Verificación pre-auth con rate limiting en memoria (5 intentos/60s por email). Admin SDK para lectura de `sys_admin_users/{email}`. Retorna `{ exists: false, active: false }` en cualquier fallo.
+*   **`actions.ts`:** CRUD vía Admin SDK con `requireActor` → `verifyIdToken`. `requirePermiso` estricto (`create`/`update`/`delete` sobre `sys_admin_users`). Ledger append-only vía `appendAuditoria`. Baja lógica (`active: false`) en `deleteUser`; prohibido `delete()` físico. Anti-suicidio: `esAutoBorrado(emailCanon, me.email)` bloquea revocación propia.
+*   **`page.tsx`:** Guards de renderizado `puedeAccion('sys_admin_users', ...)`. Cero mutación directa de estado; delega en Server Actions.
+
+### G. Observaciones No Bloqueantes (Notas de Release)
+*   **O-15:** `AprobarConteoModal` hace `getDoc` client-side para detectar referencia nueva. Solo UX; la barrera real es la action (`requirePermiso` admin/superadmin). Depende de reglas de lectura de `inventario_repuestos` (H-9 cerrado por paridad).
+*   **O-16:** `runTransaction(async (tx: any) => ...)` en `aprobarConteo.ts`/`rechazarConteo.ts`. El `any` debilita el chequeo estático del append-only. Ticket menor de higiene para PSD.
+*   **O-17:** `actorSchema.uid` en payload es redundante/informativo (identidad real = token). No se usa para auth.
+*   **O-18:** `registrado_por: actor.uid` en `creditos/actions.ts:90` sin AST del caller verificado. Fuera de perímetro WEB-038 (fase 9).
+*   **O-19:** `reconciliarDatosNuevosLegado` solo en tests, no cableado en producción. Escritura nueva ya emite `estado` canónico vía `datosNuevosAprobacion`. Preventivo para futuro dashboard de auditoría.
+*   **O-20:** `FotoConteoPicker` no enforce mime/tamaño declarados; delega al form `ConteoAsesorForm` (que sí valida) y al server (`crearConteoSchema`). Cerrado por defensa en profundidad.
+*   **O-21:** `ImageUploader.tsx` (catálogo) escribe en `products/...`, no en `inventario_repuestos/...`. Cero colisión de namespace. Fuera de perímetro WEB-038.
+*   **O-22 a O-27:** Defectos de `ImageUploader.tsx` (log de debug, falta `'use client'`, validación mime/tamaño débil, nombre de archivo sin sanitizar, `alert()` nativo, reset de estado durante render). Pista catálogo/legacy, aparcados.
+*   **O-28:** `esErrorReintentable` clasifica por subcadenas de mensaje de server action. Acoplamiento frágil cliente↔mensajes server. Solo afecta UX de reintento.
+*   **O-29:** `analizando` solo se resetea en `finally` del await de Vision; si `prepararYSubirFoto`/`analizarImagenRepuesto` se cuelgan, el submit queda bloqueado hasta recargar o `handleQuitarFoto`. Sin timeout client-side. Ticket menor de resiliencia.
+*   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
+
+### H. Commits Clave
+*   `8c5ecba`: `feat(repuestos-ui): interfaz de conteo del asesor y panel de aprobaciones (WEB-038-UI)`.
+*   `d5c4951`: `fix(WEB-038): NAMING LOCK — estado_conteo → estado en ledger de aprobación`.
+*   `8d77225`: `fix(WEB-038): aislamiento offline por propietario y cola única del asesor`.
+
+**Coherence Score:** 0.99 (WEB-038 — E2E certificado en código y runtime local, purga de pruebas ejecutada, observaciones no bloqueantes registradas como notas de release).
+
+---
+*Última actualización: 2026-11-06 COT por Antigravity*
