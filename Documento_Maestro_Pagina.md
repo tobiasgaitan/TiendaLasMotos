@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.8.0  
-**Última Actualización:** 2026-11-06  
-**Estado:** DEPLOYED (Beta v8.8.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Versión del Stack & Hitos:** v8.9.0  
+**Última Actualización:** 2026-11-07  
+**Estado:** DEPLOYED (Beta v8.9.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
 
 ---
 
@@ -267,7 +267,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 
-## 10. WEB-038 — Inventario de Repuestos y Aislamiento Offline (2026-11-06)
+## 10. WEB-038 — Inventario de Repuestos y Aislamiento Offline (2026-11-07)
 
 ### A. Arquitectura del Módulo Inventario
 *   **Rutas:** 2 módulos operativos bajo `/admin/inventario-asesor` (conteo del asesor) y `/admin/inventario-aprobaciones` (panel de aprobaciones).
@@ -318,6 +318,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-28:** `esErrorReintentable` clasifica por subcadenas de mensaje de server action. Acoplamiento frágil cliente↔mensajes server. Solo afecta UX de reintento.
 *   **O-29:** `analizando` solo se resetea en `finally` del await de Vision; si `prepararYSubirFoto`/`analizarImagenRepuesto` se cuelgan, el submit queda bloqueado hasta recargar o `handleQuitarFoto`. Sin timeout client-side. Ticket menor de resiliencia.
 *   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
+*   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
+*   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
+
 
 ### H. Commits Clave
 *   `8c5ecba`: `feat(repuestos-ui): interfaz de conteo del asesor y panel de aprobaciones (WEB-038-UI)`.
@@ -327,4 +330,4 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Coherence Score:** 0.99 (WEB-038 — E2E certificado en código y runtime local, purga de pruebas ejecutada, observaciones no bloqueantes registradas como notas de release).
 
 ---
-*Última actualización: 2026-11-06 COT por Antigravity*
+*Última actualización: 2026-11-07 COT por Antigravity*
