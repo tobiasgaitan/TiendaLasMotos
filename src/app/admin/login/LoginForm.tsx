@@ -7,6 +7,7 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmail
 import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
 import { verificarWhitelist } from '@/app/admin/users/whitelist-actions';
 import { createSession } from '@/app/actions/auth';
+import { resolverDestinoPostLogin } from '@/lib/auth/post-login';
 
 export default function LoginForm() {
     const router = useRouter();
@@ -34,8 +35,8 @@ export default function LoginForm() {
             // [NEW] Create Server Session Cookie
             await createSession(tokenResult.token);
 
-            // [FIX] Read Callback URL or default
-            const callbackUrl = searchParams.get('callbackUrl') || '/admin/simulador?defaultLanding=1';
+            // [WEB-040] Callback validado/canonicalizado; nunca acepta destinos externos ni /admin/simulator.
+            const callbackUrl = resolverDestinoPostLogin(searchParams.get('callbackUrl'));
 
             console.log("Login Success. Server Session Created. Redirecting to:", callbackUrl);
             window.location.href = callbackUrl; // Force hard navigation to refresh middleware state
@@ -79,7 +80,7 @@ export default function LoginForm() {
 
             setSuccessMsg('Cuenta activada correctamente. Ingresando...');
             setTimeout(() => {
-                window.location.href = '/admin/simulador?defaultLanding=1';
+                window.location.href = resolverDestinoPostLogin(null);
             }, 1000);
 
         } catch (err: any) {
