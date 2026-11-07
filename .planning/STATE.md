@@ -2,7 +2,7 @@
 **Versión Actual:** v8.9.0
 **Fecha:** 2026-11-07
 **Rama Activa:** beta
-**Última actividad:** 2026-11-07 — WEB-040 quick task: hardening del destino post-login (local, sin push).
+**Última actividad:** 2026-11-07 — WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de, merge beta→main aprobado Opción 2).
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -20,4 +20,4 @@
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| WEB-040 | Hardening del destino post-login: open-redirect cerrado + `/admin/simulator` canonicalizado, con test de 21 checks | 2026-11-07 | `d131f77` + `bb5b206` | `.planning/quick/WEB-040/` |
+| WEB-040 | Hardening del destino post-login: open-redirect cerrado + `/admin/simulator` canonicalizado, con test de 21 checks + UAT 3 roles en beta | 2026-11-07 | `d131f77` + `bb5b206` + `0dd55de` | `.planning/quick/WEB-040/` + run #171 42418219718 success |

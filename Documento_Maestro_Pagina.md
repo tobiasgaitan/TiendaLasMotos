@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.0  
+**Versión del Stack & Hitos:** v8.9.1  
 **Última Actualización:** 2026-11-07  
-**Estado:** DEPLOYED (Beta v8.9.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
 ---
 
@@ -331,6 +331,62 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   `8d77225`: `fix(WEB-038): aislamiento offline por propietario y cola única del asesor`.
 
 **Coherence Score:** 0.99 (WEB-038 — E2E certificado en código y runtime local, purga de pruebas ejecutada, observaciones no bloqueantes registradas como notas de release).
+
+---
+*Última actualización: 2026-11-07 COT por Antigravity (PSD-1: WEB-040 + backlog paralelo)*
+
+---
+
+## 11. WEB-040 — Hardening del destino post-login (2026-11-07/08)
+### A. Arquitectura del Fix
+*   **Problema original:** `LoginForm` aceptaba `callbackUrl` sin validar (open-redirect); el bundle servido pre-restauración contenía el typo `/admin/simulator` (o) en lugar de `/admin/simulador` (ó); `proxy.ts:44` perdía el query `defaultLanding=1` al guardar el pathname.
+*   **Solución aplicada:**
+    1.  Creación de `src/lib/auth/post-login.ts` (helper puro `resolverDestinoPostLogin(raw)`):
+        *   `null`/vacío → `/admin/simulador?defaultLanding=1`
+        *   Acepta **solo** rutas internas `/admin*`
+        *   **Rechaza** `/admin/login`, `//evil.com`, `https://…`, `javascript:`
+        *   **Canonicaliza** `/admin/simulator` → `/admin/simulador?defaultLanding=1`
+        *   **Garantiza** `defaultLanding=1` cuando el destino canónico es el simulador (compensa pérdida de query de `proxy.ts:44`)
+        *   **Preserva** deep links válidos (`/admin/inventario-asesor`, `/admin/creditos`, `/admin`)
+    2.  Integración en `src/app/admin/login/LoginForm.tsx` (`handleLogin` sanea `callbackUrl` vía el helper; `handleRegister` usa destino default).
+    3.  Test unitario `src/test/utils/post-login.test.ts` (21 comprobaciones incl. contrato de 3 roles).
+*   **Certificación runtime (UAT God Node en beta.web.app incógnito):**
+    *   **superadmin** → `/admin/simulador?defaultLanding=1` (shell con estilos, sin alert, consola limpia)
+    *   **asesor** → `/admin/inventario-asesor` (shell con estilos, badge "En línea", sin alert, consola limpia)
+    *   **admin_creditos** → `/admin/creditos` (shell con estilos, sin alert, consola limpia)
+    *   **Cero** `/admin/simulator` (typo), **cero** SmartFooter pelado, **cero** 503/`ChunkLoadError`.
+*   **Commits:** `d131f77` (helper+test), `bb5b206` (integración), `0dd55de` (docs/STATE) → push fast-forward `dbc4cab..0dd55de` (PUSH_EXIT=0), run #171 (`42418219718`, `conclusion=success`, `headSha=0dd55de…`, cero annotations del adaptador sobre envs).
+
+### B. CHANGELOG Obligatorio
+*   **Qué se cambió:** `src/lib/auth/post-login.ts` (nuevo), `src/app/admin/login/LoginForm.tsx` (integración), `src/test/utils/post-login.test.ts` (nuevo).
+*   **Qué se reparó:** (a) open-redirect por `callbackUrl` ciego; (b) canonicalización del typo `/admin/simulator`→`/admin/simulador?defaultLanding=1`; (c) garantía de `defaultLanding=1` (compensa pérdida de query de `proxy.ts:44`); (d) preservación de deep links válidos.
+*   **Qué se preservó intacto:** `landing.ts` (`landingPorRol` única fuente de verdad), `ROLES`/`DEFAULT_MATRIZ` (C4/B), `proxy.ts`, topología de rutas (sin crear `/admin/simulator/page.tsx`), NAMING LOCK de claves TS/Firestore, código offline/outbox (`tlm_offline`), Storage, reglas/índices, WEB-038/repuestos/Vision (spec íntegro de 10 envs con `secretKeyRef` v1 preservado por el merge del adaptador), sidebar/guards de permisos por rol. **Cero líneas de la app modificadas por intervención de auditor** (Fase 1 hot reload puro en el frente E; el fix lo escribió ANTIGRAVITY Builder bajo ticket).
+
+### C. Backlog Paralelo No Bloqueante (Opción 2 del Director)
+*   **OBS 2 (doble login / whitelist §9.F):** NO se manifestó en la UAT de fase 3/3 (los 3 roles loguearon sin `alert` ni `EsperandoActivacion`); frente propio no bloqueante del merge.
+*   **OBS 3 (matching Vision↔catálogo):** feature Fase 2, no bloqueante; plan ANTIGRAVITY propio.
+*   **WEB-041 (deuda guard eager `simulador/page.tsx:191-199`):** ticket aparte, hardening, NO en WEB-040.
+*   **Deuda PWA (`sw.js` §10.E sin autocura post-deploy):** worker rancio #1411 (`beta.web.app`, 6/11, `✕`), NO bloqueante (incógnito lo aisló en la UAT); mitigación opcional vía `chrome://serviceworker-internals` → Unregister (no toca `tlm_offline`).
+*   **Deuda de tests de componentes:** repo sin harness de render de `LoginForm`/`RoleBasedRedirect`; punto ciego estructural, cubierto por UAT runtime en beta (fase 3/3).
+*   **Infra de Vision en prod `ssrtiendalasmotos` NO verificada por este perímetro:** el merge transporta código que consume `GOOGLE_VISION_API_KEY` vía `secretKeyRef`, pero **no** el valor del secreto (ese vive en Secret Manager v1, fuera del repo). La existencia del secreto v1 y del grant `secretAccessor` en el **entorno de producción** es un frente de infra **no auditado** por este perímetro; requiere verificación por el pipeline de Secrets de prod.
+*   **§8 duplicado en el SSOT físico:** las dos instancias de "## 8. Sistema de Gestión de Créditos…" (L117–156 y L157–195) **divergen** (diff muestra una línea en blanco de diferencia); **no** se elimina (podría perder información); se registra como anomalía documental pendiente de resolución manual.
+
+### D. Corrección Documental
+*   **`landing.test.ts` 11/11 real vs 10/10 en SSOT §9.J:** el SSOT decía 10/10; la ejecución física reportó 11/11. Se corrige en este §11 (deuda documental).
+
+### E. C4/B (Paquete de Promoción)
+*   **Beta trae `asesor` resuelto:** UAT de fase 3/3 prueba en runtime que beta tiene `ROLESasesor` + `DEFAULT_MATRIZ.asesor` + `landingPorRol('asesor')='/admin/inventario-asesor'` + la ruta existiendo.
+*   **`origin/main`/producción NO incluye `asesor` en `roles.ts`** (verificado en modo lectura por el Builder) ⇒ **C4 latente en main**; **el merge `beta→main` lo sana** (lleva el paquete completo: `ROLES`+`DEFAULT_MATRIZ`+`landing`+página+helper).
+*   **PROHIBIDO** patch parcial de `ROLES` sin `landing`+página (dejaría al asesor en el bloque de denegación del simulador sin su flujo).
+
+### F. C7 (Forense de Causa Raíz del Pelado)
+*   **Hipótesis 1:** bundle servido pre-restauración con typo `/admin/simulator` (o) en el chunk `f231eb201f56ae4c.js` (run anterior al re-run de restauración).
+*   **Hipótesis 2:** `callbackUrl` forjado con `/admin/simulator` (open-redirect no sanitizado).
+*   **Hipótesis 3:** caché del perfil normal con worker rancio #1411 (6/11) sirviendo bundle viejo.
+*   **Evidencia:** el grep del chunk `f231eb201f56ae4c.js` en el build local mostró `/admin/simulador` (ó), pero la consola de incógnito de Tobias (12:14) atribuía el redirect a `/admin/simulator` (o) a ese mismo chunk ⇒ tensión no resuelta (mismo nombre de chunk, contenido contradictorio entre grep estático y runtime).
+*   **Conclusión:** el fix es robusto a las tres vías (canonicaliza el typo, rechaza externas, garantiza flag); la causa raíz exacta queda como **forense parcial** (3 hipótesis con evidencia actual).
+
+**Coherence Score:** 0.99 (WEB-040 — God Node certificado en runtime beta (UAT 3 roles), run #171 success, backlog paralelo registrado, infra de prod no verificada).
 
 ---
 *Última actualización: 2026-11-07 COT por Antigravity*
