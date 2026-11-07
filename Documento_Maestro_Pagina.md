@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.7.0  
-**Última Actualización:** 2026-10-19  
-**Estado:** DEPLOYED (Beta v8.7.0) — Producción pendiente de sincronización (merge beta→main por decisión del Director)
+**Versión del Stack & Hitos:** v8.9.1  
+**Última Actualización:** 2026-11-07  
+**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
 ---
 
@@ -264,3 +264,129 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
     *   `simulador/page.tsx`: `RoleBasedRedirect` monta **siempre**; el guard (`authLoading` → spinner / denegación `role="alert"` / `loading` → spinner de fetch / contenido) se evalúa **dentro de `children`**.
     *   `RoleBasedRedirect.tsx`: supresión de render de `children` mientras el redirect está en vuelo (`defaultLanding && esRutaLanding(pathname) && role resuelto && landingPorRol(role) !== pathname`) ⇒ el bloque de denegación no se pinta ni un frame.
     *   Autopsia: 8 suites en verde, `landing.test.ts` 10/10, `tsc`/`build`/`lint` EXIT 0.
+
+---
+
+## 10. WEB-038 — Inventario de Repuestos y Aislamiento Offline (2026-11-07)
+
+### A. Arquitectura del Módulo Inventario
+*   **Rutas:** 2 módulos operativos bajo `/admin/inventario-asesor` (conteo del asesor) y `/admin/inventario-aprobaciones` (panel de aprobaciones).
+*   **Sidebar:** Nodos "Inventario", "Conteo de Repuestos" (asesor), "Aprobaciones de Repuestos" (admin/superadmin).
+*   **Colecciones Firestore:** `conteos_pendientes_repuestos`, `fotos_inventario`, `inventario_repuestos`, `historial_auditoria_inventario`.
+*   **Colección IndexedDB local:** `tlm_offline` (v2) con stores `borradores_conteos` y `fotos_borrador`, índice `propietario_uid`.
+
+### B. Contratos de Datos (NAMING LOCK)
+*   **`conteos_pendientes_repuestos`:** Claves inmutables `conteo_id` (UUID v4, docId), `referencia_confirmada`, `referencia_sugerida`, `descripcion`, `cantidad_contada`, `ubicacion`, `anotaciones`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `asesor_email`, `asesor_uid`, `creado_en`, `revisado_por`, `revisado_en`, `motivo_rechazo`.
+*   **`fotos_inventario`:** Registro espejo de la foto con `conteo_id`, `asesor_email`, `asesor_uid`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `creado_en`.
+*   **`inventario_repuestos`:** Catálogo maestro con `referencia` (docId), `descripcion`, `fabricante`, `aplica_a`, `categoria`, `precio`, `ubicacion`, `stock`, `stock_minimo`, `imagen_url`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`.
+*   **`historial_auditoria_inventario`:** Ledger append-only vía `tx.create()` (prohibido `tx.set()`/`tx.update()`/`tx.delete()` sobre el ledger). Campo `registrado_por` = uid verificado vía `verifyIdToken()`. Clave canónica `estado` (NO `estado_conteo`, que queda como evidencia histórica reconciliable vía `reconciliarDatosNuevosLegado`).
+
+### C. Aislamiento Offline (H-14, H-15, N1-C) — CERRADO EN CÓDIGO + RUNTIME LOCAL
+*   **H-14 (Gate de rol):** `OfflineIndicator` consume `useOfflineQueueContext` (contexto seguro, no hook estricto) y retorna `null` si `role !== 'asesor'`. `admin/layout.tsx` ya no monta indicador global. Verificado en runtime: superadmin no abre `tlm_offline`, asesor sí.
+*   **H-15 (Provider único):** `OfflineQueueProvider` se monta una sola vez en `src/app/admin/inventario-asesor/page.tsx` con `key={user.uid}`. `OfflineIndicator` y `ConteoAsesorForm` dentro del mismo provider. Listener `outbox:1` (no duplicado). Listeners `online/offline:2` (el segundo par es el SDK de Firestore con persistencia, externo a la cola).
+*   **N1-C (Owner-scope):** Borradores locales llevan `propietario_uid` obligatorio. `listarBorradores(propietarioUid)` lee por índice + filtro defensivo. `sincronizarOutbox(actor)` filtra por `actor.uid`. `obtenerFoto` rechaza foto ajena. `marcarSincronizando`/`marcarError`/`eliminarBorrador` verifican propietario. `limpiarOutbox(uid)` purga solo el propietario; fallback global solo si falla owner-scoped con log forense. `AuthContext.logout` captura `uid` antes de `signOut` y llama `limpiarOutbox(uid)`.
+*   **Migración v1→v2:** `onupgradeneeded` crea índice `propietario_uid` en ambos stores, descarta registros legacy sin propietario con `cursor.delete()` y log forense.
+*   **Runtime local certificado:** Borrador propio con `owner = CwrnxDaVXvVgNRcGjrZ3tU210Ho1` (UID real de `conexion@tiendalasmotos.com`), borradores inyectados `foreign-runtime:uid-OTRO` y `legacy-runtime:NO_OWNER`. UI cuenta solo el propio (1, no 3). Sync no menciona ajenos (0 rastros en Red). Logout purga propio, conserva ajenos, sin fallback global.
+
+### D. Faraday Cage y Server Actions
+*   **`crearConteoPendiente.ts`:** `requireActorInventario(a.idToken)` → `verifyIdToken` → `me.uid`/`me.email`. `requirePermiso(me, 'conteos_pendientes_repuestos', 'create')` con gate `asesor`. Valida `foto_url`↔`storage_path` vía `extraerStoragePath` + `esStoragePathDeAsesor`. Idempotencia: si `conteo_id` existe con otro `asesor_email` → `throw`. Hardcodea `estado: 'pendiente_revision'`, `asesor_email: me.email`, `asesor_uid: me.uid`, `revisado_por: ''`. Cero inyección de `registrado_por` desde el cliente.
+*   **`aprobarConteo.ts` / `rechazarConteo.ts`:** `requireActorInventario` + `requirePermiso` con gate `admin`/`superadmin`. Transición de estado con guarda (`pendiente_revision` → `aprobado`/`rechazado`; idempotente si ya está en estado final). Ledger append-only vía `tx.create(ledgerRef, {...})` con `registrado_por: me.uid`. Cero `tx.set`/`tx.update`/`tx.delete` sobre el ledger.
+*   **`analizarImagenRepuesto.ts`:** Stateless, solo lectura de URL + llamada a Google Vision API. Valida host canónico (`firebasestorage.googleapis.com`) y prefijo `inventario_repuestos/{email}/` antes de descargar. Gate `asesor`/`admin`/`superadmin`. `GOOGLE_VISION_API_KEY` desde `process.env` con guarda. Cero escritura en Firestore/Storage.
+*   **`inventario-actor.ts`:** `requireActorInventario(idToken)` llama `adminAuth.verifyIdToken(idToken)` y devuelve `{ uid: decoded.uid, email }`. Cero confianza en `a.uid` del payload.
+*   **`inventario-schemas.ts`:** Schemas Zod con `safeParse`. `esStoragePathDeAsesor` compara `startsWith('inventario_repuestos/${email}/')`. `esEstadoConteo` valida contra enum canónico. `extraerStoragePath` exige host canónico. `crearConteoSchema` con `superRefine` de coherencia `foto_url`↔`storage_path`.
+
+### E. PWA y Service Worker (H-5b)
+*   **`public/sw.js`:** Manual (sin `next-pwa`). Cache shell versionado `tlm-shell-v2`. Navegación allowlisted `/admin/inventario-asesor` con `networkFirst` + fallback a `/offline.html`. Estáticos `/_next/static/` e `/icons/` con `cacheFirst`. Nunca cachea POST, `/api/`, `_rsc`, Firestore, Auth ni Storage. Zero-Silent-Failures en todos los `catch`.
+*   **`public/manifest.json`:** `start_url: /admin/inventario-asesor?pwa=asesor`, `scope: /`, `display: standalone`, iconos 192/512/maskable-512.
+*   **`PwaRegistrar.tsx`:** Registra SW solo en producción (`NODE_ENV === 'production'`) y solo si `role === 'asesor'`. Gate doble.
+*   **`limpiarCachesServiceWorker()`:** Invocado en `finally` de `AuthContext.logout`. Borra todas las caches del origen y desregistra todos los SWs. Zero-Silent-Failures.
+
+### F. God Node de Usuarios
+*   **`whitelist-actions.ts`:** Verificación pre-auth con rate limiting en memoria (5 intentos/60s por email). Admin SDK para lectura de `sys_admin_users/{email}`. Retorna `{ exists: false, active: false }` en cualquier fallo.
+*   **`actions.ts`:** CRUD vía Admin SDK con `requireActor` → `verifyIdToken`. `requirePermiso` estricto (`create`/`update`/`delete` sobre `sys_admin_users`). Ledger append-only vía `appendAuditoria`. Baja lógica (`active: false`) en `deleteUser`; prohibido `delete()` físico. Anti-suicidio: `esAutoBorrado(emailCanon, me.email)` bloquea revocación propia.
+*   **`page.tsx`:** Guards de renderizado `puedeAccion('sys_admin_users', ...)`. Cero mutación directa de estado; delega en Server Actions.
+
+### G. Observaciones No Bloqueantes (Notas de Release)
+*   **O-15:** `AprobarConteoModal` hace `getDoc` client-side para detectar referencia nueva. Solo UX; la barrera real es la action (`requirePermiso` admin/superadmin). Depende de reglas de lectura de `inventario_repuestos` (H-9 cerrado por paridad).
+*   **O-16:** `runTransaction(async (tx: any) => ...)` en `aprobarConteo.ts`/`rechazarConteo.ts`. El `any` debilita el chequeo estático del append-only. Ticket menor de higiene para PSD.
+*   **O-17:** `actorSchema.uid` en payload es redundante/informativo (identidad real = token). No se usa para auth.
+*   **O-18:** `registrado_por: actor.uid` en `creditos/actions.ts:90` sin AST del caller verificado. Fuera de perímetro WEB-038 (fase 9).
+*   **O-19:** `reconciliarDatosNuevosLegado` solo en tests, no cableado en producción. Escritura nueva ya emite `estado` canónico vía `datosNuevosAprobacion`. Preventivo para futuro dashboard de auditoría.
+*   **O-20:** `FotoConteoPicker` no enforce mime/tamaño declarados; delega al form `ConteoAsesorForm` (que sí valida) y al server (`crearConteoSchema`). Cerrado por defensa en profundidad.
+*   **O-21:** `ImageUploader.tsx` (catálogo) escribe en `products/...`, no en `inventario_repuestos/...`. Cero colisión de namespace. Fuera de perímetro WEB-038.
+*   **O-22 a O-27:** Defectos de `ImageUploader.tsx` (log de debug, falta `'use client'`, validación mime/tamaño débil, nombre de archivo sin sanitizar, `alert()` nativo, reset de estado durante render). Pista catálogo/legacy, aparcados.
+*   **O-28:** `esErrorReintentable` clasifica por subcadenas de mensaje de server action. Acoplamiento frágil cliente↔mensajes server. Solo afecta UX de reintento.
+*   **O-29:** `analizando` solo se resetea en `finally` del await de Vision; si `prepararYSubirFoto`/`analizarImagenRepuesto` se cuelgan, el submit queda bloqueado hasta recargar o `handleQuitarFoto`. Sin timeout client-side. Ticket menor de resiliencia.
+*   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
+*   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
+*   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
+*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) no se elimina tras sync exitoso con Firestore. El registro persiste con `estado_envio: "error"` e `intentos: 6` acumulados durante el modo offline. Bug de higiene post-sync; el conteo ya existe en Firestore pero el cliente no purga el mirror local. Ticket menor de limpieza.
+*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacena el email del superadmin en lugar del UID canónico verificado por `verifyIdToken`. El ledger `historial_auditoria_inventario` sí cumple el contrato (`registrado_por: me.uid`), pero el documento de conteo queda con inconsistencia de normalización. Deuda técnica menor; no afecta seguridad (la identidad real se verifica en el ledger).
+
+
+
+### H. Commits Clave
+*   `8c5ecba`: `feat(repuestos-ui): interfaz de conteo del asesor y panel de aprobaciones (WEB-038-UI)`.
+*   `d5c4951`: `fix(WEB-038): NAMING LOCK — estado_conteo → estado en ledger de aprobación`.
+*   `8d77225`: `fix(WEB-038): aislamiento offline por propietario y cola única del asesor`.
+
+**Coherence Score:** 0.99 (WEB-038 — E2E certificado en código y runtime local, purga de pruebas ejecutada, observaciones no bloqueantes registradas como notas de release).
+
+---
+*Última actualización: 2026-11-07 COT por Antigravity (PSD-1: WEB-040 + backlog paralelo)*
+
+---
+
+## 11. WEB-040 — Hardening del destino post-login (2026-11-07/08)
+### A. Arquitectura del Fix
+*   **Problema original:** `LoginForm` aceptaba `callbackUrl` sin validar (open-redirect); el bundle servido pre-restauración contenía el typo `/admin/simulator` (o) en lugar de `/admin/simulador` (ó); `proxy.ts:44` perdía el query `defaultLanding=1` al guardar el pathname.
+*   **Solución aplicada:**
+    1.  Creación de `src/lib/auth/post-login.ts` (helper puro `resolverDestinoPostLogin(raw)`):
+        *   `null`/vacío → `/admin/simulador?defaultLanding=1`
+        *   Acepta **solo** rutas internas `/admin*`
+        *   **Rechaza** `/admin/login`, `//evil.com`, `https://…`, `javascript:`
+        *   **Canonicaliza** `/admin/simulator` → `/admin/simulador?defaultLanding=1`
+        *   **Garantiza** `defaultLanding=1` cuando el destino canónico es el simulador (compensa pérdida de query de `proxy.ts:44`)
+        *   **Preserva** deep links válidos (`/admin/inventario-asesor`, `/admin/creditos`, `/admin`)
+    2.  Integración en `src/app/admin/login/LoginForm.tsx` (`handleLogin` sanea `callbackUrl` vía el helper; `handleRegister` usa destino default).
+    3.  Test unitario `src/test/utils/post-login.test.ts` (21 comprobaciones incl. contrato de 3 roles).
+*   **Certificación runtime (UAT God Node en beta.web.app incógnito):**
+    *   **superadmin** → `/admin/simulador?defaultLanding=1` (shell con estilos, sin alert, consola limpia)
+    *   **asesor** → `/admin/inventario-asesor` (shell con estilos, badge "En línea", sin alert, consola limpia)
+    *   **admin_creditos** → `/admin/creditos` (shell con estilos, sin alert, consola limpia)
+    *   **Cero** `/admin/simulator` (typo), **cero** SmartFooter pelado, **cero** 503/`ChunkLoadError`.
+*   **Commits:** `d131f77` (helper+test), `bb5b206` (integración), `0dd55de` (docs/STATE) → push fast-forward `dbc4cab..0dd55de` (PUSH_EXIT=0), run #171 (`42418219718`, `conclusion=success`, `headSha=0dd55de…`, cero annotations del adaptador sobre envs).
+
+### B. CHANGELOG Obligatorio
+*   **Qué se cambió:** `src/lib/auth/post-login.ts` (nuevo), `src/app/admin/login/LoginForm.tsx` (integración), `src/test/utils/post-login.test.ts` (nuevo).
+*   **Qué se reparó:** (a) open-redirect por `callbackUrl` ciego; (b) canonicalización del typo `/admin/simulator`→`/admin/simulador?defaultLanding=1`; (c) garantía de `defaultLanding=1` (compensa pérdida de query de `proxy.ts:44`); (d) preservación de deep links válidos.
+*   **Qué se preservó intacto:** `landing.ts` (`landingPorRol` única fuente de verdad), `ROLES`/`DEFAULT_MATRIZ` (C4/B), `proxy.ts`, topología de rutas (sin crear `/admin/simulator/page.tsx`), NAMING LOCK de claves TS/Firestore, código offline/outbox (`tlm_offline`), Storage, reglas/índices, WEB-038/repuestos/Vision (spec íntegro de 10 envs con `secretKeyRef` v1 preservado por el merge del adaptador), sidebar/guards de permisos por rol. **Cero líneas de la app modificadas por intervención de auditor** (Fase 1 hot reload puro en el frente E; el fix lo escribió ANTIGRAVITY Builder bajo ticket).
+
+### C. Backlog Paralelo No Bloqueante (Opción 2 del Director)
+*   **OBS 2 (doble login / whitelist §9.F):** NO se manifestó en la UAT de fase 3/3 (los 3 roles loguearon sin `alert` ni `EsperandoActivacion`); frente propio no bloqueante del merge.
+*   **OBS 3 (matching Vision↔catálogo):** feature Fase 2, no bloqueante; plan ANTIGRAVITY propio.
+*   **WEB-041 (deuda guard eager `simulador/page.tsx:191-199`):** ticket aparte, hardening, NO en WEB-040.
+*   **Deuda PWA (`sw.js` §10.E sin autocura post-deploy):** worker rancio #1411 (`beta.web.app`, 6/11, `✕`), NO bloqueante (incógnito lo aisló en la UAT); mitigación opcional vía `chrome://serviceworker-internals` → Unregister (no toca `tlm_offline`).
+*   **Deuda de tests de componentes:** repo sin harness de render de `LoginForm`/`RoleBasedRedirect`; punto ciego estructural, cubierto por UAT runtime en beta (fase 3/3).
+*   **Infra de Vision en prod `ssrtiendalasmotos` NO verificada por este perímetro:** el merge transporta código que consume `GOOGLE_VISION_API_KEY` vía `secretKeyRef`, pero **no** el valor del secreto (ese vive en Secret Manager v1, fuera del repo). La existencia del secreto v1 y del grant `secretAccessor` en el **entorno de producción** es un frente de infra **no auditado** por este perímetro; requiere verificación por el pipeline de Secrets de prod.
+*   **§8 duplicado en el SSOT físico:** las dos instancias de "## 8. Sistema de Gestión de Créditos…" (L117–156 y L157–195) **divergen** (diff muestra una línea en blanco de diferencia); **no** se elimina (podría perder información); se registra como anomalía documental pendiente de resolución manual.
+
+### D. Corrección Documental
+*   **`landing.test.ts` 11/11 real vs 10/10 en SSOT §9.J:** el SSOT decía 10/10; la ejecución física reportó 11/11. Se corrige en este §11 (deuda documental).
+
+### E. C4/B (Paquete de Promoción)
+*   **Beta trae `asesor` resuelto:** UAT de fase 3/3 prueba en runtime que beta tiene `ROLESasesor` + `DEFAULT_MATRIZ.asesor` + `landingPorRol('asesor')='/admin/inventario-asesor'` + la ruta existiendo.
+*   **`origin/main`/producción NO incluye `asesor` en `roles.ts`** (verificado en modo lectura por el Builder) ⇒ **C4 latente en main**; **el merge `beta→main` lo sana** (lleva el paquete completo: `ROLES`+`DEFAULT_MATRIZ`+`landing`+página+helper).
+*   **PROHIBIDO** patch parcial de `ROLES` sin `landing`+página (dejaría al asesor en el bloque de denegación del simulador sin su flujo).
+
+### F. C7 (Forense de Causa Raíz del Pelado)
+*   **Hipótesis 1:** bundle servido pre-restauración con typo `/admin/simulator` (o) en el chunk `f231eb201f56ae4c.js` (run anterior al re-run de restauración).
+*   **Hipótesis 2:** `callbackUrl` forjado con `/admin/simulator` (open-redirect no sanitizado).
+*   **Hipótesis 3:** caché del perfil normal con worker rancio #1411 (6/11) sirviendo bundle viejo.
+*   **Evidencia:** el grep del chunk `f231eb201f56ae4c.js` en el build local mostró `/admin/simulador` (ó), pero la consola de incógnito de Tobias (12:14) atribuía el redirect a `/admin/simulator` (o) a ese mismo chunk ⇒ tensión no resuelta (mismo nombre de chunk, contenido contradictorio entre grep estático y runtime).
+*   **Conclusión:** el fix es robusto a las tres vías (canonicaliza el typo, rechaza externas, garantiza flag); la causa raíz exacta queda como **forense parcial** (3 hipótesis con evidencia actual).
+
+**Coherence Score:** 0.99 (WEB-040 — God Node certificado en runtime beta (UAT 3 roles), run #171 success, backlog paralelo registrado, infra de prod no verificada).
+
+---
+*Última actualización: 2026-11-07 COT por Antigravity*

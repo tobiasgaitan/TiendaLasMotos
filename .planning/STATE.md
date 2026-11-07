@@ -1,129 +1,23 @@
-# Estado Actual: DEPLOYED_v8.7.0
+# STATE.md - Tienda Las Motos
+**Versión Actual:** v8.9.0
+**Fecha:** 2026-11-07
+**Rama Activa:** beta
+**Última actividad:** 2026-11-07 — WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de, merge beta→main aprobado Opción 2).
 
-**Fase Activa:** N/A (UAT Completado - Ciclo Cerrado)
+## Estado de Módulos
+- **WEB-038 (Inventario Repuestos):** COMPLETADO. 
+  - Conteo asesor y aprobaciones: CERTIFICADO (v8.8.0).
+  - Ruta de gestión de catálogo (`/admin/inventario-repuestos`): CERTIFICADO (v8.9.0).
+  - Idempotencia y Ledger append-only: CERTIFICADO EN RUNTIME BETA (ciclo completo: asesor offline → IndexedDB → sync → Firestore → superadmin aprueba → ledger append-only con UID verificado → catálogo creado → no-op idempotente → purga selectiva).
+  - Observaciones registradas: O-15 a O-38 (no bloqueantes). O-37 (borrador no purgado post-sync) y O-38 (revisado_por con email vs UID) descubiertas en E2E runtime 2026-11-07.
 
-**Decisiones Clave:**
-- Se eliminó el acoplamiento a la base de datos `config`.
-- `firestore.rules` garantiza lectura pública no autenticada para `configuracion/general/sedes` y `configuracion/general_info`.
-- **WEB-836 (Hotfix):** El simulador administrativo utiliza `m.price` para preservar la pureza del cálculo financiero de capital base y cuota inicial.
-- **WEB-836 (Usury Bot Fix):** Corrección del endpoint Socrata (32sa-8pi3→pare-7x5i), esquema actualizado (interes_bancario_corriente con % suffix), cálculo IBC×1.5 para tasa de usura, y guard syncedWithUsura===true.
-- **BOT-TECH-DEBT-837:** Migración de `functions.config()` a `firebase-functions/params` (`defineString`) en los servicios de correo `mailer.ts` y `sendUserInvitation.ts` para evitar fallos de Runtime Config en v2.
-- **BOT-TECH-DEBT-838:** Migración de Cloud Functions v1 a v2 en `sendUserInvitation.ts` usando la firma nativa `onCall` de `firebase-functions/v2/https`.
-- **BOT-DEPLOY-PROD-839:** Fusión y despliegue síncrono secuencial a producción (`main`) de Cloud Functions v2, Hosting y reglas de Firestore.
-- **WEB-837-REVISED-FINAL (Hotfix):** Normalización de parámetros en hooks `useMemo` y fijación del plazo a 36 meses en el buscador público y administrativo.
-- **WEB-838-HYDRATION-SYNCHRONY-BARRIER (Hotfix):** Implementación de la barrera de montaje isMounted en buscador y admin/presupuesto para eliminar discrepancias de hidratación en pre-renderizado.
-- **WEB-838-INSURANCE-SCALE-FIX (Hotfix):** Normalización de escala de seguro de vida fijo en el hook useMemo del buscador público y administrativo, con protección de división por cero.
-- **WEB-SCORE-THRESHOLD-001 (Hotfix):** Recalibración del semáforo de crédito en getScoreBadge (verde ≥750, amarillo ≥500 y <750, rojo <500); Safe-Fallback preservado; NAMING LOCK score_resultado inmutable; Coherence Score 0.97.
-- **WEB-038 (Landing por rol + guards):** Rol `admin_creditos` en `ROLES`/`DEFAULT_MATRIZ`; landing por rol vía flag `defaultLanding=1` + `RoleBasedRedirect` (scoped); guards de ruta en 5 páginas; dropdown extendido. Commits `19a8e0d`, `0061423`.
-- **WEB-039 (Precedencia guard-wrapper):** `RoleBasedRedirect` monta siempre; guard evaluado dentro de `children`; supresión de flash en redirect en vuelo. Commit `f4c1933`.
+## Decisiones Clave Recientes
+1. Separación estricta de `/admin/inventory` (motos legacy) y `/admin/inventario-repuestos` (repuestos).
+2. Guard de rol fail-closed: solo `admin` y `superadmin` pueden acceder y editar el catálogo de repuestos.
+3. Edición transaccional con comparación server-side para evitar asientos de ledger innecesarios (no-op).
 
-**Versión:** v8.7.0 (Beta Release — WEB-038/039)
-**Estado:** DEPLOYED (beta)
+### Quick Tasks Completed
 
-**Último Hito:** Deploy beta v8.7.0 certificado (WEB-039) — run `39202182660` success sobre `f4c1933`.
-**Coherence Score:** 0.97 (v8.7.0 — sincronía documental, análisis estático de diff solo-docs)
-
-#### 1. Stack Tecnológico (Cloud Native)
-* **Framework:** React / Next.js 16.1.1+ (App Router).
-* **Motor Backend:** Node.js 22.
-* **Lenguaje:** TypeScript (Strict Mode) — Target de compilación ES2022.
-* **Infraestructura:** Google Cloud Run + Firebase Hosting.
-
-#### 2. Contrato Único de Datos (Verdad Inmutable)
-Se garantiza la paridad absoluta con el backend v9.9.1.
-* **A. Catálogo Normalizado (Colección: pagina/catalogo/items):**
-    * **Invariante de Imagen:** El renderizado de componentes solo admite la llave canónica `imagen_url`.
-    * **Inventario Certificado:** Visualización confirmada de 60/60 ítems.
-* **B. Esquema de Prospectos & Observabilidad:**
-    * **Captura Blindada (v8.3.1):** Persistencia síncrona obligatoria unificada a través de `submitLead`.
-    * **Reactividad en Tiempo Real (v8.3.2):** Confirmación de escucha activa mediante `onSnapshot` de Firebase en el Dashboard de administración, eliminando la necesidad de recargas manuales.
-    * **Contrato Rígido de PII:** Sanitización forzada del campo `celular` (inyectando prefijo `57`).
-
-#### 3. Módulos y Componentes de Sistema
-* **QuoteGenerator.tsx (v8.3.1):**
-    * Refactorizado bajo el esquema Interface Lock. Cierre de brechas de persistencia locales.
-* **Admin Inventory Manager (v8.3.0):**
-    * **Visual-Lock Validator:** Los formularios de edición de motos exigen obligatoriamente `imagen_url` y `precio`.
-
-#### 4. Guardrails, Seguridad y DevOps
-* **Zero-Silent-Failures:** Control forense de excepciones en la Server Action. Registro estructurado de fallos de red externos.
-* **Transacciones de Counters (actions/quotation.ts):** Uso de `runTransaction` de Firestore para generación correlativa determinista de números de cotización.
-
-#### 5. Depuración de Residuos e Historial
-* **Purga de Interfaces (v8.3.1):** Cero métodos redundantes o llamadas directas descentralizadas a `addDoc`.
-* **Mitigación de Deuda Técnica (v8.3.2):** Eliminación física del nodo huérfano `src/app/admin/leads` y sus dependencias de Next.js.
-* **Migración en progreso (v8.3.3):** Reemplazo sistemático del path heredado `config` por `configuracion` con paridad 1:1 absoluta.
-* **Hotfix del Simulador (v8.3.4):** Corrección quirúrgica del simulador administrativo WEB-836 para usar precio canónico. UAT verificado y cerrado.
-* **Deuda Técnica SMTP (v8.3.6):** Sustitución de functions.config() por defineString de params de firebase-functions.
-* **Migración Cloud Functions v2 (v8.3.8):** Reemplazo de functions.https.onCall por onCall de firebase-functions/v2/https en sendUserInvitation.ts.
-
-### Tareas Rápidas Completadas
-
-| # | Descripción | Fecha | Commit | Directorio |
-|---|-------------|-------|--------|------------|
-| 006 | Corrección de precio en el simulador administrativo (WEB-836) | 2026-05-18 | `fadf5e3` | `006-web836-simulator-precio-fix` |
-| 007 | Usury Rate Bot Fix: Socrata dataset/schema + syncedWithUsura guard (WEB-836) | 2026-06-05 | `e33e5fc` | `007-web836-usury-bot-fix` |
-| 008 | Deploy updateUsuryRates Cloud Function (WEB-836) | 2026-06-05 | — | `008-web836-deploy-usury-function` |
-| 009 | Migración SMTP a params (BOT-TECH-DEBT-837) | 2026-06-05 | `034428a` | `functions/src` |
-| 010 | Migración Cloud Functions v2 en sendUserInvitation (BOT-TECH-DEBT-838) | 2026-06-05 | `c01cc03` | `functions/src` |
-| 011 | Refactor global Fail-Safe mailer (BOT-TECH-DEBT-839) | 2026-06-05 | `8fb1332` | `functions/src` |
-| 012 | Fusión y Despliegue Secuencial a Producción (WEB-DEPLOY-MAIN-v8.3.9) | 2026-06-06 | `pending` | `.` |
-| 013 | Implementar panel AnomaliesBanner con escucha activa (WEB-ANOMALY-UI-841) | 2026-06-29 | `8e7df54` | `013-catalog-anomaly-panel` |
-| 014 | Implementar suite de pruebas unitarias para AnomaliesBanner y validación de aserciones (WEB-ANOMALY-TEST-842) | 2026-06-29 | `70dda74` | `014-anomalies-banner-test` |
-| 015 | Inicializar Documento_Maestro_Pagina.md con el histórico consolidado v8.4.1 | 2026-06-29 | `a680804` | `015-inicializar-documento-maestro-pagina` |
-| 016 | Ampliación de contenedor y adición de ruta /admin/novedades (Bell) | 2026-06-29 | `e0ad94e` | `016-hotfix-sidebar-novedades` |
-| 017 | Crear página administrativa de novedades y auditoría de anomalías | 2026-06-30 | `eb0e71f` | `017-hotfix-crear-pagina-novedades` |
-| 018 | Unificación reactiva de sys_alerts y anomalias en novedades y prospectos | 2026-07-06 | `ab2cf03` | `018-hotfix-web-837-sys-alerts` |
-| 019 | Corrección Cupo Presupuesto y Remoción Crediorbe (WEB-837-REVISED) | 2026-07-13 | `b69bd65` | `019-correccion-cupo-presupuesto` |
-| 020 | Barrera de Sincronía isMounted en buscador y admin/presupuesto (WEB-838) | 2026-07-13 | `da5e9c8` | `019-correccion-cupo-presupuesto` |
-| 021 | Normalización de Seguro de Vida Fijo y protección división cero (WEB-838) | 2026-07-13 | `b71a7c0` | `019-correccion-cupo-presupuesto` |
-| 022 | Recalibración de umbrales del semáforo de crédito en getScoreBadge (WEB-SCORE-THRESHOLD-001) | 2026-08-07 | `pending` | `022-score-threshold-recalibration` |
-| 023 | Migración middleware.ts a proxy.ts (Deuda 3) | 2026-09-23 | `0a4b5fa` | `023-middleware-to-proxy` |
-| 024 | Alineación CI Node 22 (Deuda 4) | 2026-09-24 | `a252065` | `024-ci-node22` |
-| 025 | Unificación FK sys_admin_users a email canónico (Deuda 2) | 2026-09-24 | `fb365b9` | `025-fk-email-canonical` |
-| 026 | Silenciamiento de MaxListenersExceededWarning (Deuda 5) | 2026-09-24 | `bbeeaed` | `026-instrumentation-max-listeners` |
-
----
-*Última actualización: 2026-10-19 COT por Antigravity*
-
----
-
-## Milestone 3 — Fase 8: Módulo de Gestión de Créditos (REVERTIDA 2026-09-22)
-
-**Estado de fase:** REVERTIDA (código eliminado, reglas limpias, colecciones vacías).
-**Razón:** Mismatch contractual con el Documento de Negocio; la Fase 9 impone su propio esquema sobre colecciones limpias (sin migración).
-**Commits de revert:** `1a6f54b` (remove Fase 8 code, rules, and counters), `7e59b72` (remove Fase 8 block — contract reverted).
-**Última actividad:** 2026-09-22 — Fase 8 revertida.
-
----
-## Deudas Técnicas Resueltas (2026-09-23)
-- **Deuda 3 (Middleware a Proxy):** Migración de `middleware.ts` a `proxy.ts` usando el codemod canónico de Next.js 16, preservando el NAMING LOCK perimetral de 7 puntos. Commit `0a4b5fa`.
-- **Deuda 4 (CI Node 22):** Alineación de workflows CI a node-version: 22. Paridad con engines, Dockerfile y Documento Maestro. Commit `a252065`.
-- **Deuda 5 (MaxListeners):** Silenciamiento de `MaxListenersExceededWarning` en Cloud Run Beta vía hook `src/instrumentation.ts` con `process.setMaxListeners(25)`. Causa raíz: acumulación de handlers `uncaughtException` por runtime Next.js 16 + adaptador firebase-frameworks durante arranques fríos. Certificación forense en revisión `ssrtiendalasmotosbeta-00552-sop` devuelve `[]` post-deploy. Commit `bbeeaed`.
-- **Deuda P2 (Singleton firebase-admin):** Unificación de la inicialización en `getAdminApp()` privada; `eval("require(...)")` conservado (blindaje contra externals hasheados `firebase-admin-<hash>`). Firmas intactas; 34 call sites sin tocar. Autopsia 1-7 verde + runtime en revisión `ssrtiendalasmotosbeta-00560-liz` (`ERR_MODULE_NOT_FOUND` → `[]`, `MaxListenersExceeded` → `[]`). Coherence Score 0.99. Commit `fe37ca6`.
-- **R-google-orphan (WEB-032 + WEB-035):** Purge de `loginAdminWithGoogle` huérfana y posterior eliminación completa de `src/lib/auth/admin-auth.ts` (cero importadores; logout real en `AuthContext.tsx`). Autopsia por grep vacía + tsc/build/lint verdes.
-- **A11y estructural (WEB-033 + WEB-037):** Remediación id/htmlFor en 21 archivos (WEB-033) + refactor de 6 labels huérfanos a headings y fieldset/legend con reset UA (WEB-037). Cero lógica/estilos alterados.
-
-### Hitos de octubre 2026 (v8.6.0)
-- **WEB-032:** Purge de `loginAdminWithGoogle` huérfana + imports muertos (`7a0e60a`).
-- **WEB-033:** Remediación a11y id/htmlFor en 21 archivos (`39816c7`, `a5bd004`, `e399d15`) + plan (`34c0f9f`).
-- **WEB-035:** Eliminación de `src/lib/auth/admin-auth.ts` (`b832897`) + docs (`0b11715`).
-- **WEB-036:** Sincronización documental WEB-029..035 en ROADMAP (`835b28e`, solo docs).
-- **WEB-037:** Refactor estructural a11y headings/fieldset+legend (`5a4fb48`) + docs (`b8a9f47`).
-
-### Hitos de octubre 2026 (v8.7.0)
-- **WEB-038:** Rol `admin_creditos` + landing por rol (`defaultLanding` + `RoleBasedRedirect`) + guards de ruta en 5 páginas (`19a8e0d`, `0061423`).
-- **WEB-039:** Precedencia guard-dentro-de-wrapper + supresión de flash (`f4c1933`); deploy beta run `39202182660` success.
-
-### Decisión Clave — 2026-09-24
-*   **CI Node 22 alineado con runtime canónico.** Workflows `deploy-beta.yml` y `deploy-prod.yml` actualizados a `node-version: 22`. Paridad 1:1 con `engines.node`, `Dockerfile` (node:22-alpine) y Documento Maestro §1. Run CI #35932474469 certificado.
-
-### Decisión Clave — 2026-09-24 (Deuda 2)
-*   **FK sys_admin_users unificada a email canónico (Ruta A').** Campos `email_admin`/`email_usuario`/`email_inversor`/`email_cobrador`; SSOT §8.B reescrito. `M_ID` de Chrome tipificado como causa ambiental (Urban VPN Proxy); refactor `fb365b9` exonerado. Purga E2E de 11 docIds + reset de counters certificada.
-
-## Decisión Clave v8.6.0 (2026-10-01)
-- **WEB-029**: Users CRUD migrado a Server Actions + rules `write: false` desplegado.
-- **WEB-030**: Guards residuales (editar ruta + gating UI usuarios) fusionados.
-- **WEB-031**: Whitelist server-side (`verificarWhitelist`) + migración `getDoc` por email en `AuthContext.tsx`, `LoginForm.tsx`, `admin-auth.ts` + rules endurecidas (`get` autenticado, `list` por rol) desplegadas en producción.
-- **Posición actual**: Producción estable v8.6.0. Reglas de lectura de `sys_admin_users` endurecidas. Gestión de usuarios restaurada vía Server Actions.
-- **Residuales documentados**: R-curl-auth (sondas REST locales fallan por artefactos de terminal, app runtime funcional), R-google-orphan (función migrada sin superficie UI).
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| WEB-040 | Hardening del destino post-login: open-redirect cerrado + `/admin/simulator` canonicalizado, con test de 21 checks + UAT 3 roles en beta | 2026-11-07 | `d131f77` + `bb5b206` + `0dd55de` | `.planning/quick/WEB-040/` + run #171 42418219718 success |

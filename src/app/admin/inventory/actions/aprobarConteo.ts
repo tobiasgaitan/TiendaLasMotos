@@ -15,6 +15,7 @@ import {
     referenciaSchema,
     ubicacionSchema,
 } from '@/lib/actions/inventario-schemas';
+import { datosNuevosAprobacion } from '@/lib/actions/inventario-ledger';
 import type { InventarioActionResult } from '@/types/inventario';
 
 /**
@@ -222,11 +223,10 @@ export async function aprobarConteo(
                 conteo_id: data.conteo_id,
                 operacion: inventarioExistia ? 'UPDATE' : 'CREATE',
                 datos_anteriores: inventarioAntes,
-                datos_nuevos: {
-                    ...inventarioDespues,
-                    conteo_id: data.conteo_id,
-                    estado_conteo: 'aprobado',
-                },
+                datos_nuevos: datosNuevosAprobacion(
+                    inventarioDespues,
+                    data.conteo_id
+                ),
                 campos_modificados: camposModificados,
                 registrado_por: me.uid,
                 registrado_por_email: me.email,

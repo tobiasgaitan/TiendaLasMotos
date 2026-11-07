@@ -39,18 +39,23 @@ check('asesor ve conteo de repuestos',
     puedeVerNodo('asesor', M, 'inventario-asesor'));
 check('asesor NO ve aprobaciones de repuestos',
     !puedeVerNodo('asesor', M, 'inventario-aprobaciones'));
+check('asesor NO ve inventario de repuestos',
+    !puedeVerNodo('asesor', M, 'inventario-repuestos'));
 check('asesor NO ve inventario de motos',
     !puedeVerNodo('asesor', M, 'inventario'));
 for (const rol of ['superadmin', 'admin'] as const) {
     check(`${rol} ve aprobaciones de repuestos`,
         puedeVerNodo(rol, M, 'inventario-aprobaciones'));
+    check(`${rol} ve inventario de repuestos`,
+        puedeVerNodo(rol, M, 'inventario-repuestos'));
     check(`${rol} NO ve conteo de repuestos del asesor`,
         !puedeVerNodo(rol, M, 'inventario-asesor'));
 }
 for (const rol of ['auditor', 'cobrador', 'inversor', 'guest'] as const) {
     check(`${rol} NO ve nodos de repuestos`,
         !puedeVerNodo(rol, M, 'inventario-asesor') &&
-        !puedeVerNodo(rol, M, 'inventario-aprobaciones'));
+        !puedeVerNodo(rol, M, 'inventario-aprobaciones') &&
+        !puedeVerNodo(rol, M, 'inventario-repuestos'));
 }
 
 // --- cobrador: solo créditos propios + auditoría, sin config ni admin general ---

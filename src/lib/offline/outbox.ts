@@ -12,11 +12,13 @@ import type {
 import {
     calcularBackoffMs,
     construirStoragePath,
+    esBorradorDePropietario,
     esBorradorSincronizable,
     esMimeFotoPermitido,
     esUuid,
     EVENTO_OUTBOX,
     extensionDesdeMime,
+    filtrarPorPropietario,
     generarConteoId,
     MAX_FOTO_BYTES,
     MAX_FOTO_COMPRIMIDA_BYTES,
@@ -42,6 +44,7 @@ export type BorradorConteoPayload = Omit<CrearConteoInput, 'foto_url'> & {
 
 export interface BorradorConteoOutbox {
     conteo_id: string;
+    propietario_uid: string;
     payload: BorradorConteoPayload;
     intentos: number;
     estado_envio: EstadoEnvioOutbox;
@@ -53,6 +56,7 @@ export interface BorradorConteoOutbox {
 
 export interface FotoBorradorOutbox {
     conteo_id: string;
+    propietario_uid: string;
     blob: Blob;
     storage_path: string;
     nombre_archivo: string;
@@ -118,19 +122,97 @@ function abrirDbOutbox(): Promise<IDBDatabase> {
 
         solicitud.onupgradeneeded = () => {
             const db = solicitud.result;
-            if (!db.objectStoreNames.contains(OUTBOX_STORE_BORRADORES)) {
-                const store = db.createObjectStore(OUTBOX_STORE_BORRADORES, {
-                    keyPath: 'conteo_id',
-                });
-                store.createIndex('estado_envio', 'estado_envio', {
-                    unique: false,
-                });
+            if (!solicitud.transaction) {
+                const error = new Error(
+                    'La transacción de upgrade de IndexedDB no está disponible.'
+                );
+                console.error('[offline] Migración v2 falló:', error);
+                throw error;
             }
-            if (!db.objectStoreNames.contains(OUTBOX_STORE_FOTOS)) {
-                db.createObjectStore(OUTBOX_STORE_FOTOS, {
-                    keyPath: 'conteo_id',
-                });
+            const tx = solicitud.transaction;
+            let descartados = 0;
+
+            const prepararStore = (nombre: string): IDBObjectStore => {
+                if (!db.objectStoreNames.contains(nombre)) {
+                    const store = db.createObjectStore(nombre, {
+                        keyPath: 'conteo_id',
+                    });
+                    store.createIndex('propietario_uid', 'propietario_uid', {
+                        unique: false,
+                    });
+                    if (nombre === OUTBOX_STORE_BORRADORES) {
+                        store.createIndex('estado_envio', 'estado_envio', {
+                            unique: false,
+                        });
+                    }
+                    return store;
+                }
+
+                const store = tx.objectStore(nombre);
+                if (!store.indexNames.contains('propietario_uid')) {
+                    store.createIndex('propietario_uid', 'propietario_uid', {
+                        unique: false,
+                    });
+                }
+                if (
+                    nombre === OUTBOX_STORE_BORRADORES &&
+                    !store.indexNames.contains('estado_envio')
+                ) {
+                    store.createIndex('estado_envio', 'estado_envio', {
+                        unique: false,
+                    });
+                }
+                return store;
+            };
+
+            const borradores = prepararStore(OUTBOX_STORE_BORRADORES);
+            const fotos = prepararStore(OUTBOX_STORE_FOTOS);
+
+            for (const store of [borradores, fotos]) {
+                const solicitudCursor = store.openCursor();
+                solicitudCursor.onsuccess = () => {
+                    const cursor = solicitudCursor.result;
+                    if (!cursor) return;
+
+                    const valor = cursor.value as {
+                        conteo_id?: unknown;
+                        propietario_uid?: unknown;
+                    };
+                    const propietario = valor.propietario_uid;
+                    if (
+                        typeof propietario !== 'string' ||
+                        !propietario.trim()
+                    ) {
+                        const conteoId =
+                            typeof valor.conteo_id === 'string'
+                                ? valor.conteo_id
+                                : '(sin conteo_id)';
+                        descartados += 1;
+                        console.error(
+                            '[offline] Migración v2: descartando registro legado sin propietario:',
+                            conteoId
+                        );
+                        cursor.delete();
+                    }
+                    cursor.continue();
+                };
+                solicitudCursor.onerror = () => {
+                    const error =
+                        solicitudCursor.error ||
+                        new Error('Cursor de migración v2 falló.');
+                    console.error(
+                        '[offline] Migración v2 falló; se aborta el upgrade:',
+                        error
+                    );
+                    tx.abort();
+                };
             }
+
+            tx.oncomplete = () => {
+                console.error(
+                    `[offline] Migración v2 completada; ${descartados} registro(s) legado(s) descartados.`
+                );
+            };
         };
 
         solicitud.onsuccess = () => {
@@ -525,9 +607,21 @@ export async function encolarConteo(
     entrada: EntradaBorradorConteo,
     foto: File | Blob,
     asesorEmail: string,
+    propietarioUid: string,
     opciones: OpcionesEncolarConteo = {}
 ): Promise<ResultadoEncolar> {
     try {
+        const propietario = typeof propietarioUid === 'string'
+            ? propietarioUid.trim()
+            : '';
+        if (!propietario) {
+            const error = new Error(
+                'El propietario del borrador offline es obligatorio.'
+            );
+            console.error('[offline] Encolado sin propietario:', error);
+            throw error;
+        }
+
         const conteoIdRaw =
             typeof opciones.conteoId === 'string'
                 ? opciones.conteoId.trim()
@@ -598,6 +692,7 @@ export async function encolarConteo(
 
         const borrador: BorradorConteoOutbox = {
             conteo_id: conteoId,
+            propietario_uid: propietario,
             payload,
             intentos: 0,
             estado_envio: 'pendiente',
@@ -610,6 +705,7 @@ export async function encolarConteo(
         const fotoBorrador: FotoBorradorOutbox | null = preparada
             ? {
                   conteo_id: conteoId,
+                  propietario_uid: propietario,
                   blob: preparada.blob,
                   storage_path: storagePath,
                   nombre_archivo: nombreArchivo,
@@ -640,42 +736,50 @@ export async function encolarConteo(
     }
 }
 
-export async function contarPendientes(): Promise<number> {
-    try {
-        const db = await abrirDbOutbox();
-        const tx = db.transaction(OUTBOX_STORE_BORRADORES, 'readonly');
-        const txDone = esperarTransaccion(tx);
-        const total = await esperarSolicitud(
-            tx.objectStore(OUTBOX_STORE_BORRADORES).count()
-        );
-        await txDone;
-        return total;
-    } catch (error) {
-        console.error('[offline] No se pudo contar la cola:', error);
-        throw error;
-    }
+export async function contarPendientes(
+    propietarioUid: string
+): Promise<number> {
+    const borradores = await listarBorradores(propietarioUid);
+    return borradores.length;
 }
 
-export async function listarBorradores(): Promise<BorradorConteoOutbox[]> {
+export async function listarBorradores(
+    propietarioUid: string
+): Promise<BorradorConteoOutbox[]> {
+    const uid = typeof propietarioUid === 'string'
+        ? propietarioUid.trim()
+        : '';
+    if (!uid) {
+        console.error('[offline] listarBorradores: uid vacío.');
+        return [];
+    }
+
     try {
         const db = await abrirDbOutbox();
         const tx = db.transaction(OUTBOX_STORE_BORRADORES, 'readonly');
         const txDone = esperarTransaccion(tx);
-        const filas = await esperarSolicitud(
-            tx.objectStore(OUTBOX_STORE_BORRADORES).getAll()
-        );
+        const indice = tx
+            .objectStore(OUTBOX_STORE_BORRADORES)
+            .index('propietario_uid');
+        const filas = await esperarSolicitud(indice.getAll(uid));
         await txDone;
-        return (filas as BorradorConteoOutbox[]).sort(
-            (a, b) => a.creado_en - b.creado_en
-        );
+
+        return filtrarPorPropietario(
+            filas as BorradorConteoOutbox[],
+            uid
+        ).sort((a, b) => a.creado_en - b.creado_en);
     } catch (error) {
-        console.error('[offline] No se pudo listar la cola:', error);
-        throw error;
+        console.error(
+            '[offline] No se pudo listar la cola del propietario:',
+            error
+        );
+        return [];
     }
 }
 
 async function obtenerFoto(
-    conteoId: string
+    conteoId: string,
+    propietarioUid: string
 ): Promise<FotoBorradorOutbox | null> {
     const db = await abrirDbOutbox();
     const tx = db.transaction(OUTBOX_STORE_FOTOS, 'readonly');
@@ -685,11 +789,24 @@ async function obtenerFoto(
     );
     await txDone;
     if (!foto) return null;
-    return foto as FotoBorradorOutbox;
+
+    const fotoBorrador = foto as FotoBorradorOutbox;
+    if (!esBorradorDePropietario(fotoBorrador, propietarioUid)) {
+        const error = new Error(
+            'La foto del borrador no pertenece al propietario de la sesión.'
+        );
+        console.error('[offline] Foto con propietario distinto:', {
+            conteoId,
+            error,
+        });
+        throw error;
+    }
+    return fotoBorrador;
 }
 
 async function marcarSincronizando(
-    conteoId: string
+    conteoId: string,
+    propietarioUid: string
 ): Promise<BorradorConteoOutbox | null> {
     const db = await abrirDbOutbox();
     const tx = db.transaction(OUTBOX_STORE_BORRADORES, 'readwrite');
@@ -703,6 +820,15 @@ async function marcarSincronizando(
     }
 
     const borrador = actual as BorradorConteoOutbox;
+    if (!esBorradorDePropietario(borrador, propietarioUid)) {
+        console.error(
+            '[offline] No se puede marcar sincronizando un borrador ajeno:',
+            conteoId
+        );
+        await txDone;
+        return null;
+    }
+
     const ahora = Date.now();
     const actualizado: BorradorConteoOutbox = {
         ...borrador,
@@ -720,7 +846,8 @@ async function marcarSincronizando(
 async function marcarError(
     conteoId: string,
     mensaje: string,
-    intentos: number
+    intentos: number,
+    propietarioUid: string
 ): Promise<void> {
     const db = await abrirDbOutbox();
     const tx = db.transaction(OUTBOX_STORE_BORRADORES, 'readwrite');
@@ -733,8 +860,17 @@ async function marcarError(
         return;
     }
 
-    const ahora = Date.now();
     const borrador = actual as BorradorConteoOutbox;
+    if (!esBorradorDePropietario(borrador, propietarioUid)) {
+        console.error(
+            '[offline] No se puede marcar error en un borrador ajeno:',
+            conteoId
+        );
+        await txDone;
+        return;
+    }
+
+    const ahora = Date.now();
     const actualizado: BorradorConteoOutbox = {
         ...borrador,
         estado_envio: 'error',
@@ -748,24 +884,46 @@ async function marcarError(
     emitirCambioOutbox();
 }
 
-async function eliminarBorrador(conteoId: string): Promise<void> {
+async function eliminarBorrador(
+    conteoId: string,
+    propietarioUid: string
+): Promise<void> {
     const db = await abrirDbOutbox();
     const tx = db.transaction(
         [OUTBOX_STORE_BORRADORES, OUTBOX_STORE_FOTOS],
         'readwrite'
     );
     const txDone = esperarTransaccion(tx);
-    tx.objectStore(OUTBOX_STORE_BORRADORES).delete(conteoId);
+    const storeBorradores = tx.objectStore(OUTBOX_STORE_BORRADORES);
+    const actual = await esperarSolicitud(storeBorradores.get(conteoId));
+
+    if (!actual) {
+        await txDone;
+        return;
+    }
+
+    const borrador = actual as BorradorConteoOutbox;
+    if (!esBorradorDePropietario(borrador, propietarioUid)) {
+        console.error(
+            '[offline] No se puede eliminar un borrador ajeno:',
+            conteoId
+        );
+        await txDone;
+        return;
+    }
+
+    storeBorradores.delete(conteoId);
     tx.objectStore(OUTBOX_STORE_FOTOS).delete(conteoId);
     await txDone;
     emitirCambioOutbox();
 }
 
 async function obtenerSiguientePendiente(
-    respetarBackoff: boolean
+    respetarBackoff: boolean,
+    propietarioUid: string
 ): Promise<BorradorConteoOutbox | null> {
     const ahora = Date.now();
-    const borradores = await listarBorradores();
+    const borradores = await listarBorradores(propietarioUid);
 
     for (const borrador of borradores) {
         if (
@@ -788,6 +946,23 @@ export async function sincronizarOutbox(
     actor: ActorInput,
     opciones: { respetarBackoff?: boolean; maxItems?: number } = {}
 ): Promise<ResultadoSincronizacion> {
+    if (
+        !actor ||
+        typeof actor.uid !== 'string' ||
+        !actor.uid.trim()
+    ) {
+        const error = new Error(
+            'No se puede sincronizar el outbox sin un propietario válido.'
+        );
+        console.error('[offline] sincronizarOutbox sin propietario:', error);
+        return {
+            procesados: 0,
+            exitosos: 0,
+            fallidos: 0,
+            ultimoError: error.message,
+        };
+    }
+
     if (sincronizandoOutbox) {
         return {
             procesados: 0,
@@ -797,6 +972,7 @@ export async function sincronizarOutbox(
         };
     }
 
+    const propietarioUid = actor.uid.trim();
     sincronizandoOutbox = true;
     const maxItems =
         typeof opciones.maxItems === 'number'
@@ -812,18 +988,23 @@ export async function sincronizarOutbox(
     try {
         for (let indice = 0; indice < maxItems; indice++) {
             const pendiente = await obtenerSiguientePendiente(
-                respetarBackoff
+                respetarBackoff,
+                propietarioUid
             );
             if (!pendiente) break;
 
             procesados += 1;
             const enProceso = await marcarSincronizando(
-                pendiente.conteo_id
+                pendiente.conteo_id,
+                propietarioUid
             );
             if (!enProceso) continue;
 
             try {
-                const foto = await obtenerFoto(pendiente.conteo_id);
+                const foto = await obtenerFoto(
+                    pendiente.conteo_id,
+                    propietarioUid
+                );
                 let fotoUrl =
                     typeof pendiente.payload.foto_url === 'string'
                         ? pendiente.payload.foto_url
@@ -849,7 +1030,8 @@ export async function sincronizarOutbox(
                     await marcarError(
                         pendiente.conteo_id,
                         mensaje,
-                        enProceso.intentos
+                        enProceso.intentos,
+                        propietarioUid
                     );
                     ultimoError = mensaje;
                     fallidos += 1;
@@ -889,14 +1071,18 @@ export async function sincronizarOutbox(
                     await marcarError(
                         pendiente.conteo_id,
                         mensaje,
-                        enProceso.intentos
+                        enProceso.intentos,
+                        propietarioUid
                     );
                     ultimoError = mensaje;
                     fallidos += 1;
                     continue;
                 }
 
-                await eliminarBorrador(pendiente.conteo_id);
+                await eliminarBorrador(
+                    pendiente.conteo_id,
+                    propietarioUid
+                );
                 exitosos += 1;
             } catch (error) {
                 const mensaje =
@@ -912,7 +1098,8 @@ export async function sincronizarOutbox(
                     await marcarError(
                         pendiente.conteo_id,
                         mensaje,
-                        enProceso.intentos
+                        enProceso.intentos,
+                        propietarioUid
                     );
                 } catch (errorMarcando) {
                     console.error(
@@ -943,7 +1130,75 @@ export async function sincronizarOutbox(
     }
 }
 
-export async function limpiarOutbox(): Promise<void> {
+async function borrarRegistrosDePropietario(
+    store: IDBObjectStore,
+    propietarioUid: string
+): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+        const indice = store.index('propietario_uid');
+        const solicitud = indice.openCursor(
+            IDBKeyRange.only(propietarioUid)
+        );
+        let borrados = 0;
+
+        solicitud.onsuccess = () => {
+            const cursor = solicitud.result;
+            if (!cursor) {
+                resolve(borrados);
+                return;
+            }
+            borrados += 1;
+            cursor.delete();
+            cursor.continue();
+        };
+
+        solicitud.onerror = () => {
+            const error =
+                solicitud.error ||
+                new Error('No se pudo borrar el outbox del propietario.');
+            console.error(
+                '[offline] Error borrando registros del propietario:',
+                error
+            );
+            reject(error);
+        };
+    });
+}
+
+export async function limpiarOutbox(
+    propietarioUid?: string
+): Promise<void> {
+    const uid = typeof propietarioUid === 'string'
+        ? propietarioUid.trim()
+        : '';
+
+    if (uid) {
+        try {
+            const db = await abrirDbOutbox();
+            const tx = db.transaction(
+                [OUTBOX_STORE_BORRADORES, OUTBOX_STORE_FOTOS],
+                'readwrite'
+            );
+            const txDone = esperarTransaccion(tx);
+            await borrarRegistrosDePropietario(
+                tx.objectStore(OUTBOX_STORE_BORRADORES),
+                uid
+            );
+            await borrarRegistrosDePropietario(
+                tx.objectStore(OUTBOX_STORE_FOTOS),
+                uid
+            );
+            await txDone;
+            emitirCambioOutbox();
+            return;
+        } catch (error) {
+            console.error(
+                '[offline] Purga owner-scoped falló; se ejecuta limpieza global forense:',
+                error
+            );
+        }
+    }
+
     try {
         const db = await abrirDbOutbox();
         const tx = db.transaction(

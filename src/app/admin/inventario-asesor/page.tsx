@@ -2,6 +2,8 @@
 
 import { useAuth } from "@/context/AuthContext";
 import AccesoDenegado from "@/components/inventario/AccesoDenegado";
+import OfflineIndicator from "@/components/OfflineIndicator";
+import { OfflineQueueProvider } from "@/hooks/useOfflineQueue";
 import ConteoAsesorForm from "./ConteoAsesorForm";
 
 export default function InventarioAsesorPage() {
@@ -38,5 +40,10 @@ export default function InventarioAsesorPage() {
         );
     }
 
-    return <ConteoAsesorForm />;
+    return (
+        <OfflineQueueProvider key={user.uid}>
+            <ConteoAsesorForm />
+            <OfflineIndicator />
+        </OfflineQueueProvider>
+    );
 }
