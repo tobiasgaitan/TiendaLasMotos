@@ -111,4 +111,4 @@
 - [x] **Quick-037 (WEB-037):** Refactor estructural a11y (3 headings + 3 fieldset/legend con reset UA, 4 archivos). Completado (2026-10-01).
 - [x] **Quick-038 (WEB-038):** Landing por rol (`admin_creditos`), flag `defaultLanding` + `RoleBasedRedirect`, guards de ruta en 5 páginas y dropdown extendido. Completado (2026-10-18) con deploy beta.
 - [x] **Quick-039 (WEB-039):** Precedencia guard-dentro-de-wrapper + supresión de flash en `RoleBasedRedirect`. Completado (2026-10-19) con deploy beta run `39202182660` success.
-- [x] **WEB-038 (v8.9.0):** Ruta  con listado, filtros, edición inline auditada y guards de rol (2026-11-07).
+- [x] **WEB-038 (v8.9.0):** Módulo de Inventario de Repuestos con Aislamiento Offline. Completado (2026-11-07) con certificación E2E en Beta: flujo asesor offline (IndexedDB) → sync → aprobación superadmin → ledger append-only (UID verificado) → catálogo con edición transaccional idempotente. Observaciones O-37 y O-38 registradas en SSOT.

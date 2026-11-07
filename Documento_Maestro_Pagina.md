@@ -320,6 +320,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
 *   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
 *   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
+*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) no se elimina tras sync exitoso con Firestore. El registro persiste con `estado_envio: "error"` e `intentos: 6` acumulados durante el modo offline. Bug de higiene post-sync; el conteo ya existe en Firestore pero el cliente no purga el mirror local. Ticket menor de limpieza.
+*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacena el email del superadmin en lugar del UID canónico verificado por `verifyIdToken`. El ledger `historial_auditoria_inventario` sí cumple el contrato (`registrado_por: me.uid`), pero el documento de conteo queda con inconsistencia de normalización. Deuda técnica menor; no afecta seguridad (la identidad real se verifica en el ledger).
+
 
 
 ### H. Commits Clave
