@@ -23,6 +23,18 @@ const RECHAZAR_SOURCE = readFileSync(
     'src/app/admin/inventory/actions/rechazarConteo.ts',
     'utf8'
 );
+const CREAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/crearConteoPendiente.ts',
+    'utf8'
+);
+const APROBAR_MODAL_SOURCE = readFileSync(
+    'src/components/inventario/AprobarConteoModal.tsx',
+    'utf8'
+);
+const FORM_ASESOR_SOURCE = readFileSync(
+    'src/app/admin/inventario-asesor/ConteoAsesorForm.tsx',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -62,6 +74,23 @@ async function run() {
         'rechazarConteo usa la clave canonica estado y no estado_conteo',
         RECHAZAR_SOURCE.includes("estado: 'rechazado'") &&
             !RECHAZAR_SOURCE.includes('estado_conteo')
+    );
+    check(
+        'crearConteoPendiente verifica existencia en la transacción',
+        CREAR_SOURCE.includes('tx.get(repuestoRef)') &&
+            CREAR_SOURCE.includes('La referencia seleccionada no existe')
+    );
+    check(
+        'AprobarConteoModal no usa getDoc cliente',
+        !APROBAR_MODAL_SOURCE.includes('firebase/firestore') &&
+            !APROBAR_MODAL_SOURCE.includes('getDoc(') &&
+            APROBAR_MODAL_SOURCE.includes('obtenerRepuestoPorReferencia')
+    );
+    check(
+        'formulario asesor no tiene inputs libres de referencia',
+        !FORM_ASESOR_SOURCE.includes('referencia-confirmada') &&
+            !FORM_ASESOR_SOURCE.includes('referencia-sugerida') &&
+            FORM_ASESOR_SOURCE.includes('SelectorReferenciaRepuesto')
     );
 
     const datosAprobacion = datosNuevosAprobacion(

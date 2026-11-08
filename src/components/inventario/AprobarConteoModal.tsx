@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
 import { useAuth } from '@/context/AuthContext';
 import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
+import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import {
     datosMaestroSchema,
     type AprobarConteoInput,
@@ -17,7 +17,6 @@ import {
     construirDatosMaestro,
     parseAplicaA,
 } from '@/lib/inventario/ui-helpers';
-import { db } from '@/lib/firebase';
 import type { PendienteDTO } from '@/types/inventario';
 
 interface AprobarConteoModalProps {
@@ -96,6 +95,7 @@ export default function AprobarConteoModal({
                 pendiente.id
             );
             setVerificando(false);
+            setEsReferenciaNueva(true);
             setActualizarDatos(true);
             setCheckError(
                 'La referencia confirmada está vacía. Si la referencia es nueva, completa los datos maestros.'
@@ -106,13 +106,36 @@ export default function AprobarConteoModal({
         }
 
         const verificarReferencia = async () => {
+            if (!user) {
+                if (cancelado) return;
+                setEsReferenciaNueva(null);
+                setActualizarDatos(false);
+                setCheckError(
+                    'Sesión inválida. Vuelve a iniciar sesión para verificar la referencia.'
+                );
+                setVerificando(false);
+                return;
+            }
+
             try {
-                const snap = await getDoc(
-                    doc(db, 'inventario_repuestos', referencia)
+                const idToken = await user.getIdToken();
+                const resultado = await obtenerRepuestoPorReferencia(
+                    { referencia },
+                    { uid: user.uid, idToken }
                 );
                 if (cancelado) return;
 
-                const existe = snap.exists();
+                if (!resultado.success) {
+                    setEsReferenciaNueva(null);
+                    setActualizarDatos(false);
+                    setCheckError(
+                        resultado.message ??
+                            'No se pudo verificar si la referencia existe.'
+                    );
+                    return;
+                }
+
+                const existe = resultado.existe;
                 setEsReferenciaNueva(!existe);
                 setActualizarDatos(!existe);
             } catch (errorLectura) {
@@ -123,9 +146,9 @@ export default function AprobarConteoModal({
                 if (cancelado) return;
 
                 setEsReferenciaNueva(null);
-                setActualizarDatos(true);
+                setActualizarDatos(false);
                 setCheckError(
-                    'No se pudo verificar si la referencia existe. Si la referencia es nueva, completa los datos maestros.'
+                    'No se pudo verificar si la referencia existe. Reintenta antes de aprobar.'
                 );
             } finally {
                 if (!cancelado) {
@@ -139,13 +162,12 @@ export default function AprobarConteoModal({
         return () => {
             cancelado = true;
         };
-    }, [isOpen, pendiente.id, pendiente.referencia_confirmada]);
+    }, [isOpen, pendiente.id, pendiente.referencia_confirmada, user]);
 
     const camposObligatorios = esReferenciaNueva === true;
     const mostrarCampos =
         esReferenciaNueva === true ||
-        (esReferenciaNueva === false && actualizarDatos) ||
-        (esReferenciaNueva === null && checkError !== null);
+        (esReferenciaNueva === false && actualizarDatos);
 
     function hayDatosMaestros(): boolean {
         return Boolean(
@@ -202,6 +224,14 @@ export default function AprobarConteoModal({
             return;
         }
 
+        if (esReferenciaNueva === null) {
+            setError(
+                checkError ??
+                    'No se pudo verificar la referencia. Reintenta antes de aprobar.'
+            );
+            return;
+        }
+
         const usuario = user;
         if (!usuario) {
             setError('Sesión inválida. Vuelve a iniciar sesión.');
@@ -213,10 +243,7 @@ export default function AprobarConteoModal({
             return;
         }
 
-        const debeEnviarDatos =
-            camposObligatorios ||
-            actualizarDatos ||
-            (esReferenciaNueva === null && checkError !== null);
+        const debeEnviarDatos = camposObligatorios || actualizarDatos;
 
         let datosMaestro: DatosMaestroInput | undefined;
 
@@ -538,7 +565,11 @@ export default function AprobarConteoModal({
                     </button>
                     <button
                         type="submit"
-                        disabled={verificando || accionEnCurso}
+                        disabled={
+                            verificando ||
+                            accionEnCurso ||
+                            esReferenciaNueva === null
+                        }
                         aria-label="Aprobar conteo"
                         className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                     >

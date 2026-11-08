@@ -106,13 +106,43 @@ export interface VisionSugerencia {
     score: number;
 }
 
+export interface VisionUnidad {
+    etiqueta: string;
+    score: number;
+    cantidad: number;
+}
+
+export interface RepuestoCandidato {
+    referencia: string;
+    descripcion: string;
+    fabricante: string;
+    categoria: string;
+    stock: number;
+    score: number;
+    coincidencias: string[];
+}
+
 export type VisionResult =
     | {
           success: true;
           etiquetas: string[];
           sugerencias: VisionSugerencia[];
+          unidades: VisionUnidad[];
       }
     | {
           success: false;
           message: string;
       };
+
+export interface BuscarCandidatosResult {
+    success: boolean;
+    message?: string;
+    candidatos: RepuestoCandidato[];
+    total?: number;
+}
+
+export interface ObtenerRepuestoResult {
+    success: boolean;
+    message?: string;
+    existe: boolean;
+}

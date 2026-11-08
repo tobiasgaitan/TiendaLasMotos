@@ -29,9 +29,14 @@ import type { EntradaBorradorConteo } from "@/lib/offline/outbox";
 import { prepararYSubirFoto } from "@/lib/offline/upload-foto";
 import { analizarImagenRepuesto } from "@/app/admin/inventory/actions/analizarImagenRepuesto";
 import { crearConteoPendiente } from "@/app/admin/inventory/actions/crearConteoPendiente";
-import type { VisionSugerencia } from "@/types/inventario";
+import type {
+    RepuestoCandidato,
+    VisionSugerencia,
+    VisionUnidad,
+} from "@/types/inventario";
 import AccesoDenegado from "@/components/inventario/AccesoDenegado";
 import FotoConteoPicker from "@/components/inventario/FotoConteoPicker";
+import SelectorReferenciaRepuesto from "@/components/inventario/SelectorReferenciaRepuesto";
 import SugerenciasVision from "@/components/inventario/SugerenciasVision";
 
 function esErrorReintentable(mensaje: string): boolean {
@@ -47,7 +52,8 @@ function esErrorReintentable(mensaje: string): boolean {
         texto.includes("no pertenece") ||
         texto.includes("no coincide con la url") ||
         texto.includes("foto no es una url") ||
-        texto.includes("debe usar https")
+        texto.includes("debe usar https") ||
+        texto.includes("referencia seleccionada no existe")
     ) {
         return false;
     }
@@ -86,6 +92,7 @@ export default function ConteoAsesorForm() {
     const [fotoSubida, setFotoSubida] = useState<FotoSubida | null>(null);
     const [sugerencias, setSugerencias] = useState<VisionSugerencia[]>([]);
     const [etiquetas, setEtiquetas] = useState<string[]>([]);
+    const [unidades, setUnidades] = useState<VisionUnidad[]>([]);
     const [referenciaSugerida, setReferenciaSugerida] = useState("");
     const [referenciaConfirmada, setReferenciaConfirmada] = useState("");
     const [descripcion, setDescripcion] = useState("");
@@ -129,6 +136,7 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
         setReferenciaConfirmada("");
         setDescripcion("");
@@ -186,14 +194,12 @@ export default function ConteoAsesorForm() {
             if (resultado.success) {
                 setSugerencias(resultado.sugerencias);
                 setEtiquetas(resultado.etiquetas.slice(0, 10));
-                if (resultado.sugerencias.length > 0) {
-                    const primera = resultado.sugerencias[0].etiqueta;
-                    setReferenciaSugerida((actual) => {
-                        if (actual.trim()) return actual;
-                        return primera.slice(0, 64);
-                    });
-                }
+                setUnidades(resultado.unidades);
+                setReferenciaSugerida("");
             } else {
+                setSugerencias([]);
+                setEtiquetas([]);
+                setUnidades([]);
                 setVisionError(resultado.message);
             }
         } catch (errorAnalisis) {
@@ -202,6 +208,9 @@ export default function ConteoAsesorForm() {
                 errorAnalisis
             );
             if (analisisSeqRef.current === secuencia) {
+                setSugerencias([]);
+                setEtiquetas([]);
+                setUnidades([]);
                 setVisionError(
                     mensajeDeError(
                         errorAnalisis,
@@ -253,7 +262,9 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
+        setReferenciaConfirmada("");
         setVisionError(null);
         setError(null);
         setPuedeReintentar(false);
@@ -289,7 +300,9 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
+        setReferenciaConfirmada("");
         setVisionError(null);
         setFotoError(null);
         setError(null);
@@ -302,11 +315,16 @@ export default function ConteoAsesorForm() {
             return null;
         }
 
+        if (!referenciaConfirmada.trim()) {
+            setError(
+                "Selecciona una referencia existente del catálogo antes de guardar."
+            );
+            return null;
+        }
+
         const referencia = referenciaSchema.safeParse(referenciaConfirmada);
         if (!referencia.success) {
-            setError(
-                "Confirma una referencia válida (letras, números, punto, guion o guion bajo)."
-            );
+            setError("La referencia seleccionada no es válida.");
             return null;
         }
 
@@ -498,7 +516,8 @@ export default function ConteoAsesorForm() {
         }
     }
 
-    const enviarDeshabilitado = guardando || analizando || !foto;
+    const enviarDeshabilitado =
+        guardando || analizando || !foto || !referenciaConfirmada;
 
     return (
         <div className="mx-auto w-full max-w-2xl space-y-5 pb-24">
@@ -579,10 +598,11 @@ export default function ConteoAsesorForm() {
                 <SugerenciasVision
                     sugerencias={sugerencias}
                     etiquetas={etiquetas}
+                    unidades={unidades}
                     analizando={analizando}
                     error={visionError}
-                    onUsarEtiqueta={(etiqueta) =>
-                        setReferenciaSugerida(etiqueta.slice(0, 64))
+                    onUsarCantidad={(cantidad) =>
+                        setCantidadContada(String(cantidad))
                     }
                     onReintentar={() => {
                         if (foto) {
@@ -597,58 +617,34 @@ export default function ConteoAsesorForm() {
                             2. Datos del conteo
                         </h2>
                         <p className="mt-1 text-xs text-gray-500">
-                            La referencia sugerida es solo una ayuda. La
-                            referencia confirmada la decides tú.
+                            La referencia se elige de las existencias del
+                            catálogo maestro. No se acepta referencia libre.
                         </p>
                     </div>
 
-                    <div>
-                        <label
-                            htmlFor="referencia-sugerida"
-                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                        >
-                            Referencia sugerida
-                        </label>
-                        <input
-                            id="referencia-sugerida"
-                            type="text"
-                            value={referenciaSugerida}
-                            maxLength={64}
-                            onChange={(event) =>
-                                setReferenciaSugerida(event.target.value)
+                    <SelectorReferenciaRepuesto
+                        etiquetas={etiquetas}
+                        referenciaSeleccionada={referenciaConfirmada}
+                        online={online}
+                        disabled={guardando}
+                        onSugerencia={(referencia) =>
+                            setReferenciaSugerida(referencia.slice(0, 64))
+                        }
+                        onSeleccion={(candidato: RepuestoCandidato | null) => {
+                            setReferenciaConfirmada(
+                                candidato ? candidato.referencia : ""
+                            );
+                            if (
+                                candidato &&
+                                candidato.descripcion.trim() &&
+                                !descripcion.trim()
+                            ) {
+                                setDescripcion(
+                                    candidato.descripcion.slice(0, 200)
+                                );
                             }
-                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                            placeholder="Sugerencia de Vision (opcional)"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            htmlFor="referencia-confirmada"
-                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                        >
-                            Referencia confirmada <span aria-hidden="true">*</span>
-                        </label>
-                        <input
-                            id="referencia-confirmada"
-                            type="text"
-                            required
-                            value={referenciaConfirmada}
-                            maxLength={64}
-                            autoCapitalize="characters"
-                            spellCheck={false}
-                            onChange={(event) =>
-                                setReferenciaConfirmada(event.target.value)
-                            }
-                            onBlur={() =>
-                                setReferenciaConfirmada((actual) =>
-                                    actual.trim().toUpperCase()
-                                )
-                            }
-                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                            placeholder="Ej. 5VL-E1341-00"
-                        />
-                    </div>
+                        }}
+                    />
 
                     <div>
                         <label
