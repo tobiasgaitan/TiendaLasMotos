@@ -21,3 +21,10 @@
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | WEB-040 | Hardening del destino post-login: open-redirect cerrado + `/admin/simulator` canonicalizado, con test de 21 checks + UAT 3 roles en beta | 2026-11-07 | `d131f77` + `bb5b206` + `0dd55de` | `.planning/quick/WEB-040/` + run #171 42418219718 success |
+
+- **WEB-042 (Hardening Sync Manual):** COMPLETADO (2026-11-08).
+  - Tokens hardcodeados eliminados.
+  - `fixDatabase23` retirado de código y runtime.
+  - Secreto `CRON_SECRET_TOKEN` rotado a v5 (v1-v4 deshabilitadas).
+  - Fix de CI (`npm install` en functions) aplicado en deploy-beta.yml y deploy-prod.yml.
+  - Commit de cierre: 45d8f03 (beta) / f63e4af (main).

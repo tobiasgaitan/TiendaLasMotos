@@ -390,3 +390,18 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 *Última actualización: 2026-11-07 COT por Antigravity*
+
+---
+## WEB-042 — Hardening de Sincronización Manual y Retiro de Endpoint Temporal (2026-11-08)
+- **Objetivo:** Eliminar tokens hardcodeados en `scraping-action.ts` y `functions/src/index.ts`, retirar el endpoint temporal `fixDatabase23`, y blindar `manualSyncBot` con autenticación de sesión admin y consumo de secretos vía Secret Manager.
+- **Acciones ejecutadas:**
+  1. Rotación de `CRON_SECRET_TOKEN` a versión 5 (v4 deshabilitada por fuga en variables de entorno planas durante deploy previo).
+  2. Implementación de `defineSecret` y `secrets` en `manualSyncBot` (firebase-functions v4.9.0).
+  3. Eliminación completa de `fixDatabase23` del código y de Cloud Functions (endpoint público con token débil retirado).
+  4. Corrección de CI: añadido `npm --prefix functions install` en workflows de deploy para evitar fallos de predeploy.
+  5. Actualización de `scraping-action.ts` para consumir `process.env.CRON_SECRET_TOKEN` y validar sesión admin (`verifySessionCookie` + `resolverRolActor`).
+- **Estado:** CERTIFICADO EN RUNTIME (Beta y Producción). Secreto latest = v5. Versiones 1-4 deshabilitadas.
+- **Deuda registrada:** 
+  - OBS-FUNCTIONS-CONFIG-DEPRECATION: Migrar `functions.config()` a params package antes de March 2026.
+  - OBS-FUNCTIONS-SMTP-VALUE-WARNING: `SMTP_EMAIL`/`SMTP_PASSWORD` usan `.value()` en carga de módulo.
+  - OBS-CLOUDRUN-HISTORY-CLEANUP: Limpieza de revisiones históricas en Cloud Run beta.
