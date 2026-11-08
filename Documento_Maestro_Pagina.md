@@ -390,3 +390,24 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 *Última actualización: 2026-11-07 COT por Antigravity*
+
+---
+## 12. WEB-043 — Matching Vision-Catálogo y Selector de Referencias (F2-A) (2026-11-08)
+### A. Arquitectura del Módulo
+- **Matching puro:** `src/lib/inventario/matching.ts` (sin dependencias de Firestore/React)
+- **Server Actions:** `buscarCandidatosRepuesto.ts` + `obtenerRepuestoPorReferencia.ts` con Faraday Cage completo
+- **UI:** `SelectorReferenciaRepuesto.tsx` reemplaza inputs de texto libre
+- **Vision:** `analizarImagenRepuesto.ts` extendido con `OBJECT_LOCALIZATION`
+
+### B. Guardrails Implementados
+- **Faraday Cage:** `verifyIdToken` + `requirePermiso` en todas las SA nuevas
+- **NAMING LOCK:** `inventario_repuestos.referencia` = docId canónico (inmutable)
+- **Zero-Silent-Failures:** Errores explícitos, cero `[]` como éxito silencioso
+- **Offline:** Caché local en `localStorage` con bloqueo explícito sin conexión
+
+### C. Observaciones No Bloqueantes
+- **O-1:** Falta botón de alta de repuestos en `/admin/inventario-repuestos`
+- **O-2:** Matching visual (foto vs foto) congelado para F2-C
+- **O-3:** Verificación D incompleta (no se capturó request/response en Red)
+
+**Coherence Score:** 0.99 (WEB-043-F2A — E2E certificado en runtime beta, push exitoso, deploy completado)
