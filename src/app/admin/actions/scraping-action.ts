@@ -1,7 +1,30 @@
 "use server";
 
 // ... imports
+import { cookies } from "next/headers";
+import { getAdminAuth } from "@/lib/firebase-admin";
+import { resolverRolActor } from "@/lib/auth/require-permiso";
 import { getCatalogoMotos } from "@/lib/firestore";
+
+async function isAdminSession(): Promise<boolean> {
+    try {
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get("__session")?.value;
+        if (!sessionCookie) return false;
+
+        const decoded = await getAdminAuth().verifySessionCookie(sessionCookie);
+        const email = typeof decoded.email === "string"
+            ? decoded.email.toLowerCase().trim()
+            : "";
+        if (!email) return false;
+
+        const { rol } = await resolverRolActor(email);
+        return rol === "admin" || rol === "superadmin";
+    } catch (error) {
+        console.error("Admin session verification failed:", error);
+        return false;
+    }
+}
 
 export async function getSyncList() {
     try {
@@ -21,7 +44,11 @@ export async function getSyncList() {
 }
 
 export async function triggerManualScraping(targetUrl?: string) {
-    const CRON_SECRET_TOKEN = "SYNC_MASTER_KEY_2025_SECURE_HARDCODED"; // process.env.CRON_SECRET_TOKEN;
+    if (!(await isAdminSession())) {
+        return { success: false, message: "No autorizado" };
+    }
+
+    const CRON_SECRET_TOKEN = process.env.CRON_SECRET_TOKEN;
     const FUNCTION_URL = process.env.NEXT_PUBLIC_SCRAPING_FUNCTION_URL || "https://us-central1-tiendalasmotos.cloudfunctions.net/manualSyncBot";
 
     if (!CRON_SECRET_TOKEN || !FUNCTION_URL) {

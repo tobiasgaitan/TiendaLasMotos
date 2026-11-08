@@ -14,6 +14,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: WEB-042 secret guard
+        run: |
+          set -euo pipefail
+
+          fail() { echo "FAIL: $1"; exit 1; }
+          ok() { echo "OK: $1"; }
+
+          # G1: exactly one module-scope defineSecret for CRON_SECRET_TOKEN.
+          g1_count=$(grep -cE "^const[[:space:]]+[A-Za-z0-9_]+[[:space:]]*=[[:space:]]*defineSecret\([\"']CRON_SECRET_TOKEN[\"']\)" functions/src/index.ts || true)
+          [ "$g1_count" -eq 1 ] || fail "G1 functions/src/index.ts"
+          ok "G1"
+
+          # G2: no public NEXT_PUBLIC_* variable containing CRON or SECRET.
+          public_prefix='NEXT_PUBLIC_'
+          secret_words='CRON|SECRET'
+          if grep -RInE "${public_prefix}[A-Za-z0-9_]*(${secret_words})" src functions .env.production >/dev/null 2>&1; then
+            fail "G2"
+          fi
+          ok "G2"
+
+          # G3: no fixDatabase23 export.
+          if grep -qE '^export[[:space:]]+const[[:space:]]+fixDatabase23' functions/src/index.ts; then
+            fail "G3 functions/src/index.ts"
+          fi
+          ok "G3"
+
+          # Extract manualSyncBot by export boundary, not numeric ranges.
+          block=$(awk '/^export const manualSyncBot[[:space:]]*=/ {inblock=1; print; next} inblock && /^export / {exit} inblock {print}' functions/src/index.ts)
+          [ -n "$block" ] || fail "B0 manualSyncBot block"
+          clean=$(printf '%s\n' "$block" | awk '
+            {
+              line=$0; out="";
+              for (i=1; i<=length(line); i++) {
+                two=substr(line,i,2);
+                if (!in_comment && two=="//") break;
+                if (!in_comment && two=="/*") { in_comment=1; i++; continue; }
+                if (in_comment && two=="*/") { in_comment=0; i++; continue; }
+                if (!in_comment) out=out substr(line,i,1);
+              }
+              print out;
+            }')
+
+          printf '%s\n' "$clean" | grep -qE 'secrets[[:space:]]*:' || fail "B1 manualSyncBot"
+          ok "B1"
+
+          printf '%s\n' "$clean" | grep -qE 'process\.env\.CRON_SECRET_TOKEN' || fail "B2 manualSyncBot"
+          ok "B2"
+
+          if printf '%s\n' "$clean" | grep -qE "(validationToken|CRON_SECRET_TOKEN)[[:space:]]*=[[:space:]]*[\"']"; then
+            fail "B3 manualSyncBot"
+          fi
+          ok "B3"
+
+          if printf '%s\n' "$clean" | grep -qE 'req\.query\.token|req\.headers\[[^]]*x-sync-token[^]]*\]'; then
+            fail "B4 manualSyncBot"
+          fi
+          printf '%s\n' "$clean" | grep -qE 'req\.headers\.authorization' || fail "B4 manualSyncBot"
+          printf '%s\n' "$clean" | grep -q 'Bearer' || fail "B4 manualSyncBot"
+          ok "B4"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -36,6 +96,9 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+
+      - name: Install Functions Dependencies
+        run: npm --prefix functions install
 
       - name: Deploy to Firebase Hosting
         env:
