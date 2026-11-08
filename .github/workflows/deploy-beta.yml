@@ -94,6 +94,9 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_BOT_API_KEY: ${{ secrets.NEXT_PUBLIC_BOT_API_KEY }}
 
+      - name: Install Functions Dependencies
+        run: npm --prefix functions install
+
       - name: Deploy to Firebase Hosting
         env:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
