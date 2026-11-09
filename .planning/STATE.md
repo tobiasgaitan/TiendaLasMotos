@@ -2,7 +2,7 @@
 **Versión Actual:** v8.9.4
 **Fecha:** 2026-11-09
 **Rama Activa:** beta
-**Última actividad:** 2026-11-09 — WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de, merge beta→main aprobado Opción 2).
+**Última actividad:** 2026-11-09 — Quick-034: params SMTP resueltos en runtime en mailer.ts; build Functions y deploy de sendUserInvitation/updateUsuryRates con ejecución runtime exitosa.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -21,3 +21,4 @@
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | WEB-040 | Hardening del destino post-login: open-redirect cerrado + `/admin/simulator` canonicalizado, con test de 21 checks + UAT 3 roles en beta | 2026-11-09 | `d131f77` + `bb5b206` + `0dd55de` | `.planning/quick/WEB-040/` + run #171 42418219718 success |
+| 034 | Resolver params SMTP en runtime en `mailer.ts`; build Functions + deploy de `sendUserInvitation`/`updateUsuryRates` y ejecución manual de `updateUsuryRates` | 2026-11-09 | `25388fc` | `.planning/quick/034-legacy-config-mailer-params/` |
