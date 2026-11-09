@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.4  
+**Versión del Stack & Hitos:** v8.9.5  
 **Última Actualización:** 2026-11-07  
 **Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
