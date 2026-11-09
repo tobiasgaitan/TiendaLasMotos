@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.3  
+**Versión del Stack & Hitos:** v8.9.4  
 **Última Actualización:** 2026-11-07  
 **Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
@@ -411,3 +411,16 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 - **O-3:** Verificación D incompleta (no se capturó request/response en Red)
 
 **Coherence Score:** 0.99 (WEB-043-F2A — E2E certificado en runtime beta, push exitoso, deploy completado)
+
+---
+## 13. WEB-043-O1 — Alta de Repuestos con Faraday Cage (2026-11-09)
+**Estado:** COMPLETADO Y CERTIFICADO EN RUNTIME BETA.
+**Arquitectura:**
+- Server Action `crearRepuesto.ts` con Faraday Cage (`verifyIdToken` + `requirePermiso` admin/superadmin).
+- Transacción atómica (Firestore): escritura simultánea en `inventario_repuestos/{referencia}` (docId canónico inmutable) y `historial_auditoria_inventario` (ledger append-only con `operacion: 'CREATE'`).
+- Schema Zod estricto (`.strict()`), normalización de `imagen_url` a `''` si es nulo/vacío.
+- UI: `CrearRepuestoModal.tsx` integrado en `InventarioRepuestosClient.tsx`, visible solo con permiso `create`.
+**Deuda Técnica Registrada:** WEB-043-O1-obs-001 (transformación redundante de `imagen_url` en schema, prioridad BAJA, no bloqueante).
+**Coherence Score:** 0.99 (E2E certificado, purga de prueba ejecutada, NAMING LOCK intacto).
+---
+<i>*Última actualización: 2026-11-09 COT por Antigravity*</i>

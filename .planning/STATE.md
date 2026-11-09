@@ -1,5 +1,5 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.3
+**Versión Actual:** v8.9.4
 **Fecha:** 2026-11-09
 **Rama Activa:** beta
 **Última actividad:** 2026-11-09 — WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de, merge beta→main aprobado Opción 2).
@@ -7,7 +7,7 @@
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
   - Conteo asesor y aprobaciones: CERTIFICADO (v8.8.0).
-  - Ruta de gestión de catálogo (`/admin/inventario-repuestos`): CERTIFICADO (v8.9.3).
+  - Ruta de gestión de catálogo (`/admin/inventario-repuestos`): CERTIFICADO (v8.9.4).
   - Idempotencia y Ledger append-only: CERTIFICADO EN RUNTIME BETA (ciclo completo: asesor offline → IndexedDB → sync → Firestore → superadmin aprueba → ledger append-only con UID verificado → catálogo creado → no-op idempotente → purga selectiva).
   - Observaciones registradas: O-15 a O-38 (no bloqueantes). O-37 (borrador no purgado post-sync) y O-38 (revisado_por con email vs UID) descubiertas en E2E runtime 2026-11-09.
 
