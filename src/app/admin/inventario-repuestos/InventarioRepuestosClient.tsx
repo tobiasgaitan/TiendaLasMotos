@@ -11,12 +11,14 @@ import {
     AlertCircle,
     Loader2,
     Pencil,
+    Plus,
     RefreshCw,
     Save,
     Search,
     X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
 import { listarRepuestos } from './actions/listarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
 import {
@@ -73,14 +75,18 @@ function mensajeDeError(error: unknown, fallback: string): string {
 }
 
 export default function InventarioRepuestosClient() {
-    const { user } = useAuth();
+    const { user, puedeAccion } = useAuth();
     const [repuestos, setRepuestos] = useState<RepuestoInventarioDTO[]>([]);
     const [filtros, setFiltros] = useState<FiltrosRepuesto>(FILTROS_INICIALES);
     const [edicion, setEdicion] = useState<EdicionRepuesto | null>(null);
     const [loading, setLoading] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [mostrarCrear, setMostrarCrear] = useState(false);
     const cargaRef = useRef(0);
+
+    const puedeCrear = puedeAccion('inventario_repuestos', 'create');
+    const puedeEditar = puedeAccion('inventario_repuestos', 'update');
 
     const cargarRepuestos = useCallback(async () => {
         if (!user) {
@@ -259,6 +265,8 @@ export default function InventarioRepuestosClient() {
     }
 
     function renderAcciones(repuesto: RepuestoInventarioDTO) {
+        if (!puedeEditar) return null;
+
         const enEdicion =
             edicion !== null && edicion.referencia === repuesto.referencia;
 
@@ -321,21 +329,38 @@ export default function InventarioRepuestosClient() {
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => {
-                        void cargarRepuestos();
-                    }}
-                    disabled={loading || guardando}
-                    aria-label="Actualizar lista de repuestos"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <RefreshCw
-                        aria-hidden="true"
-                        className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-                    />
-                    Actualizar
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {puedeCrear ? (
+                        <button
+                            type="button"
+                            onClick={() => setMostrarCrear(true)}
+                            disabled={guardando}
+                            aria-label="Crear nuevo repuesto"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Plus aria-hidden="true" className="h-4 w-4" />
+                            Nuevo Repuesto
+                        </button>
+                    ) : null}
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            void cargarRepuestos();
+                        }}
+                        disabled={loading || guardando}
+                        aria-label="Actualizar lista de repuestos"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <RefreshCw
+                            aria-hidden="true"
+                            className={`h-4 w-4 ${
+                                loading ? 'animate-spin' : ''
+                            }`}
+                        />
+                        Actualizar
+                    </button>
+                </div>
             </header>
 
             {error ? (
@@ -668,6 +693,14 @@ export default function InventarioRepuestosClient() {
                         </div>
                     ) : null}
                 </div>
+            ) : null}
+
+            {puedeCrear ? (
+                <CrearRepuestoModal
+                    isOpen={mostrarCrear}
+                    onClose={() => setMostrarCrear(false)}
+                    onCreado={cargarRepuestos}
+                />
             ) : null}
         </div>
     );

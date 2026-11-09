@@ -6,9 +6,13 @@
  * Ejecutar con: npx tsx src/test/utils/inventario-repuestos.test.ts
  */
 import { readFileSync } from 'node:fs';
+import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
-import { editarRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
+import {
+    crearRepuestoSchema,
+    editarRepuestoSchema,
+} from '@/lib/actions/inventario-repuestos-schemas';
 import {
     construirCambiosRepuesto,
     filtrarRepuestos,
@@ -23,8 +27,16 @@ const LISTAR_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/actions/listarRepuestos.ts',
     'utf8'
 );
+const CREAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/crearRepuesto.ts',
+    'utf8'
+);
 const CLIENT_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx',
+    'utf8'
+);
+const MODAL_SOURCE = readFileSync(
+    'src/components/inventario/CrearRepuestoModal.tsx',
     'utf8'
 );
 const PAGE_SOURCE = readFileSync(
@@ -165,6 +177,86 @@ check(
     }).success
 );
 
+const CREAR_BASE = {
+    referencia: '  brk-010  ',
+    descripcion: '  Pastillas de freno  ',
+    fabricante: '  Bosch  ',
+    aplica_a: ['Moto 125'],
+    categoria: '  Frenos  ',
+    precio: 85000,
+    ubicacion: ' a-01-05 ',
+    stock: 3,
+    stock_minimo: 1,
+    imagen_url: null,
+};
+
+const crearOk = crearRepuestoSchema.safeParse(CREAR_BASE);
+check(
+    'crearRepuestoSchema normaliza referencia y ubicación',
+    crearOk.success &&
+        crearOk.data.referencia === 'BRK-010' &&
+        crearOk.data.ubicacion === 'A-01-05' &&
+        crearOk.data.descripcion === 'Pastillas de freno' &&
+        crearOk.data.fabricante === 'Bosch' &&
+        crearOk.data.categoria === 'Frenos'
+);
+check(
+    'crearRepuestoSchema acepta imagen_url null',
+    crearOk.success && crearOk.data.imagen_url === null
+);
+check(
+    'crearRepuestoSchema acepta imagen_url omitida',
+    crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        imagen_url: undefined,
+    }).success
+);
+check(
+    'crearRepuestoSchema normaliza imagen_url vacía a null',
+    (() => {
+        const resultado = crearRepuestoSchema.safeParse({
+            ...CREAR_BASE,
+            imagen_url: '',
+        });
+        return resultado.success && resultado.data.imagen_url === null;
+    })()
+);
+check(
+    'crearRepuestoSchema rechaza URL de imagen inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        imagen_url: 'no-es-url',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza campos desconocidos',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        creado_por_uid: 'x',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza aplica_a vacío',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        aplica_a: [],
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza referencia inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencia: 'BRK 010',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza stock decimal',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        stock: 1.5,
+    }).success
+);
+
 const OTRO: RepuestoInventarioDTO = {
     ...BASE,
     referencia: 'ACE-002',
@@ -256,6 +348,18 @@ async function run() {
         editarInputInvalido.success === false
     );
 
+    const crearSinActor = await crearRepuesto(CREAR_BASE, {});
+    check('crearRepuesto rechaza actor inválido', crearSinActor.success === false);
+
+    const crearInputInvalido = await crearRepuesto(
+        {},
+        { uid: 'x', idToken: 'x' }
+    );
+    check(
+        'crearRepuesto rechaza input inválido antes de Firebase',
+        crearInputInvalido.success === false
+    );
+
     check(
         'listarRepuestos usa requireActorInventario y requirePermiso read',
         LISTAR_SOURCE.includes('requireActorInventario') &&
@@ -297,9 +401,62 @@ async function run() {
     );
 
     check(
+        'crearRepuesto usa Faraday y permiso create',
+        CREAR_SOURCE.startsWith("'use server';") &&
+            CREAR_SOURCE.includes('validarActor(actor)') &&
+            CREAR_SOURCE.includes('requireActorInventario(a.idToken)') &&
+            CREAR_SOURCE.includes('requirePermiso(') &&
+            CREAR_SOURCE.includes("'inventario_repuestos'") &&
+            CREAR_SOURCE.includes("'create'")
+    );
+
+    check(
+        'crearRepuesto exige rol admin o superadmin',
+        CREAR_SOURCE.includes("permiso.rol !== 'admin'") &&
+            CREAR_SOURCE.includes("permiso.rol !== 'superadmin'")
+    );
+
+    check(
+        'crearRepuesto usa docId canónico y transacción atómica',
+        CREAR_SOURCE.includes('.doc(data.referencia)') &&
+            CREAR_SOURCE.includes('runTransaction') &&
+            CREAR_SOURCE.includes('tx.get(repuestoRef)') &&
+            CREAR_SOURCE.includes('tx.set(repuestoRef, payload)') &&
+            CREAR_SOURCE.includes('tx.create(ledgerRef')
+    );
+
+    check(
+        'crearRepuesto no usa .add()',
+        !CREAR_SOURCE.includes('.add(')
+    );
+
+    check(
+        'crearRepuesto escribe ledger CREATE canónico',
+        CREAR_SOURCE.includes("operacion: 'CREATE'") &&
+            CREAR_SOURCE.includes('datos_anteriores: null') &&
+            CREAR_SOURCE.includes('registrado_por: me.uid')
+    );
+
+    check(
+        'crearRepuesto usa campos canónicos y no alias',
+        CREAR_SOURCE.includes('creado_por: me.email') &&
+            CREAR_SOURCE.includes('creado_en: ahora') &&
+            !CREAR_SOURCE.includes('creado_por_uid') &&
+            !CREAR_SOURCE.includes('creado_por_email') &&
+            !CREAR_SOURCE.includes('fecha_creacion') &&
+            !CREAR_SOURCE.includes('accion:')
+    );
+
+    check(
+        'crearRepuesto normaliza imagen ausente a cadena vacía',
+        CREAR_SOURCE.includes("imagen_url: data.imagen_url ?? ''")
+    );
+
+    check(
         'acciones nuevas no usan estado_conteo',
         !EDITAR_SOURCE.includes('estado_conteo') &&
-            !LISTAR_SOURCE.includes('estado_conteo')
+            !LISTAR_SOURCE.includes('estado_conteo') &&
+            !CREAR_SOURCE.includes('estado_conteo')
     );
 
     check(
@@ -307,13 +464,32 @@ async function run() {
         !CLIENT_SOURCE.includes('firebase/firestore') &&
             !CLIENT_SOURCE.includes('.collection(') &&
             !CLIENT_SOURCE.includes('getDocs(') &&
-            !CLIENT_SOURCE.includes('onSnapshot(')
+            !CLIENT_SOURCE.includes('onSnapshot(') &&
+            !MODAL_SOURCE.includes('firebase/firestore')
     );
 
     check(
-        'página exige admin/superadmin',
-        PAGE_SOURCE.includes("role === 'admin'") &&
-            PAGE_SOURCE.includes("role === 'superadmin'")
+        'botón Nuevo Repuesto condicionado por permiso create',
+        CLIENT_SOURCE.includes(
+            "puedeAccion('inventario_repuestos', 'create')"
+        ) &&
+            CLIENT_SOURCE.includes('Nuevo Repuesto') &&
+            CLIENT_SOURCE.includes('CrearRepuestoModal')
+    );
+
+    check(
+        'modal usa Server Action y recarga la lista',
+        MODAL_SOURCE.includes('crearRepuesto') &&
+            MODAL_SOURCE.includes('crearRepuestoSchema') &&
+            MODAL_SOURCE.includes('await onCreado()') &&
+            MODAL_SOURCE.includes('onClose()')
+    );
+
+    check(
+        'página permite create o update',
+        PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'create')") &&
+            PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'update')") &&
+            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar')
     );
 
     check(
