@@ -85,7 +85,7 @@ export async function rechazarConteo(
             tx.update(conteoRef, {
                 estado: 'rechazado',
                 motivo_rechazo: data.motivo_rechazo,
-                revisado_por: me.email,
+                revisado_por: me.uid,
                 revisado_en: ahora,
             });
 
@@ -103,7 +103,7 @@ export async function rechazarConteo(
                 datos_nuevos: {
                     estado: 'rechazado',
                     motivo_rechazo: data.motivo_rechazo,
-                    revisado_por: me.email,
+                    revisado_por: me.uid,
                     revisado_en: ahora,
                 },
                 campos_modificados: [

@@ -207,7 +207,7 @@ export async function aprobarConteo(
 
             tx.update(conteoRef, {
                 estado: 'aprobado',
-                revisado_por: me.email,
+                revisado_por: me.uid,
                 revisado_en: ahora,
                 motivo_rechazo: '',
             });

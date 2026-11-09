@@ -14,6 +14,10 @@ import {
     datosNuevosAprobacion,
     reconciliarDatosNuevosLegado,
 } from '@/lib/actions/inventario-ledger';
+import {
+    aprobarConteoSchema,
+    rechazarConteoSchema,
+} from '@/lib/actions/inventario-schemas';
 
 const APROBAR_SOURCE = readFileSync(
     'src/app/admin/inventory/actions/aprobarConteo.ts',
@@ -74,6 +78,46 @@ async function run() {
         'rechazarConteo usa la clave canonica estado y no estado_conteo',
         RECHAZAR_SOURCE.includes("estado: 'rechazado'") &&
             !RECHAZAR_SOURCE.includes('estado_conteo')
+    );
+    check(
+        'aprobarConteo escribe revisado_por con UID verificado',
+        APROBAR_SOURCE.includes('revisado_por: me.uid') &&
+            !APROBAR_SOURCE.includes('revisado_por: me.email')
+    );
+    check(
+        'rechazarConteo escribe revisado_por UID en conteo y ledger',
+        (RECHAZAR_SOURCE.match(/revisado_por:\s*me\.uid/g) || []).length >=
+            2 && !RECHAZAR_SOURCE.includes('revisado_por: me.email')
+    );
+    check(
+        'ambas acciones conservan registrado_por UID y email en ledger',
+        APROBAR_SOURCE.includes('registrado_por: me.uid') &&
+            APROBAR_SOURCE.includes('registrado_por_email: me.email') &&
+            RECHAZAR_SOURCE.includes('registrado_por: me.uid') &&
+            RECHAZAR_SOURCE.includes('registrado_por_email: me.email')
+    );
+    const aprobarForjado = aprobarConteoSchema.safeParse({
+        conteo_id: UUID,
+        revisado_por: 'atacante',
+        registrado_por: 'atacante',
+    });
+    check(
+        'aprobarConteo ignora revisado_por/registrado_por del cliente',
+        aprobarForjado.success &&
+            !('revisado_por' in aprobarForjado.data) &&
+            !('registrado_por' in aprobarForjado.data)
+    );
+    const rechazarForjado = rechazarConteoSchema.safeParse({
+        conteo_id: UUID,
+        motivo_rechazo: 'Foto borrosa',
+        revisado_por: 'atacante',
+        registrado_por: 'atacante',
+    });
+    check(
+        'rechazarConteo ignora revisado_por/registrado_por del cliente',
+        rechazarForjado.success &&
+            !('revisado_por' in rechazarForjado.data) &&
+            !('registrado_por' in rechazarForjado.data)
     );
     check(
         'crearConteoPendiente verifica existencia en la transacción',
