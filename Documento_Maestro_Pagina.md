@@ -320,8 +320,8 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
 *   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
 *   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
-*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) no se elimina tras sync exitoso con Firestore. El registro persiste con `estado_envio: "error"` e `intentos: 6` acumulados durante el modo offline. Bug de higiene post-sync; el conteo ya existe en Firestore pero el cliente no purga el mirror local. Ticket menor de limpieza.
-*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacena el email del superadmin en lugar del UID canónico verificado por `verifyIdToken`. El ledger `historial_auditoria_inventario` sí cumple el contrato (`registrado_por: me.uid`), pero el documento de conteo queda con inconsistencia de normalización. Deuda técnica menor; no afecta seguridad (la identidad real se verifica en el ledger).
+*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) reportado históricamente como no purgado tras sync exitoso. En el diagnóstico MT-02 de WEB-044-P1 Tier A se observó `NO_GHOST_OBSERVADO` en perfil normal; no se reprodujo con evidencia runtime. MT-03 no se activó. La deuda queda reconvertida a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL` para seguimiento, sin cambio de comportamiento.
+*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacenaba email. WEB-044-P1 Tier A lo corrigió forward-only a UID verificado por `verifyIdToken`; el ledger conserva `registrado_por: me.uid` y `registrado_por_email: me.email`. Certificado en runtime beta. Sin backfill histórico; los documentos antiguos con email quedan como legado documentado. La UI no consume actualmente el campo.
 *   **Ausencia de harness de testing ejecutable:** `package.json` no expone script `test` y los workflows de deploy no ejecutan tests antes de build/deploy. Los tests existentes son smoke scripts `tsx` invocables manualmente. Deuda registrada para WEB-044-P1; no se añadieron dependencias ni CI en el corte Tier A.
 
 
@@ -431,3 +431,45 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Estado:** COMPLETADO Y CERTIFICADO EN RUNTIME.
 **Arquitectura:** Eliminación de la instanciación de nodemailer.createTransport en module scope. Resolución de smtpEmail.value() y smtpPassword.value() dentro del handler sendErrorEmail, preservando el fail-safe y el NAMING LOCK.
 **Coherence Score:** 0.99 (Build EXIT 0, deploy beta exitoso, runtime limpio).
+
+---
+## 15. WEB-044-P1 Tier A — Cierre y estabilización (2026-11-09)
+
+**Estado:** CERTIFICADO EN ESTÁTICO Y RUNTIME BETA.
+**Commits:** `c02e5e3` (O-38), `1cf14b6` (MT-04.C), `1dc538e` (MT-06), `5707b9e` (evidencia y MT-10.A).
+**CI:** run #183 sobre `5707b9e` — success.
+**Build:** `npm run build`, `npm run lint` y `tsc --noEmit` en 0.
+
+### A. Resultado por microtask
+
+- **MT-00:** evidencia física del SSOT en raíz; sin dependencia de artefactos de auditoría no versionados.
+- **MT-01 / O-38:** `revisado_por` corregido forward-only a UID verificado en aprobación y rechazo; ledger conserva UID y email; sin backfill.
+- **MT-02 / O-37:** cerrado como `NO_GHOST_OBSERVADO` en perfil normal; MT-03 sin trigger. La deuda se reconvierte a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`.
+- **MT-04.A:** baseline estático de SW/cachés documentado.
+- **MT-04.C:** autocura estática mediante `updateViaCache: "none"` y `registration.update()`. No fue curable en runtime con `sw.js` byte-idéntico y con la prohibición de bump `tlm-shell-v3`/unregister; se deriva a Tier B.
+- **MT-06:** suite pura de matching ampliada; `ALL PASSED`.
+- **MT-10.A:** deudas y evidencia registradas sin bump de versión ni resolución de la sección 8.
+
+### B. Observaciones no bloqueantes derivadas
+
+- `OBS-PWA-RANCIO-NO-CURABLE-TIER-A`
+- `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`
+- `OBS-CACHE-STORAGE-NO-VISIBLE-DEVTOOLS-NORMAL`
+- `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`
+
+### C. Tier B congelado
+
+Tier B queda pendiente de las 10 decisiones del Director:
+
+1. Backfill histórico de O-38.
+2. Nueva Server Action read-only de reconciliación.
+3. Eliminación del fallback global de `limpiarOutbox`.
+4. Bump de caché `tlm-shell-v3`.
+5. Adición de Vitest, `fake-indexeddb` y `tsx`.
+6. Gate CI fail-closed antes de build/deploy.
+7. Harness de render de componentes: `FUERA_DE_WEB-044` o `DENTRO_DE_WEB-044`.
+8. Versión canónica del SSOT.
+9. Resolución de la sección 8 duplicada.
+10. Certificación final de Tier B.
+
+**Invariantes:** header v8.9.5 sin cambio; sección 8 sin tocar; SSOT permanece en la raíz; sin cambios de código de producto; sin cambios en bot; sin deploy de producción.

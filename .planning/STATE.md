@@ -2,7 +2,7 @@
 **Versión Actual:** v8.9.4
 **Fecha:** 2026-11-09
 **Rama Activa:** beta
-**Última actividad:** 2026-11-09 — WEB-044-P1 Tier A: O-38 forward-only, plantilla forense O-37, baseline PWA, autocura no destructiva, suite matching pura y registro documental de deudas.
+**Última actividad:** 2026-11-09 — WEB-044-P1 Tier A CERTIFICADO en estático y runtime beta (O-38 UID, MT-02 NO_GHOST_OBSERVADO, MT-06 ALL PASSED, CI #183 5707b9e). Tier B congelado.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -31,4 +31,6 @@
 | 041 | MT-10.A: registro documental de deudas sin version/sección 8 | 2026-11-09 | `—` | `.planning/quick/041-web044-mt10a-docs/` |
 
 - **WEB-LEGACY-CONFIG-001 (Migración params mailer):** COMPLETADO. Resolver .value() en runtime dentro de sendErrorEmail, cero functions.config(), deploy beta exitoso (commits 25388fc, dedbabf).
-- **WEB-044-P1 Tier A (deudas registradas):** O-37 (ghost post-sync), O-38 (revisado_por email), PWA rancio, ausencia de harness de testing y WEB-043-O1-obs-001. O-38 corregido forward-only; O-37 permanece pendiente de evidencia forense runtime antes de MT-03. Sin bump de versión ni resolución de sección 8.
+- **WEB-044-P1 Tier A (CERTIFICADO):** O-38 forward-only certificado en runtime beta (`revisado_por` UID; ledger UID+email; sin backfill). MT-02 cerrado como `NO_GHOST_OBSERVADO`; MT-03 sin trigger; O-37 reconvertido a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`. MT-04.C estático OK; runtime no curable en Tier A por `sw.js` byte-idéntico y prohibición de bump/unregister; derivado a Tier B. MT-06 ALL PASSED. Commits `c02e5e3`/`1cf14b6`/`1dc538e`/`5707b9e`; CI #183 success.
+- **Observaciones no bloqueantes Tier A:** `OBS-PWA-RANCIO-NO-CURABLE-TIER-A`, `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`, `OBS-CACHE-STORAGE-NO-VISIBLE-DEVTOOLS-NORMAL`, `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`.
+- **Tier B CONGELADO:** pendiente de 10 decisiones del Director: backfill O-38; nueva SA read-only de reconciliación; eliminar fallback global de `limpiarOutbox`; `tlm-shell-v3`; Vitest/fake-indexeddb/tsx; gate CI fail-closed; harness de componentes FUERA/DENTRO; versión canónica; sección 8; certificación final.
