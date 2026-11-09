@@ -424,3 +424,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Coherence Score:** 0.99 (E2E certificado, purga de prueba ejecutada, NAMING LOCK intacto).
 ---
 <i>*Última actualización: 2026-11-09 COT por Antigravity*</i>
+
+---
+## 14. WEB-LEGACY-CONFIG-001 — Migración functions.config() a params en mailer.ts (2026-11-09)
+**Estado:** COMPLETADO Y CERTIFICADO EN RUNTIME.
+**Arquitectura:** Eliminación de la instanciación de nodemailer.createTransport en module scope. Resolución de smtpEmail.value() y smtpPassword.value() dentro del handler sendErrorEmail, preservando el fail-safe y el NAMING LOCK.
+**Coherence Score:** 0.99 (Build EXIT 0, deploy beta exitoso, runtime limpio).
