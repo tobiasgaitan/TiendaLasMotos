@@ -377,7 +377,15 @@ function run() {
         'PwaRegistrar solo registra asesor en producción',
         pwaRegistrar.includes('role !== "asesor"') &&
             pwaRegistrar.includes('NODE_ENV !== "production"') &&
-            pwaRegistrar.includes('register("/sw.js", { scope: "/" })')
+            pwaRegistrar.includes('register("/sw.js"')
+    );
+    check(
+        'PwaRegistrar actualiza sin desregistrar ni tocar IndexedDB',
+        pwaRegistrar.includes('updateViaCache: "none"') &&
+            pwaRegistrar.includes('registration.update()') &&
+            !pwaRegistrar.includes('unregister') &&
+            !pwaRegistrar.includes('indexedDB') &&
+            !pwaRegistrar.includes('tlm_offline')
     );
 
     const offlineIndicator = readFileSync(
