@@ -50,6 +50,7 @@ const CATALOGO: CandidatoFuente[] = [
 // --- normalización ---
 check('normaliza tildes y mayúsculas', normalizarTexto('  Llánta  Trasera  ') === 'llanta trasera');
 check('tokeniza sin stopwords', tokenizar('Disco de freno para moto').join(' ') === 'disco freno moto');
+check('stopwords solas no generan tokens', tokenizar('de la el para').length === 0);
 check('referencia normalizada conserva tokens', normalizarTexto('5VL-E1341-00') === '5vl e1341 00');
 
 // --- matching por referencia ---
@@ -71,6 +72,38 @@ const porEtiquetaBrake = rankearCandidatos(CATALOGO, {
 });
 check('etiqueta brake encuentra FRENOS', porEtiquetaBrake[0]?.referencia === 'BRK-001');
 
+const porEtiquetaAcentuada = rankearCandidatos(CATALOGO, {
+    etiquetas: ['LLÁNTA'],
+});
+check(
+    'etiqueta con acentos y mayúsculas encuentra descripción',
+    porEtiquetaAcentuada[0]?.referencia === 'LLANTA-5VL-E1341-00'
+);
+
+const porEtiquetaCategoria = rankearCandidatos(CATALOGO, {
+    etiquetas: ['frenos'],
+});
+check(
+    'etiqueta coincide con categoría',
+    porEtiquetaCategoria[0]?.referencia === 'BRK-001'
+);
+
+const porFabricante = rankearCandidatos(CATALOGO, {
+    consulta: 'Yamaha',
+});
+check(
+    'consulta coincide con fabricante',
+    porFabricante[0]?.referencia === 'LLANTA-5VL-E1341-00'
+);
+
+const porAplicaA = rankearCandidatos(CATALOGO, {
+    consulta: 'Moto 150',
+});
+check(
+    'consulta coincide con aplica_a',
+    porAplicaA.some((item) => item.referencia === 'FILTRO-AIRE-01')
+);
+
 // --- matching por descripción y consulta ---
 const porDescripcion = rankearCandidatos(CATALOGO, {
     consulta: 'filtro aire',
@@ -81,6 +114,71 @@ const sinCoincidencias = rankearCandidatos(CATALOGO, {
     etiquetas: ['parabrisas'],
 });
 check('sin coincidencias devuelve lista vacía', sinCoincidencias.length === 0);
+
+const etiquetasVacias = rankearCandidatos(CATALOGO, {
+    etiquetas: ['', '   '],
+});
+check(
+    'etiquetas vacías no filtran el catálogo',
+    etiquetasVacias.length === CATALOGO.length
+);
+
+const consultaVacia = rankearCandidatos(CATALOGO, {
+    consulta: '   ',
+});
+check(
+    'consulta vacía no filtra el catálogo',
+    consultaVacia.length === CATALOGO.length
+);
+
+const referenciaContenida = rankearCandidatos(CATALOGO, {
+    consulta: 'LLANTA-5VL',
+});
+check(
+    'referencia contenida encuentra candidato',
+    referenciaContenida[0]?.referencia === 'LLANTA-5VL-E1341-00'
+);
+
+const onceEtiquetas = rankearCandidatos(CATALOGO, {
+    etiquetas: [
+        'x0',
+        'x1',
+        'x2',
+        'x3',
+        'x4',
+        'x5',
+        'x6',
+        'x7',
+        'x8',
+        'x9',
+        'frenos',
+    ],
+});
+check(
+    'solo se evalúan las primeras 10 etiquetas',
+    onceEtiquetas.length === 0
+);
+
+const unaEtiqueta = rankearCandidatos(CATALOGO, {
+    etiquetas: ['tire'],
+});
+const etiquetaDuplicada = rankearCandidatos(CATALOGO, {
+    etiquetas: ['tire', 'TIRE', 'tire'],
+});
+check(
+    'etiquetas normalizadas se deduplican',
+    unaEtiqueta[0]?.score === etiquetaDuplicada[0]?.score
+);
+
+const sinReferencia = rankearCandidatos([
+    { ...CATALOGO[0], referencia: '' },
+    CATALOGO[1],
+]);
+check(
+    'candidato sin referencia se descarta',
+    sinReferencia.length === 1 &&
+        sinReferencia[0]?.referencia === 'LLANTA-5VL-E1341-00'
+);
 
 // --- catálogo sin filtros ---
 const catalogoCompleto = rankearCandidatos(CATALOGO);
@@ -128,6 +226,18 @@ check(
     verificarSource.includes('validarActor(actor)') &&
         verificarSource.includes('requireActorInventario(a.idToken)') &&
         verificarSource.includes('requirePermiso(')
+);
+
+const matchingSource = readFileSync(
+    'src/lib/inventario/matching.ts',
+    'utf8'
+);
+check(
+    'matching puro no depende de Firestore, React ni DOM',
+    !matchingSource.includes('firebase') &&
+        !matchingSource.includes('react') &&
+        !matchingSource.includes('document.') &&
+        !matchingSource.includes('window.')
 );
 
 if (failures > 0) {
