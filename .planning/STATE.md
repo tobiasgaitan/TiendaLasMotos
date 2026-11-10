@@ -42,3 +42,6 @@
 
 ## Cierre WEB-045-P1 (2026-11-10)
 - **WEB-045-P1 CERTIFICADO (estático + runtime beta):** `limpiarOutbox` endurecido; UID vacío/undefined ya no cae a `clear()` global (`NO_OWNER_PURGE_BLOCKED`); purga global solo con `forzarPurgaGlobal:true` (`GLOBAL_PURGE_EXPLICIT`); owner-scoped fail-closed Tier B E intacto. Commit `08abcf1`, CI #188 success. 72 tests. `tlm_offline` v2 intacto en runtime. Deudas derivadas: OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR, OBS-MIGRATION-V2-INFO-AS-ERROR. Sin UI, sin bot, sin producción. Versión canónica v8.9.6.
+
+## Cierre WEB-046-P1 (2026-11-10)
+- **WEB-046-P1 CERTIFICADO (estático + runtime beta):** Migración de `enableIndexedDbPersistence` a `FirestoreSettings.cache` (Firebase v11.1.x). `tlm_offline` sobrevive al logout. Sin warnings de deprecación. Commit `d9f4b03`. 72 tests. Deuda derivada: OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (configuración WEB-040). Versión canónica v8.9.7.

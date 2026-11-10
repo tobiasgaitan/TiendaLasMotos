@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.6  
+**Versión del Stack & Hitos:** v8.9.7  
 **Última Actualización:** 2026-11-07  
 **Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
@@ -473,3 +473,15 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **UI change:** ninguno. `agent-cli eval` no requerido; excepción documental explícita.
 **Coherence Score:** 0.97 por autopsia de diff canónico.
 **Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz; DOCTRINA_QWEN_WEB.md MISSING.
+
+## 18. WEB-046-P1 — Migración a FirestoreSettings.cache (2026-11-10)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA.
+**Origen:** OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED (deuda de modernización SDK).
+**Commit:** `d9f4b03` feat(web-046): migrate firestore local cache initialization. CI beta run #XXX (pendiente) success.
+**Archivos:** `src/lib/firebase.ts`, `src/test/utils/pwa.test.ts`. Sin tocar `outbox.ts`, `purge.ts`, `AuthContext.tsx`, `sw.js`, bot, producción.
+**Contrato:** `enableIndexedDbPersistence` eliminado; reemplazado por `initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`. Branch persistente solo con `tlm_offline_asesor`. `persistenciaOfflineLista` sigue exportada. `purgarPersistenciaOffline` conserva `terminate` + `clearIndexedDbPersistence`.
+**Tests:** 72 tests. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** Consola limpia sin warnings de deprecación. `tlm_offline` v2 sobrevive al logout (no purgado por `firebase.ts`). NAMING LOCK intacto.
+**Deudas derivadas:** OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (configuración de datos WEB-040, fuera de perímetro).
+**Coherence Score:** 0.98 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz.
