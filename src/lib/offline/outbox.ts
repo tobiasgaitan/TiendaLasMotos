@@ -1165,6 +1165,46 @@ async function borrarRegistrosDePropietario(
     });
 }
 
+async function marcarErrorPurgaOwner(
+    propietarioUid: string,
+    mensaje: string
+): Promise<void> {
+    const db = await abrirDbOutbox();
+    const tx = db.transaction(
+        OUTBOX_STORE_BORRADORES,
+        'readwrite'
+    );
+    const txDone = esperarTransaccion(tx);
+    const store = tx.objectStore(OUTBOX_STORE_BORRADORES);
+    const filas = await esperarSolicitud(
+        store.index('propietario_uid').getAll(propietarioUid)
+    );
+    const ahora = Date.now();
+
+    for (const fila of filas as BorradorConteoOutbox[]) {
+        if (!esBorradorDePropietario(fila, propietarioUid)) continue;
+
+        store.put({
+            ...fila,
+            estado_envio: 'error',
+            actualizado_en: ahora,
+            proximo_intento_en:
+                ahora + calcularBackoffMs(fila.intentos),
+            ultimo_error: mensaje.slice(0, 500),
+        });
+        console.error(
+            '[offline] Purga owner-scoped falló; borrador conservado:',
+            {
+                conteoId: fila.conteo_id,
+                propietarioUid,
+            }
+        );
+    }
+
+    await txDone;
+    emitirCambioOutbox();
+}
+
 export async function limpiarOutbox(
     propietarioUid?: string
 ): Promise<void> {
@@ -1192,13 +1232,30 @@ export async function limpiarOutbox(
             emitirCambioOutbox();
             return;
         } catch (error) {
+            const mensaje =
+                error instanceof Error
+                    ? error.message
+                    : 'Purga owner-scoped falló.';
             console.error(
-                '[offline] Purga owner-scoped falló; se ejecuta limpieza global forense:',
-                error
+                '[offline] Purga owner-scoped falló; se conserva el outbox del propietario:',
+                { propietarioUid: uid, error }
             );
+
+            try {
+                await marcarErrorPurgaOwner(uid, mensaje);
+            } catch (errorMarcando) {
+                console.error(
+                    '[offline] No se pudo marcar el error de purga owner-scoped:',
+                    { propietarioUid: uid, error: errorMarcando }
+                );
+            }
+
+            throw error;
         }
     }
 
+    // Purga global explícita sin propietario. No se usa como fallback de una
+    // purga owner-scoped fallida.
     try {
         const db = await abrirDbOutbox();
         const tx = db.transaction(
@@ -1211,7 +1268,7 @@ export async function limpiarOutbox(
         await txDone;
         emitirCambioOutbox();
     } catch (error) {
-        console.error('[offline] No se pudo limpiar la cola:', error);
+        console.error('[offline] No se pudo limpiar la cola global:', error);
         throw error;
     }
 }
