@@ -2,6 +2,7 @@
  * Tests WEB-040 — destino seguro posterior al login.
  * Ejecutar con: npx tsx src/test/utils/post-login.test.ts
  */
+import { readFileSync } from 'node:fs';
 import {
     DESTINO_POST_LOGIN_DEFAULT,
     resolverDestinoPostLogin,
@@ -86,6 +87,45 @@ check('asesor parte de base canónica', destinoBase === '/admin/simulador?defaul
 check('asesor landing final', landingPorRol('asesor') === '/admin/inventario-asesor');
 check('admin landing final', landingPorRol('admin') === '/admin/simulador');
 check('admin_creditos landing final', landingPorRol('admin_creditos') === '/admin/creditos');
+
+// --- WEB-048: AuthContext sin reload y LoginForm con rol/flag antes de navegar ---
+const authContextSource = readFileSync(
+    'src/context/AuthContext.tsx',
+    'utf8'
+);
+const loginFormSource = readFileSync(
+    'src/app/admin/login/LoginForm.tsx',
+    'utf8'
+);
+const firebaseSource = readFileSync('src/lib/firebase.ts', 'utf8');
+
+check(
+    'AuthContext eliminó window.location.reload',
+    !authContextSource.includes('window.location.reload')
+);
+check(
+    'AuthContext conserva CLAVE_FLAG_ASESOR',
+    authContextSource.includes('CLAVE_FLAG_ASESOR')
+);
+check(
+    'LoginForm espera rol y escribe flag antes de navegar',
+    loginFormSource.includes('useAuth()') &&
+        loginFormSource.includes('CLAVE_FLAG_ASESOR') &&
+        loginFormSource.includes('prepararNavegacion') &&
+        loginFormSource.indexOf(
+            'window.localStorage.setItem(CLAVE_FLAG_ASESOR'
+        ) < loginFormSource.indexOf('window.location.href')
+);
+check(
+    'CLAVE_RECARGA_OFFLINE sigue existiendo como clave',
+    firebaseSource.includes('CLAVE_RECARGA_OFFLINE')
+);
+check(
+    'RoleBasedRedirect conserva su contrato de loading/role',
+    readFileSync('src/components/RoleBasedRedirect.tsx', 'utf8').includes(
+        'useAuth'
+    )
+);
 
 if (failures > 0) {
     console.error(`\n${failures} test(s) FAILED`);

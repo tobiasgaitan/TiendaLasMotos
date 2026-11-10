@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { auth, CLAVE_FLAG_ASESOR } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
@@ -10,9 +10,15 @@ import { verificarWhitelist } from '@/app/admin/users/whitelist-actions';
 import { createSession } from '@/app/actions/auth';
 import { sesionCookiePresente } from '@/app/actions/session-status';
 import { resolverDestinoPostLogin } from '@/lib/auth/post-login';
+import { useAuth } from '@/context/AuthContext';
+
+interface NavegacionPendiente {
+    callbackUrl: string;
+    uid: string;
+}
 
 export default function LoginForm() {
-    const router = useRouter();
+    const { user, role, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
     const [loading, setLoading] = useState(false);
@@ -24,19 +30,75 @@ export default function LoginForm() {
     const [password, setPassword] = useState('');
     const [resetEmail, setResetEmail] = useState('');
     const [puedeReintentarSesion, setPuedeReintentarSesion] = useState(false);
+    const [navegacionPendiente, setNavegacionPendiente] =
+        useState<NavegacionPendiente | null>(null);
 
     const ESPERAS_COOKIE_MS = [100, 200, 400, 800, 1200];
 
-    function navegarAlDestino(): void {
+    function prepararNavegacion(user: User): void {
         const callbackUrl = resolverDestinoPostLogin(
             searchParams.get('callbackUrl')
         );
-        console.log(
-            "Login Success. Server Session Created. Redirecting to:",
-            callbackUrl
-        );
-        window.location.href = callbackUrl;
+        setNavegacionPendiente({ callbackUrl, uid: user.uid });
     }
+
+    useEffect(() => {
+        if (!navegacionPendiente) return;
+        if (authLoading) return;
+        if (!user || user.uid !== navegacionPendiente.uid) return;
+        if (role === null) return;
+
+        try {
+            if (role === 'asesor') {
+                window.localStorage.setItem(CLAVE_FLAG_ASESOR, '1');
+            } else {
+                window.localStorage.removeItem(CLAVE_FLAG_ASESOR);
+            }
+        } catch (error) {
+            console.error(
+                "[login] No se pudo consolidar el flag offline antes de navegar:",
+                error
+            );
+            setError(
+                "No se pudo preparar la persistencia offline de la sesión. Reintenta sin volver a escribir la contraseña."
+            );
+            setPuedeReintentarSesion(true);
+            setNavegacionPendiente(null);
+            setLoading(false);
+            return;
+        }
+
+        console.log(
+            "Login Success. Role resolved. Redirecting to:",
+            navegacionPendiente.callbackUrl
+        );
+        setNavegacionPendiente(null);
+        window.location.href = navegacionPendiente.callbackUrl;
+    }, [
+        navegacionPendiente,
+        authLoading,
+        user,
+        role,
+    ]);
+
+    useEffect(() => {
+        if (!navegacionPendiente || authLoading || role !== null) return;
+
+        const timeout = setTimeout(() => {
+            console.error(
+                "[login] El rol no se resolvió antes de navegar:",
+                navegacionPendiente.uid
+            );
+            setError(
+                "La sesión se creó, pero el rol no se pudo resolver. Reintenta sin volver a escribir la contraseña."
+            );
+            setPuedeReintentarSesion(true);
+            setNavegacionPendiente(null);
+            setLoading(false);
+        }, 5000);
+
+        return () => clearTimeout(timeout);
+    }, [navegacionPendiente, authLoading, role]);
 
     async function esperarCookieSesion(): Promise<boolean> {
         for (let intento = 0; intento < 6; intento++) {
@@ -85,12 +147,12 @@ export default function LoginForm() {
             }
 
             if (await esperarCookieSesion()) {
-                navegarAlDestino();
+                prepararNavegacion(user);
                 return;
             }
 
             if (await reintentarSesion(user)) {
-                navegarAlDestino();
+                prepararNavegacion(user);
                 return;
             }
 
@@ -142,7 +204,7 @@ export default function LoginForm() {
             }
 
             // [WEB-040] Callback validado/canonicalizado; nunca acepta destinos externos ni /admin/simulator.
-            navegarAlDestino();
+            prepararNavegacion(userCredential.user);
         } catch (err: any) {
             console.error(err);
             handleAuthError(err);

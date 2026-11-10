@@ -29,12 +29,20 @@ describe('WEB-047-P1 — race condition de __session', () => {
         );
 
         expect(login).toContain('esperarCookieSesion');
-        expect(login.indexOf('esperarCookieSesion') <
-            login.indexOf('navegarAlDestino')).toBe(true);
+        expect(login).toContain('prepararNavegacion');
+        expect(
+            login.indexOf('esperarCookieSesion') <
+                login.indexOf('prepararNavegacion')
+        ).toBe(true);
         expect(loginForm).toContain(
             'if (await sesionCookiePresente()) return true;'
         );
         expect(login).not.toContain('document.cookie');
+        expect(
+            loginForm.indexOf(
+                'window.localStorage.setItem(CLAVE_FLAG_ASESOR'
+            ) < loginForm.indexOf('window.location.href')
+        ).toBe(true);
     });
 
     it('espera con backoff acotado y máximo 6 intentos', () => {

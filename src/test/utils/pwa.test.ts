@@ -461,10 +461,27 @@ function run() {
             segundaEspera < getDocIndex
     );
     check(
-        'AuthContext escribe flag y hace UNA recarga',
+        'AuthContext escribe flag sin reload duro',
         authSource.includes('CLAVE_FLAG_ASESOR') &&
-            (authSource.match(/window\.location\.reload\(\)/g) || [])
-                .length === 1
+            !authSource.includes('window.location.reload')
+    );
+    const loginFormSource = readFileSync(
+        'src/app/admin/login/LoginForm.tsx',
+        'utf8'
+    );
+    check(
+        'LoginForm espera rol y consolida flag antes de navegar',
+        loginFormSource.includes('useAuth()') &&
+            loginFormSource.includes('CLAVE_FLAG_ASESOR') &&
+            loginFormSource.includes('prepararNavegacion') &&
+            loginFormSource.indexOf(
+                'window.localStorage.setItem(CLAVE_FLAG_ASESOR'
+            ) < loginFormSource.indexOf('window.location.href')
+    );
+    check(
+        'CLAVE_RECARGA_OFFLINE se conserva sin reload',
+        firebaseSource.includes('CLAVE_RECARGA_OFFLINE') &&
+            !authSource.includes('window.location.reload')
     );
     check(
         'logout purga outbox del propietario, persistencia y cachés',
