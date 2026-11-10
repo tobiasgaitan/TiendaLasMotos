@@ -154,45 +154,6 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 
-## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-10-01)
-
-### A. Arquitectura del Módulo
-*   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
-*   **Sidebar:** Grupo "Gestión de Créditos" con icono `CreditCard` ámbar.
-*   **Colecciones Firestore:** 6 colecciones (`clientes_credito`, `creditos`, `pagos_y_multas`, `pagos_inversores`, `remisiones_dinero`, `historial_auditoria`) con reglas de lectura autenticada y writes/deletes de cliente denegados.
-
-### B. Contratos de Datos (NAMING LOCK)
-*   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
-*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`email_admin`/`email_usuario`/`email_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
-*   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
-*   **`pagos_inversores`:** Giro de salida con `email_admin`/`email_inversor`/`monto`.
-*   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
-*   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
-
-### C. Reglas de Negocio (Server Actions)
-*   **Regla A (Comisión):** Calculada en servidor (`src/lib/actions/creditos-calc.ts`). `pago_cuota`: comisión = valor × porcentaje; `multa`/`nota_credito`: comisión = 0. Cliente no inyecta `valor_comision`/`valor_neto_empresa` (Faraday Cage).
-*   **Regla B (Mora Renting):** Días cobrables = días posteriores a `fecha_registro` hasta hoy, excluyendo domingos. Exigible = días × cuota. Mora = exigible - recibido. Estado `en_mora` si mora > 0.
-*   **`nota_credito`:** Único mecanismo de ajuste contable negativo (prohibido borrado físico de registros financieros).
-
-### D. Índices Compuestos (21 totales)
-*   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
-*   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
-
-### E. Verificación E2E (2026-10-01)
-*   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
-*   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
-
-### F. Commits Clave
-*   `4a8c0fe`: Ejecución de planes 09-01..09-06 (código + reglas).
-*   `e0e2c05`: Fix de exports no-función en archivos `'use server'` (Next.js module restriction).
-*   `e4ddd31`: Declaración de 21 índices compuestos (18 legacy + 3 Fase 9) con merge pre-deploy.
-
-**Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
-
----
-*Última actualización: 2026-10-01 COT por Antigravity*
-
----
 ## 9. Resolución de Deudas Técnicas (2026-10-01)
 ### A. Deuda 3: Migración middleware.ts → proxy.ts (Next 16.1.1)
 *   **Problema:** Next.js 16 deprecó la convención `middleware.ts` en favor de `proxy.ts` (Node.js runtime).
@@ -473,3 +434,34 @@ Tier B queda pendiente de las 10 decisiones del Director:
 10. Certificación final de Tier B.
 
 **Invariantes:** header v8.9.5 sin cambio; sección 8 sin tocar; SSOT permanece en la raíz; sin cambios de código de producto; sin cambios en bot; sin deploy de producción.
+
+---
+## 16. WEB-044-P1 Tier B — E/F/G/A+I (2026-11-09)
+
+**Estado:** E/F/G/A+I CERTIFICADOS EN ESTÁTICO Y TESTS. Runtime J pendiente de evidencia de Tobias.
+**Commits:** `b4383ac` (E), `5a59b16` (F), `5a25664` (G).
+**Versión canónica:** v8.9.5.
+
+### A. Resultado por frente
+
+- **E / outbox:** `limpiarOutbox(uid)` ya no cae a `clear()` global. Si la purga owner-scoped falla, conserva borradores/fotos, marca `estado_envio: error` y registra `conteo_id` + `propietario_uid`. El `clear()` queda solo en la purga global explícita sin propietario.
+- **F / PWA:** `CACHE_SHELL` cambia a `tlm-shell-v3`; se mantiene limpieza de `tlm-shell-*` antiguas, allowlist exacta `/admin/inventario-asesor`, bloqueo de POST/API/RSC/cross-origin y `PwaRegistrar` con `updateViaCache: none` + `registration.update()` sin unregister.
+- **G / tests+CI:** scripts `test`, `test:smoke`, `test:unit`, `test:ci`; devDependencies `vitest`, `fake-indexeddb`, `tsx` (+ peer `vite`); 66 tests unitarios y mocks sin Firebase real. Gate CI `npm run test:ci` antes de build/deploy en beta y prod.
+- **A+I / documental:** STATE sincronizado a v8.9.5; ROADMAP declara versión canónica v8.9.5. Diff físico de las dos secciones 8 mostró únicamente una línea en blanco de diferencia (`40d39`), clasificado como no semántico; se consolidó a una sola instancia preservando el contenido íntegro.
+
+### B. Límites respetados
+
+- Sin backfill de O-38.
+- Sin nueva SA `reconciliarConteoPendiente`.
+- Sin render de componentes.
+- Sin bot.
+- Sin producción.
+- Sin claves nuevas Firestore/IndexedDB.
+- Sin delete físico ni alteración del ledger.
+- Sin ampliación de allowlist ni cacheo de rutas prohibidas.
+
+### C. Evidencia pendiente J
+
+Tobias debe aportar: `curl` de `/sw.js` con HTTP 200 y `tlm-shell-v3`; DevTools con worker nuevo activo distinto de #1411; `tlm_offline` v2 con 2 object stores intactos; `borradores_conteos` sin ghost nuevo; conteo real con `revisado_por` UID y ledger UID+email; consola sin errores persistentes de PWA.
+
+**Coherence Score:** pendiente. `npm run agent-eval` fue intentado y quedó bloqueado por `401 Unauthorized` del registro privado `npm.pkg.github.com`; se reporta como punto ciego, no como éxito simulado. La certificación runtime J sigue pendiente de evidencia de Tobias.

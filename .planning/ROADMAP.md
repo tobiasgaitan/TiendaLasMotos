@@ -1,5 +1,7 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
+**Versión Canónica Vigente:** v8.9.5
+
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
 - **Tareas**:
@@ -116,3 +118,4 @@
 - [x] **WEB-043 (v8.9.3):** Matching Vision-Catálogo y Selector de Referencias (F2-A). Completado (2026-11-09) con certificación E2E en Beta: matching puro sin dependencias, Server Actions con Faraday Cage, UI sin texto libre, validación de existencia en `crearConteoPendiente.ts`. Observaciones O-1 (alta de repuestos), O-2 (matching visual), O-3 (verificación de red) registradas en backlog.
 - [x] **Quick-034 (WEB-LEGACY-CONFIG-001):** Fix runtime module-scope .value() en mailer.ts. Completado (2026-11-09).
 - [x] **WEB-044-P1 Tier A (CERTIFICADO):** O-38 forward-only runtime (UID; ledger UID+email; sin backfill); MT-02 cerrado `NO_GHOST_OBSERVADO`; MT-03 sin trigger; O-37 reconvertido a deuda no reproducible en perfil normal; MT-04.C estático OK, runtime no curable en Tier A por `sw.js` byte-idéntico y prohibición de bump/unregister, derivado a Tier B; MT-06 ALL PASSED; CI #183 `5707b9e` success. Commits `c02e5e3`/`1cf14b6`/`1dc538e`/`5707b9e`. Observaciones: `OBS-PWA-RANCIO-NO-CURABLE-TIER-A`, `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`, `OBS-CACHE-STORAGE-NO-VISIBLE-DEVTOOLS-NORMAL`, `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`. Tier B CONGELADO con 10 decisiones: backfill O-38; SA read-only de reconciliación; eliminar fallback global de `limpiarOutbox`; `tlm-shell-v3`; Vitest/fake-indexeddb/tsx; gate CI fail-closed; harness de componentes FUERA/DENTRO; versión canónica; sección 8; certificación final. (2026-11-09).
+- [x] **WEB-044-P1 Tier B (E/F/G/A+I CERTIFICADOS):** E: outbox conserva borradores y no usa `clear()` global en fallo owner-scoped. F: `tlm-shell-v3` y worker nuevo sin unregister ni pérdida de IndexedDB. G: Vitest/fake-indexeddb/tsx, 66 tests unitarios, gate CI fail-closed. A+I: versión canónica v8.9.5 y sección 8 consolidada tras diff no semántico. Runtime J pendiente de evidencia de Tobias. Sin backfill, SA de reconciliación, render de componentes ni producción. (2026-11-09).
