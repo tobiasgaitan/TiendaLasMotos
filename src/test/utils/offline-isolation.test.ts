@@ -117,10 +117,29 @@ check(
     )
 );
 
+const bloqueMigracion = bloque(
+    outbox,
+    'solicitud.onupgradeneeded',
+    'solicitud.onsuccess'
+);
 check(
-    'onupgradeneeded descarta legados sin propietario con console.error',
-    outbox.includes('Migración v2: descartando registro legado sin propietario') &&
-        outbox.includes('cursor.delete()')
+    'onupgradeneeded descarta legados sin propietario con cursor.delete',
+    bloqueMigracion.includes(
+        'Migración v2: descartando registro legado sin propietario'
+    ) && bloqueMigracion.includes('cursor.delete()')
+);
+check(
+    'onupgradeneeded usa debug para descarte esperado',
+    bloqueMigracion.includes('console.debug(')
+);
+check(
+    'onupgradeneeded usa info para finalización esperada',
+    bloqueMigracion.includes('console.info(') &&
+        bloqueMigracion.includes('Migración v2 completada')
+);
+check(
+    'onupgradeneeded conserva console.error para fallos reales',
+    bloqueMigracion.includes('Migración v2 falló')
 );
 
 const efecto = bloque(

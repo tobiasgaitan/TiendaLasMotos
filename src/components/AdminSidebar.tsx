@@ -26,6 +26,12 @@ import {
 } from "lucide-react";
 import { deleteSession } from "@/app/admin/login/actions";
 
+function esRedireccionControladaNext(error: unknown): boolean {
+    if (!error || typeof error !== "object") return false;
+    const digest = (error as { digest?: unknown }).digest;
+    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
+}
+
 export default function AdminSidebar() {
     const { user, role, loading, logout, puedeVerNodo, verGrupoCreditos } = useAuth();
     const pathname = usePathname();
@@ -48,7 +54,13 @@ export default function AdminSidebar() {
             await deleteSession();
             window.location.href = '/admin/login';
         } catch (error) {
-            console.error("Logout failed", error);
+            if (esRedireccionControladaNext(error)) {
+                console.debug(
+                    "[auth] Logout redirect controlado por Next.js"
+                );
+            } else {
+                console.error("Logout failed", error);
+            }
             window.location.href = '/admin/login';
         }
     };

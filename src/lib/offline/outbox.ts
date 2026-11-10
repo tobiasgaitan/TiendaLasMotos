@@ -188,7 +188,7 @@ function abrirDbOutbox(): Promise<IDBDatabase> {
                                 ? valor.conteo_id
                                 : '(sin conteo_id)';
                         descartados += 1;
-                        console.error(
+                        console.debug(
                             '[offline] Migración v2: descartando registro legado sin propietario:',
                             conteoId
                         );
@@ -209,7 +209,7 @@ function abrirDbOutbox(): Promise<IDBDatabase> {
             }
 
             tx.oncomplete = () => {
-                console.error(
+                console.info(
                     `[offline] Migración v2 completada; ${descartados} registro(s) legado(s) descartados.`
                 );
             };
