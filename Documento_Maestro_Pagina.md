@@ -418,20 +418,9 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 - `OBS-CACHE-STORAGE-NO-VISIBLE-DEVTOOLS-NORMAL`
 - `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`
 
-### C. Tier B congelado
+### C. Tier B — estado posterior
 
-Tier B queda pendiente de las 10 decisiones del Director:
-
-1. Backfill histórico de O-38.
-2. Nueva Server Action read-only de reconciliación.
-3. Eliminación del fallback global de `limpiarOutbox`.
-4. Bump de caché `tlm-shell-v3`.
-5. Adición de Vitest, `fake-indexeddb` y `tsx`.
-6. Gate CI fail-closed antes de build/deploy.
-7. Harness de render de componentes: `FUERA_DE_WEB-044` o `DENTRO_DE_WEB-044`.
-8. Versión canónica del SSOT.
-9. Resolución de la sección 8 duplicada.
-10. Certificación final de Tier B.
+Tier B fue ejecutado en §16. De las 10 decisiones originales quedan pendientes: backfill histórico de O-38, nueva Server Action read-only de reconciliación, harness de render de componentes y certificación runtime J. El resto fue ejecutado en el frente E/F/G/A+I.
 
 **Invariantes:** header v8.9.5 sin cambio; sección 8 sin tocar; SSOT permanece en la raíz; sin cambios de código de producto; sin cambios en bot; sin deploy de producción.
 
