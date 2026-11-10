@@ -2,7 +2,9 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import {
     getFirestore,
-    enableIndexedDbPersistence,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
     clearIndexedDbPersistence,
     terminate,
     Firestore,
@@ -54,30 +56,34 @@ try {
 
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
     storage = getStorage(app);
     functions = getFunctions(app);
 
     // WEB-038: persistencia offline SOLO si el asesor ya fue detectado y
     // dejó el flag. La recarga única la coordina AuthContext.
+    //
+    // La caché local persistente debe configurarse en la inicialización de
+    // Firestore; no se puede habilitar después con getFirestore.
     if (leerFlagOffline()) {
         persistenciaOfflineIntentada = true;
         try {
-            persistenciaOfflineLista = enableIndexedDbPersistence(db).catch(
-                (error) => {
-                    console.error(
-                        "[firebase] Persistencia offline no disponible:",
-                        error
-                    );
-                }
-            );
+            db = initializeFirestore(app, {
+                localCache: persistentLocalCache({
+                    tabManager: persistentMultipleTabManager(),
+                }),
+            });
+            persistenciaOfflineLista = Promise.resolve();
         } catch (error) {
             console.error(
-                "[firebase] Persistencia offline no disponible:",
+                "[firebase] Persistencia offline no disponible; se usa Firestore sin caché local persistente:",
                 error
             );
+            db = getFirestore(app);
             persistenciaOfflineLista = Promise.resolve();
         }
+    } else {
+        db = getFirestore(app);
+        persistenciaOfflineLista = Promise.resolve();
     }
 } catch (error) {
     console.error(

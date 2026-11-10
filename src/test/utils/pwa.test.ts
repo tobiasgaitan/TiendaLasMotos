@@ -407,9 +407,25 @@ function run() {
 
     const firebaseSource = readFileSync('src/lib/firebase.ts', 'utf8');
     check(
-        'firebase.ts usa enableIndexedDbPersistence condicionado',
-        firebaseSource.includes('enableIndexedDbPersistence(db)') &&
+        'firebase.ts usa initializeFirestore con caché local persistente',
+        firebaseSource.includes('initializeFirestore(app') &&
+            firebaseSource.includes('persistentLocalCache(') &&
+            firebaseSource.includes('persistentMultipleTabManager()') &&
             firebaseSource.includes('tlm_offline_asesor')
+    );
+    check(
+        'firebase.ts eliminó enableIndexedDbPersistence',
+        !firebaseSource.includes('enableIndexedDbPersistence')
+    );
+    check(
+        'firebase.ts inicializa Firestore persistente antes del fallback getFirestore',
+        firebaseSource.indexOf('db = initializeFirestore(app') >= 0 &&
+            firebaseSource.indexOf('db = initializeFirestore(app') <
+                firebaseSource.indexOf('db = getFirestore(app)')
+    );
+    check(
+        'firebase.ts conserva getFirestore para el camino no persistente',
+        firebaseSource.includes('db = getFirestore(app)')
     );
     check(
         'firebase.ts exporta la promesa de persistencia',
