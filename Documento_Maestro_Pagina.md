@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.7  
+**Versión del Stack & Hitos:** v8.9.8  
 **Última Actualización:** 2026-11-07  
 **Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
@@ -485,3 +485,14 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Deudas derivadas:** OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (configuración de datos WEB-040, fuera de perímetro).
 **Coherence Score:** 0.98 por autopsia de diff canónico + runtime.
 **Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 19. WEB-047-P1 — Mitigación de carrera de __session en LoginForm (2026-11-11)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA.
+**Origen:** OBS-DOBLE-LOGIN (recurrencia 4/10 en cold start por race condition de cookie httpOnly).
+**Commit:** f33332c feat(web-047): mitigate __session race condition in LoginForm
+**Archivos:** src/app/actions/session-status.ts (nuevo), src/app/admin/login/LoginForm.tsx (modificado), src/test/vitest/login-session-race.test.ts (nuevo). Sin tocar createSession, proxy.ts, firestore.rules ni lógica de auth de Firebase.
+**Contrato:** Nueva Server Action sesionCookiePresente() que valida presencia booleana de __session. LoginForm implementa ciclo de verificación con backoff progresivo (100-1200ms, max 6 intentos) y reintento con token fresco antes de window.location.href. Zero reingreso de credenciales.
+**Tests:** 79 tests passed. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** Navegación hard bloqueada hasta confirmación física de cookie. Cero doble login en throttling de red.
+**Coherence Score:** 0.99 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
