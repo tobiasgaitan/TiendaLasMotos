@@ -1205,14 +1205,29 @@ async function marcarErrorPurgaOwner(
     emitirCambioOutbox();
 }
 
+interface OpcionesLimpiarOutbox {
+    forzarPurgaGlobal?: boolean;
+}
+
 export async function limpiarOutbox(
-    propietarioUid?: string
+    propietarioUid?: string,
+    opciones: OpcionesLimpiarOutbox = {}
 ): Promise<void> {
     const uid = typeof propietarioUid === 'string'
         ? propietarioUid.trim()
         : '';
 
-    if (uid) {
+    if (opciones.forzarPurgaGlobal === true) {
+        console.warn(
+            '[offline][outbox][GLOBAL_PURGE_EXPLICIT] Purga global explícita solicitada.'
+        );
+        if (uid) {
+            console.warn(
+                '[offline][outbox][GLOBAL_PURGE_EXPLICIT] UID ignorado por opción explícita:',
+                uid
+            );
+        }
+
         try {
             const db = await abrirDbOutbox();
             const tx = db.transaction(
@@ -1220,42 +1235,24 @@ export async function limpiarOutbox(
                 'readwrite'
             );
             const txDone = esperarTransaccion(tx);
-            await borrarRegistrosDePropietario(
-                tx.objectStore(OUTBOX_STORE_BORRADORES),
-                uid
-            );
-            await borrarRegistrosDePropietario(
-                tx.objectStore(OUTBOX_STORE_FOTOS),
-                uid
-            );
+            tx.objectStore(OUTBOX_STORE_BORRADORES).clear();
+            tx.objectStore(OUTBOX_STORE_FOTOS).clear();
             await txDone;
             emitirCambioOutbox();
-            return;
         } catch (error) {
-            const mensaje =
-                error instanceof Error
-                    ? error.message
-                    : 'Purga owner-scoped falló.';
-            console.error(
-                '[offline] Purga owner-scoped falló; se conserva el outbox del propietario:',
-                { propietarioUid: uid, error }
-            );
-
-            try {
-                await marcarErrorPurgaOwner(uid, mensaje);
-            } catch (errorMarcando) {
-                console.error(
-                    '[offline] No se pudo marcar el error de purga owner-scoped:',
-                    { propietarioUid: uid, error: errorMarcando }
-                );
-            }
-
+            console.error('[offline] No se pudo limpiar la cola global:', error);
             throw error;
         }
+        return;
     }
 
-    // Purga global explícita sin propietario. No se usa como fallback de una
-    // purga owner-scoped fallida.
+    if (!uid) {
+        console.warn(
+            '[offline][outbox][NO_OWNER_PURGE_BLOCKED] limpiarOutbox sin propietario válido; no se purga ningún registro.'
+        );
+        return;
+    }
+
     try {
         const db = await abrirDbOutbox();
         const tx = db.transaction(
@@ -1263,12 +1260,36 @@ export async function limpiarOutbox(
             'readwrite'
         );
         const txDone = esperarTransaccion(tx);
-        tx.objectStore(OUTBOX_STORE_BORRADORES).clear();
-        tx.objectStore(OUTBOX_STORE_FOTOS).clear();
+        await borrarRegistrosDePropietario(
+            tx.objectStore(OUTBOX_STORE_BORRADORES),
+            uid
+        );
+        await borrarRegistrosDePropietario(
+            tx.objectStore(OUTBOX_STORE_FOTOS),
+            uid
+        );
         await txDone;
         emitirCambioOutbox();
+        return;
     } catch (error) {
-        console.error('[offline] No se pudo limpiar la cola global:', error);
+        const mensaje =
+            error instanceof Error
+                ? error.message
+                : 'Purga owner-scoped falló.';
+        console.error(
+            '[offline] Purga owner-scoped falló; se conserva el outbox del propietario:',
+            { propietarioUid: uid, error }
+        );
+
+        try {
+            await marcarErrorPurgaOwner(uid, mensaje);
+        } catch (errorMarcando) {
+            console.error(
+                '[offline] No se pudo marcar el error de purga owner-scoped:',
+                { propietarioUid: uid, error: errorMarcando }
+            );
+        }
+
         throw error;
     }
 }

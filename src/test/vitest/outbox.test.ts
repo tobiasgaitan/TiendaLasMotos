@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -89,8 +90,40 @@ async function abrirDbDirecto(): Promise<IDBDatabase> {
     });
 }
 
+async function contarStore(nombre: string): Promise<number> {
+    const db = await abrirDbDirecto();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(nombre, 'readonly');
+        const solicitud = tx.objectStore(nombre).count();
+        solicitud.onsuccess = () => resolve(solicitud.result);
+        solicitud.onerror = () => reject(solicitud.error);
+    });
+}
+
+async function sembrarFoto(
+    uid: string,
+    conteoId: string,
+    storagePath: string
+): Promise<void> {
+    const db = await abrirDbDirecto();
+    await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(OUTBOX_STORE_FOTOS, 'readwrite');
+        tx.objectStore(OUTBOX_STORE_FOTOS).put({
+            conteo_id: conteoId,
+            propietario_uid: uid,
+            blob: blobVacio(),
+            storage_path: storagePath,
+            nombre_archivo: 'foto.jpg',
+            mime_type: 'image/jpeg',
+            tamano_bytes: 1024,
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
 beforeEach(async () => {
-    await limpiarOutbox();
+    await limpiarOutbox('', { forzarPurgaGlobal: true });
     vi.mocked(crearConteoPendiente).mockReset();
     vi.mocked(crearConteoPendiente).mockResolvedValue({
         success: true,
@@ -212,11 +245,134 @@ describe('MT-08 outbox/offline contracts', () => {
         expect(pendientes[0].estado_envio).toBe('error');
     });
 
+    it('T-EMPTY-UID-NO-CLEAR: UID vacío no ejecuta clear ni abre transacción', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A);
+        await sembrarFoto('uid-A', UUID_A, STORAGE_PATH_A);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const txSpy = vi.spyOn(IDBDatabase.prototype, 'transaction');
+
+        await expect(limpiarOutbox('')).resolves.toBeUndefined();
+
+        expect(txSpy).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                '[offline][outbox][NO_OWNER_PURGE_BLOCKED]'
+            )
+        );
+        txSpy.mockRestore();
+        warn.mockRestore();
+        expect(await contarStore(OUTBOX_STORE_BORRADORES)).toBe(1);
+        expect(await contarStore(OUTBOX_STORE_FOTOS)).toBe(1);
+    });
+
+    it('T-UNDEFINED-UID-NO-CLEAR: UID undefined no ejecuta clear', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A);
+        await sembrarFoto('uid-A', UUID_A, STORAGE_PATH_A);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const txSpy = vi.spyOn(IDBDatabase.prototype, 'transaction');
+
+        await expect(limpiarOutbox(undefined)).resolves.toBeUndefined();
+
+        expect(txSpy).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining(
+                '[offline][outbox][NO_OWNER_PURGE_BLOCKED]'
+            )
+        );
+        txSpy.mockRestore();
+        warn.mockRestore();
+        expect(await contarStore(OUTBOX_STORE_BORRADORES)).toBe(1);
+        expect(await contarStore(OUTBOX_STORE_FOTOS)).toBe(1);
+    });
+
+    it('T-EXPLICIT-GLOBAL-PURGE: flag explícito vacía ambas stores', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A);
+        await sembrarFoto('uid-A', UUID_A, STORAGE_PATH_A);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        await limpiarOutbox('', { forzarPurgaGlobal: true });
+
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining('[offline][outbox][GLOBAL_PURGE_EXPLICIT]')
+        );
+        warn.mockRestore();
+        expect(await contarStore(OUTBOX_STORE_BORRADORES)).toBe(0);
+        expect(await contarStore(OUTBOX_STORE_FOTOS)).toBe(0);
+    });
+
+    it('T-OWNER-SCOPED-FAILURE-FAIL-CLOSED: conserva datos y no hace clear global', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A);
+        await encolar('uid-B', UUID_B, STORAGE_PATH_B, FOTO_URL_B);
+        const txSpy = vi
+            .spyOn(IDBDatabase.prototype, 'transaction')
+            .mockImplementationOnce(() => {
+                throw new Error('owner purge failed');
+            });
+
+        await expect(limpiarOutbox('uid-A')).rejects.toThrow(
+            'owner purge failed'
+        );
+        txSpy.mockRestore();
+
+        expect(await contarStore(OUTBOX_STORE_BORRADORES)).toBe(2);
+        const a = await listarBorradores('uid-A');
+        expect(a).toHaveLength(1);
+        expect(a[0].estado_envio).toBe('error');
+        expect((await listarBorradores('uid-B'))[0].conteo_id).toBe(UUID_B);
+    });
+
+    it('T-NO-PRODUCT-GLOBAL-FLAG: producto solo llama con UID y sin flag', () => {
+        const auth = readFileSync('src/context/AuthContext.tsx', 'utf8');
+        expect(auth).toContain('limpiarOutbox(uid)');
+        expect(auth).not.toContain('forzarPurgaGlobal');
+
+        let matches = '';
+        try {
+            matches = execFileSync(
+                'grep',
+                [
+                    '-RIn',
+                    'forzarPurgaGlobal',
+                    'src/lib',
+                    'src/context',
+                    'src/app',
+                    'src/components',
+                    'src/hooks',
+                ],
+                { encoding: 'utf8' }
+            );
+        } catch {
+            matches = '';
+        }
+        const lineas = matches
+            .split('\n')
+            .map((linea) => linea.trim())
+            .filter(Boolean);
+        expect(lineas.length).toBeGreaterThan(0);
+        expect(
+            lineas.every((linea) =>
+                linea.startsWith('src/lib/offline/outbox.ts:')
+            )
+        ).toBe(true);
+    });
+
+    it('T-BEFORE-EACH-MIGRATION: setup usa purga global explícita', () => {
+        const source = readFileSync(
+            'src/test/vitest/outbox.test.ts',
+            'utf8'
+        );
+        expect(source).toContain(
+            "await limpiarOutbox('', { forzarPurgaGlobal: true });"
+        );
+    });
+
     it('outbox no contiene fallback global en la rama owner-scoped', () => {
         const source = readFileSync('src/lib/offline/outbox.ts', 'utf8');
-        const inicio = source.indexOf('export async function limpiarOutbox');
-        const fin = source.indexOf('Purga global explícita sin propietario');
-        const ramaOwner = source.slice(inicio, fin);
+        const inicioFuncion = source.indexOf(
+            'export async function limpiarOutbox'
+        );
+        const inicioOwner = source.indexOf('if (!uid) {', inicioFuncion);
+        const ramaOwner = source.slice(inicioOwner);
 
         expect(ramaOwner).toContain('marcarErrorPurgaOwner');
         expect(ramaOwner).not.toContain('.clear()');
