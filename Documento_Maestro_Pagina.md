@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.5  
+**Versión del Stack & Hitos:** v8.9.6  
 **Última Actualización:** 2026-11-07  
 **Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
 
@@ -460,3 +460,16 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 - `tlm_offline` intacto: versión 2, 2 object stores, `borradores_conteos` 0 entradas, `fotos_borrador` 0 entradas, sin estado_envio error; sin ghost O-37.
 - Consola sin errores `[pwa]`, `[offline]` ni `[sw]`; solo warnings no bloqueantes de Firestore `enableIndexedDbPersistence` deprecated, registrados como `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`.
 - `OBS-AGENT-EVAL-401-NO-UI-NEW`: `npm run agent-eval` falló con `401 Unauthorized` en `npm.pkg.github.com/@tobiasgaitan/agent-cli`; Tier B no introdujo UI nueva. Coherence Score 0.95 se calculó por autopsia de diff canónico, no por agent-cli eval.
+
+## 17. WEB-045-P1 — Endurecer limpiarOutbox contra purga global implícita (2026-11-10)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA.
+**Origen:** OBS-E-EMPTY-UID-GLOBAL-PURGE-EDGE (derivada de WEB-044-P1 Tier B, frente E).
+**Commit:** `08abcf1` fix(web-045): block implicit global outbox purge. CI beta run #188 (42740809877) success, headSha 08abcf1c1424888b71f3edd64f9bad006ebcb3d4.
+**Archivos:** `src/lib/offline/outbox.ts`, `src/test/vitest/outbox.test.ts`. Sin tocar `AuthContext.tsx`, `firebase.ts`, `sw.js`, bot, producción, dependencias, CI.
+**Contrato:** `limpiarOutbox(propietarioUid?, opciones?)`. UID vacío/undefined sin flag => no abre IndexedDB, no `clear()`, retorna con `[offline][outbox][NO_OWNER_PURGE_BLOCKED]`. Purga global solo con `forzarPurgaGlobal === true` => `[offline][outbox][GLOBAL_PURGE_EXPLICIT]`, ignora UID si presente. Owner-scoped conserva fail-closed Tier B E (falla => conserva, marca `estado_envio: error`, registra, nunca `clear()` global).
+**Tests:** 66->72. Nuevos: T-EMPTY-UID-NO-CLEAR, T-UNDEFINED-UID-NO-CLEAR, T-EXPLICIT-GLOBAL-PURGE, T-OWNER-SCOPED-ISOLATION, T-OWNER-SCOPED-FAILURE-FAIL-CLOSED, T-NO-PRODUCT-GLOBAL-FLAG, T-BEFORE-EACH-MIGRATION. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** bundle servido `cc10283e970d296c.js` contiene NO_OWNER_PURGE_BLOCKED + GLOBAL_PURGE_EXPLICIT. Logout válido: ausencia de ambos marcadores (uid válido => owner-scoped, sin purga global, sin edge bloqueado). `tlm_offline` v2, 2 stores, 0/0 entradas. SW inalterado, sin unregister. Edge UID vacío no reproducible sin invasión; cobertura unitaria+estática.
+**Deudas derivadas (no bloqueantes, no regresión de 08abcf1):** OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR (frente LoginForm/redirect, stack fuera del chunk outbox); OBS-MIGRATION-V2-INFO-AS-ERROR (onupgradeneeded loguea info como console.error).
+**UI change:** ninguno. `agent-cli eval` no requerido; excepción documental explícita.
+**Coherence Score:** 0.97 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz; DOCTRINA_QWEN_WEB.md MISSING.
