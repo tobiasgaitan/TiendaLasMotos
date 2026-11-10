@@ -10,6 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "npm run test:ci",
+    "test:smoke": "tsx src/test/utils/offline-isolation.test.ts && tsx src/test/utils/pwa.test.ts && tsx src/test/utils/inventario-actions.test.ts && tsx src/test/utils/inventario-matching.test.ts",
+    "test:unit": "vitest run",
+    "test:ci": "npm run test:smoke && npm run test:unit",
     "agent-eval": "PATH=\"$(pwd)/.agent/scripts:$PATH\" npx @tobiasgaitan/agent-cli eval"
   },
   "dependencies": {
@@ -43,9 +47,13 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "fake-indexeddb": "^6.2.8",
     "firebase-tools": "^15.1.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
   },
   "optionalDependencies": {
     "@img/sharp-linux-x64": "^0.34.5"
