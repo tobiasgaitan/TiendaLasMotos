@@ -248,12 +248,46 @@ describe('MT-07 Server Actions contracts', () => {
 
         expect(resultado.success).toBe(true);
         expect(mockState.docs.has('inventario_repuestos/BRK-010')).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-010')?.imagen_url
+        ).toBe('');
         const ledger = ledgerWrites();
         expect(ledger).toHaveLength(1);
         expect(ledger[0].kind).toBe('create');
         expect(ledger[0].data.operacion).toBe('CREATE');
         expect(ledger[0].data.datos_anteriores).toBeNull();
         expect(ledger[0].data.registrado_por).toBe('uid-admin');
+    });
+
+    it('crearRepuesto persiste imagen_url vacía para null, vacío u omitido', async () => {
+        const base = {
+            descripcion: 'Pastillas',
+            fabricante: 'Bosch',
+            aplica_a: ['Moto 125'],
+            categoria: 'Frenos',
+            precio: 1000,
+            ubicacion: 'A-01-05',
+            stock: 2,
+            stock_minimo: 1,
+        };
+        const casos = [
+            { referencia: 'BRK-011', imagen_url: '' },
+            { referencia: 'BRK-012', imagen_url: null },
+            { referencia: 'BRK-013' },
+        ];
+
+        for (const caso of casos) {
+            const resultado = await crearRepuesto(
+                { ...base, ...caso },
+                ACTOR
+            );
+            expect(resultado.success).toBe(true);
+            expect(
+                mockState.docs.get(
+                    `inventario_repuestos/${caso.referencia}`
+                )?.imagen_url
+            ).toBe('');
+        }
     });
 
     it('obtenerRepuestoPorReferencia lee docId canónico sin datos maestros completos', async () => {

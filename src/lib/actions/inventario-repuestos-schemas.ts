@@ -52,10 +52,7 @@ export const crearRepuestoSchema = z
                 z.literal(''),
                 z.null(),
             ])
-            .optional()
-            .transform((value) =>
-                value === '' || value === null ? null : value
-            ),
+            .optional(),
     })
     .strict();
 

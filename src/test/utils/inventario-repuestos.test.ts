@@ -212,13 +212,13 @@ check(
     }).success
 );
 check(
-    'crearRepuestoSchema normaliza imagen_url vacía a null',
+    'crearRepuestoSchema conserva imagen_url vacía sin transformarla',
     (() => {
         const resultado = crearRepuestoSchema.safeParse({
             ...CREAR_BASE,
             imagen_url: '',
         });
-        return resultado.success && resultado.data.imagen_url === null;
+        return resultado.success && resultado.data.imagen_url === '';
     })()
 );
 check(
