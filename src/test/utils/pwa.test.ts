@@ -260,7 +260,11 @@ function run() {
 
     // --- service worker manual ---
     const sw = readFileSync('public/sw.js', 'utf8');
-    check('SW cache versionada tlm-shell-v2', sw.includes("'tlm-shell-v2'"));
+    check('SW cache versionada tlm-shell-v3', sw.includes("'tlm-shell-v3'"));
+    check(
+        'SW no conserva tlm-shell-v2 como caché activa',
+        !sw.includes("const CACHE_SHELL = 'tlm-shell-v2'")
+    );
     check(
         'SW usa la ruta nueva y no la del inventario de motos',
         sw.includes("CACHE_KEY_INVENTARIO = '/admin/inventario-asesor'") &&

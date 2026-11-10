@@ -2,13 +2,13 @@
  * WEB-038 — Service Worker manual (sin next-pwa).
  *
  * Estrategia:
- * - Shell PWA versionado en tlm-shell-v2.
+ * - Shell PWA versionado en tlm-shell-v3.
  * - Navegación allowlisted /admin/inventario-asesor: network-first con fallback.
  * - Estáticos /_next/static y /icons: cache-first.
  * - Nunca cachea POST, /api, _rsc, Firestore, Auth ni Storage.
  */
 
-const CACHE_SHELL = 'tlm-shell-v2';
+const CACHE_SHELL = 'tlm-shell-v3';
 const CACHE_KEY_INVENTARIO = '/admin/inventario-asesor';
 const PRECACHE = [
     '/offline.html',
