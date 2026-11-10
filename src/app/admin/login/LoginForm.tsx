@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
 import { verificarWhitelist } from '@/app/admin/users/whitelist-actions';
 import { createSession } from '@/app/actions/auth';
+import { sesionCookiePresente } from '@/app/actions/session-status';
 import { resolverDestinoPostLogin } from '@/lib/auth/post-login';
 
 export default function LoginForm() {
@@ -21,13 +23,106 @@ export default function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [resetEmail, setResetEmail] = useState('');
+    const [puedeReintentarSesion, setPuedeReintentarSesion] = useState(false);
+
+    const ESPERAS_COOKIE_MS = [100, 200, 400, 800, 1200];
+
+    function navegarAlDestino(): void {
+        const callbackUrl = resolverDestinoPostLogin(
+            searchParams.get('callbackUrl')
+        );
+        console.log(
+            "Login Success. Server Session Created. Redirecting to:",
+            callbackUrl
+        );
+        window.location.href = callbackUrl;
+    }
+
+    async function esperarCookieSesion(): Promise<boolean> {
+        for (let intento = 0; intento < 6; intento++) {
+            try {
+                if (await sesionCookiePresente()) return true;
+            } catch (error) {
+                console.error(
+                    "[login] No se pudo verificar la cookie de sesión:",
+                    error
+                );
+            }
+
+            if (intento < 5) {
+                const espera =
+                    ESPERAS_COOKIE_MS[
+                        Math.min(intento, ESPERAS_COOKIE_MS.length - 1)
+                    ];
+                await new Promise((resolve) => setTimeout(resolve, espera));
+            }
+        }
+
+        return false;
+    }
+
+    async function reintentarSesion(user: User): Promise<boolean> {
+        const refreshed = await user.getIdTokenResult(true);
+        await createSession(refreshed.token);
+        return esperarCookieSesion();
+    }
+
+    async function handleReintentarSesion(): Promise<void> {
+        if (loading) return;
+
+        setLoading(true);
+        setError('');
+        setPuedeReintentarSesion(false);
+
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                setError(
+                    "La sesión de Firebase ya no está activa. Inicia sesión de nuevo."
+                );
+                setPuedeReintentarSesion(true);
+                return;
+            }
+
+            if (await esperarCookieSesion()) {
+                navegarAlDestino();
+                return;
+            }
+
+            if (await reintentarSesion(user)) {
+                navegarAlDestino();
+                return;
+            }
+
+            setError(
+                "La sesión se creó, pero el navegador no confirmó la cookie. Pulsa 'Reintentar sesión'."
+            );
+            setPuedeReintentarSesion(true);
+        } catch (errorReintento) {
+            console.error(
+                "[login] No se pudo reintentar la creación de sesión:",
+                errorReintento
+            );
+            setError(
+                "No se pudo reintentar la sesión. Vuelve a intentarlo sin cerrar esta pestaña."
+            );
+            setPuedeReintentarSesion(true);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setPuedeReintentarSesion(false);
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
 
             // [CRITICAL] Force Token Refresh to ensure Claims (SUPERADMIN) are applied instantly
             const tokenResult = await userCredential.user.getIdTokenResult(true);
@@ -35,12 +130,19 @@ export default function LoginForm() {
             // [NEW] Create Server Session Cookie
             await createSession(tokenResult.token);
 
+            if (!(await esperarCookieSesion())) {
+                if (!(await reintentarSesion(userCredential.user))) {
+                    setError(
+                        "La sesión se creó, pero el navegador no confirmó la cookie. Pulsa 'Reintentar sesión'."
+                    );
+                    setPuedeReintentarSesion(true);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // [WEB-040] Callback validado/canonicalizado; nunca acepta destinos externos ni /admin/simulator.
-            const callbackUrl = resolverDestinoPostLogin(searchParams.get('callbackUrl'));
-
-            console.log("Login Success. Server Session Created. Redirecting to:", callbackUrl);
-            window.location.href = callbackUrl; // Force hard navigation to refresh middleware state
-
+            navegarAlDestino();
         } catch (err: any) {
             console.error(err);
             handleAuthError(err);
@@ -138,8 +240,28 @@ export default function LoginForm() {
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm flex items-center gap-2 animate-pulse border border-red-200">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" /> <span className="font-medium">{error}</span>
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm flex items-start gap-2 animate-pulse border border-red-200">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <span className="font-medium">{error}</span>
+                        {puedeReintentarSesion ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handleReintentarSesion();
+                                }}
+                                disabled={loading}
+                                className="mt-2 inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {loading ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                    <Shield className="w-3.5 h-3.5" />
+                                )}
+                                {loading ? 'Reintentando…' : 'Reintentar sesión'}
+                            </button>
+                        ) : null}
+                    </div>
                 </div>
             )}
 
