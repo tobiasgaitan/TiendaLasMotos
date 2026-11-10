@@ -420,16 +420,17 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ### C. Tier B — estado posterior
 
-Tier B fue ejecutado en §16. De las 10 decisiones originales quedan pendientes: backfill histórico de O-38, nueva Server Action read-only de reconciliación, harness de render de componentes y certificación runtime J. El resto fue ejecutado en el frente E/F/G/A+I.
+Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones originales quedan pendientes: backfill histórico de O-38, nueva Server Action read-only de reconciliación y harness de render de componentes. El resto fue ejecutado en E/F/G/A+I y certificado en runtime beta.
 
 **Invariantes:** header v8.9.5 sin cambio; sección 8 sin tocar; SSOT permanece en la raíz; sin cambios de código de producto; sin cambios en bot; sin deploy de producción.
 
 ---
 ## 16. WEB-044-P1 Tier B — E/F/G/A+I (2026-11-09)
 
-**Estado:** E/F/G/A+I CERTIFICADOS EN ESTÁTICO Y TESTS. Runtime J pendiente de evidencia de Tobias.
+**Estado:** E/F/G/A+I + Runtime J CERTIFICADOS.
 **Commits:** `b4383ac` (E), `5a59b16` (F), `5a25664` (G).
 **Versión canónica:** v8.9.5.
+**Coherence Score:** 0.95 por autopsia de diff canónico; no se usó `agent-cli eval` como fuente de certificación.
 
 ### A. Resultado por frente
 
@@ -437,6 +438,7 @@ Tier B fue ejecutado en §16. De las 10 decisiones originales quedan pendientes:
 - **F / PWA:** `CACHE_SHELL` cambia a `tlm-shell-v3`; se mantiene limpieza de `tlm-shell-*` antiguas, allowlist exacta `/admin/inventario-asesor`, bloqueo de POST/API/RSC/cross-origin y `PwaRegistrar` con `updateViaCache: none` + `registration.update()` sin unregister.
 - **G / tests+CI:** scripts `test`, `test:smoke`, `test:unit`, `test:ci`; devDependencies `vitest`, `fake-indexeddb`, `tsx` (+ peer `vite`); 66 tests unitarios y mocks sin Firebase real. Gate CI `npm run test:ci` antes de build/deploy en beta y prod.
 - **A+I / documental:** STATE sincronizado a v8.9.5; ROADMAP declara versión canónica v8.9.5. Diff físico de las dos secciones 8 mostró únicamente una línea en blanco de diferencia (`40d39`), clasificado como no semántico; se consolidó a una sola instancia preservando el contenido íntegro.
+- **O-38:** no requiere revalidación en Tier B porque `aprobarConteo.ts` y `rechazarConteo.ts` no fueron modificados; la certificación runtime de Tier A sigue vigente.
 
 ### B. Límites respetados
 
@@ -449,8 +451,12 @@ Tier B fue ejecutado en §16. De las 10 decisiones originales quedan pendientes:
 - Sin delete físico ni alteración del ledger.
 - Sin ampliación de allowlist ni cacheo de rutas prohibidas.
 
-### C. Evidencia pendiente J
+### C. Evidencia runtime J certificada
 
-Tobias debe aportar: `curl` de `/sw.js` con HTTP 200 y `tlm-shell-v3`; DevTools con worker nuevo activo distinto de #1411; `tlm_offline` v2 con 2 object stores intactos; `borradores_conteos` sin ghost nuevo; conteo real con `revisado_por` UID y ledger UID+email; consola sin errores persistentes de PWA.
-
-**Coherence Score:** pendiente. `npm run agent-eval` fue intentado y quedó bloqueado por `401 Unauthorized` del registro privado `npm.pkg.github.com`; se reporta como punto ciego, no como éxito simulado. La certificación runtime J sigue pendiente de evidencia de Tobias.
+- `curl -sS -D - https://tiendalasmotos-beta.web.app/sw.js` devolvió HTTP/2 200, `content-type: text/javascript`, `cache-control: no-cache, max-age=0, must-revalidate` y `service-worker-allowed: /`.
+- El body desplegado contiene `const CACHE_SHELL = 'tlm-shell-v3'`, sin `tlm-shell-v2` como constante activa.
+- ETag nuevo: `7deceba8d0cf4519838dce55f91efb911ee27551167140b080b8256f94842bb8`; `last-modified: Tue, 10 Nov 2026 00:20:29 GMT`.
+- DevTools mostró Service Worker scope `https://tiendalasmotos-beta.web.app/`, fuente `sw.js`, recibido 2026-11-09 19:46:04 COT, estado N.º 1422 activado y en ejecución; ciclo Install/Wait/Activate #1422, sin registration residual #1411 y sin unregister manual.
+- `tlm_offline` intacto: versión 2, 2 object stores, `borradores_conteos` 0 entradas, `fotos_borrador` 0 entradas, sin estado_envio error; sin ghost O-37.
+- Consola sin errores `[pwa]`, `[offline]` ni `[sw]`; solo warnings no bloqueantes de Firestore `enableIndexedDbPersistence` deprecated, registrados como `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`.
+- `OBS-AGENT-EVAL-401-NO-UI-NEW`: `npm run agent-eval` falló con `401 Unauthorized` en `npm.pkg.github.com/@tobiasgaitan/agent-cli`; Tier B no introdujo UI nueva. Coherence Score 0.95 se calculó por autopsia de diff canónico, no por agent-cli eval.
