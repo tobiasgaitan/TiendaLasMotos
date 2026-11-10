@@ -496,3 +496,13 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Runtime beta:** Navegación hard bloqueada hasta confirmación física de cookie. Cero doble login en throttling de red.
 **Coherence Score:** 0.99 por autopsia de diff canónico.
 **Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 20. WEB-048-P1 — Eliminación de reload duro en post-login (2026-11-11)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA.
+**Origen:** OBS-DOBLE-LOGIN (recurrencia intermitente por `window.location.reload()` en `AuthContext.tsx` para rol `asesor`).
+**Commit:** 2e4e20b feat(web-048): remove auth reload and gate post-login navigation
+**Archivos:** `src/context/AuthContext.tsx`, `src/app/admin/login/LoginForm.tsx`, `src/test/utils/pwa.test.ts`, `src/test/utils/post-login.test.ts`, `src/test/vitest/login-session-race.test.ts`.
+**Contrato:** `AuthContext` ya no ejecuta `reload()`. `LoginForm` gestiona la navegación (`window.location.href`) solo tras confirmar que `role !== null`. El flag `CLAVE_FLAG_ASESOR` se consolida antes de la navegación, permitiendo que `firebase.ts` active la persistencia en la carga de la página destino sin interrumpir el estado de la sesión.
+**Runtime beta:** Navegación fluida a `/admin/inventario-asesor` para rol asesor. Cero recargas intermedias destructivas. Persistencia offline verificada.
+**Coherence Score:** 0.95 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves nuevas; sin alterar lógica de outbox/purga; sin tocar producción.
