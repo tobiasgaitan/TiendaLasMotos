@@ -2,7 +2,7 @@
 **Versión Actual:** v8.9.5
 **Fecha:** 2026-11-09
 **Rama Activa:** beta
-**Última actividad:** 2026-11-09 — WEB-044-P1 Tier B + Runtime J CERTIFICADOS: worker #1422, `tlm-shell-v3`, `tlm_offline` v2 intacto, 0 ghosts, consola PWA limpia y CI verde.
+**Última actividad:** 2026-11-10 — WEB-048: reload de AuthContext eliminado; LoginForm espera rol/UID y consolida `CLAVE_FLAG_ASESOR` antes de navegar; tests, tsc, lint y build en verde.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -33,6 +33,7 @@
 | 043 | Tier B F: Service Worker `tlm-shell-v3` sin unregister | 2026-11-09 | `5a59b16` | `.planning/quick/043-web044-tierb-f-sw-v3/` |
 | 044 | Tier B G: Vitest/fake-indexeddb/tsx + gate CI fail-closed | 2026-11-09 | `5a25664` | `.planning/quick/044-web044-tierb-g-tests-ci/` |
 | 045 | Tier B A+I: v8.9.5 + consolidación no semántica sección 8 | 2026-11-09 | `—` | `.planning/quick/045-web044-tierb-ai-docs/` |
+| 046 | WEB-048: reload de AuthContext eliminado; navegación post-login tras rol y flag | 2026-11-10 | `2e4e20b` | `.planning/quick/046-web048-auth-reload/` |
 
 - **WEB-LEGACY-CONFIG-001 (Migración params mailer):** COMPLETADO. Resolver .value() en runtime dentro de sendErrorEmail, cero functions.config(), deploy beta exitoso (commits 25388fc, dedbabf).
 - **WEB-044-P1 Tier A (CERTIFICADO):** O-38 forward-only certificado en runtime beta (`revisado_por` UID; ledger UID+email; sin backfill). MT-02 cerrado como `NO_GHOST_OBSERVADO`; MT-03 sin trigger; O-37 reconvertido a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`. MT-04.C estático OK; runtime no curable en Tier A por `sw.js` byte-idéntico y prohibición de bump/unregister; derivado a Tier B. MT-06 ALL PASSED. Commits `c02e5e3`/`1cf14b6`/`1dc538e`/`5707b9e`; CI #183 success.
