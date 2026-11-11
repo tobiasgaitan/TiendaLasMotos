@@ -20,15 +20,7 @@ export function conTimeout<T>(
 
     const timeout = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-            const errorTimeout = new TimeoutError(mensaje);
-            console.warn('[WEB-O29-DIAG][timeout:create]', {
-                name: errorTimeout.name,
-                constructorName: errorTimeout.constructor.name,
-                esError: errorTimeout instanceof Error,
-                esTimeoutError: errorTimeout instanceof TimeoutError,
-                ms,
-            });
-            reject(errorTimeout);
+            reject(new TimeoutError(mensaje));
         }, ms);
     });
 
