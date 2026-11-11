@@ -148,6 +148,13 @@ async function run() {
             !FORM_ASESOR_SOURCE.includes('referencia-sugerida') &&
             FORM_ASESOR_SOURCE.includes('SelectorReferenciaRepuesto')
     );
+    check(
+        'formulario asesor acota el análisis con timeout y libera el submit',
+        FORM_ASESOR_SOURCE.includes('conTimeout(') &&
+            FORM_ASESOR_SOURCE.includes('TIMEOUT_ANALISIS_MS') &&
+            FORM_ASESOR_SOURCE.includes('instanceof TimeoutError') &&
+            FORM_ASESOR_SOURCE.includes('setAnalizando(false)')
+    );
 
     const datosAprobacion = datosNuevosAprobacion(
         { stock: 7, ubicacion: 'A-01-05' },

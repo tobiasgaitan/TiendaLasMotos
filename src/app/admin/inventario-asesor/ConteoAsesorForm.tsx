@@ -27,6 +27,11 @@ import {
 } from "@/lib/offline/outbox-utils";
 import type { EntradaBorradorConteo } from "@/lib/offline/outbox";
 import { prepararYSubirFoto } from "@/lib/offline/upload-foto";
+import {
+    conTimeout,
+    TIMEOUT_ANALISIS_MS,
+    TimeoutError,
+} from "@/lib/inventario/timeout";
 import { analizarImagenRepuesto } from "@/app/admin/inventory/actions/analizarImagenRepuesto";
 import { crearConteoPendiente } from "@/app/admin/inventory/actions/crearConteoPendiente";
 import type {
@@ -171,7 +176,7 @@ export default function ConteoAsesorForm() {
         setAnalizando(true);
         setVisionError(null);
 
-        try {
+        const ejecutarAnalisis = async (): Promise<void> => {
             const subida = await prepararYSubirFoto(
                 fotoParaAnalizar,
                 asesorEmail,
@@ -183,6 +188,9 @@ export default function ConteoAsesorForm() {
             setFotoSubida(subida);
 
             const idToken = await usuario.getIdToken();
+            if (analisisSeqRef.current !== secuencia) {
+                return;
+            }
             const resultado = await analizarImagenRepuesto(
                 { foto_url: subida.foto_url },
                 { uid: usuario.uid, idToken }
@@ -202,12 +210,24 @@ export default function ConteoAsesorForm() {
                 setUnidades([]);
                 setVisionError(resultado.message);
             }
+        };
+
+        try {
+            await conTimeout(
+                ejecutarAnalisis(),
+                TIMEOUT_ANALISIS_MS,
+                "El análisis tardó demasiado. Puedes guardar el conteo o reintentar."
+            );
         } catch (errorAnalisis) {
             console.error(
                 "[inventario-ui] No se pudo analizar la foto:",
                 errorAnalisis
             );
             if (analisisSeqRef.current === secuencia) {
+                if (errorAnalisis instanceof TimeoutError) {
+                    analisisSeqRef.current += 1;
+                    setAnalizando(false);
+                }
                 setSugerencias([]);
                 setEtiquetas([]);
                 setUnidades([]);
