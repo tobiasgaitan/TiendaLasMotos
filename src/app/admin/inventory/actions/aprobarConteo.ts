@@ -1,6 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type {
+    DocumentData,
+    DocumentReference,
+    Transaction,
+} from 'firebase-admin/firestore';
 import { getDb } from '@/lib/firebase-admin';
 import { requirePermiso } from '@/lib/auth/require-permiso';
 import {
@@ -60,11 +65,11 @@ export async function aprobarConteo(
 
         const data = parsed.data;
         const adminDb = getDb();
-        const conteoRef = adminDb
+        const conteoRef: DocumentReference<DocumentData> = adminDb
             .collection('conteos_pendientes_repuestos')
             .doc(data.conteo_id);
 
-        const resultado = await adminDb.runTransaction(async (tx: any) => {
+        const resultado = await adminDb.runTransaction(async (tx: Transaction) => {
             const conteoSnap = await tx.get(conteoRef);
             if (!conteoSnap.exists) {
                 throw new Error('El conteo no existe.');
@@ -132,7 +137,7 @@ export async function aprobarConteo(
                 );
             }
 
-            const inventarioRef = adminDb
+            const inventarioRef: DocumentReference<DocumentData> = adminDb
                 .collection('inventario_repuestos')
                 .doc(referenciaParsed.data);
             const inventarioSnap = await tx.get(inventarioRef);
@@ -153,7 +158,18 @@ export async function aprobarConteo(
             let camposModificados: string[];
 
             if (inventarioExistia) {
-                const updates: Record<string, unknown> = {
+                const updates: {
+                    stock: number;
+                    ubicacion: string;
+                    imagen_url: string;
+                    actualizado_por: string;
+                    actualizado_en: Date;
+                    fabricante?: string;
+                    aplica_a?: string[];
+                    categoria?: string;
+                    precio?: number;
+                    stock_minimo?: number;
+                } = {
                     stock: cantidad,
                     ubicacion: ubicacionParsed.data,
                     imagen_url:

@@ -125,6 +125,18 @@ async function run() {
             CREAR_SOURCE.includes('La referencia seleccionada no existe')
     );
     check(
+        'aprobarConteo y rechazarConteo usan Transaction tipado',
+        APROBAR_SOURCE.includes('tx: Transaction') &&
+            RECHAZAR_SOURCE.includes('tx: Transaction') &&
+            !APROBAR_SOURCE.includes('tx: any') &&
+            !RECHAZAR_SOURCE.includes('tx: any')
+    );
+    check(
+        'el tipado no alteró el ledger append-only',
+        APROBAR_SOURCE.includes('tx.create(ledgerRef') &&
+            RECHAZAR_SOURCE.includes('tx.create(ledgerRef')
+    );
+    check(
         'AprobarConteoModal no usa getDoc cliente',
         !APROBAR_MODAL_SOURCE.includes('firebase/firestore') &&
             !APROBAR_MODAL_SOURCE.includes('getDoc(') &&
