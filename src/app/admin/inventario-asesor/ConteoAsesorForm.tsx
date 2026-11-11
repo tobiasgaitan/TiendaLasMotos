@@ -218,6 +218,27 @@ export default function ConteoAsesorForm() {
                 "El análisis tardó demasiado. Puedes guardar el conteo o reintentar."
             );
         } catch (errorAnalisis) {
+            const errorParaDiag =
+                errorAnalisis && typeof errorAnalisis === 'object'
+                    ? (errorAnalisis as {
+                          name?: unknown;
+                          constructor?: { name?: string };
+                      })
+                    : null;
+
+            console.warn('[WEB-O29-DIAG][analizarFoto:catch]', {
+                name: errorParaDiag
+                    ? errorParaDiag.name
+                    : typeof errorAnalisis,
+                constructorName:
+                    errorParaDiag && errorParaDiag.constructor
+                        ? errorParaDiag.constructor.name
+                        : typeof errorAnalisis,
+                seqActual: analisisSeqRef.current,
+                secuencia,
+                mismaSecuencia: analisisSeqRef.current === secuencia,
+            });
+
             console.error(
                 "[inventario-ui] No se pudo analizar la foto:",
                 errorAnalisis
@@ -231,6 +252,10 @@ export default function ConteoAsesorForm() {
                 ) {
                     analisisSeqRef.current += 1;
                     setAnalizando(false);
+                    console.warn('[WEB-O29-DIAG][timeout:branch]', {
+                        seqActual: analisisSeqRef.current,
+                        secuencia,
+                    });
                 }
                 setSugerencias([]);
                 setEtiquetas([]);
