@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.8  
-**Última Actualización:** 2026-11-07  
-**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
+**Versión del Stack & Hitos:** v8.9.9  
+**Última Actualización:** 2026-11-10  
+**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de); ventana PRIORIDAD 1–4 cerrada con HEAD dea6dcb (log hygiene, harness Ruta B, O-1/O-16/O-29, sonda O29 erradicada)
 
 ---
 
@@ -269,7 +269,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ### G. Observaciones No Bloqueantes (Notas de Release)
 *   **O-15:** `AprobarConteoModal` hace `getDoc` client-side para detectar referencia nueva. Solo UX; la barrera real es la action (`requirePermiso` admin/superadmin). Depende de reglas de lectura de `inventario_repuestos` (H-9 cerrado por paridad).
-*   **O-16:** `runTransaction(async (tx: any) => ...)` en `aprobarConteo.ts`/`rechazarConteo.ts`. El `any` debilita el chequeo estático del append-only. Ticket menor de higiene para PSD.
+*   **O-16:** RESUELTA. `runTransaction` usa `Transaction` tipado en `aprobarConteo.ts`/`rechazarConteo.ts`; referencias `DocumentReference<DocumentData>` y updates tipados. Commit `56de9de`. Cero `tx: any`; ledger append-only intacto; tests estáticos, `tsc`, lint y build en 0.
 *   **O-17:** `actorSchema.uid` en payload es redundante/informativo (identidad real = token). No se usa para auth.
 *   **O-18:** `registrado_por: actor.uid` en `creditos/actions.ts:90` sin AST del caller verificado. Fuera de perímetro WEB-038 (fase 9).
 *   **O-19:** `reconciliarDatosNuevosLegado` solo en tests, no cableado en producción. Escritura nueva ya emite `estado` canónico vía `datosNuevosAprobacion`. Preventivo para futuro dashboard de auditoría.
@@ -277,13 +277,17 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-21:** `ImageUploader.tsx` (catálogo) escribe en `products/...`, no en `inventario_repuestos/...`. Cero colisión de namespace. Fuera de perímetro WEB-038.
 *   **O-22 a O-27:** Defectos de `ImageUploader.tsx` (log de debug, falta `'use client'`, validación mime/tamaño débil, nombre de archivo sin sanitizar, `alert()` nativo, reset de estado durante render). Pista catálogo/legacy, aparcados.
 *   **O-28:** `esErrorReintentable` clasifica por subcadenas de mensaje de server action. Acoplamiento frágil cliente↔mensajes server. Solo afecta UX de reintento.
-*   **O-29:** `analizando` solo se resetea en `finally` del await de Vision; si `prepararYSubirFoto`/`analizarImagenRepuesto` se cuelgan, el submit queda bloqueado hasta recargar o `handleQuitarFoto`. Sin timeout client-side. Ticket menor de resiliencia.
+*   **O-29:** RESUELTA. `ConteoAsesorForm` acota subida + token + análisis con timeout cliente de 30 s (`conTimeout`), invalida `analisisSeqRef` y libera `analizando`; detección robusta por `name === 'TimeoutError'`. Commits `472a6ba` + `0527fed`. Sin cambios en Server Actions ni Firestore.
 *   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
 *   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
 *   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
 *   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) reportado históricamente como no purgado tras sync exitoso. En el diagnóstico MT-02 de WEB-044-P1 Tier A se observó `NO_GHOST_OBSERVADO` en perfil normal; no se reprodujo con evidencia runtime. MT-03 no se activó. La deuda queda reconvertida a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL` para seguimiento, sin cambio de comportamiento.
 *   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacenaba email. WEB-044-P1 Tier A lo corrigió forward-only a UID verificado por `verifyIdToken`; el ledger conserva `registrado_por: me.uid` y `registrado_por_email: me.email`. Certificado en runtime beta. Sin backfill histórico; los documentos antiguos con email quedan como legado documentado. La UI no consume actualmente el campo.
-*   **Ausencia de harness de testing ejecutable:** `package.json` no expone script `test` y los workflows de deploy no ejecutan tests antes de build/deploy. Los tests existentes son smoke scripts `tsx` invocables manualmente. Deuda registrada para WEB-044-P1; no se añadieron dependencias ni CI en el corte Tier A.
+*   **Ausencia de harness de render de componentes — WEB-HARNESS-EXENCION-001 (Ruta B: Riesgo Aceptado por Dirección):** La exención aplica exclusivamente al harness de render de componentes (Testing Library/jsdom), no a la suite ejecutable. Capas separadas:
+    *   **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
+    *   **Render de componentes: NO EXISTE.** No hay Testing Library, jsdom ni harness equivalente. **Este es el objeto exacto de la exención Ruta B.**
+    *   **UAT runtime beta: EXISTE.** Cobertura 100 % de render/flujo para `LoginForm` y `RoleBasedRedirect`; en esta ventana, la evidencia runtime cubre además O-1/O-16/O-29 según la certificación de cada frente.
+  Lo eximido es el **harness de render**; **Vitest no lo sustituye**; la **única cobertura de render es UAT runtime beta**. El punto ciego queda visible en el SSOT.
 
 
 
@@ -368,7 +372,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 - **Offline:** Caché local en `localStorage` con bloqueo explícito sin conexión
 
 ### C. Observaciones No Bloqueantes
-- **O-1:** Falta botón de alta de repuestos en `/admin/inventario-repuestos`
+- **O-1:** RESUELTA — botón **Nuevo Repuesto** y `CrearRepuestoModal` integrados en `/admin/inventario-repuestos`, condicionados a `puedeAccion('inventario_repuestos', 'create')`. Certificado en runtime beta; detalle en §13.
 - **O-2:** Matching visual (foto vs foto) congelado para F2-C
 - **O-3:** Verificación D incompleta (no se capturó request/response en Red)
 
@@ -380,9 +384,10 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 **Arquitectura:**
 - Server Action `crearRepuesto.ts` con Faraday Cage (`verifyIdToken` + `requirePermiso` admin/superadmin).
 - Transacción atómica (Firestore): escritura simultánea en `inventario_repuestos/{referencia}` (docId canónico inmutable) y `historial_auditoria_inventario` (ledger append-only con `operacion: 'CREATE'`).
-- Schema Zod estricto (`.strict()`), normalización de `imagen_url` a `''` si es nulo/vacío.
+- Schema Zod estricto (`.strict()`): acepta URL válida, `''`, `null` u omisión; la normalización efectiva a `''` se realiza en `crearRepuesto.ts` antes de persistir.
 - UI: `CrearRepuestoModal.tsx` integrado en `InventarioRepuestosClient.tsx`, visible solo con permiso `create`.
-**Deuda Técnica Registrada:** WEB-043-O1-obs-001 (transformación redundante de `imagen_url` en schema, prioridad BAJA, no bloqueante).
+- **Runtime beta:** `imagen_url: ''` persistido en Firestore para entradas `null`, vacías u omitidas; NAMING LOCK intacto.
+**Deuda Técnica Resuelta:** WEB-043-O1-obs-001 — transformación redundante de `imagen_url` eliminada del schema; persistencia normaliza en `crearRepuesto.ts`. Commit `2c63887`; tests y runtime beta en verde.
 **Coherence Score:** 0.99 (E2E certificado, purga de prueba ejecutada, NAMING LOCK intacto).
 ---
 <i>*Última actualización: 2026-11-09 COT por Antigravity*</i>
@@ -469,7 +474,7 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Contrato:** `limpiarOutbox(propietarioUid?, opciones?)`. UID vacío/undefined sin flag => no abre IndexedDB, no `clear()`, retorna con `[offline][outbox][NO_OWNER_PURGE_BLOCKED]`. Purga global solo con `forzarPurgaGlobal === true` => `[offline][outbox][GLOBAL_PURGE_EXPLICIT]`, ignora UID si presente. Owner-scoped conserva fail-closed Tier B E (falla => conserva, marca `estado_envio: error`, registra, nunca `clear()` global).
 **Tests:** 66->72. Nuevos: T-EMPTY-UID-NO-CLEAR, T-UNDEFINED-UID-NO-CLEAR, T-EXPLICIT-GLOBAL-PURGE, T-OWNER-SCOPED-ISOLATION, T-OWNER-SCOPED-FAILURE-FAIL-CLOSED, T-NO-PRODUCT-GLOBAL-FLAG, T-BEFORE-EACH-MIGRATION. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
 **Runtime beta:** bundle servido `cc10283e970d296c.js` contiene NO_OWNER_PURGE_BLOCKED + GLOBAL_PURGE_EXPLICIT. Logout válido: ausencia de ambos marcadores (uid válido => owner-scoped, sin purga global, sin edge bloqueado). `tlm_offline` v2, 2 stores, 0/0 entradas. SW inalterado, sin unregister. Edge UID vacío no reproducible sin invasión; cobertura unitaria+estática.
-**Deudas derivadas (no bloqueantes, no regresión de 08abcf1):** OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR (frente LoginForm/redirect, stack fuera del chunk outbox); OBS-MIGRATION-V2-INFO-AS-ERROR (onupgradeneeded loguea info como console.error).
+**Deudas derivadas (no bloqueantes, no regresión de 08abcf1):** OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR (frente LoginForm/redirect, stack fuera del chunk outbox) y OBS-MIGRATION-V2-INFO-AS-ERROR (onupgradeneeded loguea info como console.error). **RESUELTAS por WEB-LOG-HIGIENE-001 / `9c87392`; ver §21.**
 **UI change:** ninguno. `agent-cli eval` no requerido; excepción documental explícita.
 **Coherence Score:** 0.97 por autopsia de diff canónico.
 **Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz; DOCTRINA_QWEN_WEB.md MISSING.
@@ -506,3 +511,43 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Runtime beta:** Navegación fluida a `/admin/inventario-asesor` para rol asesor. Cero recargas intermedias destructivas. Persistencia offline verificada.
 **Coherence Score:** 0.95 por autopsia de diff canónico.
 **Invariantes:** NAMING LOCK intacto; sin claves nuevas; sin alterar lógica de outbox/purga; sin tocar producción.
+
+## 21. WEB-LOG-HIGIENE-001 — Higiene de logs esperados (2026-11-10)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA.
+**Commit:** `9c87392` fix(web-log-higiene): suppress expected redirect and migration logs.
+**Archivos:** `src/components/AdminSidebar.tsx`, `src/lib/offline/outbox.ts`, `src/test/utils/offline-isolation.test.ts`, `src/test/vitest/log-hygiene.test.ts`.
+**Contrato:** `NEXT_REDIRECT` en logout se degrada a `console.debug`; errores reales conservan `console.error`. Migración v2: descarte esperado en `console.debug`, finalización en `console.info`, fallo real en `console.error`.
+**Tests:** `npm test`, `tsc`, lint y build EXIT 0; regresión de log hygiene y offline isolation en verde.
+**Runtime beta:** consola limpia sin logs esperados elevados a error; redirect legítimo de `deleteSession` preservado.
+**Coherence Score:** 0.97 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 22. WEB-HARNESS-EXENCION-001 — Ruta B: Riesgo Aceptado (2026-11-10)
+**Estado:** CERRADO POR DECISIÓN DE DIRECCIÓN — RIESGO ACEPTADO.
+**Origen:** ausencia de harness de render de componentes.
+**Decisión:** no se implementa Testing Library/jsdom ni harness equivalente; se acepta el punto ciego.
+**Capas de cobertura:**
+- **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
+- **Render de componentes: NO EXISTE.** No hay Testing Library, jsdom ni harness equivalente. **Este es el objeto exacto de la exención Ruta B.**
+- **UAT runtime beta: EXISTE.** Cobertura 100 % de render/flujo para `LoginForm` y `RoleBasedRedirect`; en esta ventana, la evidencia runtime cubre además O-1/O-16/O-29 según la certificación de cada frente.
+**Exención:** lo eximido es el **harness de render**; **Vitest no lo sustituye**; la **única cobertura de render es UAT runtime beta**. El punto ciego queda visible en el SSOT.
+**Coherence Score:** 0.95 por decisión de riesgo aceptado y evidencia runtime disponible.
+**Invariantes:** sin cambios de código; sin claves nuevas; sin bot; sin producción.
+
+## 23. WEB-HIGIENE-RESILIENCIA-001 — Cierre O-1 / O-16 / O-29 (2026-11-10)
+**Estado:** CERRADO. O-1 con evidencia runtime; O-16 con certificación estática; O-29 con certificación estática y diagnóstico runtime erradicado (ver §24).
+**O-1:** botón **Nuevo Repuesto** y `CrearRepuestoModal` en `/admin/inventario-repuestos`, condicionados a `puedeAccion('inventario_repuestos', 'create')`; certificado en runtime beta. Detalle en §13.
+**O-16:** `Transaction` tipado en `aprobarConteo.ts` y `rechazarConteo.ts`; commit `56de9de`; cero `tx: any`; ledger append-only intacto; `tsc` y tests estáticos en verde.
+**O-29:** timeout cliente de 30 s en `ConteoAsesorForm`; invalidación de `analisisSeqRef` y liberación de `analizando`; detección robusta por `name === 'TimeoutError'`; commits `472a6ba` + `0527fed`.
+**Gates:** `npm test` (86 tests), `npx tsc --noEmit`, `npm run lint`, `npm run build` EXIT 0.
+**Coherence Score:** 0.96 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 24. WEB-O29-DIAG-001 — Sonda temporal erradicada (2026-11-10)
+**Estado:** CERRADO — SIN RESIDUOS.
+**Origen:** diagnóstico temporal para capturar anatomía real del timeout.
+**Commits:** `c5b0171` (logs temporales) + `dea6dcb` (reversión).
+**Evidencia:** `git diff 0527fed HEAD` vacío; deploy beta run #196 verde; cero logs `[WEB-O29-DIAG]` en el estado final.
+**Contrato:** sin cambios persistentes en `timeout.ts` ni en `ConteoAsesorForm`; la corrección funcional `0527fed` permanece intacta.
+**Coherence Score:** 0.95 por reversión exacta y diff vacío.
+**Invariantes:** sin cambios de lógica; sin bot; sin producción; NAMING LOCK intacto.

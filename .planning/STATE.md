@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.5
-**Fecha:** 2026-11-09
+**Versión Actual:** v8.9.9
+**Fecha:** 2026-11-10
 **Rama Activa:** beta
-**Última actividad:** 2026-11-10 — WEB-048: reload de AuthContext eliminado; LoginForm espera rol/UID y consolida `CLAVE_FLAG_ASESOR` antes de navegar; tests, tsc, lint y build en verde.
+**Última actividad:** 2026-11-10 — Cierre ventana PRIORIDAD 1–4: log hygiene, harness Ruta B (riesgo aceptado), O-1/O-16/O-29 y sonda O29 erradicada; HEAD dea6dcb.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -46,3 +46,10 @@
 
 ## Cierre WEB-046-P1 (2026-11-10)
 - **WEB-046-P1 CERTIFICADO (estático + runtime beta):** Migración de `enableIndexedDbPersistence` a `FirestoreSettings.cache` (Firebase v11.1.x). `tlm_offline` sobrevive al logout. Sin warnings de deprecación. Commit `d9f4b03`. 72 tests. Deuda derivada: OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (configuración WEB-040). Versión canónica v8.9.7.
+
+## Cierre ventana PRIORIDAD 1–4 (2026-11-10)
+- **WEB-LOG-HIGIENE-001 CERTIFICADO (estático+runtime):** `9c87392`; `NEXT_REDIRECT` degradado; migración v2 con debug/info; errores reales intactos.
+- **WEB-HARNESS-EXENCION-001 — Ruta B (Riesgo Aceptado):** no existe harness de render (Testing Library/jsdom); Vitest 86 tests cubre lógica pura/Zod/helpers/transacciones mockeadas y NO render; única cobertura de render = UAT runtime beta (LoginForm/RoleBasedRedirect; extensión O-1/O-16/O-29).
+- **WEB-043-O1-obs-001 RESUELTA:** `2c63887`; schema conserva `''/null`; `crearRepuesto.ts` normaliza a `''`; runtime Firestore `imagen_url:''`.
+- **WEB-HIGIENE-RESILIENCIA-001 CERRADA:** O-1 runtime; O-16 `56de9de`; O-29 `472a6ba`+`0527fed`.
+- **WEB-O29-DIAG-001 ERRADICADA:** `c5b0171`→`dea6dcb`; `git diff 0527fed HEAD` vacío; run #196 verde.
