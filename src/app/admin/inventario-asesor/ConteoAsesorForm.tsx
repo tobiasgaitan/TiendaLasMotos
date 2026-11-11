@@ -30,7 +30,6 @@ import { prepararYSubirFoto } from "@/lib/offline/upload-foto";
 import {
     conTimeout,
     TIMEOUT_ANALISIS_MS,
-    TimeoutError,
 } from "@/lib/inventario/timeout";
 import { analizarImagenRepuesto } from "@/app/admin/inventory/actions/analizarImagenRepuesto";
 import { crearConteoPendiente } from "@/app/admin/inventory/actions/crearConteoPendiente";
@@ -224,7 +223,12 @@ export default function ConteoAsesorForm() {
                 errorAnalisis
             );
             if (analisisSeqRef.current === secuencia) {
-                if (errorAnalisis instanceof TimeoutError) {
+                if (
+                    typeof errorAnalisis === 'object' &&
+                    errorAnalisis !== null &&
+                    'name' in errorAnalisis &&
+                    errorAnalisis.name === 'TimeoutError'
+                ) {
                     analisisSeqRef.current += 1;
                     setAnalizando(false);
                 }

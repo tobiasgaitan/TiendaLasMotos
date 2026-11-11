@@ -152,7 +152,8 @@ async function run() {
         'formulario asesor acota el análisis con timeout y libera el submit',
         FORM_ASESOR_SOURCE.includes('conTimeout(') &&
             FORM_ASESOR_SOURCE.includes('TIMEOUT_ANALISIS_MS') &&
-            FORM_ASESOR_SOURCE.includes('instanceof TimeoutError') &&
+            FORM_ASESOR_SOURCE.includes("name === 'TimeoutError'") &&
+            !FORM_ASESOR_SOURCE.includes('instanceof TimeoutError') &&
             FORM_ASESOR_SOURCE.includes('setAnalizando(false)')
     );
 
