@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.9
-**Fecha:** 2026-11-10
+**Versión Actual:** v8.9.10
+**Fecha:** 2026-11-11
 **Rama Activa:** beta
-**Última actividad:** 2026-11-10 — Cierre ventana PRIORIDAD 1–4: log hygiene, harness Ruta B (riesgo aceptado), O-1/O-16/O-29 y sonda O29 erradicada; HEAD dea6dcb.
+**Última actividad:** 2026-11-11 — WEB-HARNESS-RENDER-001 (Ruta A) implementado; Ruta B revocada/superada; Testing Library + jsdom; 3 archivos/10 tests; 86 unit intactos; UAT runtime vigente.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -53,3 +53,7 @@
 - **WEB-043-O1-obs-001 RESUELTA:** `2c63887`; schema conserva `''/null`; `crearRepuesto.ts` normaliza a `''`; runtime Firestore `imagen_url:''`.
 - **WEB-HIGIENE-RESILIENCIA-001 CERRADA:** O-1 runtime; O-16 `56de9de`; O-29 `472a6ba`+`0527fed`.
 - **WEB-O29-DIAG-001 ERRADICADA:** `c5b0171`→`dea6dcb`; `git diff 0527fed HEAD` vacío; run #196 verde.
+
+## Cierre WEB-HARNESS-RENDER-001 (2026-11-11)
+- **WEB-HARNESS-RENDER-001 CERTIFICADO (estático):** Ruta A implementada; Ruta B revocada/superada. Harness de render con Testing Library + jsdom; 3 archivos/10 tests (`harness.smoke`, `LoginForm.render`, `RoleBasedRedirect.render`); `npm run test:render` integrado en `test:ci`; 86 unit intactos; gates npm test, tsc, lint y build EXIT 0.
+- **Punto ciego conservado:** el render no sustituye la UAT runtime beta; Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion` siguen fuera del harness mockeado.

@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.9  
-**Última Actualización:** 2026-11-10  
-**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de); ventana PRIORIDAD 1–4 cerrada con HEAD dea6dcb (log hygiene, harness Ruta B, O-1/O-16/O-29, sonda O29 erradicada)
+**Versión del Stack & Hitos:** v8.9.10  
+**Última Actualización:** 2026-11-11  
+**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de); ventana PRIORIDAD 1–4 cerrada con HEAD dea6dcb (log hygiene, O-1/O-16/O-29, sonda O29 erradicada); WEB-HARNESS-RENDER-001 (Ruta A) implementado con Testing Library + jsdom; UAT runtime beta sigue vigente para integración real
 
 ---
 
@@ -283,11 +283,11 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
 *   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) reportado históricamente como no purgado tras sync exitoso. En el diagnóstico MT-02 de WEB-044-P1 Tier A se observó `NO_GHOST_OBSERVADO` en perfil normal; no se reprodujo con evidencia runtime. MT-03 no se activó. La deuda queda reconvertida a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL` para seguimiento, sin cambio de comportamiento.
 *   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacenaba email. WEB-044-P1 Tier A lo corrigió forward-only a UID verificado por `verifyIdToken`; el ledger conserva `registrado_por: me.uid` y `registrado_por_email: me.email`. Certificado en runtime beta. Sin backfill histórico; los documentos antiguos con email quedan como legado documentado. La UI no consume actualmente el campo.
-*   **Ausencia de harness de render de componentes — WEB-HARNESS-EXENCION-001 (Ruta B: Riesgo Aceptado por Dirección):** La exención aplica exclusivamente al harness de render de componentes (Testing Library/jsdom), no a la suite ejecutable. Capas separadas:
+*   **Harness de render de componentes — WEB-HARNESS-EXENCION-001 (Ruta B) REVOCADA / SUPERADA por WEB-HARNESS-RENDER-001 (Ruta A):** La exención histórica queda cerrada. Capas separadas:
     *   **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
-    *   **Render de componentes: NO EXISTE.** No hay Testing Library, jsdom ni harness equivalente. **Este es el objeto exacto de la exención Ruta B.**
-    *   **UAT runtime beta: EXISTE.** Cobertura 100 % de render/flujo para `LoginForm` y `RoleBasedRedirect`; en esta ventana, la evidencia runtime cubre además O-1/O-16/O-29 según la certificación de cada frente.
-  Lo eximido es el **harness de render**; **Vitest no lo sustituye**; la **única cobertura de render es UAT runtime beta**. El punto ciego queda visible en el SSOT.
+    *   **Render harness automatizado: EXISTE.** Testing Library + jsdom; 3 archivos/10 tests: `src/test/vitest/render/harness.smoke.test.tsx`, `src/test/vitest/render/LoginForm.render.test.tsx`, `src/test/vitest/render/RoleBasedRedirect.render.test.tsx`; comando `npm run test:render`.
+    *   **UAT runtime beta: EXISTE.** Sigue siendo la evidencia de integración real para `LoginForm` y `RoleBasedRedirect`.
+  El harness de render **NO sustituye** la UAT runtime: deja fuera Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. El punto ciego de los mocks queda visible.
 
 
 
@@ -522,17 +522,18 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Coherence Score:** 0.97 por autopsia de diff canónico + runtime.
 **Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
 
-## 22. WEB-HARNESS-EXENCION-001 — Ruta B: Riesgo Aceptado (2026-11-10)
-**Estado:** CERRADO POR DECISIÓN DE DIRECCIÓN — RIESGO ACEPTADO.
-**Origen:** ausencia de harness de render de componentes.
-**Decisión:** no se implementa Testing Library/jsdom ni harness equivalente; se acepta el punto ciego.
+## 22. WEB-HARNESS-EXENCION-001 — Ruta B revocada por WEB-HARNESS-RENDER-001 (2026-11-11)
+**Estado:** REVOCADA / SUPERADA — Ruta A implementada.
+**Origen:** ausencia histórica de harness de render de componentes.
+**Decisión original:** riesgo aceptado (Ruta B). **Resolución:** WEB-HARNESS-RENDER-001 implementó Testing Library + jsdom; la exención queda cerrada.
 **Capas de cobertura:**
 - **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
-- **Render de componentes: NO EXISTE.** No hay Testing Library, jsdom ni harness equivalente. **Este es el objeto exacto de la exención Ruta B.**
-- **UAT runtime beta: EXISTE.** Cobertura 100 % de render/flujo para `LoginForm` y `RoleBasedRedirect`; en esta ventana, la evidencia runtime cubre además O-1/O-16/O-29 según la certificación de cada frente.
-**Exención:** lo eximido es el **harness de render**; **Vitest no lo sustituye**; la **única cobertura de render es UAT runtime beta**. El punto ciego queda visible en el SSOT.
-**Coherence Score:** 0.95 por decisión de riesgo aceptado y evidencia runtime disponible.
-**Invariantes:** sin cambios de código; sin claves nuevas; sin bot; sin producción.
+- **Render harness automatizado: EXISTE.** Testing Library + jsdom; 3 archivos/10 tests: `src/test/vitest/render/harness.smoke.test.tsx`, `src/test/vitest/render/LoginForm.render.test.tsx`, `src/test/vitest/render/RoleBasedRedirect.render.test.tsx`; comando `npm run test:render`.
+- **UAT runtime beta: EXISTE.** Sigue siendo la evidencia de integración real para `LoginForm` y `RoleBasedRedirect`.
+**Punto ciego:** el harness de render **NO sustituye** la UAT runtime: deja fuera Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. Los mocks quedan declarados como frontera de regresión, no como integración real.
+**Gates:** `npm test` (smoke + 86 unit + 10 render), `npx tsc --noEmit`, `npm run lint` y `npm run build` EXIT 0.
+**Coherence Score:** 0.97 por autopsia de diff canónico + suite de render.
+**Invariantes:** sin cambios de producción; sin claves nuevas; sin bot; sin producción.
 
 ## 23. WEB-HIGIENE-RESILIENCIA-001 — Cierre O-1 / O-16 / O-29 (2026-11-10)
 **Estado:** CERRADO. O-1 con evidencia runtime; O-16 con certificación estática; O-29 con certificación estática y diagnóstico runtime erradicado (ver §24).

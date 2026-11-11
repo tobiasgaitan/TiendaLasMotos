@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.9
+**Versión Canónica Vigente:** v8.9.10
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -122,3 +122,4 @@
 - [x] **WEB-045-P1 (CERTIFICADO 2026-11-10):** Endurecer `limpiarOutbox` contra purga global implícita por UID vacío/undefined. Commit `08abcf1`, CI beta #188 success. Runtime beta certificado: bundle `cc10283e970d296c.js` con `NO_OWNER_PURGE_BLOCKED`+`GLOBAL_PURGE_EXPLICIT`; logout válido sin purga global ni edge; `tlm_offline` v2 intacto. 72 tests. Deudas derivadas no bloqueantes: OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR, OBS-MIGRATION-V2-INFO-AS-ERROR. Sin UI (eval no requerido, excepción documental), sin bot, sin producción. Coherence 0.97.
 - [x] **WEB-048-P1 (2026-11-10):** Eliminado `window.location.reload()` de AuthContext; LoginForm espera rol/UID, consolida `CLAVE_FLAG_ASESOR` y navega después. `CLAVE_RECARGA_OFFLINE` preservada como clave. RoleBasedRedirect sin cambios; outbox owner-scoped intacto. 79 tests, tsc/lint/build verdes. Commit `2e4e20b`.
 - [x] **Cierre ventana PRIORIDAD 1–4 (v8.9.9, 2026-11-10):** WEB-LOG-HIGIENE-001 (`9c87392`, estático+runtime); WEB-HARNESS-EXENCION-001 (Ruta B: riesgo aceptado por Dirección; harness de render inexistente, Vitest no lo sustituye, única cobertura de render = UAT runtime beta); WEB-043-O1-obs-001 (`2c63887`, `imagen_url:''` en Firestore); WEB-HIGIENE-RESILIENCIA-001 (O-1 runtime; O-16 `56de9de`; O-29 `472a6ba`+`0527fed`); WEB-O29-DIAG-001 erradicada (`c5b0171`→`dea6dcb`, diff 0527fed..HEAD vacío, run #196 verde). Sin cambios en src/, bot, producción ni NAMING LOCK.
+- [x] **WEB-HARNESS-RENDER-001 (v8.9.10, 2026-11-11):** Ruta A implementada; Ruta B revocada/superada. Harness de render con Testing Library + jsdom; 3 archivos/10 tests (`harness.smoke`, `LoginForm.render`, `RoleBasedRedirect.render`); `npm run test:render` integrado en `test:ci`; 86 unit intactos; UAT runtime beta sigue vigente para Firebase Auth real, cookies, proxy, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. Sin cambios de producción ni NAMING LOCK.
