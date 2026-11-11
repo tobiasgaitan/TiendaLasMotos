@@ -13,7 +13,8 @@
     "test": "npm run test:ci",
     "test:smoke": "tsx src/test/utils/offline-isolation.test.ts && tsx src/test/utils/pwa.test.ts && tsx src/test/utils/inventario-actions.test.ts && tsx src/test/utils/inventario-matching.test.ts",
     "test:unit": "vitest run",
-    "test:ci": "npm run test:smoke && npm run test:unit",
+    "test:render": "vitest run --config vitest.render.config.mts",
+    "test:ci": "npm run test:smoke && npm run test:unit && npm run test:render",
     "agent-eval": "PATH=\"$(pwd)/.agent/scripts:$PATH\" npx @tobiasgaitan/agent-cli eval"
   },
   "dependencies": {
@@ -42,6 +43,10 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -49,6 +54,7 @@
     "eslint-config-next": "^16.1.1",
     "fake-indexeddb": "^6.2.8",
     "firebase-tools": "^15.1.0",
+    "jsdom": "29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
