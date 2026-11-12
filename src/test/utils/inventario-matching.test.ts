@@ -58,7 +58,7 @@ const porReferencia = rankearCandidatos(CATALOGO, {
     consulta: 'brk-001',
 });
 check('consulta exacta de referencia gana', porReferencia[0]?.referencia === 'BRK-001');
-check('candidato conserva docId canónico', porReferencia[0]?.referencia === CATALOGO[0].referencia);
+check('candidato conserva la referencia comercial', porReferencia[0]?.referencia === CATALOGO[0].referencia);
 
 // --- matching por categoría/etiqueta ---
 const porEtiqueta = rankearCandidatos(CATALOGO, {
@@ -205,8 +205,8 @@ check(
     actionSource.includes("requirePermiso(me, 'inventario_repuestos', 'read')")
 );
 check(
-    'action usa doc.id como referencia',
-    actionSource.includes('const referencia = doc.id')
+    'action usa data.referencia como referencia comercial',
+    actionSource.includes("const referencia = texto(data.referencia).trim()")
 );
 check(
     'action no escribe inventario_repuestos',

@@ -11,6 +11,7 @@ const mockState = vi.hoisted(() => {
 
     const makeRef = (collection: string, id?: string) => {
         const ref = {
+            kind: 'doc' as const,
             collection,
             id: id ?? `auto-${++sequence}`,
             get path() {
@@ -27,9 +28,52 @@ const mockState = vi.hoisted(() => {
         return ref;
     };
 
+    const makeQuery = (
+        collection: string,
+        filters: Array<{ field: string; value: unknown }>,
+        limit?: number
+    ) => {
+        const query = {
+            kind: 'query' as const,
+            get: async () => {
+                const resultados = Array.from(docs.entries())
+                    .filter(([path]) => path.startsWith(`${collection}/`))
+                    .map(([path, data]) => {
+                        const id = path.slice(collection.length + 1);
+                        return {
+                            id,
+                            ref: makeRef(collection, id),
+                            data: () => data,
+                        };
+                    })
+                    .filter((snap) =>
+                        filters.every(
+                            ({ field, value }) =>
+                                snap.data()[field] === value
+                        )
+                    )
+                    .slice(0, limit);
+                return {
+                    docs: resultados,
+                    empty: resultados.length === 0,
+                    size: resultados.length,
+                };
+            },
+            limit: (n: number) => makeQuery(collection, filters, n),
+        };
+        return query;
+    };
+
     const tx = {
-        get: async (ref: { path: string }) => {
-            const data = docs.get(ref.path);
+        get: async (target: {
+            kind?: string;
+            path?: string;
+            get?: () => Promise<unknown>;
+        }) => {
+            if (target.kind === 'query' && target.get) {
+                return target.get();
+            }
+            const data = target.path ? docs.get(target.path) : undefined;
             return {
                 exists: data !== undefined,
                 data: () => data,
@@ -66,6 +110,12 @@ const mockState = vi.hoisted(() => {
                         data: () => data,
                     })),
             }),
+            where: (field: string, op: string, value: unknown) => {
+                if (op !== '==') {
+                    throw new Error(`Operador no soportado: ${op}`);
+                }
+                return makeQuery(nombre, [{ field, value }]);
+            },
         }),
         runTransaction: async (
             callback: (transaction: typeof tx) => Promise<unknown>
@@ -121,6 +171,9 @@ import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoP
 import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
 import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
+import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
+import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
+import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import { requireActorInventario } from '@/lib/actions/inventario-actor';
 import { requirePermiso } from '@/lib/auth/require-permiso';
@@ -147,6 +200,7 @@ function seedConteo(estado = 'pendiente_revision') {
 function seedInventario() {
     mockState.docs.set('inventario_repuestos/BRK-001', {
         referencia: 'BRK-001',
+        sede_id: 'sede-1',
         descripcion: 'Disco de freno',
         fabricante: 'Bosch',
         categoria: 'FRENOS',
@@ -159,6 +213,20 @@ function seedInventario() {
     });
 }
 
+function repuestosPorReferencia(referencia: string) {
+    return Array.from(mockState.docs.entries())
+        .filter(
+            ([path, data]) =>
+                path.startsWith('inventario_repuestos/') &&
+                data.referencia === referencia
+        )
+        .map(([path, data]) => ({
+            path,
+            documentoId: path.slice('inventario_repuestos/'.length),
+            data,
+        }));
+}
+
 function ledgerWrites() {
     return mockState.writes.filter((write) =>
         write.path.startsWith('historial_auditoria_inventario/')
@@ -167,6 +235,24 @@ function ledgerWrites() {
 
 beforeEach(() => {
     mockState.reset();
+    mockState.docs.set('configuracion/general/sedes/sede-1', {
+        id: 'sede-1',
+        name: 'Sede Principal',
+        department: 'Caldas',
+        isActive: true,
+    });
+    mockState.docs.set('configuracion/general/sedes/sede-2', {
+        id: 'sede-2',
+        name: 'Sede Norte',
+        department: 'Caldas',
+        isActive: true,
+    });
+    mockState.docs.set('configuracion/general/sedes/sede-inactiva', {
+        id: 'sede-inactiva',
+        name: 'Sede Inactiva',
+        department: 'Caldas',
+        isActive: false,
+    });
     vi.mocked(requirePermiso).mockResolvedValue({
         rol: 'admin',
         email: 'admin@test.com',
@@ -229,11 +315,12 @@ describe('MT-07 Server Actions contracts', () => {
         expect(ledger[0].data.registrado_por_email).toBe('admin@test.com');
     });
 
-    it('crearRepuesto usa docId canónico y ledger CREATE atómico', async () => {
+    it('crearRepuesto usa auto-ID y ledger CREATE atómico', async () => {
         const resultado = await crearRepuesto(
             {
                 referencia: 'BRK-010',
                 descripcion: 'Pastillas',
+                sede_id: 'sede-1',
                 fabricante: 'Bosch',
                 aplica_a: ['Moto 125'],
                 categoria: 'Frenos',
@@ -246,22 +333,25 @@ describe('MT-07 Server Actions contracts', () => {
             ACTOR
         );
 
+        const creados = repuestosPorReferencia('BRK-010');
         expect(resultado.success).toBe(true);
-        expect(mockState.docs.has('inventario_repuestos/BRK-010')).toBe(true);
-        expect(
-            mockState.docs.get('inventario_repuestos/BRK-010')?.imagen_url
-        ).toBe('');
+        expect(creados).toHaveLength(1);
+        expect(creados[0].documentoId).not.toBe('BRK-010');
+        expect(creados[0].data.imagen_url).toBe('');
+        expect(creados[0].data.sede_id).toBe('sede-1');
         const ledger = ledgerWrites();
         expect(ledger).toHaveLength(1);
         expect(ledger[0].kind).toBe('create');
         expect(ledger[0].data.operacion).toBe('CREATE');
         expect(ledger[0].data.datos_anteriores).toBeNull();
+        expect(ledger[0].data.documento_id).toBe(creados[0].documentoId);
         expect(ledger[0].data.registrado_por).toBe('uid-admin');
     });
 
     it('crearRepuesto persiste imagen_url vacía para null, vacío u omitido', async () => {
         const base = {
             descripcion: 'Pastillas',
+            sede_id: 'sede-1',
             fabricante: 'Bosch',
             aplica_a: ['Moto 125'],
             categoria: 'Frenos',
@@ -281,16 +371,87 @@ describe('MT-07 Server Actions contracts', () => {
                 { ...base, ...caso },
                 ACTOR
             );
+            const creados = repuestosPorReferencia(caso.referencia);
             expect(resultado.success).toBe(true);
-            expect(
-                mockState.docs.get(
-                    `inventario_repuestos/${caso.referencia}`
-                )?.imagen_url
-            ).toBe('');
+            expect(creados).toHaveLength(1);
+            expect(creados[0].data.imagen_url).toBe('');
         }
     });
 
-    it('obtenerRepuestoPorReferencia lee docId canónico sin datos maestros completos', async () => {
+    it('crearRepuesto permite duplicar referencia por sede y ubicación', async () => {
+        const base = {
+            referencia: 'BRK-020',
+            descripcion: 'Pastillas',
+            sede_id: 'sede-1',
+            ubicacion: 'Pasillo 1',
+        };
+
+        const primero = await crearRepuesto(base, ACTOR);
+        const segundo = await crearRepuesto(
+            {
+                ...base,
+                sede_id: 'sede-2',
+                ubicacion: 'Pasillo 2',
+            },
+            ACTOR
+        );
+
+        expect(primero.success).toBe(true);
+        expect(segundo.success).toBe(true);
+        expect(primero.id).not.toBe(segundo.id);
+        const creados = repuestosPorReferencia('BRK-020');
+        expect(creados).toHaveLength(2);
+        expect(creados.map((r) => r.data.sede_id)).toEqual(
+            expect.arrayContaining(['sede-1', 'sede-2'])
+        );
+    });
+
+    it('listarRepuestos devuelve documento_id, referencia comercial y sede', async () => {
+        seedInventario();
+
+        const resultado = await listarRepuestos({}, ACTOR);
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.repuestos).toHaveLength(1);
+        expect(resultado.repuestos[0].documento_id).toBe('BRK-001');
+        expect(resultado.repuestos[0].referencia).toBe('BRK-001');
+        expect(resultado.repuestos[0].sede_id).toBe('sede-1');
+    });
+
+    it('editarRepuesto usa documento_id como identidad', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { stock: 7 },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')?.stock
+        ).toBe(7);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.documento_id).toBe('BRK-001');
+    });
+
+    it('listarSedes devuelve solo sedes activas', async () => {
+        const resultado = await listarSedes({}, ACTOR);
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.sedes.map((sede) => sede.id)).toEqual(
+            expect.arrayContaining(['sede-1', 'sede-2'])
+        );
+        expect(resultado.sedes.map((sede) => sede.id)).not.toContain(
+            'sede-inactiva'
+        );
+    });
+
+    it('obtenerRepuestoPorReferencia consulta la referencia comercial', async () => {
         seedInventario();
 
         const resultado = await obtenerRepuestoPorReferencia(
@@ -355,5 +516,68 @@ describe('MT-07 Server Actions contracts', () => {
         expect(conteo?.asesor_uid).toBe('uid-asesor');
         expect(conteo?.revisado_por).toBe('');
         expect(JSON.stringify(conteo)).not.toContain('atacante');
+    });
+
+    it('crearConteoPendiente rechaza referencia ambigua', async () => {
+        seedInventario();
+        mockState.docs.set('inventario_repuestos/auto-2', {
+            referencia: 'BRK-001',
+            sede_id: 'sede-2',
+            descripcion: 'Disco de freno',
+            ubicacion: 'Pasillo 2',
+        });
+        vi.mocked(requireActorInventario).mockResolvedValueOnce({
+            uid: 'uid-asesor',
+            email: 'asesor@test.com',
+        });
+        vi.mocked(requirePermiso).mockResolvedValue({
+            rol: 'asesor',
+            email: 'asesor@test.com',
+        });
+
+        const resultado = await crearConteoPendiente(
+            {
+                conteo_id: UUID,
+                referencia_sugerida: '',
+                referencia_confirmada: 'BRK-001',
+                descripcion: 'Disco de freno',
+                cantidad_contada: 4,
+                ubicacion: 'A-01-05',
+                anotaciones: '',
+                foto_url: FOTO_URL,
+                storage_path:
+                    'inventario_repuestos/asesor@test.com/foto.jpg',
+                nombre_archivo: 'foto.jpg',
+                mime_type: 'image/jpeg',
+                tamano_bytes: 1024,
+                etiquetas_vision: [],
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('múltiples registros');
+        expect(
+            mockState.docs.has(`conteos_pendientes_repuestos/${UUID}`)
+        ).toBe(false);
+    });
+
+    it('aprobarConteo rechaza referencia ambigua', async () => {
+        seedConteo();
+        seedInventario();
+        mockState.docs.set('inventario_repuestos/auto-2', {
+            referencia: 'BRK-001',
+            sede_id: 'sede-2',
+            descripcion: 'Disco de freno',
+            ubicacion: 'Pasillo 2',
+        });
+
+        const resultado = await aprobarConteo(
+            { conteo_id: UUID },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('múltiples registros');
     });
 });

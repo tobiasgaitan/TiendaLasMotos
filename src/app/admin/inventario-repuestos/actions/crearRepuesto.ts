@@ -14,7 +14,7 @@ import type { InventarioActionResult } from '@/types/inventario';
  * WEB-043-O1 — Alta de un repuesto existente en el catálogo maestro.
  *
  * - Faraday Cage: verifyIdToken + requirePermiso create + rol admin/superadmin.
- * - La referencia sanitizada es el docId; nunca se usa auto-ID con add().
+ * - El documento usa auto-ID; la referencia comercial puede repetirse por sede.
  * - El repuesto y el asiento append-only del ledger se escriben en la misma
  *   transacción. Si falla cualquiera de los dos, no queda escritura parcial.
  */
@@ -53,28 +53,36 @@ export async function crearRepuesto(
         const adminDb = getDb();
         const repuestoRef = adminDb
             .collection('inventario_repuestos')
-            .doc(data.referencia);
+            .doc();
+        const sedeRef = adminDb
+            .collection('configuracion/general/sedes')
+            .doc(data.sede_id);
         const ledgerRef = adminDb
             .collection('historial_auditoria_inventario')
             .doc();
 
         await adminDb.runTransaction(async (tx: any) => {
-            const existente = await tx.get(repuestoRef);
-            if (existente.exists) {
-                throw new Error('La referencia ya existe en el catálogo.');
+            const sedeSnap = await tx.get(sedeRef);
+            if (!sedeSnap.exists) {
+                throw new Error('La sede seleccionada no existe.');
+            }
+            const sede = sedeSnap.data() as Record<string, unknown>;
+            if (sede.isActive === false) {
+                throw new Error('La sede seleccionada está inactiva.');
             }
 
             const ahora = new Date();
             const payload: Record<string, unknown> = {
                 referencia: data.referencia,
                 descripcion: data.descripcion,
-                fabricante: data.fabricante,
-                aplica_a: data.aplica_a,
-                categoria: data.categoria,
-                precio: data.precio,
+                sede_id: data.sede_id,
+                fabricante: data.fabricante ?? '',
+                aplica_a: data.aplica_a ?? [],
+                categoria: data.categoria ?? '',
+                precio: data.precio ?? 0,
                 ubicacion: data.ubicacion,
-                stock: data.stock,
-                stock_minimo: data.stock_minimo,
+                stock: data.stock ?? 0,
+                stock_minimo: data.stock_minimo ?? 0,
                 imagen_url: data.imagen_url ?? '',
                 creado_por: me.email,
                 creado_en: ahora,
@@ -82,11 +90,11 @@ export async function crearRepuesto(
                 actualizado_en: ahora,
             };
 
-            tx.set(repuestoRef, payload);
+            tx.create(repuestoRef, payload);
 
             tx.create(ledgerRef, {
                 coleccion_afectada: 'inventario_repuestos',
-                documento_id: data.referencia,
+                documento_id: repuestoRef.id,
                 referencia: data.referencia,
                 conteo_id: null,
                 operacion: 'CREATE',
@@ -104,7 +112,7 @@ export async function crearRepuesto(
 
         return {
             success: true,
-            id: data.referencia,
+            id: repuestoRef.id,
             idempotente: false,
         };
     } catch (error) {

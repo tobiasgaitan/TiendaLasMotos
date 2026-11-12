@@ -120,9 +120,11 @@ async function run() {
             !('registrado_por' in rechazarForjado.data)
     );
     check(
-        'crearConteoPendiente verifica existencia en la transacción',
-        CREAR_SOURCE.includes('tx.get(repuestoRef)') &&
-            CREAR_SOURCE.includes('La referencia seleccionada no existe')
+        'crearConteoPendiente verifica referencia única en la transacción',
+        CREAR_SOURCE.includes("where('referencia', '==', data.referencia_confirmada)") &&
+            CREAR_SOURCE.includes('tx.get(repuestoQuery)') &&
+            CREAR_SOURCE.includes('La referencia seleccionada no existe') &&
+            CREAR_SOURCE.includes('La referencia tiene múltiples registros')
     );
     check(
         'aprobarConteo y rechazarConteo usan Transaction tipado',

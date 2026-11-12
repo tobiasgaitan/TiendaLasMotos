@@ -20,8 +20,8 @@ const obtenerRepuestoSchema = z
  * WEB-043 — Verificación server-side de una referencia existente.
  *
  * Reemplaza el `getDoc` cliente de AprobarConteoModal. El cliente no recibe
- * datos maestros completos: solo si el docId existe. Si la lectura falla, el
- * resultado es success:false y el modal debe bloquear la aprobación.
+ * datos maestros completos: solo si existe al menos un documento con la
+ * referencia comercial. La referencia ya no es el docId.
  */
 export async function obtenerRepuestoPorReferencia(
     input: unknown,
@@ -64,12 +64,13 @@ export async function obtenerRepuestoPorReferencia(
 
         const snap = await getDb()
             .collection('inventario_repuestos')
-            .doc(parsed.data.referencia)
+            .where('referencia', '==', parsed.data.referencia)
+            .limit(1)
             .get();
 
         return {
             success: true,
-            existe: snap.exists,
+            existe: !snap.empty,
         };
     } catch (error) {
         console.error(

@@ -33,6 +33,7 @@ export interface ConteoPendiente {
 
 export interface InventarioRepuesto {
     referencia: string;
+    sede_id: string;
     descripcion: string;
     fabricante: string;
     aplica_a: string[];
@@ -46,6 +47,18 @@ export interface InventarioRepuesto {
     creado_en: Timestamp;
     actualizado_por: string;
     actualizado_en: Timestamp;
+}
+
+export interface SedeOpcion {
+    id: string;
+    name: string;
+    department: string;
+}
+
+export interface ListarSedesResult {
+    success: boolean;
+    message?: string;
+    sedes: SedeOpcion[];
 }
 
 export interface FotoInventario {

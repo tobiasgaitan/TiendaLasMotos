@@ -34,6 +34,7 @@ import type {
 type CampoBorrador = keyof BorradorRepuesto;
 
 interface EdicionRepuesto {
+    documento_id: string;
     referencia: string;
     borrador: BorradorRepuesto;
 }
@@ -173,6 +174,7 @@ export default function InventarioRepuestosClient() {
     function iniciarEdicion(repuesto: RepuestoInventarioDTO): void {
         if (guardando) return;
         setEdicion({
+            documento_id: repuesto.documento_id,
             referencia: repuesto.referencia,
             borrador: {
                 descripcion: repuesto.descripcion,
@@ -207,7 +209,7 @@ export default function InventarioRepuestosClient() {
         if (!edicion || !user || guardando) return;
 
         const original = repuestos.find(
-            (repuesto) => repuesto.referencia === edicion.referencia
+            (repuesto) => repuesto.documento_id === edicion.documento_id
         );
         if (!original) {
             setError(
@@ -232,7 +234,11 @@ export default function InventarioRepuestosClient() {
 
             const idToken = await user.getIdToken();
             const resultado = await editarRepuesto(
-                { referencia: original.referencia, cambios },
+                {
+                    documento_id: original.documento_id,
+                    referencia: original.referencia,
+                    cambios,
+                },
                 { uid: user.uid, idToken }
             );
 
@@ -268,7 +274,8 @@ export default function InventarioRepuestosClient() {
         if (!puedeEditar) return null;
 
         const enEdicion =
-            edicion !== null && edicion.referencia === repuesto.referencia;
+            edicion !== null &&
+            edicion.documento_id === repuesto.documento_id;
 
         if (enEdicion) {
             return (
@@ -537,7 +544,7 @@ export default function InventarioRepuestosClient() {
                                     scope="col"
                                     className="px-4 py-3 text-right"
                                 >
-                                    Precio
+                                    Precio de compra
                                 </th>
                             </tr>
                         </thead>
@@ -545,18 +552,21 @@ export default function InventarioRepuestosClient() {
                             {repuestosFiltrados.map((repuesto) => {
                                 const borrador =
                                     edicion !== null &&
-                                    edicion.referencia === repuesto.referencia
+                                    edicion.documento_id === repuesto.documento_id
                                         ? edicion.borrador
                                         : null;
 
                                 return (
                                     <tr
-                                        key={repuesto.referencia}
+                                        key={repuesto.documento_id}
                                         className="align-top hover:bg-gray-900/80"
                                     >
                                         <td className="min-w-[150px] px-4 py-4">
                                             <p className="font-mono text-sm font-semibold text-white">
                                                 {repuesto.referencia}
+                                            </p>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Sede: {repuesto.sede_id || '—'}
                                             </p>
                                             <div className="mt-2">
                                                 {renderAcciones(repuesto)}

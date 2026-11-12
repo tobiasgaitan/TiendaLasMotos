@@ -88,9 +88,10 @@ export async function crearConteoPendiente(
         const fotoRef = adminDb
             .collection('fotos_inventario')
             .doc(data.conteo_id);
-        const repuestoRef = adminDb
+        const repuestoQuery = adminDb
             .collection('inventario_repuestos')
-            .doc(data.referencia_confirmada);
+            .where('referencia', '==', data.referencia_confirmada)
+            .limit(2);
 
         const resultado = await adminDb.runTransaction(async (tx: any) => {
             const existente = await tx.get(conteoRef);
@@ -104,10 +105,15 @@ export async function crearConteoPendiente(
                 return { idempotente: true };
             }
 
-            const repuesto = await tx.get(repuestoRef);
-            if (!repuesto.exists) {
+            const repuestos = await tx.get(repuestoQuery);
+            if (repuestos.size === 0) {
                 throw new Error(
                     'La referencia seleccionada no existe en el catálogo.'
+                );
+            }
+            if (repuestos.size > 1) {
+                throw new Error(
+                    'La referencia tiene múltiples registros; no se puede determinar cuál contar.'
                 );
             }
 

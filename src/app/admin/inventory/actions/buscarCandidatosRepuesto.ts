@@ -39,8 +39,8 @@ function numero(value: unknown): number {
  * WEB-043 — Busca candidatos existentes en inventario_repuestos.
  *
  * Faraday Cage: la acción solo responde tras verifyIdToken + requirePermiso.
- * La referencia de cada candidato es SIEMPRE el docId. `data.referencia` no
- * se usa como identidad; si difiere, se registra la inconsistencia.
+ * La referencia de cada candidato es el campo comercial `data.referencia`;
+ * el docId ya no es la identidad de la referencia.
  */
 export async function buscarCandidatosRepuesto(
     input: unknown,
@@ -75,25 +75,14 @@ export async function buscarCandidatosRepuesto(
 
         for (const doc of snap.docs) {
             const data = doc.data() as Record<string, unknown>;
-            const referencia = doc.id;
-            const referenciaDocumento = texto(data.referencia).trim();
+            const referencia = texto(data.referencia).trim();
 
             if (!referencia) {
                 console.error(
-                    '[inventario-matching] docId inválido en inventario_repuestos:',
+                    '[inventario-matching] referencia ausente en inventario_repuestos:',
                     { docId: doc.id }
                 );
                 continue;
-            }
-
-            if (referenciaDocumento && referenciaDocumento !== referencia) {
-                console.error(
-                    '[inventario-matching] referencia no coincide con docId:',
-                    {
-                        docId: referencia,
-                        referencia: referenciaDocumento,
-                    }
-                );
             }
 
             fuentes.push({

@@ -7,8 +7,10 @@ import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
 import { useAuth } from '@/context/AuthContext';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
+import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { crearRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import { parseAplicaA } from '@/lib/inventario/ui-helpers';
+import type { SedeOpcion } from '@/types/inventario';
 
 interface CrearRepuestoModalProps {
     isOpen: boolean;
@@ -31,6 +33,10 @@ export default function CrearRepuestoModal({
     const { user } = useAuth();
 
     const [referencia, setReferencia] = useState('');
+    const [sedeId, setSedeId] = useState('');
+    const [sedes, setSedes] = useState<SedeOpcion[]>([]);
+    const [cargandoSedes, setCargandoSedes] = useState(false);
+    const [sedeError, setSedeError] = useState<string | null>(null);
     const [descripcion, setDescripcion] = useState('');
     const [fabricante, setFabricante] = useState('');
     const [aplicaA, setAplicaA] = useState('');
@@ -47,6 +53,9 @@ export default function CrearRepuestoModal({
         if (!isOpen) return;
 
         setReferencia('');
+        setSedeId('');
+        setSedes([]);
+        setSedeError(null);
         setDescripcion('');
         setFabricante('');
         setAplicaA('');
@@ -59,6 +68,73 @@ export default function CrearRepuestoModal({
         setCreando(false);
         setError(null);
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const usuario = user;
+        if (!usuario) {
+            setSedes([]);
+            setSedeError('Sesión inválida. Vuelve a iniciar sesión.');
+            return;
+        }
+
+        let cancelado = false;
+        setCargandoSedes(true);
+        setSedeError(null);
+
+        void (async () => {
+            try {
+                const idToken = await usuario.getIdToken();
+                const resultado = await listarSedes(
+                    {},
+                    { uid: usuario.uid, idToken }
+                );
+
+                if (cancelado) return;
+
+                if (!resultado.success) {
+                    setSedes([]);
+                    setSedeError(
+                        resultado.message ??
+                            'No se pudieron cargar las sedes.'
+                    );
+                    return;
+                }
+
+                setSedes(resultado.sedes);
+                if (resultado.sedes.length === 0) {
+                    setSedeError(
+                        'No hay sedes activas configuradas. Contacta al administrador.'
+                    );
+                    return;
+                }
+
+                setSedeId((actual) => actual || resultado.sedes[0].id);
+            } catch (errorSedes) {
+                if (cancelado) return;
+                console.error(
+                    '[inventario-repuestos-ui] No se pudieron cargar las sedes:',
+                    errorSedes
+                );
+                setSedes([]);
+                setSedeError(
+                    mensajeDeError(
+                        errorSedes,
+                        'No se pudieron cargar las sedes.'
+                    )
+                );
+            } finally {
+                if (!cancelado) {
+                    setCargandoSedes(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelado = true;
+        };
+    }, [isOpen, user]);
 
     function cerrar(): void {
         if (creando) return;
@@ -78,6 +154,7 @@ export default function CrearRepuestoModal({
         const validacion = crearRepuestoSchema.safeParse({
             referencia,
             descripcion,
+            sede_id: sedeId,
             fabricante,
             aplica_a: parseAplicaA(aplicaA),
             categoria,
@@ -148,9 +225,49 @@ export default function CrearRepuestoModal({
                 noValidate
             >
                 <p className="text-xs leading-relaxed text-gray-400">
-                    La referencia se usará como identificador canónico del
-                    repuesto. Si ya existe, el alta será rechazada.
+                    La referencia es un dato comercial y puede repetirse en
+                    otra sede o ubicación. El sistema genera un identificador
+                    interno para cada registro.
                 </p>
+
+                <div>
+                    <label
+                        htmlFor="crear-sede"
+                        className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                    >
+                        Sede <span aria-hidden="true">*</span>
+                    </label>
+                    <select
+                        id="crear-sede"
+                        required
+                        value={sedeId}
+                        disabled={creando || cargandoSedes}
+                        onChange={(event) => setSedeId(event.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="">
+                            {cargandoSedes
+                                ? 'Cargando sedes…'
+                                : 'Selecciona una sede'}
+                        </option>
+                        {sedes.map((sede) => (
+                            <option key={sede.id} value={sede.id}>
+                                {sede.name}
+                                {sede.department
+                                    ? ` — ${sede.department}`
+                                    : ''}
+                            </option>
+                        ))}
+                    </select>
+                    {sedeError ? (
+                        <p
+                            role="alert"
+                            className="mt-1 text-xs text-red-300"
+                        >
+                            {sedeError}
+                        </p>
+                    ) : null}
+                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -194,20 +311,13 @@ export default function CrearRepuestoModal({
                             type="text"
                             required
                             value={ubicacion}
-                            maxLength={8}
-                            autoCapitalize="characters"
-                            spellCheck={false}
+                            maxLength={100}
                             disabled={creando}
                             onChange={(event) =>
                                 setUbicacion(event.target.value)
                             }
-                            onBlur={() =>
-                                setUbicacion((actual) =>
-                                    actual.trim().toUpperCase()
-                                )
-                            }
-                            className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="A-01-05"
+                            className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Ej. Pasillo 3, estante B"
                         />
                     </div>
                 </div>
@@ -240,12 +350,11 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-fabricante"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Fabricante <span aria-hidden="true">*</span>
+                            Fabricante
                         </label>
                         <input
                             id="crear-fabricante"
                             type="text"
-                            required
                             value={fabricante}
                             maxLength={100}
                             disabled={creando}
@@ -262,12 +371,11 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-categoria"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Categoría <span aria-hidden="true">*</span>
+                            Categoría
                         </label>
                         <input
                             id="crear-categoria"
                             type="text"
-                            required
                             value={categoria}
                             maxLength={100}
                             disabled={creando}
@@ -285,12 +393,11 @@ export default function CrearRepuestoModal({
                         htmlFor="crear-aplica-a"
                         className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                     >
-                        Aplica a <span aria-hidden="true">*</span>
+                        Aplica a
                     </label>
                     <input
                         id="crear-aplica-a"
                         type="text"
-                        required
                         value={aplicaA}
                         maxLength={5000}
                         disabled={creando}
@@ -309,12 +416,11 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-precio"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Precio <span aria-hidden="true">*</span>
+                            Precio de compra
                         </label>
                         <input
                             id="crear-precio"
                             type="number"
-                            required
                             min={0}
                             step={0.01}
                             inputMode="decimal"
@@ -331,12 +437,11 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-stock"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Stock <span aria-hidden="true">*</span>
+                            Stock
                         </label>
                         <input
                             id="crear-stock"
                             type="number"
-                            required
                             min={0}
                             step={1}
                             inputMode="numeric"
@@ -352,12 +457,11 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-stock-minimo"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Stock mínimo <span aria-hidden="true">*</span>
+                            Stock mínimo
                         </label>
                         <input
                             id="crear-stock-minimo"
                             type="number"
-                            required
                             min={0}
                             step={1}
                             inputMode="numeric"

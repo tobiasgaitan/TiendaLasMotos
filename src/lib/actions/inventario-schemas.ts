@@ -26,8 +26,8 @@ export const referenciaSchema = z
 export const ubicacionSchema = z
     .string()
     .trim()
-    .toUpperCase()
-    .regex(/^[A-Z]-\d{2}-\d{2}$/, 'Ubicación inválida. Formato: A-01-05.');
+    .min(1, 'La ubicación es obligatoria.')
+    .max(100, 'La ubicación no puede superar 100 caracteres.');
 
 export const mimeTypeSchema = z.enum([
     'image/jpeg',

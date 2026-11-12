@@ -23,6 +23,7 @@ const clavesFirestore = [
     'historial_auditoria_inventario',
     'conteo_id',
     'referencia',
+    'sede_id',
     'referencia_confirmada',
     'referencia_sugerida',
     'descripcion',

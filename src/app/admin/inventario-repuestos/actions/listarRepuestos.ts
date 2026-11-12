@@ -96,17 +96,8 @@ export async function listarRepuestos(
 
         for (const doc of snap.docs) {
             const data = doc.data() as Record<string, unknown>;
-            const referenciaDocumento = texto(data.referencia).trim();
-
-            if (referenciaDocumento && referenciaDocumento !== doc.id) {
-                console.error(
-                    '[inventario-repuestos] referencia no coincide con el docId:',
-                    {
-                        docId: doc.id,
-                        referencia: referenciaDocumento,
-                    }
-                );
-            }
+            const referenciaDocumento =
+                texto(data.referencia).trim() || doc.id;
 
             const creadoEn = aISO(data.creado_en);
             if (!creadoEn) {
@@ -117,7 +108,9 @@ export async function listarRepuestos(
             }
 
             repuestos.push({
-                referencia: doc.id,
+                documento_id: doc.id,
+                referencia: referenciaDocumento,
+                sede_id: texto(data.sede_id),
                 descripcion: texto(data.descripcion),
                 fabricante: texto(data.fabricante),
                 aplica_a: arregloTexto(data.aplica_a),
@@ -134,9 +127,15 @@ export async function listarRepuestos(
             });
         }
 
-        repuestos.sort((a, b) =>
-            a.referencia.localeCompare(b.referencia, 'es')
-        );
+        repuestos.sort((a, b) => {
+            const porReferencia = a.referencia.localeCompare(
+                b.referencia,
+                'es'
+            );
+            return porReferencia !== 0
+                ? porReferencia
+                : a.documento_id.localeCompare(b.documento_id, 'es');
+        });
 
         return { success: true, repuestos };
     } catch (error) {

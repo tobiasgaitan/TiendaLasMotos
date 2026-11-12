@@ -27,6 +27,7 @@ export const cambiosRepuestoSchema = z
 
 export const editarRepuestoSchema = z
     .object({
+        documento_id: z.string().trim().min(1).max(200),
         referencia: referenciaSchema,
         cambios: cambiosRepuestoSchema,
     })
@@ -36,16 +37,27 @@ export const crearRepuestoSchema = z
     .object({
         referencia: referenciaSchema,
         descripcion: z.string().trim().min(1).max(500),
-        fabricante: z.string().trim().min(1).max(100),
+        sede_id: z.string().trim().min(1).max(200),
+        fabricante: z.string().trim().max(100).optional(),
         aplica_a: z
             .array(z.string().trim().min(1).max(100))
-            .min(1)
-            .max(50),
-        categoria: z.string().trim().min(1).max(100),
-        precio: z.coerce.number().finite().min(0),
+            .max(50)
+            .optional(),
+        categoria: z.string().trim().max(100).optional(),
+        precio: z.coerce.number().finite().min(0).optional(),
         ubicacion: ubicacionSchema,
-        stock: z.coerce.number().int().min(0).max(1_000_000),
-        stock_minimo: z.coerce.number().int().min(0).max(1_000_000),
+        stock: z.coerce
+            .number()
+            .int()
+            .min(0)
+            .max(1_000_000)
+            .optional(),
+        stock_minimo: z.coerce
+            .number()
+            .int()
+            .min(0)
+            .max(1_000_000)
+            .optional(),
         imagen_url: z
             .union([
                 z.string().trim().url().max(2048),

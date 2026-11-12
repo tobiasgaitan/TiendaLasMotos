@@ -137,13 +137,23 @@ export async function aprobarConteo(
                 );
             }
 
-            const inventarioRef: DocumentReference<DocumentData> = adminDb
+            const inventarioQuery = adminDb
                 .collection('inventario_repuestos')
-                .doc(referenciaParsed.data);
-            const inventarioSnap = await tx.get(inventarioRef);
-            const inventarioExistia = inventarioSnap.exists;
+                .where('referencia', '==', referenciaParsed.data)
+                .limit(2);
+            const inventarioSnap = await tx.get(inventarioQuery);
+            if (inventarioSnap.size > 1) {
+                throw new Error(
+                    'La referencia tiene múltiples registros; no se puede determinar cuál aprobar.'
+                );
+            }
+            const inventarioExistia = inventarioSnap.size === 1;
+            const inventarioRef: DocumentReference<DocumentData> =
+                inventarioExistia
+                    ? inventarioSnap.docs[0].ref
+                    : adminDb.collection('inventario_repuestos').doc();
             const inventarioAntes = inventarioExistia
-                ? (inventarioSnap.data() as Record<string, unknown>)
+                ? (inventarioSnap.docs[0].data() as Record<string, unknown>)
                 : null;
 
             const datosMaestro = data.datos_maestro;
@@ -234,7 +244,7 @@ export async function aprobarConteo(
                 .doc();
             tx.create(ledgerRef, {
                 coleccion_afectada: 'inventario_repuestos',
-                documento_id: referenciaParsed.data,
+                documento_id: inventarioRef.id,
                 referencia: referenciaParsed.data,
                 conteo_id: data.conteo_id,
                 operacion: inventarioExistia ? 'UPDATE' : 'CREATE',
