@@ -4,9 +4,10 @@ import type { InventarioRepuesto } from './inventario';
  * WEB-038 — DTO de lectura para la ruta administrativa de repuestos.
  *
  * O-32: conserva todos los campos documentales existentes de
- * `InventarioRepuesto`, incluido `sede_id`; añade `documento_id` como
- * identidad de edición y serializa los Timestamps a ISO/null para el cliente.
- * La referencia comercial ya no es el docId canónico.
+ * `InventarioRepuesto`, incluidos `sede_id` y
+ * `referencias_alternativas`; añade `documento_id` como identidad de edición
+ * y serializa los Timestamps a ISO/null para el cliente. La referencia
+ * comercial ya no es el docId canónico.
  */
 export type RepuestoInventarioDTO = Omit<
     InventarioRepuesto,

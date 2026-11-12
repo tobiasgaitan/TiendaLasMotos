@@ -89,6 +89,7 @@ const BASE: RepuestoInventarioDTO = {
     ubicacion: 'A-01-05',
     stock: 8,
     stock_minimo: 3,
+    referencias_alternativas: ['BRK-ALT-1'],
     imagen_url: 'https://example.com/foto.jpg',
     creado_por: 'admin@test.com',
     creado_en: '2026-01-01T00:00:00.000Z',
@@ -101,7 +102,7 @@ const BORRADOR = {
     stock: String(BASE.stock),
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
-    ubicacion: BASE.ubicacion,
+    ubicacion: BASE.ubicacion ?? '',
 };
 
 const VALIDO = editarRepuestoSchema.safeParse({
@@ -198,6 +199,7 @@ const CREAR_BASE = {
     ubicacion: '  Área Norte  ',
     stock: 3,
     stock_minimo: 1,
+    referencias_alternativas: [' brk-011 ', 'brk-010', 'BRK-011'],
     imagen_url: null,
 };
 
@@ -210,7 +212,9 @@ check(
         crearOk.data.ubicacion === 'Área Norte' &&
         crearOk.data.descripcion === 'Pastillas de freno' &&
         crearOk.data.fabricante === 'Bosch' &&
-        crearOk.data.categoria === 'Frenos'
+        crearOk.data.categoria === 'Frenos' &&
+        crearOk.data.referencias_alternativas.length === 1 &&
+        crearOk.data.referencias_alternativas[0] === 'BRK-011'
 );
 check(
     'crearRepuestoSchema acepta imagen_url null',
@@ -431,9 +435,9 @@ async function run() {
     );
 
     check(
-        'crearRepuesto usa auto-ID, valida sede y transacción atómica',
+        'crearRepuesto usa auto-ID, alternativas y transacción atómica',
         CREAR_SOURCE.includes('.doc()') &&
-            CREAR_SOURCE.includes("configuracion/general/sedes") &&
+            CREAR_SOURCE.includes('referencias_alternativas') &&
             CREAR_SOURCE.includes('runTransaction') &&
             CREAR_SOURCE.includes('tx.create(repuestoRef, payload)') &&
             CREAR_SOURCE.includes('tx.create(ledgerRef')
@@ -492,12 +496,13 @@ async function run() {
     );
 
     check(
-        'modal usa Server Action, carga sedes y recarga la lista',
+        'modal usa Server Action, alternativas y recarga la lista',
         MODAL_SOURCE.includes('crearRepuesto') &&
             MODAL_SOURCE.includes('crearRepuestoSchema') &&
-            MODAL_SOURCE.includes('listarSedes') &&
-            MODAL_SOURCE.includes('sede_id') &&
+            MODAL_SOURCE.includes('referencias_alternativas') &&
+            MODAL_SOURCE.includes('+ Agregar referencia') &&
             MODAL_SOURCE.includes('Precio de compra') &&
+            !MODAL_SOURCE.includes('listarSedes') &&
             MODAL_SOURCE.includes('await onCreado()') &&
             MODAL_SOURCE.includes('onClose()')
     );
@@ -510,10 +515,10 @@ async function run() {
     );
 
     check(
-        'cliente usa documento_id como identidad y muestra sede',
+        'cliente usa documento_id como identidad y muestra alternativas',
         CLIENT_SOURCE.includes('documento_id') &&
-            CLIENT_SOURCE.includes('sede_id') &&
-            CLIENT_SOURCE.includes('Sede:')
+            CLIENT_SOURCE.includes('referencias_alternativas') &&
+            CLIENT_SOURCE.includes('Alternativas:')
     );
 
     check(
@@ -546,11 +551,11 @@ async function run() {
     );
 
     check(
-        'DTO declara documento_id, sede_id y alineación con InventarioRepuesto',
+        'DTO declara documento_id, alternativas y alineación con InventarioRepuesto',
         TYPES_SOURCE.includes('InventarioRepuesto') &&
             TYPES_SOURCE.includes('Omit<') &&
             TYPES_SOURCE.includes('documento_id') &&
-            TYPES_SOURCE.includes('sede_id') &&
+            TYPES_SOURCE.includes('referencias_alternativas') &&
             TYPES_SOURCE.includes('creado_en') &&
             TYPES_SOURCE.includes('actualizado_en')
     );

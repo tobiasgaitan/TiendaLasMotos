@@ -14,6 +14,10 @@ import {
 } from '@/lib/actions/inventario-schemas';
 import type { InventarioActionResult } from '@/types/inventario';
 
+function texto(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
 /**
  * Crea un borrador de conteo para el asesor.
  *
@@ -88,10 +92,9 @@ export async function crearConteoPendiente(
         const fotoRef = adminDb
             .collection('fotos_inventario')
             .doc(data.conteo_id);
-        const repuestoQuery = adminDb
+        const repuestoRef = adminDb
             .collection('inventario_repuestos')
-            .where('referencia', '==', data.referencia_confirmada)
-            .limit(2);
+            .doc(data.inventario_documento_id);
 
         const resultado = await adminDb.runTransaction(async (tx: any) => {
             const existente = await tx.get(conteoRef);
@@ -105,15 +108,21 @@ export async function crearConteoPendiente(
                 return { idempotente: true };
             }
 
-            const repuestos = await tx.get(repuestoQuery);
-            if (repuestos.size === 0) {
+            const repuesto = await tx.get(repuestoRef);
+            if (!repuesto.exists) {
                 throw new Error(
-                    'La referencia seleccionada no existe en el catálogo.'
+                    'El repuesto seleccionado no existe en el catálogo.'
                 );
             }
-            if (repuestos.size > 1) {
+            const referenciaRepuesto = texto(
+                repuesto.data()?.referencia
+            ).trim();
+            if (
+                referenciaRepuesto &&
+                referenciaRepuesto !== data.referencia_confirmada
+            ) {
                 throw new Error(
-                    'La referencia tiene múltiples registros; no se puede determinar cuál contar.'
+                    'La referencia no coincide con el documento seleccionado.'
                 );
             }
 
@@ -122,6 +131,8 @@ export async function crearConteoPendiente(
             tx.create(conteoRef, {
                 referencia_sugerida: data.referencia_sugerida,
                 referencia_confirmada: data.referencia_confirmada,
+                inventario_documento_id: data.inventario_documento_id,
+                sede_id: data.sede_id,
                 descripcion: data.descripcion,
                 cantidad_contada: data.cantidad_contada,
                 ubicacion: data.ubicacion,

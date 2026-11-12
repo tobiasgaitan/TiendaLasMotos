@@ -7,10 +7,8 @@ import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
 import { useAuth } from '@/context/AuthContext';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
-import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { crearRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import { parseAplicaA } from '@/lib/inventario/ui-helpers';
-import type { SedeOpcion } from '@/types/inventario';
 
 interface CrearRepuestoModalProps {
     isOpen: boolean;
@@ -33,16 +31,14 @@ export default function CrearRepuestoModal({
     const { user } = useAuth();
 
     const [referencia, setReferencia] = useState('');
-    const [sedeId, setSedeId] = useState('');
-    const [sedes, setSedes] = useState<SedeOpcion[]>([]);
-    const [cargandoSedes, setCargandoSedes] = useState(false);
-    const [sedeError, setSedeError] = useState<string | null>(null);
+    const [referenciasAlternativas, setReferenciasAlternativas] = useState<
+        string[]
+    >([]);
     const [descripcion, setDescripcion] = useState('');
     const [fabricante, setFabricante] = useState('');
     const [aplicaA, setAplicaA] = useState('');
     const [categoria, setCategoria] = useState('');
     const [precio, setPrecio] = useState('');
-    const [ubicacion, setUbicacion] = useState('');
     const [stock, setStock] = useState('0');
     const [stockMinimo, setStockMinimo] = useState('0');
     const [imagenUrl, setImagenUrl] = useState('');
@@ -53,88 +49,18 @@ export default function CrearRepuestoModal({
         if (!isOpen) return;
 
         setReferencia('');
-        setSedeId('');
-        setSedes([]);
-        setSedeError(null);
+        setReferenciasAlternativas([]);
         setDescripcion('');
         setFabricante('');
         setAplicaA('');
         setCategoria('');
         setPrecio('');
-        setUbicacion('');
         setStock('0');
         setStockMinimo('0');
         setImagenUrl('');
         setCreando(false);
         setError(null);
     }, [isOpen]);
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const usuario = user;
-        if (!usuario) {
-            setSedes([]);
-            setSedeError('Sesión inválida. Vuelve a iniciar sesión.');
-            return;
-        }
-
-        let cancelado = false;
-        setCargandoSedes(true);
-        setSedeError(null);
-
-        void (async () => {
-            try {
-                const idToken = await usuario.getIdToken();
-                const resultado = await listarSedes(
-                    {},
-                    { uid: usuario.uid, idToken }
-                );
-
-                if (cancelado) return;
-
-                if (!resultado.success) {
-                    setSedes([]);
-                    setSedeError(
-                        resultado.message ??
-                            'No se pudieron cargar las sedes.'
-                    );
-                    return;
-                }
-
-                setSedes(resultado.sedes);
-                if (resultado.sedes.length === 0) {
-                    setSedeError(
-                        'No hay sedes activas configuradas. Contacta al administrador.'
-                    );
-                    return;
-                }
-
-                setSedeId((actual) => actual || resultado.sedes[0].id);
-            } catch (errorSedes) {
-                if (cancelado) return;
-                console.error(
-                    '[inventario-repuestos-ui] No se pudieron cargar las sedes:',
-                    errorSedes
-                );
-                setSedes([]);
-                setSedeError(
-                    mensajeDeError(
-                        errorSedes,
-                        'No se pudieron cargar las sedes.'
-                    )
-                );
-            } finally {
-                if (!cancelado) {
-                    setCargandoSedes(false);
-                }
-            }
-        })();
-
-        return () => {
-            cancelado = true;
-        };
-    }, [isOpen, user]);
 
     function cerrar(): void {
         if (creando) return;
@@ -154,14 +80,15 @@ export default function CrearRepuestoModal({
         const validacion = crearRepuestoSchema.safeParse({
             referencia,
             descripcion,
-            sede_id: sedeId,
             fabricante,
             aplica_a: parseAplicaA(aplicaA),
             categoria,
             precio,
-            ubicacion,
             stock,
             stock_minimo: stockMinimo,
+            referencias_alternativas: referenciasAlternativas.filter(
+                (item) => item.trim()
+            ),
             imagen_url: imagenUrl.trim() ? imagenUrl.trim() : null,
         });
 
@@ -225,49 +152,10 @@ export default function CrearRepuestoModal({
                 noValidate
             >
                 <p className="text-xs leading-relaxed text-gray-400">
-                    La referencia es un dato comercial y puede repetirse en
-                    otra sede o ubicación. El sistema genera un identificador
-                    interno para cada registro.
+                    La referencia maestra identifica la ficha comercial. Puedes
+                    registrar referencias alternativas del mismo repuesto para
+                    que también sean buscables.
                 </p>
-
-                <div>
-                    <label
-                        htmlFor="crear-sede"
-                        className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                    >
-                        Sede <span aria-hidden="true">*</span>
-                    </label>
-                    <select
-                        id="crear-sede"
-                        required
-                        value={sedeId}
-                        disabled={creando || cargandoSedes}
-                        onChange={(event) => setSedeId(event.target.value)}
-                        className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="">
-                            {cargandoSedes
-                                ? 'Cargando sedes…'
-                                : 'Selecciona una sede'}
-                        </option>
-                        {sedes.map((sede) => (
-                            <option key={sede.id} value={sede.id}>
-                                {sede.name}
-                                {sede.department
-                                    ? ` — ${sede.department}`
-                                    : ''}
-                            </option>
-                        ))}
-                    </select>
-                    {sedeError ? (
-                        <p
-                            role="alert"
-                            className="mt-1 text-xs text-red-300"
-                        >
-                            {sedeError}
-                        </p>
-                    ) : null}
-                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -275,7 +163,8 @@ export default function CrearRepuestoModal({
                             htmlFor="crear-referencia"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Referencia <span aria-hidden="true">*</span>
+                            Referencia maestra{' '}
+                            <span aria-hidden="true">*</span>
                         </label>
                         <input
                             id="crear-referencia"
@@ -299,28 +188,7 @@ export default function CrearRepuestoModal({
                         />
                     </div>
 
-                    <div>
-                        <label
-                            htmlFor="crear-ubicacion"
-                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                        >
-                            Ubicación <span aria-hidden="true">*</span>
-                        </label>
-                        <input
-                            id="crear-ubicacion"
-                            type="text"
-                            required
-                            value={ubicacion}
-                            maxLength={100}
-                            disabled={creando}
-                            onChange={(event) =>
-                                setUbicacion(event.target.value)
-                            }
-                            className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="Ej. Pasillo 3, estante B"
-                        />
-                    </div>
-                </div>
+</div>
 
                 <div>
                     <label
@@ -342,6 +210,84 @@ export default function CrearRepuestoModal({
                         className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="Ej. Filtro de aceite"
                     />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Referencias alternativas
+                    </label>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                        Referencias adicionales del proveedor para el mismo
+                        repuesto. La referencia maestra no se repite aquí.
+                    </p>
+                    <div className="mt-2 space-y-2">
+                        {referenciasAlternativas.map((alternativa, indice) => (
+                            <div
+                                key={`alternativa-${indice}`}
+                                className="flex items-center gap-2"
+                            >
+                                <input
+                                    type="text"
+                                    value={alternativa}
+                                    maxLength={64}
+                                    disabled={creando}
+                                    onChange={(event) =>
+                                        setReferenciasAlternativas((actual) =>
+                                            actual.map((item, posicion) =>
+                                                posicion === indice
+                                                    ? event.target.value
+                                                    : item
+                                            )
+                                        )
+                                    }
+                                    onBlur={() =>
+                                        setReferenciasAlternativas((actual) =>
+                                            actual.map((item, posicion) =>
+                                                posicion === indice
+                                                    ? item
+                                                          .trim()
+                                                          .toUpperCase()
+                                                    : item
+                                            )
+                                        )
+                                    }
+                                    className="w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Ej. 5VL-E1341-01"
+                                />
+                                <button
+                                    type="button"
+                                    disabled={creando}
+                                    onClick={() =>
+                                        setReferenciasAlternativas((actual) =>
+                                            actual.filter(
+                                                (_, posicion) =>
+                                                    posicion !== indice
+                                            )
+                                        )
+                                    }
+                                    className="shrink-0 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-300 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label={`Quitar referencia alternativa ${indice + 1}`}
+                                >
+                                    Quitar
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        disabled={
+                            creando || referenciasAlternativas.length >= 50
+                        }
+                        onClick={() =>
+                            setReferenciasAlternativas((actual) => [
+                                ...actual,
+                                '',
+                            ])
+                        }
+                        className="mt-2 text-xs font-semibold text-red-300 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        + Agregar referencia
+                    </button>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

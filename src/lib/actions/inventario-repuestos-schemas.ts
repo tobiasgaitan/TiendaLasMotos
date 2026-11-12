@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { referenciaSchema, ubicacionSchema } from './inventario-schemas';
+import {
+    normalizarReferenciasAlternativas,
+    referenciaSchema,
+    referenciasAlternativasSchema,
+    ubicacionSchema,
+} from './inventario-schemas';
 
 /**
  * WEB-038 — Contrato de entrada de la pantalla de inventario de repuestos.
@@ -19,6 +24,7 @@ export const cambiosRepuestoSchema = z
         stock_minimo: stockSchema.optional(),
         precio: precioSchema.optional(),
         ubicacion: ubicacionSchema.optional(),
+        referencias_alternativas: referenciasAlternativasSchema,
     })
     .strict()
     .refine((cambios) => Object.keys(cambios).length > 0, {
@@ -31,13 +37,28 @@ export const editarRepuestoSchema = z
         referencia: referenciaSchema,
         cambios: cambiosRepuestoSchema,
     })
-    .strict();
+    .strict()
+    .transform((data) => ({
+        ...data,
+        cambios: {
+            ...data.cambios,
+            ...(data.cambios.referencias_alternativas !== undefined
+                ? {
+                      referencias_alternativas:
+                          normalizarReferenciasAlternativas(
+                              data.cambios.referencias_alternativas,
+                              data.referencia
+                          ),
+                  }
+                : {}),
+        },
+    }));
 
 export const crearRepuestoSchema = z
     .object({
         referencia: referenciaSchema,
         descripcion: z.string().trim().min(1).max(500),
-        sede_id: z.string().trim().min(1).max(200),
+        sede_id: z.string().trim().max(200).optional(),
         fabricante: z.string().trim().max(100).optional(),
         aplica_a: z
             .array(z.string().trim().min(1).max(100))
@@ -45,7 +66,7 @@ export const crearRepuestoSchema = z
             .optional(),
         categoria: z.string().trim().max(100).optional(),
         precio: z.coerce.number().finite().min(0).optional(),
-        ubicacion: ubicacionSchema,
+        ubicacion: ubicacionSchema.optional(),
         stock: z.coerce
             .number()
             .int()
@@ -58,6 +79,7 @@ export const crearRepuestoSchema = z
             .min(0)
             .max(1_000_000)
             .optional(),
+        referencias_alternativas: referenciasAlternativasSchema,
         imagen_url: z
             .union([
                 z.string().trim().url().max(2048),
@@ -66,7 +88,14 @@ export const crearRepuestoSchema = z
             ])
             .optional(),
     })
-    .strict();
+    .strict()
+    .transform((data) => ({
+        ...data,
+        referencias_alternativas: normalizarReferenciasAlternativas(
+            data.referencias_alternativas,
+            data.referencia
+        ),
+    }));
 
 export const listarRepuestosSchema = z.object({}).strict();
 

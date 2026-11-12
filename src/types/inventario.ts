@@ -17,6 +17,8 @@ export type EstadoConteo = (typeof ESTADOS_CONTEO)[number];
 export interface ConteoPendiente {
     referencia_sugerida: string;
     referencia_confirmada: string;
+    inventario_documento_id: string;
+    sede_id: string;
     descripcion: string;
     cantidad_contada: number;
     ubicacion: string;
@@ -33,15 +35,16 @@ export interface ConteoPendiente {
 
 export interface InventarioRepuesto {
     referencia: string;
-    sede_id: string;
+    sede_id?: string;
     descripcion: string;
     fabricante: string;
     aplica_a: string[];
     categoria: string;
     precio: number;
-    ubicacion: string;
+    ubicacion?: string;
     stock: number;
     stock_minimo: number;
+    referencias_alternativas: string[];
     imagen_url: string;
     creado_por: string;
     creado_en: Timestamp;
@@ -126,10 +129,13 @@ export interface VisionUnidad {
 }
 
 export interface RepuestoCandidato {
+    documento_id: string;
     referencia: string;
+    referencias_alternativas: string[];
     descripcion: string;
     fabricante: string;
     categoria: string;
+    aplica_a: string[];
     stock: number;
     score: number;
     coincidencias: string[];

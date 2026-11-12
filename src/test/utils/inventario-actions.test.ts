@@ -120,11 +120,10 @@ async function run() {
             !('registrado_por' in rechazarForjado.data)
     );
     check(
-        'crearConteoPendiente verifica referencia única en la transacción',
-        CREAR_SOURCE.includes("where('referencia', '==', data.referencia_confirmada)") &&
-            CREAR_SOURCE.includes('tx.get(repuestoQuery)') &&
-            CREAR_SOURCE.includes('La referencia seleccionada no existe') &&
-            CREAR_SOURCE.includes('La referencia tiene múltiples registros')
+        'crearConteoPendiente resuelve inventario_documento_id en la transacción',
+        CREAR_SOURCE.includes('inventario_documento_id') &&
+            CREAR_SOURCE.includes('tx.get(repuestoRef)') &&
+            CREAR_SOURCE.includes('La referencia no coincide')
     );
     check(
         'aprobarConteo y rechazarConteo usan Transaction tipado',
@@ -157,6 +156,16 @@ async function run() {
             FORM_ASESOR_SOURCE.includes("name === 'TimeoutError'") &&
             !FORM_ASESOR_SOURCE.includes('instanceof TimeoutError') &&
             FORM_ASESOR_SOURCE.includes('setAnalizando(false)')
+    );
+    check(
+        'formulario asesor integra sede, documento y autocompletado',
+        FORM_ASESOR_SOURCE.includes('listarSedes') &&
+            FORM_ASESOR_SOURCE.includes('inventario_documento_id') &&
+            FORM_ASESOR_SOURCE.includes('sede_id') &&
+            FORM_ASESOR_SOURCE.includes('readOnly') &&
+            FORM_ASESOR_SOURCE.includes('fabricante') &&
+            FORM_ASESOR_SOURCE.includes('categoria') &&
+            FORM_ASESOR_SOURCE.includes('aplicaA')
     );
 
     const datosAprobacion = datosNuevosAprobacion(

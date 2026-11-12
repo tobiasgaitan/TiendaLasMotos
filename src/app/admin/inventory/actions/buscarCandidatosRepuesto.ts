@@ -86,7 +86,11 @@ export async function buscarCandidatosRepuesto(
             }
 
             fuentes.push({
+                documento_id: doc.id,
                 referencia,
+                referencias_alternativas: arregloTexto(
+                    data.referencias_alternativas
+                ),
                 descripcion: texto(data.descripcion),
                 fabricante: texto(data.fabricante),
                 categoria: texto(data.categoria),

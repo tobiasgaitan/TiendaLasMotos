@@ -119,6 +119,9 @@ export async function listarRepuestos(
                 ubicacion: texto(data.ubicacion),
                 stock: numero(data.stock),
                 stock_minimo: numero(data.stock_minimo),
+                referencias_alternativas: arregloTexto(
+                    data.referencias_alternativas
+                ),
                 imagen_url: texto(data.imagen_url),
                 creado_por: texto(data.creado_por),
                 creado_en: creadoEn,

@@ -24,6 +24,8 @@ const clavesFirestore = [
     'conteo_id',
     'referencia',
     'sede_id',
+    'referencias_alternativas',
+    'inventario_documento_id',
     'referencia_confirmada',
     'referencia_sugerida',
     'descripcion',

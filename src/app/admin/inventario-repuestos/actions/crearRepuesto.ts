@@ -54,35 +54,25 @@ export async function crearRepuesto(
         const repuestoRef = adminDb
             .collection('inventario_repuestos')
             .doc();
-        const sedeRef = adminDb
-            .collection('configuracion/general/sedes')
-            .doc(data.sede_id);
         const ledgerRef = adminDb
             .collection('historial_auditoria_inventario')
             .doc();
 
         await adminDb.runTransaction(async (tx: any) => {
-            const sedeSnap = await tx.get(sedeRef);
-            if (!sedeSnap.exists) {
-                throw new Error('La sede seleccionada no existe.');
-            }
-            const sede = sedeSnap.data() as Record<string, unknown>;
-            if (sede.isActive === false) {
-                throw new Error('La sede seleccionada está inactiva.');
-            }
-
             const ahora = new Date();
             const payload: Record<string, unknown> = {
                 referencia: data.referencia,
                 descripcion: data.descripcion,
-                sede_id: data.sede_id,
+                sede_id: data.sede_id ?? '',
                 fabricante: data.fabricante ?? '',
                 aplica_a: data.aplica_a ?? [],
                 categoria: data.categoria ?? '',
                 precio: data.precio ?? 0,
-                ubicacion: data.ubicacion,
+                ubicacion: data.ubicacion ?? '',
                 stock: data.stock ?? 0,
                 stock_minimo: data.stock_minimo ?? 0,
+                referencias_alternativas:
+                    data.referencias_alternativas ?? [],
                 imagen_url: data.imagen_url ?? '',
                 creado_por: me.email,
                 creado_en: ahora,

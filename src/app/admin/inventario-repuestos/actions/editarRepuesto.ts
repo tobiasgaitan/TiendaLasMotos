@@ -116,6 +116,24 @@ export async function editarRepuesto(
                 }
             }
 
+            if (cambios.referencias_alternativas !== undefined) {
+                const actuales = Array.isArray(
+                    antes.referencias_alternativas
+                )
+                    ? antes.referencias_alternativas.filter(
+                          (item): item is string =>
+                              typeof item === 'string'
+                      )
+                    : [];
+                if (
+                    actuales.join('|') !==
+                    cambios.referencias_alternativas.join('|')
+                ) {
+                    updates.referencias_alternativas =
+                        cambios.referencias_alternativas;
+                }
+            }
+
             if (Object.keys(updates).length === 0) {
                 return { idempotente: true };
             }

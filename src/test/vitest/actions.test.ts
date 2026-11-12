@@ -30,7 +30,11 @@ const mockState = vi.hoisted(() => {
 
     const makeQuery = (
         collection: string,
-        filters: Array<{ field: string; value: unknown }>,
+        filters: Array<{
+            field: string;
+            op: string;
+            value: unknown;
+        }>,
         limit?: number
     ) => {
         const query = {
@@ -47,10 +51,16 @@ const mockState = vi.hoisted(() => {
                         };
                     })
                     .filter((snap) =>
-                        filters.every(
-                            ({ field, value }) =>
-                                snap.data()[field] === value
-                        )
+                        filters.every(({ field, op, value }) => {
+                            const actual = snap.data()[field];
+                            if (op === 'array-contains') {
+                                return (
+                                    Array.isArray(actual) &&
+                                    actual.includes(value)
+                                );
+                            }
+                            return actual === value;
+                        })
                     )
                     .slice(0, limit);
                 return {
@@ -111,10 +121,10 @@ const mockState = vi.hoisted(() => {
                     })),
             }),
             where: (field: string, op: string, value: unknown) => {
-                if (op !== '==') {
+                if (op !== '==' && op !== 'array-contains') {
                     throw new Error(`Operador no soportado: ${op}`);
                 }
-                return makeQuery(nombre, [{ field, value }]);
+                return makeQuery(nombre, [{ field, op, value }]);
             },
         }),
         runTransaction: async (
@@ -197,7 +207,7 @@ function seedConteo(estado = 'pendiente_revision') {
     });
 }
 
-function seedInventario() {
+function seedInventario(alternativas: string[] = []) {
     mockState.docs.set('inventario_repuestos/BRK-001', {
         referencia: 'BRK-001',
         sede_id: 'sede-1',
@@ -209,6 +219,7 @@ function seedInventario() {
         ubicacion: 'A-01-05',
         stock: 1,
         stock_minimo: 0,
+        referencias_alternativas: alternativas,
         imagen_url: '',
     });
 }
@@ -284,6 +295,33 @@ describe('MT-07 Server Actions contracts', () => {
         expect(ledger[0].data.registrado_por).toBe('uid-admin');
         expect(ledger[0].data.registrado_por_email).toBe('admin@test.com');
         expect(JSON.stringify(ledger[0].data)).not.toContain('atacante');
+    });
+
+    it('aprobarConteo no actualiza stock del catálogo', async () => {
+        seedConteo();
+        seedInventario();
+        mockState.docs.set('conteos_pendientes_repuestos/' + UUID, {
+            ...(mockState.docs.get(
+                `conteos_pendientes_repuestos/${UUID}`
+            ) ?? {}),
+            inventario_documento_id: 'BRK-001',
+            sede_id: 'sede-1',
+        });
+
+        const resultado = await aprobarConteo(
+            { conteo_id: UUID },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')?.stock
+        ).toBe(1);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.coleccion_afectada).toBe(
+            'conteos_pendientes_repuestos'
+        );
     });
 
     it('rechazarConteo persiste revisado_por UID en conteo y ledger', async () => {
@@ -406,8 +444,48 @@ describe('MT-07 Server Actions contracts', () => {
         );
     });
 
+    it('crearRepuesto acepta solo referencia y descripción', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-030',
+                descripcion: 'Repuesto mínimo',
+            },
+            ACTOR
+        );
+
+        const creados = repuestosPorReferencia('BRK-030');
+        expect(resultado.success).toBe(true);
+        expect(creados).toHaveLength(1);
+        expect(creados[0].data.sede_id).toBe('');
+        expect(creados[0].data.ubicacion).toBe('');
+        expect(creados[0].data.precio).toBe(0);
+        expect(creados[0].data.stock).toBe(0);
+        expect(creados[0].data.referencias_alternativas).toEqual([]);
+    });
+
+    it('crearRepuesto normaliza y deduplica referencias alternativas', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-031',
+                descripcion: 'Repuesto con alternativas',
+                referencias_alternativas: [
+                    ' alt-1 ',
+                    'BRK-031',
+                    'ALT-1',
+                ],
+            },
+            ACTOR
+        );
+
+        const creados = repuestosPorReferencia('BRK-031');
+        expect(resultado.success).toBe(true);
+        expect(creados[0].data.referencias_alternativas).toEqual([
+            'ALT-1',
+        ]);
+    });
+
     it('listarRepuestos devuelve documento_id, referencia comercial y sede', async () => {
-        seedInventario();
+        seedInventario(['ALT-1']);
 
         const resultado = await listarRepuestos({}, ACTOR);
 
@@ -416,6 +494,9 @@ describe('MT-07 Server Actions contracts', () => {
         expect(resultado.repuestos[0].documento_id).toBe('BRK-001');
         expect(resultado.repuestos[0].referencia).toBe('BRK-001');
         expect(resultado.repuestos[0].sede_id).toBe('sede-1');
+        expect(resultado.repuestos[0].referencias_alternativas).toEqual([
+            'ALT-1',
+        ]);
     });
 
     it('editarRepuesto usa documento_id como identidad', async () => {
@@ -437,6 +518,31 @@ describe('MT-07 Server Actions contracts', () => {
         const ledger = ledgerWrites();
         expect(ledger).toHaveLength(1);
         expect(ledger[0].data.documento_id).toBe('BRK-001');
+    });
+
+    it('editarRepuesto actualiza y normaliza referencias alternativas', async () => {
+        seedInventario(['ALT-1']);
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: {
+                    referencias_alternativas: [
+                        ' alt-2 ',
+                        'ALT-2',
+                        'BRK-001',
+                    ],
+                },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')
+                ?.referencias_alternativas
+        ).toEqual(['ALT-2']);
     });
 
     it('listarSedes devuelve solo sedes activas', async () => {
@@ -463,7 +569,19 @@ describe('MT-07 Server Actions contracts', () => {
         expect(resultado.existe).toBe(true);
     });
 
-    it('buscarCandidatosRepuesto devuelve docId y no escribe', async () => {
+    it('obtenerRepuestoPorReferencia encuentra una referencia alternativa', async () => {
+        seedInventario(['ALT-001']);
+
+        const resultado = await obtenerRepuestoPorReferencia(
+            { referencia: 'ALT-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.existe).toBe(true);
+    });
+
+    it('buscarCandidatosRepuesto devuelve documento_id y no escribe', async () => {
         seedInventario();
 
         const resultado = await buscarCandidatosRepuesto(
@@ -473,7 +591,23 @@ describe('MT-07 Server Actions contracts', () => {
 
         expect(resultado.success).toBe(true);
         expect(resultado.candidatos[0]?.referencia).toBe('BRK-001');
+        expect(resultado.candidatos[0]?.documento_id).toBe('BRK-001');
         expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('buscarCandidatosRepuesto encuentra una referencia alternativa', async () => {
+        seedInventario(['ALT-001']);
+
+        const resultado = await buscarCandidatosRepuesto(
+            { etiquetas: [], consulta: 'ALT-001', limite: 10 },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.candidatos[0]?.referencia).toBe('BRK-001');
+        expect(resultado.candidatos[0]?.referencias_alternativas).toEqual([
+            'ALT-001',
+        ]);
     });
 
     it('crearConteoPendiente ignora identidad cliente forjada', async () => {
@@ -492,6 +626,8 @@ describe('MT-07 Server Actions contracts', () => {
                 conteo_id: UUID,
                 referencia_sugerida: '',
                 referencia_confirmada: 'BRK-001',
+                inventario_documento_id: 'BRK-001',
+                sede_id: 'sede-1',
                 descripcion: 'Disco de freno',
                 cantidad_contada: 4,
                 ubicacion: 'A-01-05',
@@ -518,7 +654,7 @@ describe('MT-07 Server Actions contracts', () => {
         expect(JSON.stringify(conteo)).not.toContain('atacante');
     });
 
-    it('crearConteoPendiente rechaza referencia ambigua', async () => {
+    it('crearConteoPendiente usa documento_id para desambiguar referencias', async () => {
         seedInventario();
         mockState.docs.set('inventario_repuestos/auto-2', {
             referencia: 'BRK-001',
@@ -540,6 +676,8 @@ describe('MT-07 Server Actions contracts', () => {
                 conteo_id: UUID,
                 referencia_sugerida: '',
                 referencia_confirmada: 'BRK-001',
+                inventario_documento_id: 'BRK-001',
+                sede_id: 'sede-1',
                 descripcion: 'Disco de freno',
                 cantidad_contada: 4,
                 ubicacion: 'A-01-05',
@@ -555,11 +693,15 @@ describe('MT-07 Server Actions contracts', () => {
             ACTOR
         );
 
-        expect(resultado.success).toBe(false);
-        expect(resultado.message).toContain('múltiples registros');
+        expect(resultado.success).toBe(true);
         expect(
-            mockState.docs.has(`conteos_pendientes_repuestos/${UUID}`)
-        ).toBe(false);
+            mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
+                ?.inventario_documento_id
+        ).toBe('BRK-001');
+        expect(
+            mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
+                ?.sede_id
+        ).toBe('sede-1');
     });
 
     it('aprobarConteo rechaza referencia ambigua', async () => {

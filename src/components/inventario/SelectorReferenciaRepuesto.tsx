@@ -40,10 +40,17 @@ function esCandidatoCache(value: unknown): value is RepuestoCandidato {
     if (!value || typeof value !== 'object') return false;
     const candidato = value as Record<string, unknown>;
     return (
+        typeof candidato.documento_id === 'string' &&
         typeof candidato.referencia === 'string' &&
+        Array.isArray(candidato.referencias_alternativas) &&
+        candidato.referencias_alternativas.every(
+            (item) => typeof item === 'string'
+        ) &&
         typeof candidato.descripcion === 'string' &&
         typeof candidato.fabricante === 'string' &&
         typeof candidato.categoria === 'string' &&
+        Array.isArray(candidato.aplica_a) &&
+        candidato.aplica_a.every((item) => typeof item === 'string') &&
         typeof candidato.stock === 'number' &&
         Number.isFinite(candidato.stock) &&
         typeof candidato.score === 'number' &&
@@ -444,7 +451,12 @@ export default function SelectorReferenciaRepuesto({
                         const seleccionada =
                             candidato.referencia === referenciaSeleccionada;
                         return (
-                            <li key={candidato.referencia}>
+                            <li
+                                key={
+                                    candidato.documento_id ||
+                                    candidato.referencia
+                                }
+                            >
                                 <button
                                     type="button"
                                     role="option"
@@ -464,6 +476,15 @@ export default function SelectorReferenciaRepuesto({
                                         {candidato.descripcion ||
                                             'Sin descripción'}
                                     </span>
+                                    {candidato.referencias_alternativas
+                                        .length > 0 ? (
+                                        <span className="mt-0.5 block text-[11px] text-amber-200/80">
+                                            Alternativas:{' '}
+                                            {candidato.referencias_alternativas.join(
+                                                ', '
+                                            )}
+                                        </span>
+                                    ) : null}
                                     <span className="mt-0.5 block text-[11px] text-gray-500">
                                         {[candidato.fabricante, candidato.categoria]
                                             .filter(Boolean)

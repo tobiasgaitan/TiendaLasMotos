@@ -62,15 +62,27 @@ export async function obtenerRepuestoPorReferencia(
 
         await requirePermiso(me, 'inventario_repuestos', 'read');
 
-        const snap = await getDb()
-            .collection('inventario_repuestos')
-            .where('referencia', '==', parsed.data.referencia)
-            .limit(1)
-            .get();
+        const adminDb = getDb();
+        const [porMaestra, porAlternativa] = await Promise.all([
+            adminDb
+                .collection('inventario_repuestos')
+                .where('referencia', '==', parsed.data.referencia)
+                .limit(1)
+                .get(),
+            adminDb
+                .collection('inventario_repuestos')
+                .where(
+                    'referencias_alternativas',
+                    'array-contains',
+                    parsed.data.referencia
+                )
+                .limit(1)
+                .get(),
+        ]);
 
         return {
             success: true,
-            existe: !snap.empty,
+            existe: !porMaestra.empty || !porAlternativa.empty,
         };
     } catch (error) {
         console.error(

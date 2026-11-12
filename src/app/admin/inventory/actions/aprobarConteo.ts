@@ -20,7 +20,6 @@ import {
     referenciaSchema,
     ubicacionSchema,
 } from '@/lib/actions/inventario-schemas';
-import { datosNuevosAprobacion } from '@/lib/actions/inventario-ledger';
 import type { InventarioActionResult } from '@/types/inventario';
 
 /**
@@ -137,99 +136,44 @@ export async function aprobarConteo(
                 );
             }
 
-            const inventarioQuery = adminDb
-                .collection('inventario_repuestos')
-                .where('referencia', '==', referenciaParsed.data)
-                .limit(2);
-            const inventarioSnap = await tx.get(inventarioQuery);
-            if (inventarioSnap.size > 1) {
-                throw new Error(
-                    'La referencia tiene múltiples registros; no se puede determinar cuál aprobar.'
-                );
-            }
-            const inventarioExistia = inventarioSnap.size === 1;
-            const inventarioRef: DocumentReference<DocumentData> =
-                inventarioExistia
-                    ? inventarioSnap.docs[0].ref
-                    : adminDb.collection('inventario_repuestos').doc();
-            const inventarioAntes = inventarioExistia
-                ? (inventarioSnap.docs[0].data() as Record<string, unknown>)
-                : null;
+            const inventarioDocumentoId =
+                typeof conteo.inventario_documento_id === 'string'
+                    ? conteo.inventario_documento_id.trim()
+                    : '';
 
-            const datosMaestro = data.datos_maestro;
-            if (!inventarioExistia && !datosMaestro) {
-                throw new Error(
-                    'Faltan datos maestros para crear la referencia.'
-                );
+            let inventarioRef: DocumentReference<DocumentData>;
+
+            if (inventarioDocumentoId) {
+                inventarioRef = adminDb
+                    .collection('inventario_repuestos')
+                    .doc(inventarioDocumentoId);
+                const inventarioSnap = await tx.get(inventarioRef);
+                if (!inventarioSnap.exists) {
+                    throw new Error(
+                        'El repuesto seleccionado no existe en el catálogo.'
+                    );
+                }
+            } else {
+                const inventarioQuery = adminDb
+                    .collection('inventario_repuestos')
+                    .where('referencia', '==', referenciaParsed.data)
+                    .limit(2);
+                const inventarioSnap = await tx.get(inventarioQuery);
+                if (inventarioSnap.size === 0) {
+                    throw new Error(
+                        'El repuesto seleccionado no existe en el catálogo.'
+                    );
+                }
+                if (inventarioSnap.size > 1) {
+                    throw new Error(
+                        'La referencia tiene múltiples registros; no se puede determinar cuál aprobar.'
+                    );
+                }
+                inventarioRef =
+                    inventarioSnap.docs[0].ref as DocumentReference<DocumentData>;
             }
 
             const ahora = new Date();
-            let inventarioDespues: Record<string, unknown>;
-            let camposModificados: string[];
-
-            if (inventarioExistia) {
-                const updates: {
-                    stock: number;
-                    ubicacion: string;
-                    imagen_url: string;
-                    actualizado_por: string;
-                    actualizado_en: Date;
-                    fabricante?: string;
-                    aplica_a?: string[];
-                    categoria?: string;
-                    precio?: number;
-                    stock_minimo?: number;
-                } = {
-                    stock: cantidad,
-                    ubicacion: ubicacionParsed.data,
-                    imagen_url:
-                        datosMaestro && datosMaestro.imagen_url
-                            ? datosMaestro.imagen_url
-                            : fotoUrl,
-                    actualizado_por: me.email,
-                    actualizado_en: ahora,
-                };
-
-                if (datosMaestro) {
-                    updates.fabricante = datosMaestro.fabricante;
-                    updates.aplica_a = datosMaestro.aplica_a;
-                    updates.categoria = datosMaestro.categoria;
-                    updates.precio = datosMaestro.precio;
-                    updates.stock_minimo = datosMaestro.stock_minimo;
-                }
-
-                tx.update(inventarioRef, updates);
-                inventarioDespues = { ...inventarioAntes, ...updates };
-                camposModificados = Object.keys(updates);
-            } else {
-                const dm = datosMaestro;
-                if (!dm) {
-                    throw new Error(
-                        'Faltan datos maestros para crear la referencia.'
-                    );
-                }
-
-                const payload: Record<string, unknown> = {
-                    referencia: referenciaParsed.data,
-                    descripcion,
-                    fabricante: dm.fabricante,
-                    aplica_a: dm.aplica_a,
-                    categoria: dm.categoria,
-                    precio: dm.precio,
-                    ubicacion: ubicacionParsed.data,
-                    stock: cantidad,
-                    stock_minimo: dm.stock_minimo,
-                    imagen_url: dm.imagen_url ? dm.imagen_url : fotoUrl,
-                    creado_por: me.email,
-                    creado_en: ahora,
-                    actualizado_por: me.email,
-                    actualizado_en: ahora,
-                };
-
-                tx.create(inventarioRef, payload);
-                inventarioDespues = payload;
-                camposModificados = Object.keys(payload);
-            }
 
             tx.update(conteoRef, {
                 estado: 'aprobado',
@@ -238,22 +182,33 @@ export async function aprobarConteo(
                 motivo_rechazo: '',
             });
 
-            // Append-only: referencia nueva + tx.create(). Nunca set/update/delete.
+            // Append-only: aprobación del conteo, sin actualizar stock del catálogo.
             const ledgerRef = adminDb
                 .collection('historial_auditoria_inventario')
                 .doc();
             tx.create(ledgerRef, {
-                coleccion_afectada: 'inventario_repuestos',
-                documento_id: inventarioRef.id,
+                coleccion_afectada: 'conteos_pendientes_repuestos',
+                documento_id: data.conteo_id,
                 referencia: referenciaParsed.data,
                 conteo_id: data.conteo_id,
-                operacion: inventarioExistia ? 'UPDATE' : 'CREATE',
-                datos_anteriores: inventarioAntes,
-                datos_nuevos: datosNuevosAprobacion(
-                    inventarioDespues,
-                    data.conteo_id
-                ),
-                campos_modificados: camposModificados,
+                operacion: 'UPDATE',
+                datos_anteriores: { estado: 'pendiente_revision' },
+                datos_nuevos: {
+                    estado: 'aprobado',
+                    revisado_por: me.uid,
+                    revisado_en: ahora,
+                    motivo_rechazo: '',
+                    inventario_documento_id: inventarioRef.id,
+                    descripcion,
+                    cantidad_contada: cantidad,
+                    ubicacion: ubicacionParsed.data,
+                },
+                campos_modificados: [
+                    'estado',
+                    'revisado_por',
+                    'revisado_en',
+                    'motivo_rechazo',
+                ],
                 registrado_por: me.uid,
                 registrado_por_email: me.email,
                 creado_en: ahora,

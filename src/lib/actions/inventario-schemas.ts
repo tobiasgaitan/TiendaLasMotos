@@ -29,6 +29,29 @@ export const ubicacionSchema = z
     .min(1, 'La ubicación es obligatoria.')
     .max(100, 'La ubicación no puede superar 100 caracteres.');
 
+export const referenciasAlternativasSchema = z
+    .array(referenciaSchema)
+    .max(50)
+    .optional();
+
+export function normalizarReferenciasAlternativas(
+    referencias: readonly string[] | undefined,
+    maestra: string
+): string[] {
+    const master = maestra.trim().toUpperCase();
+    const vistas = new Set<string>();
+    const resultado: string[] = [];
+
+    for (const referencia of referencias ?? []) {
+        const limpia = referencia.trim().toUpperCase();
+        if (!limpia || limpia === master || vistas.has(limpia)) continue;
+        vistas.add(limpia);
+        resultado.push(limpia);
+    }
+
+    return resultado;
+}
+
 export const mimeTypeSchema = z.enum([
     'image/jpeg',
     'image/png',
@@ -92,6 +115,8 @@ export const crearConteoSchema = z
         conteo_id: z.string().uuid(),
         referencia_sugerida: z.string().trim().max(64).default(''),
         referencia_confirmada: referenciaSchema,
+        inventario_documento_id: z.string().trim().min(1).max(200),
+        sede_id: z.string().trim().min(1).max(200),
         descripcion: z.string().trim().min(2).max(200),
         cantidad_contada: z.coerce.number().int().min(0).max(1_000_000),
         ubicacion: ubicacionSchema,

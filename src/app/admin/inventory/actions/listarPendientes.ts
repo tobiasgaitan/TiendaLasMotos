@@ -118,6 +118,10 @@ export async function listarPendientes(
                 id: doc.id,
                 referencia_sugerida: texto(data.referencia_sugerida),
                 referencia_confirmada: texto(data.referencia_confirmada),
+                inventario_documento_id: texto(
+                    data.inventario_documento_id
+                ),
+                sede_id: texto(data.sede_id),
                 descripcion: texto(data.descripcion),
                 cantidad_contada: numero(data.cantidad_contada),
                 ubicacion: texto(data.ubicacion),

@@ -43,6 +43,8 @@ const FOTO_URL_B = `https://firebasestorage.googleapis.com/v0/b/test/o/${encodeU
 const ENTRADA = {
     referencia_sugerida: '',
     referencia_confirmada: 'BRK-001',
+    inventario_documento_id: 'doc-brk-001',
+    sede_id: 'sede-1',
     descripcion: 'Disco de freno',
     cantidad_contada: 4,
     ubicacion: 'A-01-05',

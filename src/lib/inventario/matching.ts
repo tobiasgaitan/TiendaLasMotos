@@ -10,7 +10,9 @@ import type { RepuestoCandidato } from '@/types/inventario';
  */
 
 export interface CandidatoFuente {
+    documento_id?: string;
     referencia: string;
+    referencias_alternativas?: string[];
     descripcion: string;
     fabricante: string;
     categoria: string;
@@ -187,7 +189,12 @@ function puntuarCandidato(
     etiquetas: readonly string[],
     consulta: string
 ): { score: number; coincidencias: string[] } {
-    const referenciaNormalizada = normalizarTextoBase(candidato.referencia);
+    const referenciaNormalizada = normalizarTextoBase(
+        [
+            candidato.referencia,
+            ...(candidato.referencias_alternativas ?? []),
+        ].join(' ')
+    );
     const categoriaNormalizada = normalizarTextoBase(candidato.categoria);
     const aplicaA = candidato.aplica_a ?? [];
     const camposNormalizados = [
@@ -268,10 +275,14 @@ export function rankearCandidatos(
         if (hayFiltro && evaluacion.score <= 0) continue;
 
         rankeados.push({
+            documento_id: candidato.documento_id ?? '',
             referencia,
+            referencias_alternativas:
+                candidato.referencias_alternativas ?? [],
             descripcion: candidato.descripcion,
             fabricante: candidato.fabricante,
             categoria: candidato.categoria,
+            aplica_a: candidato.aplica_a ?? [],
             stock: candidato.stock,
             score: evaluacion.score,
             coincidencias: evaluacion.coincidencias,

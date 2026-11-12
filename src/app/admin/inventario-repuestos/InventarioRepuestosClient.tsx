@@ -181,7 +181,7 @@ export default function InventarioRepuestosClient() {
                 stock: String(repuesto.stock),
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
-                ubicacion: repuesto.ubicacion,
+                ubicacion: repuesto.ubicacion ?? '',
             },
         });
         setError(null);
@@ -568,6 +568,15 @@ export default function InventarioRepuestosClient() {
                                             <p className="mt-1 text-xs text-gray-500">
                                                 Sede: {repuesto.sede_id || '—'}
                                             </p>
+                                            {repuesto.referencias_alternativas
+                                                .length > 0 ? (
+                                                <p className="mt-1 text-[11px] text-amber-200/80">
+                                                    Alternativas:{' '}
+                                                    {repuesto.referencias_alternativas.join(
+                                                        ', '
+                                                    )}
+                                                </p>
+                                            ) : null}
                                             <div className="mt-2">
                                                 {renderAcciones(repuesto)}
                                             </div>
