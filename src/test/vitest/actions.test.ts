@@ -469,7 +469,7 @@ describe('MT-07 Server Actions contracts', () => {
                 referencia: 'BRK-031',
                 descripcion: 'Repuesto con alternativas',
                 referencias_alternativas: [
-                    ' alt-1 ',
+                    'alt-1',
                     'BRK-031',
                     'ALT-1',
                 ],
@@ -529,7 +529,7 @@ describe('MT-07 Server Actions contracts', () => {
                 referencia: 'BRK-001',
                 cambios: {
                     referencias_alternativas: [
-                        ' alt-2 ',
+                        'alt-2',
                         'ALT-2',
                         'BRK-001',
                     ],

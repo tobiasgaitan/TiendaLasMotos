@@ -23,6 +23,20 @@ export const referenciaSchema = z
     .toUpperCase()
     .regex(/^[A-Z0-9][A-Z0-9._-]{0,63}$/, 'Referencia inválida.');
 
+const REFERENCIA_REPUESTO_REGEX = /^[A-Z0-9][A-Z0-9._-]{0,63}$/;
+const REFERENCIA_REPUESTO_MENSAJE =
+    'La referencia no puede contener espacios. Usa A-Z, 0-9, ., _, -; máximo 64 caracteres.';
+
+export const referenciaRepuestoEstrictaSchema = z
+    .string()
+    .refine(
+        (value) =>
+            !/\s/.test(value) &&
+            REFERENCIA_REPUESTO_REGEX.test(value.trim().toUpperCase()),
+        { message: REFERENCIA_REPUESTO_MENSAJE }
+    )
+    .pipe(referenciaSchema);
+
 export const ubicacionSchema = z
     .string()
     .trim()
@@ -30,7 +44,7 @@ export const ubicacionSchema = z
     .max(100, 'La ubicación no puede superar 100 caracteres.');
 
 export const referenciasAlternativasSchema = z
-    .array(referenciaSchema)
+    .array(referenciaRepuestoEstrictaSchema)
     .max(50)
     .optional();
 

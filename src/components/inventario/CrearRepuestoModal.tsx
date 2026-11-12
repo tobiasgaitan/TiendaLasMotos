@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import type { ZodIssue } from 'zod';
 import { AlertCircle, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
@@ -21,6 +22,37 @@ function mensajeDeError(error: unknown, fallback: string): string {
         return error.message;
     }
     return fallback;
+}
+
+const ETIQUETAS_CAMPO: Record<string, string> = {
+    referencia: 'Referencia maestra',
+    descripcion: 'Descripción',
+    fabricante: 'Fabricante',
+    aplica_a: 'Aplica a',
+    categoria: 'Categoría',
+    precio: 'Precio de compra',
+    stock: 'Stock',
+    stock_minimo: 'Stock mínimo',
+    imagen_url: 'Imagen URL',
+};
+
+function etiquetaDeCampo(issue: ZodIssue): string {
+    const [campo, indice] = issue.path;
+    if (campo === 'referencias_alternativas') {
+        return `Referencia alternativa #${
+            typeof indice === 'number' ? indice + 1 : 1
+        }`;
+    }
+    if (typeof campo === 'string' && ETIQUETAS_CAMPO[campo]) {
+        return ETIQUETAS_CAMPO[campo];
+    }
+    return 'Formulario';
+}
+
+function mensajesDeValidacion(issues: ZodIssue[]): string {
+    return issues
+        .map((issue) => `${etiquetaDeCampo(issue)}: ${issue.message}`)
+        .join('\n');
 }
 
 export default function CrearRepuestoModal({
@@ -93,11 +125,9 @@ export default function CrearRepuestoModal({
         });
 
         if (!validacion.success) {
-            const primerError = validacion.error.issues[0];
             setError(
-                primerError
-                    ? primerError.message
-                    : 'Revisa los datos del repuesto.'
+                mensajesDeValidacion(validacion.error.issues) ||
+                    'Revisa los datos del repuesto.'
             );
             return;
         }
@@ -180,12 +210,15 @@ export default function CrearRepuestoModal({
                             }
                             onBlur={() =>
                                 setReferencia((actual) =>
-                                    actual.trim().toUpperCase()
+                                    actual.toUpperCase()
                                 )
                             }
                             className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Ej. 5VL-E1341-00"
                         />
+                        <p className="mt-1 text-[11px] text-gray-500">
+                            A-Z, 0-9, ., _, - · sin espacios · máximo 64.
+                        </p>
                     </div>
 
 </div>
@@ -219,6 +252,7 @@ export default function CrearRepuestoModal({
                     <p className="mt-1 text-[11px] text-gray-500">
                         Referencias adicionales del proveedor para el mismo
                         repuesto. La referencia maestra no se repite aquí.
+                        Formato: A-Z, 0-9, ., _, - · sin espacios · máximo 64.
                     </p>
                     <div className="mt-2 space-y-2">
                         {referenciasAlternativas.map((alternativa, indice) => (
@@ -244,9 +278,7 @@ export default function CrearRepuestoModal({
                                         setReferenciasAlternativas((actual) =>
                                             actual.map((item, posicion) =>
                                                 posicion === indice
-                                                    ? item
-                                                          .trim()
-                                                          .toUpperCase()
+                                                    ? item.toUpperCase()
                                                     : item
                                             )
                                         )
@@ -453,7 +485,9 @@ export default function CrearRepuestoModal({
                             aria-hidden="true"
                             className="mt-0.5 h-4 w-4 shrink-0"
                         />
-                        <p className="leading-relaxed">{error}</p>
+                        <p className="whitespace-pre-line leading-relaxed">
+                            {error}
+                        </p>
                     </div>
                 ) : null}
 

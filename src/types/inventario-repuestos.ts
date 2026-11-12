@@ -30,6 +30,7 @@ export interface BorradorRepuesto {
     stock_minimo: string;
     precio: string;
     ubicacion: string;
+    referencias_alternativas: string[];
 }
 
 export interface CambiosRepuesto {
@@ -38,6 +39,7 @@ export interface CambiosRepuesto {
     stock_minimo?: number;
     precio?: number;
     ubicacion?: string;
+    referencias_alternativas?: string[];
 }
 
 export interface ListarRepuestosResult {

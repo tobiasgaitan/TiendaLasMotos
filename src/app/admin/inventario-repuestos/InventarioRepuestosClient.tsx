@@ -31,7 +31,10 @@ import type {
     RepuestoInventarioDTO,
 } from '@/types/inventario-repuestos';
 
-type CampoBorrador = keyof BorradorRepuesto;
+type CampoBorrador = Exclude<
+    keyof BorradorRepuesto,
+    'referencias_alternativas'
+>;
 
 interface EdicionRepuesto {
     documento_id: string;
@@ -182,6 +185,8 @@ export default function InventarioRepuestosClient() {
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
                 ubicacion: repuesto.ubicacion ?? '',
+                referencias_alternativas:
+                    repuesto.referencias_alternativas ?? [],
             },
         });
         setError(null);
@@ -200,6 +205,23 @@ export default function InventarioRepuestosClient() {
                 borrador: {
                     ...actual.borrador,
                     [campo]: valor,
+                },
+            };
+        });
+    }
+
+    function actualizarAlternativas(
+        actualizar: (actuales: string[]) => string[]
+    ): void {
+        setEdicion((actual) => {
+            if (!actual) return actual;
+            return {
+                ...actual,
+                borrador: {
+                    ...actual.borrador,
+                    referencias_alternativas: actualizar(
+                        actual.borrador.referencias_alternativas
+                    ),
                 },
             };
         });
@@ -331,8 +353,9 @@ export default function InventarioRepuestosClient() {
                         Repuestos
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                        Consulta y edita stock, stock mínimo, precio, ubicación
-                        y descripción. Cada cambio queda auditado.
+                        Consulta y edita stock, stock mínimo, precio, ubicación,
+                        descripción y referencias alternativas. Cada cambio
+                        queda auditado.
                     </p>
                 </div>
 
@@ -568,8 +591,111 @@ export default function InventarioRepuestosClient() {
                                             <p className="mt-1 text-xs text-gray-500">
                                                 Sede: {repuesto.sede_id || '—'}
                                             </p>
-                                            {repuesto.referencias_alternativas
-                                                .length > 0 ? (
+                                            {borrador ? (
+                                                <div className="mt-2 space-y-1.5">
+                                                    {borrador.referencias_alternativas.map(
+                                                        (alternativa, indice) => (
+                                                            <div
+                                                                key={`alternativa-${indice}`}
+                                                                className="flex items-center gap-1"
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    value={alternativa}
+                                                                    maxLength={64}
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.map(
+                                                                                    (
+                                                                                        item,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion ===
+                                                                                        indice
+                                                                                            ? event
+                                                                                                  .target
+                                                                                                  .value
+                                                                                            : item
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    onBlur={() =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.map(
+                                                                                    (
+                                                                                        item,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion ===
+                                                                                        indice
+                                                                                            ? item.toUpperCase()
+                                                                                            : item
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    aria-label={`Referencia alternativa ${indice + 1} de ${repuesto.referencia}`}
+                                                                    className="w-full rounded border border-gray-700 bg-gray-950 px-2 py-1 font-mono text-[11px] uppercase text-white outline-none focus:border-red-500"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.filter(
+                                                                                    (
+                                                                                        _,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion !==
+                                                                                        indice
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    aria-label={`Quitar alternativa ${indice + 1} de ${repuesto.referencia}`}
+                                                                    className="shrink-0 rounded border border-gray-700 px-1.5 py-1 text-[10px] text-gray-300 hover:bg-gray-800"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        disabled={
+                                                            borrador
+                                                                .referencias_alternativas
+                                                                .length >= 50
+                                                        }
+                                                        onClick={() =>
+                                                            actualizarAlternativas(
+                                                                (actuales) => [
+                                                                    ...actuales,
+                                                                    '',
+                                                                ]
+                                                            )
+                                                        }
+                                                        className="text-[11px] font-semibold text-red-300 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        + Alternativa
+                                                    </button>
+                                                    <p className="text-[10px] leading-relaxed text-gray-600">
+                                                        Sin espacios · A-Z, 0-9,
+                                                        ., _, - · máx. 64
+                                                    </p>
+                                                </div>
+                                            ) : repuesto
+                                                  .referencias_alternativas
+                                                  .length > 0 ? (
                                                 <p className="mt-1 text-[11px] text-amber-200/80">
                                                     Alternativas:{' '}
                                                     {repuesto.referencias_alternativas.join(

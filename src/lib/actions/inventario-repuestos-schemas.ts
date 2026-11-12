@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
     normalizarReferenciasAlternativas,
-    referenciaSchema,
+    referenciaRepuestoEstrictaSchema,
     referenciasAlternativasSchema,
     ubicacionSchema,
 } from './inventario-schemas';
@@ -34,7 +34,7 @@ export const cambiosRepuestoSchema = z
 export const editarRepuestoSchema = z
     .object({
         documento_id: z.string().trim().min(1).max(200),
-        referencia: referenciaSchema,
+        referencia: referenciaRepuestoEstrictaSchema,
         cambios: cambiosRepuestoSchema,
     })
     .strict()
@@ -56,7 +56,7 @@ export const editarRepuestoSchema = z
 
 export const crearRepuestoSchema = z
     .object({
-        referencia: referenciaSchema,
+        referencia: referenciaRepuestoEstrictaSchema,
         descripcion: z.string().trim().min(1).max(500),
         sede_id: z.string().trim().max(200).optional(),
         fabricante: z.string().trim().max(100).optional(),

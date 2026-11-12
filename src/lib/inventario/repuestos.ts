@@ -1,3 +1,7 @@
+import {
+    normalizarReferenciasAlternativas,
+    referenciasAlternativasSchema,
+} from '@/lib/actions/inventario-schemas';
 import type {
     BorradorRepuesto,
     CambiosRepuesto,
@@ -104,6 +108,31 @@ export function construirCambiosRepuesto(
             throw new Error('La ubicación es obligatoria.');
         }
         cambios.ubicacion = ubicacion;
+    }
+
+    const alternativas = referenciasAlternativasSchema.safeParse(
+        borrador.referencias_alternativas ?? []
+    );
+    if (!alternativas.success) {
+        const issue = alternativas.error.issues[0];
+        const indice =
+            typeof issue?.path[0] === 'number' ? issue.path[0] + 1 : 1;
+        throw new Error(
+            `Referencia alternativa #${indice}: ${
+                issue?.message ?? 'referencia inválida'
+            }`
+        );
+    }
+
+    const alternativasNormalizadas = normalizarReferenciasAlternativas(
+        alternativas.data,
+        original.referencia
+    );
+    const alternativasActuales = original.referencias_alternativas ?? [];
+    if (
+        alternativasNormalizadas.join('|') !== alternativasActuales.join('|')
+    ) {
+        cambios.referencias_alternativas = alternativasNormalizadas;
     }
 
     return cambios;

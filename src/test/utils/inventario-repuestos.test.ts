@@ -103,6 +103,7 @@ const BORRADOR = {
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
     ubicacion: BASE.ubicacion ?? '',
+    referencias_alternativas: [...BASE.referencias_alternativas],
 };
 
 const VALIDO = editarRepuestoSchema.safeParse({
@@ -189,7 +190,7 @@ check(
 );
 
 const CREAR_BASE = {
-    referencia: '  brk-010  ',
+    referencia: 'brk-010',
     descripcion: '  Pastillas de freno  ',
     sede_id: '  sede-1  ',
     fabricante: '  Bosch  ',
@@ -199,7 +200,7 @@ const CREAR_BASE = {
     ubicacion: '  Área Norte  ',
     stock: 3,
     stock_minimo: 1,
-    referencias_alternativas: [' brk-011 ', 'brk-010', 'BRK-011'],
+    referencias_alternativas: ['brk-011', 'brk-010', 'BRK-011'],
     imagen_url: null,
 };
 
@@ -258,6 +259,20 @@ check(
         descripcion: 'Repuesto mínimo',
         sede_id: 'sede-1',
         ubicacion: 'Pasillo 1',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza espacios en la referencia maestra',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencia: ' BRK-010 ',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza espacios en una alternativa',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencias_alternativas: ['BRK 011'],
     }).success
 );
 check(
@@ -331,6 +346,38 @@ check(
             stock: '-2',
         })
     )
+);
+
+const conAlternativas = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    referencias_alternativas: [
+        'BRK-ALT-1',
+        'BRK-ALT-2',
+        'BRK-001',
+    ],
+});
+check(
+    'construirCambiosRepuesto agrega alternativas sin duplicar la maestra',
+    conAlternativas.referencias_alternativas?.join('|') ===
+        'BRK-ALT-1|BRK-ALT-2'
+);
+check(
+    'construirCambiosRepuesto rechaza espacios en alternativas',
+    lanza(() =>
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            referencias_alternativas: ['BRK ALT 2'],
+        })
+    )
+);
+check(
+    'construirCambiosRepuesto no emite alternativas sin cambios',
+    Object.keys(
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            referencias_alternativas: ['BRK-ALT-1'],
+        })
+    ).length === 0
 );
 
 async function run() {
@@ -508,6 +555,16 @@ async function run() {
     );
 
     check(
+        'modal atribuye errores por campo e índice y muestra el formato',
+        MODAL_SOURCE.includes('Referencia alternativa #') &&
+            MODAL_SOURCE.includes('Referencia maestra') &&
+            MODAL_SOURCE.includes('mensajesDeValidacion') &&
+            MODAL_SOURCE.includes('A-Z, 0-9, ., _, -') &&
+            !MODAL_SOURCE.includes('actual.trim().toUpperCase()') &&
+            !MODAL_SOURCE.includes('item.trim().toUpperCase()')
+    );
+
+    check(
         'página permite create o update',
         PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'create')") &&
             PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'update')") &&
@@ -515,10 +572,12 @@ async function run() {
     );
 
     check(
-        'cliente usa documento_id como identidad y muestra alternativas',
+        'cliente usa documento_id como identidad y edita alternativas',
         CLIENT_SOURCE.includes('documento_id') &&
             CLIENT_SOURCE.includes('referencias_alternativas') &&
-            CLIENT_SOURCE.includes('Alternativas:')
+            CLIENT_SOURCE.includes('Alternativas:') &&
+            CLIENT_SOURCE.includes('actualizarAlternativas') &&
+            CLIENT_SOURCE.includes('+ Alternativa')
     );
 
     check(
