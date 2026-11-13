@@ -14,6 +14,10 @@ import {
 } from '@/lib/actions/inventario-schemas';
 import type { InventarioActionResult } from '@/types/inventario';
 
+function texto(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
 /**
  * Crea un borrador de conteo para el asesor.
  *
@@ -58,6 +62,8 @@ export async function crearConteoPendiente(
             asesor_email: me.email,
         });
 
+        await requirePermiso(me, 'inventario_repuestos', 'read');
+
         const data = parsed.data;
         const storagePath = extraerStoragePath(data.foto_url);
         if (!storagePath) {
@@ -86,6 +92,9 @@ export async function crearConteoPendiente(
         const fotoRef = adminDb
             .collection('fotos_inventario')
             .doc(data.conteo_id);
+        const repuestoRef = adminDb
+            .collection('inventario_repuestos')
+            .doc(data.inventario_documento_id);
 
         const resultado = await adminDb.runTransaction(async (tx: any) => {
             const existente = await tx.get(conteoRef);
@@ -99,11 +108,31 @@ export async function crearConteoPendiente(
                 return { idempotente: true };
             }
 
+            const repuesto = await tx.get(repuestoRef);
+            if (!repuesto.exists) {
+                throw new Error(
+                    'El repuesto seleccionado no existe en el catálogo.'
+                );
+            }
+            const referenciaRepuesto = texto(
+                repuesto.data()?.referencia
+            ).trim();
+            if (
+                referenciaRepuesto &&
+                referenciaRepuesto !== data.referencia_confirmada
+            ) {
+                throw new Error(
+                    'La referencia no coincide con el documento seleccionado.'
+                );
+            }
+
             const ahora = new Date();
 
             tx.create(conteoRef, {
                 referencia_sugerida: data.referencia_sugerida,
                 referencia_confirmada: data.referencia_confirmada,
+                inventario_documento_id: data.inventario_documento_id,
+                sede_id: data.sede_id,
                 descripcion: data.descripcion,
                 cantidad_contada: data.cantidad_contada,
                 ubicacion: data.ubicacion,

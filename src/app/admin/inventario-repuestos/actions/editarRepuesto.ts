@@ -62,7 +62,7 @@ export async function editarRepuesto(
         const adminDb = getDb();
         const repuestoRef = adminDb
             .collection('inventario_repuestos')
-            .doc(data.referencia);
+            .doc(data.documento_id);
 
         const resultado = await adminDb.runTransaction(async (tx: any) => {
             const snap = await tx.get(repuestoRef);
@@ -71,6 +71,13 @@ export async function editarRepuesto(
             }
 
             const antes = snap.data() as Record<string, unknown>;
+            const referenciaAntes = texto(antes.referencia);
+            if (referenciaAntes && referenciaAntes !== data.referencia) {
+                throw new Error(
+                    'La referencia no coincide con el documento seleccionado.'
+                );
+            }
+
             const cambios = data.cambios;
             const updates: Record<string, unknown> = {};
 
@@ -109,6 +116,24 @@ export async function editarRepuesto(
                 }
             }
 
+            if (cambios.referencias_alternativas !== undefined) {
+                const actuales = Array.isArray(
+                    antes.referencias_alternativas
+                )
+                    ? antes.referencias_alternativas.filter(
+                          (item): item is string =>
+                              typeof item === 'string'
+                      )
+                    : [];
+                if (
+                    actuales.join('|') !==
+                    cambios.referencias_alternativas.join('|')
+                ) {
+                    updates.referencias_alternativas =
+                        cambios.referencias_alternativas;
+                }
+            }
+
             if (Object.keys(updates).length === 0) {
                 return { idempotente: true };
             }
@@ -126,7 +151,7 @@ export async function editarRepuesto(
                 .doc();
             tx.create(ledgerRef, {
                 coleccion_afectada: 'inventario_repuestos',
-                documento_id: data.referencia,
+                documento_id: data.documento_id,
                 referencia: data.referencia,
                 conteo_id: null,
                 operacion: 'UPDATE',
@@ -146,11 +171,12 @@ export async function editarRepuesto(
 
         return {
             success: true,
-            id: data.referencia,
+            id: data.documento_id,
             idempotente: resultado.idempotente,
         };
     } catch (error) {
         console.error('[inventario-repuestos] editarRepuesto falló:', {
+            documentoId: parsed.data.documento_id,
             referencia: parsed.data.referencia,
             error,
         });

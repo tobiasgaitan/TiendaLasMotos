@@ -14,6 +14,10 @@ import {
     datosNuevosAprobacion,
     reconciliarDatosNuevosLegado,
 } from '@/lib/actions/inventario-ledger';
+import {
+    aprobarConteoSchema,
+    rechazarConteoSchema,
+} from '@/lib/actions/inventario-schemas';
 
 const APROBAR_SOURCE = readFileSync(
     'src/app/admin/inventory/actions/aprobarConteo.ts',
@@ -21,6 +25,30 @@ const APROBAR_SOURCE = readFileSync(
 );
 const RECHAZAR_SOURCE = readFileSync(
     'src/app/admin/inventory/actions/rechazarConteo.ts',
+    'utf8'
+);
+const CREAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/crearConteoPendiente.ts',
+    'utf8'
+);
+const APROBAR_MODAL_SOURCE = readFileSync(
+    'src/components/inventario/AprobarConteoModal.tsx',
+    'utf8'
+);
+const FORM_ASESOR_SOURCE = readFileSync(
+    'src/app/admin/inventario-asesor/ConteoAsesorForm.tsx',
+    'utf8'
+);
+const APROBACIONES_SOURCE = readFileSync(
+    'src/app/admin/inventario-aprobaciones/AprobacionesClient.tsx',
+    'utf8'
+);
+const LISTAR_PENDIENTES_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/listarPendientes.ts',
+    'utf8'
+);
+const INVENTARIO_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx',
     'utf8'
 );
 
@@ -62,6 +90,119 @@ async function run() {
         'rechazarConteo usa la clave canonica estado y no estado_conteo',
         RECHAZAR_SOURCE.includes("estado: 'rechazado'") &&
             !RECHAZAR_SOURCE.includes('estado_conteo')
+    );
+    check(
+        'aprobarConteo escribe revisado_por con UID verificado',
+        APROBAR_SOURCE.includes('revisado_por: me.uid') &&
+            !APROBAR_SOURCE.includes('revisado_por: me.email')
+    );
+    check(
+        'rechazarConteo escribe revisado_por UID en conteo y ledger',
+        (RECHAZAR_SOURCE.match(/revisado_por:\s*me\.uid/g) || []).length >=
+            2 && !RECHAZAR_SOURCE.includes('revisado_por: me.email')
+    );
+    check(
+        'ambas acciones conservan registrado_por UID y email en ledger',
+        APROBAR_SOURCE.includes('registrado_por: me.uid') &&
+            APROBAR_SOURCE.includes('registrado_por_email: me.email') &&
+            RECHAZAR_SOURCE.includes('registrado_por: me.uid') &&
+            RECHAZAR_SOURCE.includes('registrado_por_email: me.email')
+    );
+    const aprobarForjado = aprobarConteoSchema.safeParse({
+        conteo_id: UUID,
+        revisado_por: 'atacante',
+        registrado_por: 'atacante',
+    });
+    check(
+        'aprobarConteo ignora revisado_por/registrado_por del cliente',
+        aprobarForjado.success &&
+            !('revisado_por' in aprobarForjado.data) &&
+            !('registrado_por' in aprobarForjado.data)
+    );
+    const rechazarForjado = rechazarConteoSchema.safeParse({
+        conteo_id: UUID,
+        motivo_rechazo: 'Foto borrosa',
+        revisado_por: 'atacante',
+        registrado_por: 'atacante',
+    });
+    check(
+        'rechazarConteo ignora revisado_por/registrado_por del cliente',
+        rechazarForjado.success &&
+            !('revisado_por' in rechazarForjado.data) &&
+            !('registrado_por' in rechazarForjado.data)
+    );
+    check(
+        'crearConteoPendiente resuelve inventario_documento_id en la transacción',
+        CREAR_SOURCE.includes('inventario_documento_id') &&
+            CREAR_SOURCE.includes('tx.get(repuestoRef)') &&
+            CREAR_SOURCE.includes('La referencia no coincide')
+    );
+    check(
+        'aprobarConteo y rechazarConteo usan Transaction tipado',
+        APROBAR_SOURCE.includes('tx: Transaction') &&
+            RECHAZAR_SOURCE.includes('tx: Transaction') &&
+            !APROBAR_SOURCE.includes('tx: any') &&
+            !RECHAZAR_SOURCE.includes('tx: any')
+    );
+    check(
+        'el tipado no alteró el ledger append-only',
+        APROBAR_SOURCE.includes('tx.create(ledgerRef') &&
+            RECHAZAR_SOURCE.includes('tx.create(ledgerRef')
+    );
+    check(
+        'AprobarConteoModal no usa getDoc cliente',
+        !APROBAR_MODAL_SOURCE.includes('firebase/firestore') &&
+            !APROBAR_MODAL_SOURCE.includes('getDoc(') &&
+            APROBAR_MODAL_SOURCE.includes('obtenerRepuestoPorReferencia')
+    );
+    check(
+        'formulario asesor no tiene inputs libres de referencia',
+        !FORM_ASESOR_SOURCE.includes('referencia-confirmada') &&
+            !FORM_ASESOR_SOURCE.includes('referencia-sugerida') &&
+            FORM_ASESOR_SOURCE.includes('SelectorReferenciaRepuesto')
+    );
+    check(
+        'formulario asesor acota el análisis con timeout y libera el submit',
+        FORM_ASESOR_SOURCE.includes('conTimeout(') &&
+            FORM_ASESOR_SOURCE.includes('TIMEOUT_ANALISIS_MS') &&
+            FORM_ASESOR_SOURCE.includes("name === 'TimeoutError'") &&
+            !FORM_ASESOR_SOURCE.includes('instanceof TimeoutError') &&
+            FORM_ASESOR_SOURCE.includes('setAnalizando(false)')
+    );
+    check(
+        'formulario asesor integra sede, documento y autocompletado',
+        FORM_ASESOR_SOURCE.includes('listarSedes') &&
+            FORM_ASESOR_SOURCE.includes('inventario_documento_id') &&
+            FORM_ASESOR_SOURCE.includes('sede_id') &&
+            FORM_ASESOR_SOURCE.includes('readOnly') &&
+            FORM_ASESOR_SOURCE.includes('fabricante') &&
+            FORM_ASESOR_SOURCE.includes('categoria') &&
+            FORM_ASESOR_SOURCE.includes('aplicaA')
+    );
+    check(
+        'listarPendientes enriquece sede_nombre con fallbacks',
+        LISTAR_PENDIENTES_SOURCE.includes('sede_nombre') &&
+            LISTAR_PENDIENTES_SOURCE.includes(
+                'configuracion/general/sedes'
+            ) &&
+            LISTAR_PENDIENTES_SOURCE.includes('Sin sede') &&
+            LISTAR_PENDIENTES_SOURCE.includes('Sede no disponible') &&
+            LISTAR_PENDIENTES_SOURCE.includes(
+                'Sede no resuelta en pendiente'
+            )
+    );
+    check(
+        'aprobaciones muestra sede, copy correcto y enlace al catálogo',
+        APROBACIONES_SOURCE.includes('sede_nombre') &&
+            APROBACIONES_SOURCE.includes('arqueo independiente') &&
+            APROBACIONES_SOURCE.includes('Ver catálogo') &&
+            APROBACIONES_SOURCE.includes('#doc-') &&
+            APROBACIONES_SOURCE.includes('Sin vínculo')
+    );
+    check(
+        'catálogo expone anchor y scroll al documento',
+        INVENTARIO_SOURCE.includes('id={`doc-${repuesto.documento_id}`}') &&
+            INVENTARIO_SOURCE.includes('scrollIntoView')
     );
 
     const datosAprobacion = datosNuevosAprobacion(

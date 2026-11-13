@@ -11,12 +11,14 @@ import {
     AlertCircle,
     Loader2,
     Pencil,
+    Plus,
     RefreshCw,
     Save,
     Search,
     X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
 import { listarRepuestos } from './actions/listarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
 import {
@@ -29,9 +31,13 @@ import type {
     RepuestoInventarioDTO,
 } from '@/types/inventario-repuestos';
 
-type CampoBorrador = keyof BorradorRepuesto;
+type CampoBorrador = Exclude<
+    keyof BorradorRepuesto,
+    'referencias_alternativas'
+>;
 
 interface EdicionRepuesto {
+    documento_id: string;
     referencia: string;
     borrador: BorradorRepuesto;
 }
@@ -73,14 +79,18 @@ function mensajeDeError(error: unknown, fallback: string): string {
 }
 
 export default function InventarioRepuestosClient() {
-    const { user } = useAuth();
+    const { user, puedeAccion } = useAuth();
     const [repuestos, setRepuestos] = useState<RepuestoInventarioDTO[]>([]);
     const [filtros, setFiltros] = useState<FiltrosRepuesto>(FILTROS_INICIALES);
     const [edicion, setEdicion] = useState<EdicionRepuesto | null>(null);
     const [loading, setLoading] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [mostrarCrear, setMostrarCrear] = useState(false);
     const cargaRef = useRef(0);
+
+    const puedeCrear = puedeAccion('inventario_repuestos', 'create');
+    const puedeEditar = puedeAccion('inventario_repuestos', 'update');
 
     const cargarRepuestos = useCallback(async () => {
         if (!user) {
@@ -137,6 +147,18 @@ export default function InventarioRepuestosClient() {
         void cargarRepuestos();
     }, [cargarRepuestos]);
 
+    useEffect(() => {
+        if (repuestos.length === 0) return;
+
+        const hash = window.location.hash;
+        if (!hash.startsWith('#doc-')) return;
+
+        const objetivo = document.getElementById(hash.slice(1));
+        if (objetivo) {
+            objetivo.scrollIntoView({ block: 'center' });
+        }
+    }, [repuestos]);
+
     const categorias = useMemo(() => {
         const valores = new Set<string>();
         for (const repuesto of repuestos) {
@@ -167,13 +189,16 @@ export default function InventarioRepuestosClient() {
     function iniciarEdicion(repuesto: RepuestoInventarioDTO): void {
         if (guardando) return;
         setEdicion({
+            documento_id: repuesto.documento_id,
             referencia: repuesto.referencia,
             borrador: {
                 descripcion: repuesto.descripcion,
                 stock: String(repuesto.stock),
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
-                ubicacion: repuesto.ubicacion,
+                ubicacion: repuesto.ubicacion ?? '',
+                referencias_alternativas:
+                    repuesto.referencias_alternativas ?? [],
             },
         });
         setError(null);
@@ -197,11 +222,28 @@ export default function InventarioRepuestosClient() {
         });
     }
 
+    function actualizarAlternativas(
+        actualizar: (actuales: string[]) => string[]
+    ): void {
+        setEdicion((actual) => {
+            if (!actual) return actual;
+            return {
+                ...actual,
+                borrador: {
+                    ...actual.borrador,
+                    referencias_alternativas: actualizar(
+                        actual.borrador.referencias_alternativas
+                    ),
+                },
+            };
+        });
+    }
+
     async function guardarEdicion(): Promise<void> {
         if (!edicion || !user || guardando) return;
 
         const original = repuestos.find(
-            (repuesto) => repuesto.referencia === edicion.referencia
+            (repuesto) => repuesto.documento_id === edicion.documento_id
         );
         if (!original) {
             setError(
@@ -226,7 +268,11 @@ export default function InventarioRepuestosClient() {
 
             const idToken = await user.getIdToken();
             const resultado = await editarRepuesto(
-                { referencia: original.referencia, cambios },
+                {
+                    documento_id: original.documento_id,
+                    referencia: original.referencia,
+                    cambios,
+                },
                 { uid: user.uid, idToken }
             );
 
@@ -259,8 +305,11 @@ export default function InventarioRepuestosClient() {
     }
 
     function renderAcciones(repuesto: RepuestoInventarioDTO) {
+        if (!puedeEditar) return null;
+
         const enEdicion =
-            edicion !== null && edicion.referencia === repuesto.referencia;
+            edicion !== null &&
+            edicion.documento_id === repuesto.documento_id;
 
         if (enEdicion) {
             return (
@@ -316,26 +365,44 @@ export default function InventarioRepuestosClient() {
                         Repuestos
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                        Consulta y edita stock, stock mínimo, precio, ubicación
-                        y descripción. Cada cambio queda auditado.
+                        Consulta y edita stock, stock mínimo, precio, ubicación,
+                        descripción y referencias alternativas. Cada cambio
+                        queda auditado.
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => {
-                        void cargarRepuestos();
-                    }}
-                    disabled={loading || guardando}
-                    aria-label="Actualizar lista de repuestos"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <RefreshCw
-                        aria-hidden="true"
-                        className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-                    />
-                    Actualizar
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {puedeCrear ? (
+                        <button
+                            type="button"
+                            onClick={() => setMostrarCrear(true)}
+                            disabled={guardando}
+                            aria-label="Crear nuevo repuesto"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Plus aria-hidden="true" className="h-4 w-4" />
+                            Nuevo Repuesto
+                        </button>
+                    ) : null}
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            void cargarRepuestos();
+                        }}
+                        disabled={loading || guardando}
+                        aria-label="Actualizar lista de repuestos"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <RefreshCw
+                            aria-hidden="true"
+                            className={`h-4 w-4 ${
+                                loading ? 'animate-spin' : ''
+                            }`}
+                        />
+                        Actualizar
+                    </button>
+                </div>
             </header>
 
             {error ? (
@@ -512,7 +579,7 @@ export default function InventarioRepuestosClient() {
                                     scope="col"
                                     className="px-4 py-3 text-right"
                                 >
-                                    Precio
+                                    Precio de compra
                                 </th>
                             </tr>
                         </thead>
@@ -520,19 +587,135 @@ export default function InventarioRepuestosClient() {
                             {repuestosFiltrados.map((repuesto) => {
                                 const borrador =
                                     edicion !== null &&
-                                    edicion.referencia === repuesto.referencia
+                                    edicion.documento_id === repuesto.documento_id
                                         ? edicion.borrador
                                         : null;
 
                                 return (
                                     <tr
-                                        key={repuesto.referencia}
+                                        key={repuesto.documento_id}
+                                        id={`doc-${repuesto.documento_id}`}
                                         className="align-top hover:bg-gray-900/80"
                                     >
                                         <td className="min-w-[150px] px-4 py-4">
                                             <p className="font-mono text-sm font-semibold text-white">
                                                 {repuesto.referencia}
                                             </p>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Sede: {repuesto.sede_nombre}
+                                            </p>
+                                            {borrador ? (
+                                                <div className="mt-2 space-y-1.5">
+                                                    {borrador.referencias_alternativas.map(
+                                                        (alternativa, indice) => (
+                                                            <div
+                                                                key={`alternativa-${indice}`}
+                                                                className="flex items-center gap-1"
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    value={alternativa}
+                                                                    maxLength={64}
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.map(
+                                                                                    (
+                                                                                        item,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion ===
+                                                                                        indice
+                                                                                            ? event
+                                                                                                  .target
+                                                                                                  .value
+                                                                                            : item
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    onBlur={() =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.map(
+                                                                                    (
+                                                                                        item,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion ===
+                                                                                        indice
+                                                                                            ? item.toUpperCase()
+                                                                                            : item
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    aria-label={`Referencia alternativa ${indice + 1} de ${repuesto.referencia}`}
+                                                                    className="w-full rounded border border-gray-700 bg-gray-950 px-2 py-1 font-mono text-[11px] uppercase text-white outline-none focus:border-red-500"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        actualizarAlternativas(
+                                                                            (
+                                                                                actuales
+                                                                            ) =>
+                                                                                actuales.filter(
+                                                                                    (
+                                                                                        _,
+                                                                                        posicion
+                                                                                    ) =>
+                                                                                        posicion !==
+                                                                                        indice
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    aria-label={`Quitar alternativa ${indice + 1} de ${repuesto.referencia}`}
+                                                                    className="shrink-0 rounded border border-gray-700 px-1.5 py-1 text-[10px] text-gray-300 hover:bg-gray-800"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        disabled={
+                                                            borrador
+                                                                .referencias_alternativas
+                                                                .length >= 50
+                                                        }
+                                                        onClick={() =>
+                                                            actualizarAlternativas(
+                                                                (actuales) => [
+                                                                    ...actuales,
+                                                                    '',
+                                                                ]
+                                                            )
+                                                        }
+                                                        className="text-[11px] font-semibold text-red-300 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        + Alternativa
+                                                    </button>
+                                                    <p className="text-[10px] leading-relaxed text-gray-600">
+                                                        Sin espacios · A-Z, 0-9,
+                                                        ., _, - · máx. 64
+                                                    </p>
+                                                </div>
+                                            ) : repuesto
+                                                  .referencias_alternativas
+                                                  .length > 0 ? (
+                                                <p className="mt-1 text-[11px] text-amber-200/80">
+                                                    Alternativas:{' '}
+                                                    {repuesto.referencias_alternativas.join(
+                                                        ', '
+                                                    )}
+                                                </p>
+                                            ) : null}
                                             <div className="mt-2">
                                                 {renderAcciones(repuesto)}
                                             </div>
@@ -668,6 +851,14 @@ export default function InventarioRepuestosClient() {
                         </div>
                     ) : null}
                 </div>
+            ) : null}
+
+            {puedeCrear ? (
+                <CrearRepuestoModal
+                    isOpen={mostrarCrear}
+                    onClose={() => setMostrarCrear(false)}
+                    onCreado={cargarRepuestos}
+                />
             ) : null}
         </div>
     );

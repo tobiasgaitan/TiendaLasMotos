@@ -25,6 +25,26 @@ function arregloTexto(value: unknown): string[] {
     return value.filter((item): item is string => typeof item === 'string');
 }
 
+function nombreSede(
+    sedeId: string,
+    documentoId: string,
+    nombres: Map<string, string>,
+    sedesCargadas: boolean
+): string {
+    if (!sedeId) return 'Sin sede';
+
+    const nombre = nombres.get(sedeId);
+    if (nombre) return nombre;
+
+    if (sedesCargadas) {
+        console.warn('[inventario-repuestos] Sede no resuelta:', {
+            sedeId,
+            documentoId,
+        });
+    }
+    return 'Sede no disponible';
+}
+
 function aISO(value: unknown): string | null {
     if (value === null || value === undefined) return null;
     if (value instanceof Date) return value.toISOString();
@@ -92,21 +112,34 @@ export async function listarRepuestos(
 
         const adminDb = getDb();
         const snap = await adminDb.collection('inventario_repuestos').get();
+        const nombresSedes = new Map<string, string>();
+        let sedesCargadas = true;
+
+        try {
+            const sedesSnap = await adminDb
+                .collection('configuracion/general/sedes')
+                .get();
+            for (const sedeDoc of sedesSnap.docs) {
+                const sedeData = sedeDoc.data() as Record<string, unknown>;
+                const nombre = texto(sedeData.name).trim();
+                if (nombre) {
+                    nombresSedes.set(sedeDoc.id, nombre);
+                }
+            }
+        } catch (errorSedes) {
+            sedesCargadas = false;
+            console.warn(
+                '[inventario-repuestos] No se pudieron cargar las sedes; se usará fallback:',
+                errorSedes
+            );
+        }
+
         const repuestos: RepuestoInventarioDTO[] = [];
 
         for (const doc of snap.docs) {
             const data = doc.data() as Record<string, unknown>;
-            const referenciaDocumento = texto(data.referencia).trim();
-
-            if (referenciaDocumento && referenciaDocumento !== doc.id) {
-                console.error(
-                    '[inventario-repuestos] referencia no coincide con el docId:',
-                    {
-                        docId: doc.id,
-                        referencia: referenciaDocumento,
-                    }
-                );
-            }
+            const referenciaDocumento =
+                texto(data.referencia).trim() || doc.id;
 
             const creadoEn = aISO(data.creado_en);
             if (!creadoEn) {
@@ -117,7 +150,15 @@ export async function listarRepuestos(
             }
 
             repuestos.push({
-                referencia: doc.id,
+                documento_id: doc.id,
+                referencia: referenciaDocumento,
+                sede_id: texto(data.sede_id),
+                sede_nombre: nombreSede(
+                    texto(data.sede_id),
+                    doc.id,
+                    nombresSedes,
+                    sedesCargadas
+                ),
                 descripcion: texto(data.descripcion),
                 fabricante: texto(data.fabricante),
                 aplica_a: arregloTexto(data.aplica_a),
@@ -126,6 +167,9 @@ export async function listarRepuestos(
                 ubicacion: texto(data.ubicacion),
                 stock: numero(data.stock),
                 stock_minimo: numero(data.stock_minimo),
+                referencias_alternativas: arregloTexto(
+                    data.referencias_alternativas
+                ),
                 imagen_url: texto(data.imagen_url),
                 creado_por: texto(data.creado_por),
                 creado_en: creadoEn,
@@ -134,9 +178,15 @@ export async function listarRepuestos(
             });
         }
 
-        repuestos.sort((a, b) =>
-            a.referencia.localeCompare(b.referencia, 'es')
-        );
+        repuestos.sort((a, b) => {
+            const porReferencia = a.referencia.localeCompare(
+                b.referencia,
+                'es'
+            );
+            return porReferencia !== 0
+                ? porReferencia
+                : a.documento_id.localeCompare(b.documento_id, 'es');
+        });
 
         return { success: true, repuestos };
     } catch (error) {

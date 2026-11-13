@@ -260,7 +260,11 @@ function run() {
 
     // --- service worker manual ---
     const sw = readFileSync('public/sw.js', 'utf8');
-    check('SW cache versionada tlm-shell-v2', sw.includes("'tlm-shell-v2'"));
+    check('SW cache versionada tlm-shell-v3', sw.includes("'tlm-shell-v3'"));
+    check(
+        'SW no conserva tlm-shell-v2 como caché activa',
+        !sw.includes("const CACHE_SHELL = 'tlm-shell-v2'")
+    );
     check(
         'SW usa la ruta nueva y no la del inventario de motos',
         sw.includes("CACHE_KEY_INVENTARIO = '/admin/inventario-asesor'") &&
@@ -377,7 +381,15 @@ function run() {
         'PwaRegistrar solo registra asesor en producción',
         pwaRegistrar.includes('role !== "asesor"') &&
             pwaRegistrar.includes('NODE_ENV !== "production"') &&
-            pwaRegistrar.includes('register("/sw.js", { scope: "/" })')
+            pwaRegistrar.includes('register("/sw.js"')
+    );
+    check(
+        'PwaRegistrar actualiza sin desregistrar ni tocar IndexedDB',
+        pwaRegistrar.includes('updateViaCache: "none"') &&
+            pwaRegistrar.includes('registration.update()') &&
+            !pwaRegistrar.includes('unregister') &&
+            !pwaRegistrar.includes('indexedDB') &&
+            !pwaRegistrar.includes('tlm_offline')
     );
 
     const offlineIndicator = readFileSync(
@@ -395,9 +407,25 @@ function run() {
 
     const firebaseSource = readFileSync('src/lib/firebase.ts', 'utf8');
     check(
-        'firebase.ts usa enableIndexedDbPersistence condicionado',
-        firebaseSource.includes('enableIndexedDbPersistence(db)') &&
+        'firebase.ts usa initializeFirestore con caché local persistente',
+        firebaseSource.includes('initializeFirestore(app') &&
+            firebaseSource.includes('persistentLocalCache(') &&
+            firebaseSource.includes('persistentMultipleTabManager()') &&
             firebaseSource.includes('tlm_offline_asesor')
+    );
+    check(
+        'firebase.ts eliminó enableIndexedDbPersistence',
+        !firebaseSource.includes('enableIndexedDbPersistence')
+    );
+    check(
+        'firebase.ts inicializa Firestore persistente antes del fallback getFirestore',
+        firebaseSource.indexOf('db = initializeFirestore(app') >= 0 &&
+            firebaseSource.indexOf('db = initializeFirestore(app') <
+                firebaseSource.indexOf('db = getFirestore(app)')
+    );
+    check(
+        'firebase.ts conserva getFirestore para el camino no persistente',
+        firebaseSource.includes('db = getFirestore(app)')
     );
     check(
         'firebase.ts exporta la promesa de persistencia',
@@ -433,10 +461,27 @@ function run() {
             segundaEspera < getDocIndex
     );
     check(
-        'AuthContext escribe flag y hace UNA recarga',
+        'AuthContext escribe flag sin reload duro',
         authSource.includes('CLAVE_FLAG_ASESOR') &&
-            (authSource.match(/window\.location\.reload\(\)/g) || [])
-                .length === 1
+            !authSource.includes('window.location.reload')
+    );
+    const loginFormSource = readFileSync(
+        'src/app/admin/login/LoginForm.tsx',
+        'utf8'
+    );
+    check(
+        'LoginForm espera rol y consolida flag antes de navegar',
+        loginFormSource.includes('useAuth()') &&
+            loginFormSource.includes('CLAVE_FLAG_ASESOR') &&
+            loginFormSource.includes('prepararNavegacion') &&
+            loginFormSource.indexOf(
+                'window.localStorage.setItem(CLAVE_FLAG_ASESOR'
+            ) < loginFormSource.indexOf('window.location.href')
+    );
+    check(
+        'CLAVE_RECARGA_OFFLINE se conserva sin reload',
+        firebaseSource.includes('CLAVE_RECARGA_OFFLINE') &&
+            !authSource.includes('window.location.reload')
     );
     check(
         'logout purga outbox del propietario, persistencia y cachés',

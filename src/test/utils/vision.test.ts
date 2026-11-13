@@ -8,11 +8,14 @@ import { analizarImagenSchema } from '@/lib/actions/inventario-schemas';
 import {
     categoriaDesdeEtiqueta,
     categoriaSugerida,
+    combinarEtiquetas,
     esMimeVisionPermitido,
     esTamanoImagenPermitido,
     normalizarMimeVision,
     sanitizarEtiquetasVision,
+    sanitizarObjetosVision,
     VISION_MAX_BYTES,
+    VISION_OBJECT_MAX_RESULTS,
 } from '@/lib/actions/vision-mapping';
 
 let failures = 0;
@@ -56,6 +59,40 @@ const muchas = Array.from({ length: 15 }, (_, i) => ({
     score: 0.9,
 }));
 check('máximo 10 etiquetas', sanitizarEtiquetasVision(muchas).length === 10);
+
+// --- object localization / unidades ---
+const objetos = [
+    { name: 'Tire', score: 0.92 },
+    { name: 'tire', score: 0.88 },
+    { name: 'Tire', score: 0.81 },
+    { name: 'Wheel', score: 0.77 },
+    { name: 'Low object', score: 0.59 },
+    { name: '   ', score: 0.99 },
+];
+const unidades = sanitizarObjetosVision(objetos);
+check(
+    'object localization agrupa y cuenta instancias',
+    unidades.find((unidad) => unidad.etiqueta.toLowerCase() === 'tire')
+        ?.cantidad === 3
+);
+check(
+    'object localization conserva score máximo',
+    unidades.find((unidad) => unidad.etiqueta.toLowerCase() === 'tire')
+        ?.score === 0.92
+);
+check(
+    'object localization descarta score bajo',
+    !unidades.some((unidad) => unidad.etiqueta === 'Low object')
+);
+check('object localization no-array devuelve vacío', sanitizarObjetosVision(null).length === 0);
+check(
+    'combinarEtiquetas deduplica labels/objetos',
+    combinarEtiquetas(['Tire', 'Brake'], ['tire', 'Wheel']).length === 3
+);
+check(
+    'límite de resultados de object localization definido',
+    VISION_OBJECT_MAX_RESULTS > 0
+);
 
 // --- mapeo de categorías ---
 check('Tire mapea a LLANTAS', categoriaDesdeEtiqueta('Tire') === 'LLANTAS');
@@ -111,6 +148,11 @@ async function run() {
     check('acción no usa runTransaction', !source.includes('runTransaction'));
     check('acción no usa setDoc/updateDoc/addDoc/deleteDoc', !/(setDoc|updateDoc|addDoc|deleteDoc)/.test(source));
     check('acción no usa tx.', !/\btx\s*\./.test(source));
+    check('acción solicita OBJECT_LOCALIZATION', source.includes("type: 'OBJECT_LOCALIZATION'"));
+    check(
+        'acción parsea localizedObjectAnnotations',
+        source.includes('localizedObjectAnnotations')
+    );
 
     // --- Storage rules referenciadas ---
     const firebaseConfig = JSON.parse(readFileSync('firebase.json', 'utf8')) as {

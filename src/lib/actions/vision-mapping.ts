@@ -1,4 +1,4 @@
-import type { VisionSugerencia } from '@/types/inventario';
+import type { VisionSugerencia, VisionUnidad } from '@/types/inventario';
 
 /**
  * WEB-038 — Utilidades puras de Google Cloud Vision.
@@ -10,6 +10,7 @@ import type { VisionSugerencia } from '@/types/inventario';
 export const VISION_SCORE_MINIMO = 0.60;
 export const VISION_MAX_ETIQUETAS = 10;
 export const VISION_MAX_BYTES = 5 * 1024 * 1024;
+export const VISION_OBJECT_MAX_RESULTS = 10;
 
 export const MIME_VISION_PERMITIDOS = [
     'image/jpeg',
@@ -125,4 +126,82 @@ export function sanitizarEtiquetasVision(
     return Array.from(porEtiqueta.values())
         .sort((a, b) => b.score - a.score)
         .slice(0, VISION_MAX_ETIQUETAS);
+}
+
+interface ObjetoVision {
+    name?: unknown;
+    score?: unknown;
+}
+
+/**
+ * Agrupa `localizedObjectAnnotations` por nombre y cuenta instancias.
+ * No suma etiquetas distintas: cada unidad representa objetos detectados con
+ * el mismo nombre. La cantidad es una estimación para que el asesor confirme.
+ */
+export function sanitizarObjetosVision(objetos: unknown): VisionUnidad[] {
+    if (!Array.isArray(objetos)) return [];
+
+    const porEtiqueta = new Map<string, VisionUnidad>();
+
+    for (const item of objetos) {
+        if (!item || typeof item !== 'object') continue;
+
+        const objeto = item as ObjetoVision;
+        if (typeof objeto.name !== 'string') continue;
+        if (
+            typeof objeto.score !== 'number' ||
+            !Number.isFinite(objeto.score) ||
+            objeto.score < VISION_SCORE_MINIMO
+        ) {
+            continue;
+        }
+
+        const etiqueta = limpiarEtiqueta(objeto.name);
+        if (!etiqueta) continue;
+
+        const clave = etiqueta.toLowerCase();
+        const previa = porEtiqueta.get(clave);
+        if (previa) {
+            previa.cantidad += 1;
+            if (objeto.score > previa.score) {
+                previa.score = objeto.score;
+            }
+        } else {
+            porEtiqueta.set(clave, {
+                etiqueta,
+                score: objeto.score,
+                cantidad: 1,
+            });
+        }
+    }
+
+    return Array.from(porEtiqueta.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, VISION_MAX_ETIQUETAS);
+}
+
+/**
+ * Une etiquetas de label detection y nombres de object localization,
+ * deduplicando por texto normalizado y limitando el resultado canónico.
+ */
+export function combinarEtiquetas(
+    ...listas: readonly (readonly string[])[]
+): string[] {
+    const porClave = new Map<string, string>();
+
+    for (const lista of listas) {
+        for (const valor of lista) {
+            const etiqueta = limpiarEtiqueta(valor);
+            if (!etiqueta) continue;
+            const clave = etiqueta.toLowerCase();
+            if (!porClave.has(clave)) {
+                porClave.set(clave, etiqueta);
+            }
+            if (porClave.size >= VISION_MAX_ETIQUETAS) {
+                return Array.from(porClave.values());
+            }
+        }
+    }
+
+    return Array.from(porClave.values());
 }

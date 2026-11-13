@@ -11,11 +11,14 @@ import {
     extraerStoragePath,
 } from '@/lib/actions/inventario-schemas';
 import {
+    combinarEtiquetas,
     esMimeVisionPermitido,
     esTamanoImagenPermitido,
     normalizarMimeVision,
     sanitizarEtiquetasVision,
+    sanitizarObjetosVision,
     VISION_MAX_ETIQUETAS,
+    VISION_OBJECT_MAX_RESULTS,
 } from '@/lib/actions/vision-mapping';
 import type { VisionResult } from '@/types/inventario';
 
@@ -51,39 +54,52 @@ function validarPrefijoAdmin(storagePath: string): boolean {
     return /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(email);
 }
 
-function extraerLabelsVision(payload: unknown): {
+function extraerAnotacionesVision(payload: unknown): {
     ok: boolean;
     labels: unknown;
+    objetos: unknown;
 } {
     if (!payload || typeof payload !== 'object') {
         console.error('[vision] respuesta JSON sin objeto');
-        return { ok: false, labels: [] };
+        return { ok: false, labels: [], objetos: [] };
     }
 
     const responses = (payload as { responses?: unknown }).responses;
     if (!Array.isArray(responses)) {
         console.error('[vision] respuesta JSON sin responses');
-        return { ok: false, labels: [] };
+        return { ok: false, labels: [], objetos: [] };
     }
 
-    if (responses.length === 0) {
-        return { ok: true, labels: [] };
+    if (responses.length !== 1) {
+        console.error(
+            '[vision] cantidad de responses inesperada:',
+            responses.length
+        );
+        return { ok: false, labels: [], objetos: [] };
     }
 
     const first = responses[0];
     if (!first || typeof first !== 'object') {
         console.error('[vision] responses[0] inválido');
-        return { ok: false, labels: [] };
+        return { ok: false, labels: [], objetos: [] };
     }
 
     const error = (first as { error?: unknown }).error;
     if (error) {
         console.error('[vision] Vision API devolvió error:', error);
-        return { ok: false, labels: [] };
+        return { ok: false, labels: [], objetos: [] };
     }
 
     const labels = (first as { labelAnnotations?: unknown }).labelAnnotations;
-    return { ok: true, labels: labels === undefined ? [] : labels };
+    const objetos = (first as {
+        localizedObjectAnnotations?: unknown;
+    }).localizedObjectAnnotations;
+
+    return {
+        ok: true,
+        labels: labels === undefined ? [] : labels,
+        objetos: objetos === undefined ? [] : objetos,
+    };
 }
 
 /**
@@ -239,6 +255,10 @@ export async function analizarImagenRepuesto(
                                 type: 'LABEL_DETECTION',
                                 maxResults: VISION_MAX_ETIQUETAS,
                             },
+                            {
+                                type: 'OBJECT_LOCALIZATION',
+                                maxResults: VISION_OBJECT_MAX_RESULTS,
+                            },
                         ],
                     },
                 ],
@@ -269,17 +289,23 @@ export async function analizarImagenRepuesto(
             return fallo();
         }
 
-        const extraido = extraerLabelsVision(payload);
+        const extraido = extraerAnotacionesVision(payload);
         if (!extraido.ok) {
             return fallo();
         }
 
         const sugerencias = sanitizarEtiquetasVision(extraido.labels);
+        const unidades = sanitizarObjetosVision(extraido.objetos);
+        const etiquetas = combinarEtiquetas(
+            sugerencias.map((sugerencia) => sugerencia.etiqueta),
+            unidades.map((unidad) => unidad.etiqueta)
+        );
 
         return {
             success: true,
-            etiquetas: sugerencias.map((sugerencia) => sugerencia.etiqueta),
+            etiquetas,
             sugerencias,
+            unidades,
         };
     } catch (error) {
         console.error('[vision] analizarImagenRepuesto falló:', error);

@@ -1,6 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type {
+    DocumentData,
+    DocumentReference,
+    Transaction,
+} from 'firebase-admin/firestore';
 import { getDb } from '@/lib/firebase-admin';
 import { requirePermiso } from '@/lib/auth/require-permiso';
 import {
@@ -50,11 +55,11 @@ export async function rechazarConteo(
 
         const data = parsed.data;
         const adminDb = getDb();
-        const conteoRef = adminDb
+        const conteoRef: DocumentReference<DocumentData> = adminDb
             .collection('conteos_pendientes_repuestos')
             .doc(data.conteo_id);
 
-        const resultado = await adminDb.runTransaction(async (tx: any) => {
+        const resultado = await adminDb.runTransaction(async (tx: Transaction) => {
             const conteoSnap = await tx.get(conteoRef);
             if (!conteoSnap.exists) {
                 throw new Error('El conteo no existe.');
@@ -85,7 +90,7 @@ export async function rechazarConteo(
             tx.update(conteoRef, {
                 estado: 'rechazado',
                 motivo_rechazo: data.motivo_rechazo,
-                revisado_por: me.email,
+                revisado_por: me.uid,
                 revisado_en: ahora,
             });
 
@@ -103,7 +108,7 @@ export async function rechazarConteo(
                 datos_nuevos: {
                     estado: 'rechazado',
                     motivo_rechazo: data.motivo_rechazo,
-                    revisado_por: me.email,
+                    revisado_por: me.uid,
                     revisado_en: ahora,
                 },
                 campos_modificados: [

@@ -6,9 +6,13 @@
  * Ejecutar con: npx tsx src/test/utils/inventario-repuestos.test.ts
  */
 import { readFileSync } from 'node:fs';
+import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
-import { editarRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
+import {
+    crearRepuestoSchema,
+    editarRepuestoSchema,
+} from '@/lib/actions/inventario-repuestos-schemas';
 import {
     construirCambiosRepuesto,
     filtrarRepuestos,
@@ -23,8 +27,16 @@ const LISTAR_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/actions/listarRepuestos.ts',
     'utf8'
 );
+const CREAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/crearRepuesto.ts',
+    'utf8'
+);
 const CLIENT_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx',
+    'utf8'
+);
+const MODAL_SOURCE = readFileSync(
+    'src/components/inventario/CrearRepuestoModal.tsx',
     'utf8'
 );
 const PAGE_SOURCE = readFileSync(
@@ -66,7 +78,10 @@ function lanza(fn: () => void): boolean {
 }
 
 const BASE: RepuestoInventarioDTO = {
+    documento_id: 'doc-brk-001',
     referencia: 'BRK-001',
+    sede_id: 'sede-1',
+    sede_nombre: 'Sede Principal',
     descripcion: 'Disco de freno delantero',
     fabricante: 'Honda',
     aplica_a: ['Honda CB 190'],
@@ -75,6 +90,7 @@ const BASE: RepuestoInventarioDTO = {
     ubicacion: 'A-01-05',
     stock: 8,
     stock_minimo: 3,
+    referencias_alternativas: ['BRK-ALT-1'],
     imagen_url: 'https://example.com/foto.jpg',
     creado_por: 'admin@test.com',
     creado_en: '2026-01-01T00:00:00.000Z',
@@ -87,10 +103,12 @@ const BORRADOR = {
     stock: String(BASE.stock),
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
-    ubicacion: BASE.ubicacion,
+    ubicacion: BASE.ubicacion ?? '',
+    referencias_alternativas: [...BASE.referencias_alternativas],
 };
 
 const VALIDO = editarRepuestoSchema.safeParse({
+    documento_id: 'doc-brk-001',
     referencia: 'brk-001',
     cambios: {
         descripcion: '  Disco de freno trasero  ',
@@ -105,13 +123,14 @@ check(
     'schema acepta cambios válidos y normaliza referencia/ubicación/descripción',
     VALIDO.success &&
         VALIDO.data.referencia === 'BRK-001' &&
-        VALIDO.data.cambios.ubicacion === 'B-02-06' &&
+        VALIDO.data.cambios.ubicacion === 'b-02-06' &&
         VALIDO.data.cambios.descripcion === 'Disco de freno trasero'
 );
 
 check(
     'schema rechaza stock negativo',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { stock: -1 },
     }).success
@@ -120,6 +139,7 @@ check(
 check(
     'schema rechaza stock decimal',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { stock: 1.5 },
     }).success
@@ -128,22 +148,25 @@ check(
 check(
     'schema rechaza precio negativo',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { precio: -0.01 },
     }).success
 );
 
 check(
-    'schema rechaza ubicación inválida',
-    !editarRepuestoSchema.safeParse({
+    'schema acepta ubicación de formato libre',
+    editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
-        cambios: { ubicacion: 'AA-1-2' },
+        cambios: { ubicacion: 'Área Norte, estante 2' },
     }).success
 );
 
 check(
     'schema rechaza descripción vacía',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { descripcion: '   ' },
     }).success
@@ -152,6 +175,7 @@ check(
 check(
     'schema rechaza campos desconocidos',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { stock: 1, categoria: 'Frenos' },
     }).success
@@ -160,8 +184,110 @@ check(
 check(
     'schema rechaza cambios vacíos',
     !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: {},
+    }).success
+);
+
+const CREAR_BASE = {
+    referencia: 'brk-010',
+    descripcion: '  Pastillas de freno  ',
+    sede_id: '  sede-1  ',
+    fabricante: '  Bosch  ',
+    aplica_a: ['Moto 125'],
+    categoria: '  Frenos  ',
+    precio: 85000,
+    ubicacion: '  Área Norte  ',
+    stock: 3,
+    stock_minimo: 1,
+    referencias_alternativas: ['brk-011', 'brk-010', 'BRK-011'],
+    imagen_url: null,
+};
+
+const crearOk = crearRepuestoSchema.safeParse(CREAR_BASE);
+check(
+    'crearRepuestoSchema normaliza referencia, sede y ubicación libre',
+    crearOk.success &&
+        crearOk.data.referencia === 'BRK-010' &&
+        crearOk.data.sede_id === 'sede-1' &&
+        crearOk.data.ubicacion === 'Área Norte' &&
+        crearOk.data.descripcion === 'Pastillas de freno' &&
+        crearOk.data.fabricante === 'Bosch' &&
+        crearOk.data.categoria === 'Frenos' &&
+        crearOk.data.referencias_alternativas.length === 1 &&
+        crearOk.data.referencias_alternativas[0] === 'BRK-011'
+);
+check(
+    'crearRepuestoSchema acepta imagen_url null',
+    crearOk.success && crearOk.data.imagen_url === null
+);
+check(
+    'crearRepuestoSchema acepta imagen_url omitida',
+    crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        imagen_url: undefined,
+    }).success
+);
+check(
+    'crearRepuestoSchema conserva imagen_url vacía sin transformarla',
+    (() => {
+        const resultado = crearRepuestoSchema.safeParse({
+            ...CREAR_BASE,
+            imagen_url: '',
+        });
+        return resultado.success && resultado.data.imagen_url === '';
+    })()
+);
+check(
+    'crearRepuestoSchema rechaza URL de imagen inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        imagen_url: 'no-es-url',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza campos desconocidos',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        creado_por_uid: 'x',
+    }).success
+);
+check(
+    'crearRepuestoSchema acepta aplica_a vacío y campos opcionales omitidos',
+    crearRepuestoSchema.safeParse({
+        referencia: 'BRK-030',
+        descripcion: 'Repuesto mínimo',
+        sede_id: 'sede-1',
+        ubicacion: 'Pasillo 1',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza espacios en la referencia maestra',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencia: ' BRK-010 ',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza espacios en una alternativa',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencias_alternativas: ['BRK 011'],
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza referencia inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        referencia: 'BRK 010',
+    }).success
+);
+check(
+    'crearRepuestoSchema rechaza stock decimal',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        stock: 1.5,
     }).success
 );
 
@@ -223,6 +349,38 @@ check(
     )
 );
 
+const conAlternativas = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    referencias_alternativas: [
+        'BRK-ALT-1',
+        'BRK-ALT-2',
+        'BRK-001',
+    ],
+});
+check(
+    'construirCambiosRepuesto agrega alternativas sin duplicar la maestra',
+    conAlternativas.referencias_alternativas?.join('|') ===
+        'BRK-ALT-1|BRK-ALT-2'
+);
+check(
+    'construirCambiosRepuesto rechaza espacios en alternativas',
+    lanza(() =>
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            referencias_alternativas: ['BRK ALT 2'],
+        })
+    )
+);
+check(
+    'construirCambiosRepuesto no emite alternativas sin cambios',
+    Object.keys(
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            referencias_alternativas: ['BRK-ALT-1'],
+        })
+    ).length === 0
+);
+
 async function run() {
     const listarSinActor = await listarRepuestos({}, {});
     check(
@@ -254,6 +412,18 @@ async function run() {
     check(
         'editarRepuesto rechaza input inválido antes de Firebase',
         editarInputInvalido.success === false
+    );
+
+    const crearSinActor = await crearRepuesto(CREAR_BASE, {});
+    check('crearRepuesto rechaza actor inválido', crearSinActor.success === false);
+
+    const crearInputInvalido = await crearRepuesto(
+        {},
+        { uid: 'x', idToken: 'x' }
+    );
+    check(
+        'crearRepuesto rechaza input inválido antes de Firebase',
+        crearInputInvalido.success === false
     );
 
     check(
@@ -297,9 +467,62 @@ async function run() {
     );
 
     check(
+        'crearRepuesto usa Faraday y permiso create',
+        CREAR_SOURCE.startsWith("'use server';") &&
+            CREAR_SOURCE.includes('validarActor(actor)') &&
+            CREAR_SOURCE.includes('requireActorInventario(a.idToken)') &&
+            CREAR_SOURCE.includes('requirePermiso(') &&
+            CREAR_SOURCE.includes("'inventario_repuestos'") &&
+            CREAR_SOURCE.includes("'create'")
+    );
+
+    check(
+        'crearRepuesto exige rol admin o superadmin',
+        CREAR_SOURCE.includes("permiso.rol !== 'admin'") &&
+            CREAR_SOURCE.includes("permiso.rol !== 'superadmin'")
+    );
+
+    check(
+        'crearRepuesto usa auto-ID, alternativas y transacción atómica',
+        CREAR_SOURCE.includes('.doc()') &&
+            CREAR_SOURCE.includes('referencias_alternativas') &&
+            CREAR_SOURCE.includes('runTransaction') &&
+            CREAR_SOURCE.includes('tx.create(repuestoRef, payload)') &&
+            CREAR_SOURCE.includes('tx.create(ledgerRef')
+    );
+
+    check(
+        'crearRepuesto no usa .add()',
+        !CREAR_SOURCE.includes('.add(')
+    );
+
+    check(
+        'crearRepuesto escribe ledger CREATE canónico',
+        CREAR_SOURCE.includes("operacion: 'CREATE'") &&
+            CREAR_SOURCE.includes('datos_anteriores: null') &&
+            CREAR_SOURCE.includes('registrado_por: me.uid')
+    );
+
+    check(
+        'crearRepuesto usa campos canónicos y no alias',
+        CREAR_SOURCE.includes('creado_por: me.email') &&
+            CREAR_SOURCE.includes('creado_en: ahora') &&
+            !CREAR_SOURCE.includes('creado_por_uid') &&
+            !CREAR_SOURCE.includes('creado_por_email') &&
+            !CREAR_SOURCE.includes('fecha_creacion') &&
+            !CREAR_SOURCE.includes('accion:')
+    );
+
+    check(
+        'crearRepuesto normaliza imagen ausente a cadena vacía',
+        CREAR_SOURCE.includes("imagen_url: data.imagen_url ?? ''")
+    );
+
+    check(
         'acciones nuevas no usan estado_conteo',
         !EDITAR_SOURCE.includes('estado_conteo') &&
-            !LISTAR_SOURCE.includes('estado_conteo')
+            !LISTAR_SOURCE.includes('estado_conteo') &&
+            !CREAR_SOURCE.includes('estado_conteo')
     );
 
     check(
@@ -307,13 +530,57 @@ async function run() {
         !CLIENT_SOURCE.includes('firebase/firestore') &&
             !CLIENT_SOURCE.includes('.collection(') &&
             !CLIENT_SOURCE.includes('getDocs(') &&
-            !CLIENT_SOURCE.includes('onSnapshot(')
+            !CLIENT_SOURCE.includes('onSnapshot(') &&
+            !MODAL_SOURCE.includes('firebase/firestore')
     );
 
     check(
-        'página exige admin/superadmin',
-        PAGE_SOURCE.includes("role === 'admin'") &&
-            PAGE_SOURCE.includes("role === 'superadmin'")
+        'botón Nuevo Repuesto condicionado por permiso create',
+        CLIENT_SOURCE.includes(
+            "puedeAccion('inventario_repuestos', 'create')"
+        ) &&
+            CLIENT_SOURCE.includes('Nuevo Repuesto') &&
+            CLIENT_SOURCE.includes('CrearRepuestoModal')
+    );
+
+    check(
+        'modal usa Server Action, alternativas y recarga la lista',
+        MODAL_SOURCE.includes('crearRepuesto') &&
+            MODAL_SOURCE.includes('crearRepuestoSchema') &&
+            MODAL_SOURCE.includes('referencias_alternativas') &&
+            MODAL_SOURCE.includes('+ Agregar referencia') &&
+            MODAL_SOURCE.includes('Precio de compra') &&
+            !MODAL_SOURCE.includes('listarSedes') &&
+            MODAL_SOURCE.includes('await onCreado()') &&
+            MODAL_SOURCE.includes('onClose()')
+    );
+
+    check(
+        'modal atribuye errores por campo e índice y muestra el formato',
+        MODAL_SOURCE.includes('Referencia alternativa #') &&
+            MODAL_SOURCE.includes('Referencia maestra') &&
+            MODAL_SOURCE.includes('mensajesDeValidacion') &&
+            MODAL_SOURCE.includes('A-Z, 0-9, ., _, -') &&
+            !MODAL_SOURCE.includes('actual.trim().toUpperCase()') &&
+            !MODAL_SOURCE.includes('item.trim().toUpperCase()')
+    );
+
+    check(
+        'página permite create o update',
+        PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'create')") &&
+            PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'update')") &&
+            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar')
+    );
+
+    check(
+        'cliente usa documento_id, edita alternativas y muestra sede_nombre',
+        CLIENT_SOURCE.includes('documento_id') &&
+            CLIENT_SOURCE.includes('referencias_alternativas') &&
+            CLIENT_SOURCE.includes('Alternativas:') &&
+            CLIENT_SOURCE.includes('actualizarAlternativas') &&
+            CLIENT_SOURCE.includes('+ Alternativa') &&
+            CLIENT_SOURCE.includes('sede_nombre') &&
+            !CLIENT_SOURCE.includes('Sede: {repuesto.sede_id')
     );
 
     check(
@@ -346,9 +613,12 @@ async function run() {
     );
 
     check(
-        'DTO declara alineación 1:1 con InventarioRepuesto',
+        'DTO declara documento_id, alternativas y alineación con InventarioRepuesto',
         TYPES_SOURCE.includes('InventarioRepuesto') &&
             TYPES_SOURCE.includes('Omit<') &&
+            TYPES_SOURCE.includes('documento_id') &&
+            TYPES_SOURCE.includes('referencias_alternativas') &&
+            TYPES_SOURCE.includes('sede_nombre') &&
             TYPES_SOURCE.includes('creado_en') &&
             TYPES_SOURCE.includes('actualizado_en')
     );

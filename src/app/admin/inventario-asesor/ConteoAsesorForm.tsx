@@ -27,11 +27,22 @@ import {
 } from "@/lib/offline/outbox-utils";
 import type { EntradaBorradorConteo } from "@/lib/offline/outbox";
 import { prepararYSubirFoto } from "@/lib/offline/upload-foto";
+import {
+    conTimeout,
+    TIMEOUT_ANALISIS_MS,
+} from "@/lib/inventario/timeout";
 import { analizarImagenRepuesto } from "@/app/admin/inventory/actions/analizarImagenRepuesto";
 import { crearConteoPendiente } from "@/app/admin/inventory/actions/crearConteoPendiente";
-import type { VisionSugerencia } from "@/types/inventario";
+import { listarSedes } from "@/app/admin/inventario-repuestos/actions/listarSedes";
+import type {
+    RepuestoCandidato,
+    SedeOpcion,
+    VisionSugerencia,
+    VisionUnidad,
+} from "@/types/inventario";
 import AccesoDenegado from "@/components/inventario/AccesoDenegado";
 import FotoConteoPicker from "@/components/inventario/FotoConteoPicker";
+import SelectorReferenciaRepuesto from "@/components/inventario/SelectorReferenciaRepuesto";
 import SugerenciasVision from "@/components/inventario/SugerenciasVision";
 
 function esErrorReintentable(mensaje: string): boolean {
@@ -47,7 +58,8 @@ function esErrorReintentable(mensaje: string): boolean {
         texto.includes("no pertenece") ||
         texto.includes("no coincide con la url") ||
         texto.includes("foto no es una url") ||
-        texto.includes("debe usar https")
+        texto.includes("debe usar https") ||
+        texto.includes("referencia seleccionada no existe")
     ) {
         return false;
     }
@@ -86,9 +98,18 @@ export default function ConteoAsesorForm() {
     const [fotoSubida, setFotoSubida] = useState<FotoSubida | null>(null);
     const [sugerencias, setSugerencias] = useState<VisionSugerencia[]>([]);
     const [etiquetas, setEtiquetas] = useState<string[]>([]);
+    const [unidades, setUnidades] = useState<VisionUnidad[]>([]);
     const [referenciaSugerida, setReferenciaSugerida] = useState("");
     const [referenciaConfirmada, setReferenciaConfirmada] = useState("");
+    const [inventarioDocumentoId, setInventarioDocumentoId] = useState("");
     const [descripcion, setDescripcion] = useState("");
+    const [fabricante, setFabricante] = useState("");
+    const [categoria, setCategoria] = useState("");
+    const [aplicaA, setAplicaA] = useState<string[]>([]);
+    const [sedeId, setSedeId] = useState("");
+    const [sedes, setSedes] = useState<SedeOpcion[]>([]);
+    const [cargandoSedes, setCargandoSedes] = useState(false);
+    const [sedeError, setSedeError] = useState<string | null>(null);
     const [cantidadContada, setCantidadContada] = useState("");
     const [ubicacion, setUbicacion] = useState("");
     const [anotaciones, setAnotaciones] = useState("");
@@ -113,6 +134,64 @@ export default function ConteoAsesorForm() {
         ? user.email.trim().toLowerCase()
         : "";
 
+    useEffect(() => {
+        const usuario = user;
+        if (!usuario || !asesorEmail) return;
+
+        let cancelado = false;
+        setCargandoSedes(true);
+        setSedeError(null);
+
+        void (async () => {
+            try {
+                const idToken = await usuario.getIdToken();
+                const resultado = await listarSedes(
+                    {},
+                    { uid: usuario.uid, idToken }
+                );
+
+                if (cancelado) return;
+
+                if (!resultado.success) {
+                    setSedes([]);
+                    setSedeError(
+                        resultado.message ??
+                            "No se pudieron cargar las sedes."
+                    );
+                    return;
+                }
+
+                setSedes(resultado.sedes);
+                if (resultado.sedes.length === 0) {
+                    setSedeError(
+                        "No hay sedes activas configuradas. Contacta al administrador."
+                    );
+                }
+            } catch (errorSedes) {
+                if (cancelado) return;
+                console.error(
+                    "[inventario-ui] No se pudieron cargar las sedes:",
+                    errorSedes
+                );
+                setSedes([]);
+                setSedeError(
+                    mensajeDeError(
+                        errorSedes,
+                        "No se pudieron cargar las sedes."
+                    )
+                );
+            } finally {
+                if (!cancelado) {
+                    setCargandoSedes(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelado = true;
+        };
+    }, [user, asesorEmail]);
+
     if (!user || !asesorEmail) {
         return (
             <AccesoDenegado mensaje="Sesión inválida. Vuelve a iniciar sesión." />
@@ -129,9 +208,15 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
         setReferenciaConfirmada("");
+        setInventarioDocumentoId("");
         setDescripcion("");
+        setFabricante("");
+        setCategoria("");
+        setAplicaA([]);
+        setSedeId("");
         setCantidadContada("");
         setUbicacion("");
         setAnotaciones("");
@@ -163,7 +248,7 @@ export default function ConteoAsesorForm() {
         setAnalizando(true);
         setVisionError(null);
 
-        try {
+        const ejecutarAnalisis = async (): Promise<void> => {
             const subida = await prepararYSubirFoto(
                 fotoParaAnalizar,
                 asesorEmail,
@@ -175,6 +260,9 @@ export default function ConteoAsesorForm() {
             setFotoSubida(subida);
 
             const idToken = await usuario.getIdToken();
+            if (analisisSeqRef.current !== secuencia) {
+                return;
+            }
             const resultado = await analizarImagenRepuesto(
                 { foto_url: subida.foto_url },
                 { uid: usuario.uid, idToken }
@@ -186,22 +274,40 @@ export default function ConteoAsesorForm() {
             if (resultado.success) {
                 setSugerencias(resultado.sugerencias);
                 setEtiquetas(resultado.etiquetas.slice(0, 10));
-                if (resultado.sugerencias.length > 0) {
-                    const primera = resultado.sugerencias[0].etiqueta;
-                    setReferenciaSugerida((actual) => {
-                        if (actual.trim()) return actual;
-                        return primera.slice(0, 64);
-                    });
-                }
+                setUnidades(resultado.unidades);
+                setReferenciaSugerida("");
             } else {
+                setSugerencias([]);
+                setEtiquetas([]);
+                setUnidades([]);
                 setVisionError(resultado.message);
             }
+        };
+
+        try {
+            await conTimeout(
+                ejecutarAnalisis(),
+                TIMEOUT_ANALISIS_MS,
+                "El análisis tardó demasiado. Puedes guardar el conteo o reintentar."
+            );
         } catch (errorAnalisis) {
             console.error(
                 "[inventario-ui] No se pudo analizar la foto:",
                 errorAnalisis
             );
             if (analisisSeqRef.current === secuencia) {
+                if (
+                    typeof errorAnalisis === 'object' &&
+                    errorAnalisis !== null &&
+                    'name' in errorAnalisis &&
+                    errorAnalisis.name === 'TimeoutError'
+                ) {
+                    analisisSeqRef.current += 1;
+                    setAnalizando(false);
+                }
+                setSugerencias([]);
+                setEtiquetas([]);
+                setUnidades([]);
                 setVisionError(
                     mensajeDeError(
                         errorAnalisis,
@@ -253,7 +359,14 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
+        setReferenciaConfirmada("");
+        setInventarioDocumentoId("");
+        setDescripcion("");
+        setFabricante("");
+        setCategoria("");
+        setAplicaA([]);
         setVisionError(null);
         setError(null);
         setPuedeReintentar(false);
@@ -289,7 +402,14 @@ export default function ConteoAsesorForm() {
         setFotoSubida(null);
         setSugerencias([]);
         setEtiquetas([]);
+        setUnidades([]);
         setReferenciaSugerida("");
+        setReferenciaConfirmada("");
+        setInventarioDocumentoId("");
+        setDescripcion("");
+        setFabricante("");
+        setCategoria("");
+        setAplicaA([]);
         setVisionError(null);
         setFotoError(null);
         setError(null);
@@ -302,17 +422,34 @@ export default function ConteoAsesorForm() {
             return null;
         }
 
+        if (!referenciaConfirmada.trim()) {
+            setError(
+                "Selecciona una referencia existente del catálogo antes de guardar."
+            );
+            return null;
+        }
+
         const referencia = referenciaSchema.safeParse(referenciaConfirmada);
         if (!referencia.success) {
+            setError("La referencia seleccionada no es válida.");
+            return null;
+        }
+
+        if (!inventarioDocumentoId.trim()) {
             setError(
-                "Confirma una referencia válida (letras, números, punto, guion o guion bajo)."
+                "Selecciona un repuesto del catálogo antes de guardar."
             );
+            return null;
+        }
+
+        if (!sedeId.trim()) {
+            setError("Selecciona la sede del conteo.");
             return null;
         }
 
         const ubicacionValidada = ubicacionSchema.safeParse(ubicacion);
         if (!ubicacionValidada.success) {
-            setError("La ubicación debe tener el formato A-01-05.");
+            setError("La ubicación es obligatoria y no puede superar 100 caracteres.");
             return null;
         }
 
@@ -347,6 +484,8 @@ export default function ConteoAsesorForm() {
         return {
             referencia_sugerida: sugerida,
             referencia_confirmada: referencia.data,
+            inventario_documento_id: inventarioDocumentoId.trim(),
+            sede_id: sedeId.trim(),
             descripcion: descripcionLimpia,
             cantidad_contada: cantidad,
             ubicacion: ubicacionValidada.data,
@@ -498,7 +637,13 @@ export default function ConteoAsesorForm() {
         }
     }
 
-    const enviarDeshabilitado = guardando || analizando || !foto;
+    const enviarDeshabilitado =
+        guardando ||
+        analizando ||
+        !foto ||
+        !referenciaConfirmada ||
+        !inventarioDocumentoId ||
+        !sedeId;
 
     return (
         <div className="mx-auto w-full max-w-2xl space-y-5 pb-24">
@@ -579,10 +724,11 @@ export default function ConteoAsesorForm() {
                 <SugerenciasVision
                     sugerencias={sugerencias}
                     etiquetas={etiquetas}
+                    unidades={unidades}
                     analizando={analizando}
                     error={visionError}
-                    onUsarEtiqueta={(etiqueta) =>
-                        setReferenciaSugerida(etiqueta.slice(0, 64))
+                    onUsarCantidad={(cantidad) =>
+                        setCantidadContada(String(cantidad))
                     }
                     onReintentar={() => {
                         if (foto) {
@@ -597,57 +743,80 @@ export default function ConteoAsesorForm() {
                             2. Datos del conteo
                         </h2>
                         <p className="mt-1 text-xs text-gray-500">
-                            La referencia sugerida es solo una ayuda. La
-                            referencia confirmada la decides tú.
+                            La referencia se elige de las existencias del
+                            catálogo maestro. No se acepta referencia libre.
                         </p>
                     </div>
 
-                    <div>
-                        <label
-                            htmlFor="referencia-sugerida"
-                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                        >
-                            Referencia sugerida
-                        </label>
-                        <input
-                            id="referencia-sugerida"
-                            type="text"
-                            value={referenciaSugerida}
-                            maxLength={64}
-                            onChange={(event) =>
-                                setReferenciaSugerida(event.target.value)
-                            }
-                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                            placeholder="Sugerencia de Vision (opcional)"
-                        />
-                    </div>
+                    <SelectorReferenciaRepuesto
+                        etiquetas={etiquetas}
+                        referenciaSeleccionada={referenciaConfirmada}
+                        online={online}
+                        disabled={guardando}
+                        onSugerencia={(referencia) =>
+                            setReferenciaSugerida(referencia.slice(0, 64))
+                        }
+                        onSeleccion={(candidato: RepuestoCandidato | null) => {
+                            setReferenciaConfirmada(
+                                candidato ? candidato.referencia : ""
+                            );
+                            setInventarioDocumentoId(
+                                candidato ? candidato.documento_id : ""
+                            );
+                            setDescripcion(
+                                candidato
+                                    ? candidato.descripcion.slice(0, 200)
+                                    : ""
+                            );
+                            setFabricante(
+                                candidato ? candidato.fabricante : ""
+                            );
+                            setCategoria(
+                                candidato ? candidato.categoria : ""
+                            );
+                            setAplicaA(
+                                candidato ? candidato.aplica_a : []
+                            );
+                        }}
+                    />
 
                     <div>
                         <label
-                            htmlFor="referencia-confirmada"
+                            htmlFor="sede-conteo"
                             className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
                         >
-                            Referencia confirmada <span aria-hidden="true">*</span>
+                            Sede <span aria-hidden="true">*</span>
                         </label>
-                        <input
-                            id="referencia-confirmada"
-                            type="text"
+                        <select
+                            id="sede-conteo"
                             required
-                            value={referenciaConfirmada}
-                            maxLength={64}
-                            autoCapitalize="characters"
-                            spellCheck={false}
-                            onChange={(event) =>
-                                setReferenciaConfirmada(event.target.value)
-                            }
-                            onBlur={() =>
-                                setReferenciaConfirmada((actual) =>
-                                    actual.trim().toUpperCase()
-                                )
-                            }
-                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                            placeholder="Ej. 5VL-E1341-00"
-                        />
+                            value={sedeId}
+                            disabled={guardando || cargandoSedes}
+                            onChange={(event) => setSedeId(event.target.value)}
+                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">
+                                {cargandoSedes
+                                    ? "Cargando sedes…"
+                                    : "Selecciona una sede"}
+                            </option>
+                            {sedes.map((sede) => (
+                                <option key={sede.id} value={sede.id}>
+                                    {sede.name}
+                                    {sede.department
+                                        ? ` — ${sede.department}`
+                                        : ""}
+                                </option>
+                            ))}
+                        </select>
+                        {sedeError ? (
+                            <p
+                                role="alert"
+                                className="mt-1 text-xs text-red-300"
+                            >
+                                {sedeError}
+                            </p>
+                        ) : null}
                     </div>
 
                     <div>
@@ -661,14 +830,63 @@ export default function ConteoAsesorForm() {
                             id="descripcion"
                             type="text"
                             required
+                            readOnly
                             value={descripcion}
                             maxLength={200}
-                            onChange={(event) =>
-                                setDescripcion(event.target.value)
-                            }
-                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                            placeholder="Ej. Filtro de aceite"
+                            className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-3 text-sm text-gray-300"
+                            placeholder="Se completa al seleccionar una referencia"
                         />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <div>
+                            <label
+                                htmlFor="fabricante-conteo"
+                                className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                            >
+                                Fabricante
+                            </label>
+                            <input
+                                id="fabricante-conteo"
+                                type="text"
+                                readOnly
+                                value={fabricante}
+                                className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-3 text-sm text-gray-300"
+                                placeholder="—"
+                            />
+                        </div>
+                        <div>
+                            <label
+                                htmlFor="categoria-conteo"
+                                className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                            >
+                                Categoría
+                            </label>
+                            <input
+                                id="categoria-conteo"
+                                type="text"
+                                readOnly
+                                value={categoria}
+                                className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-3 text-sm text-gray-300"
+                                placeholder="—"
+                            />
+                        </div>
+                        <div>
+                            <label
+                                htmlFor="aplica-a-conteo"
+                                className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                            >
+                                Aplica a
+                            </label>
+                            <input
+                                id="aplica-a-conteo"
+                                type="text"
+                                readOnly
+                                value={aplicaA.join(", ")}
+                                className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-900/80 px-3 py-3 text-sm text-gray-300"
+                                placeholder="—"
+                            />
+                        </div>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -709,19 +927,12 @@ export default function ConteoAsesorForm() {
                                 type="text"
                                 required
                                 value={ubicacion}
-                                maxLength={8}
-                                autoCapitalize="characters"
-                                spellCheck={false}
+                                maxLength={100}
                                 onChange={(event) =>
                                     setUbicacion(event.target.value)
                                 }
-                                onBlur={() =>
-                                    setUbicacion((actual) =>
-                                        actual.trim().toUpperCase()
-                                    )
-                                }
-                                className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 font-mono text-sm uppercase text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                                placeholder="A-01-05"
+                                className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                                placeholder="Ej. Pasillo 3, estante B"
                             />
                         </div>
                     </div>

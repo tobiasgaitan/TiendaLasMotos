@@ -18,10 +18,14 @@ export default function PwaRegistrar() {
         if (!("serviceWorker" in navigator)) return;
 
         navigator.serviceWorker
-            .register("/sw.js", { scope: "/" })
+            .register("/sw.js", {
+                scope: "/",
+                updateViaCache: "none",
+            })
+            .then((registration) => registration.update())
             .catch((error) =>
                 console.error(
-                    "[pwa] Registro del service worker falló:",
+                    "[pwa] Registro o actualización del service worker falló:",
                     error
                 )
             );

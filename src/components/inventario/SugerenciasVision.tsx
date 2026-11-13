@@ -1,23 +1,25 @@
-"use client";
+'use client';
 
-import { Loader2, RefreshCw, Sparkles, Tag } from "lucide-react";
-import type { VisionSugerencia } from "@/types/inventario";
+import { Hash, Loader2, RefreshCw, Sparkles, Tag } from 'lucide-react';
+import type { VisionSugerencia, VisionUnidad } from '@/types/inventario';
 
 interface SugerenciasVisionProps {
     sugerencias: VisionSugerencia[];
     etiquetas: string[];
+    unidades: VisionUnidad[];
     analizando: boolean;
     error: string | null;
-    onUsarEtiqueta: (etiqueta: string) => void;
+    onUsarCantidad: (cantidad: number) => void;
     onReintentar: () => void;
 }
 
 export default function SugerenciasVision({
     sugerencias,
     etiquetas,
+    unidades,
     analizando,
     error,
-    onUsarEtiqueta,
+    onUsarCantidad,
     onReintentar,
 }: SugerenciasVisionProps) {
     return (
@@ -32,8 +34,8 @@ export default function SugerenciasVision({
                         Sugerencias de Vision
                     </h2>
                     <p className="mt-1 text-xs text-gray-500">
-                        Solo pre-llenan la referencia sugerida. Tú confirmas la
-                        referencia final.
+                        Las unidades son una estimación para ayudarte a contar.
+                        La referencia se elige del catálogo existente.
                     </p>
                 </div>
                 {error ? (
@@ -74,35 +76,68 @@ export default function SugerenciasVision({
                 </p>
             ) : null}
 
-            {!analizando && !error && sugerencias.length === 0 ? (
+            {!analizando &&
+            !error &&
+            sugerencias.length === 0 &&
+            unidades.length === 0 ? (
                 <p className="mt-4 text-xs text-gray-500">
-                    Aún no hay sugerencias. Toma una foto nítida para
-                    intentarlo.
+                    Aún no hay detecciones. Toma una foto nítida o selecciona
+                    una referencia del catálogo manualmente.
                 </p>
+            ) : null}
+
+            {unidades.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Unidades detectadas (estimación)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {unidades.map((unidad, indice) => (
+                            <button
+                                key={`${unidad.etiqueta}-${indice}`}
+                                type="button"
+                                onClick={() => onUsarCantidad(unidad.cantidad)}
+                                disabled={analizando}
+                                className="inline-flex items-center gap-2 rounded-full border border-emerald-700/60 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                title="Usar esta cantidad detectada"
+                            >
+                                <Hash
+                                    aria-hidden="true"
+                                    className="h-3.5 w-3.5"
+                                />
+                                <span>
+                                    {unidad.cantidad} × {unidad.etiqueta}
+                                </span>
+                                <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] text-emerald-200">
+                                    {Math.round(unidad.score * 100)}%
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-gray-600">
+                        La cantidad detectada no se guarda automáticamente:
+                        debes confirmarla en el campo Cantidad contada.
+                    </p>
+                </div>
             ) : null}
 
             {sugerencias.length > 0 ? (
                 <div className="mt-4 space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Referencias candidatas
+                        Etiquetas detectadas
                     </p>
                     <div className="flex flex-wrap gap-2">
                         {sugerencias.map((sugerencia, indice) => (
-                            <button
+                            <span
                                 key={`${sugerencia.etiqueta}-${indice}`}
-                                type="button"
-                                disabled={analizando}
-                                onClick={() =>
-                                    onUsarEtiqueta(sugerencia.etiqueta)
-                                }
-                                className="inline-flex items-center gap-2 rounded-full border border-amber-700/60 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:border-amber-400 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-full border border-amber-700/60 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100"
                             >
                                 <Tag aria-hidden="true" className="h-3.5 w-3.5" />
                                 <span>{sugerencia.etiqueta}</span>
                                 <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] text-amber-200">
                                     {Math.round(sugerencia.score * 100)}%
                                 </span>
-                            </button>
+                            </span>
                         ))}
                     </div>
                 </div>
@@ -111,7 +146,7 @@ export default function SugerenciasVision({
             {etiquetas.length > 0 ? (
                 <div className="mt-4 border-t border-gray-800 pt-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Etiquetas detectadas
+                        Etiquetas para el matching
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                         {etiquetas.map((etiqueta, indice) => (

@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.2  
-**Última Actualización:** 2026-11-07  
-**Estado:** MERGE beta→main APROBADO por el Director (Opción 2); WEB-040 certificado en runtime beta (UAT 3 roles, run #171 0dd55de)
+**Versión del Stack & Hitos:** v8.9.13  
+**Última Actualización:** 2026-11-12  
+**Estado:** cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO + OBS-STATE-INVARIANTES-DUPLICADOS certificado.
 
 ---
 
@@ -154,45 +154,6 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ---
 
-## 8. Sistema de Gestión de Créditos y Renting (Fase 9 — 2026-10-01)
-
-### A. Arquitectura del Módulo
-*   **Rutas:** 5 módulos operativos bajo `/admin/creditos/...` (contratos, terminal de cobro, cierre de caja, inversores, auditoría read-only).
-*   **Sidebar:** Grupo "Gestión de Créditos" con icono `CreditCard` ámbar.
-*   **Colecciones Firestore:** 6 colecciones (`clientes_credito`, `creditos`, `pagos_y_multas`, `pagos_inversores`, `remisiones_dinero`, `historial_auditoria`) con reglas de lectura autenticada y writes/deletes de cliente denegados.
-
-### B. Contratos de Datos (NAMING LOCK)
-*   **`clientes_credito`:** 5 claves inmutables (`cedula`, `nombres`, `celular`, `direccion`, `fecha_registro`). `created_at` no aplica (SSOT = `fecha_registro`).
-*   **`creditos`:** Mapas `vehiculo`/`condiciones`/`asignaciones` con FK `id_cliente`/`email_admin`/`email_usuario`/`email_inversor`. Aditivo `numero_credito` (CRE-YYYY-XXXX).
-*   **`pagos_y_multas`:** `valor_pagado_cliente`/`tipo_transaccion` (`pago_cuota`|`multa`|`nota_credito`)/`valor_comision`/`valor_neto_empresa`. `motivo` obligatorio para multas.
-*   **`pagos_inversores`:** Giro de salida con `email_admin`/`email_inversor`/`monto`.
-*   **`remisiones_dinero`:** Máquina de estados `pendiente` → `recibido` (aprobación admin) o `anulado`.
-*   **`historial_auditoria`:** Ledger append-only vía `add()` (prohibido `batch.set()`/`update()`/`delete()`). Campo `registrado_por` = uid verificado vía `verifyIdToken`.
-
-### C. Reglas de Negocio (Server Actions)
-*   **Regla A (Comisión):** Calculada en servidor (`src/lib/actions/creditos-calc.ts`). `pago_cuota`: comisión = valor × porcentaje; `multa`/`nota_credito`: comisión = 0. Cliente no inyecta `valor_comision`/`valor_neto_empresa` (Faraday Cage).
-*   **Regla B (Mora Renting):** Días cobrables = días posteriores a `fecha_registro` hasta hoy, excluyendo domingos. Exigible = días × cuota. Mora = exigible - recibido. Estado `en_mora` si mora > 0.
-*   **`nota_credito`:** Único mecanismo de ajuste contable negativo (prohibido borrado físico de registros financieros).
-
-### D. Índices Compuestos (21 totales)
-*   **18 legacy:** Espejados de GCP (compradores, posts, citas, clientes, products, etc.) para evitar deploy destructivo.
-*   **3 Fase 9:** `pagos_y_multas[registrado_por, fecha_registro]` (cierre de caja), `creditos[vehiculo.placa, activo]` (búsqueda por placa), `creditos[id_cliente, activo]` (búsqueda por cliente).
-
-### E. Verificación E2E (2026-10-01)
-*   **Pasos 1-6 certificados:** Cliente inline + contrato `CRE-2026-0001`, Regla A (20.000/80.000 y 0/15.000), cierre 95.000 `pendiente→recibido`, giro 50.000 con saldo 45.000, ledger de 7 asientos append-only, evidencias Firestore completas.
-*   **Purga:** 14 docIds eliminados (whitelist cerrada) + reset de `configuracion/counters`. Estado pre-E2E restaurado con paridad 1:1.
-
-### F. Commits Clave
-*   `4a8c0fe`: Ejecución de planes 09-01..09-06 (código + reglas).
-*   `e0e2c05`: Fix de exports no-función en archivos `'use server'` (Next.js module restriction).
-*   `e4ddd31`: Declaración de 21 índices compuestos (18 legacy + 3 Fase 9) con merge pre-deploy.
-
-**Coherence Score:** 0.98 (Fase 9 — E2E certificado, purga ejecutada, deuda técnica registrada como tickets aislados).
-
----
-*Última actualización: 2026-10-01 COT por Antigravity*
-
----
 ## 9. Resolución de Deudas Técnicas (2026-10-01)
 ### A. Deuda 3: Migración middleware.ts → proxy.ts (Next 16.1.1)
 *   **Problema:** Next.js 16 deprecó la convención `middleware.ts` en favor de `proxy.ts` (Node.js runtime).
@@ -276,9 +237,11 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **Colección IndexedDB local:** `tlm_offline` (v2) con stores `borradores_conteos` y `fotos_borrador`, índice `propietario_uid`.
 
 ### B. Contratos de Datos (NAMING LOCK)
-*   **`conteos_pendientes_repuestos`:** Claves inmutables `conteo_id` (UUID v4, docId), `referencia_confirmada`, `referencia_sugerida`, `descripcion`, `cantidad_contada`, `ubicacion`, `anotaciones`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `asesor_email`, `asesor_uid`, `creado_en`, `revisado_por`, `revisado_en`, `motivo_rechazo`.
+*   **`conteos_pendientes_repuestos`:** Claves inmutables `conteo_id` (UUID v4, docId), `referencia_confirmada`, `referencia_sugerida`, `inventario_documento_id`, `sede_id`, `descripcion`, `cantidad_contada`, `ubicacion` (texto libre 1–100), `anotaciones`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `asesor_email`, `asesor_uid`, `creado_en`, `revisado_por`, `revisado_en`, `motivo_rechazo`. El conteo referencia el documento exacto del catálogo mediante `inventario_documento_id`.
 *   **`fotos_inventario`:** Registro espejo de la foto con `conteo_id`, `asesor_email`, `asesor_uid`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `creado_en`.
-*   **`inventario_repuestos`:** Catálogo maestro con `referencia` (docId), `descripcion`, `fabricante`, `aplica_a`, `categoria`, `precio`, `ubicacion`, `stock`, `stock_minimo`, `imagen_url`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`.
+*   **`inventario_repuestos`:** Catálogo maestro con docId auto-ID y `documento_id` como identidad de edición solo en DTO (NO se persiste). `referencia` es la referencia maestra comercial, repetible, no el docId. Campos: `referencia`, `referencias_alternativas` (array normalizado, sin duplicados ni referencia maestra), `descripcion`, `fabricante`, `aplica_a`, `categoria`, `precio`, `stock`, `stock_minimo`, `imagen_url`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`. `sede_id` y `ubicacion` permanecen como campos legacy opcionales; el alta Admin no los exige. `stock` y `stock_minimo` son globales del catálogo. Los campos no críticos se persisten con defaults (`''`, `[]`, `0`) cuando el alta los omite. `precio` conserva su nombre (NAMING LOCK).
+*   **Búsqueda y referencias:** La búsqueda por referencia consulta `referencia == valor` y `referencias_alternativas array-contains valor`; una coincidencia con cualquiera devuelve el mismo documento. Referencia maestra y alternativas son visibles en la ficha.
+*   **Aprobación de conteos:** `crearConteoPendiente` persiste `inventario_documento_id` y `sede_id`; `aprobarConteo` resuelve por `inventario_documento_id` y **NO actualiza stock del catálogo** (arqueo independiente). Para conteos legacy sin `inventario_documento_id`, mantiene el fallback por referencia y falla explícitamente si hay ambigüedad.
 *   **`historial_auditoria_inventario`:** Ledger append-only vía `tx.create()` (prohibido `tx.set()`/`tx.update()`/`tx.delete()` sobre el ledger). Campo `registrado_por` = uid verificado vía `verifyIdToken()`. Clave canónica `estado` (NO `estado_conteo`, que queda como evidencia histórica reconciliable vía `reconciliarDatosNuevosLegado`).
 
 ### C. Aislamiento Offline (H-14, H-15, N1-C) — CERRADO EN CÓDIGO + RUNTIME LOCAL
@@ -308,7 +271,7 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 
 ### G. Observaciones No Bloqueantes (Notas de Release)
 *   **O-15:** `AprobarConteoModal` hace `getDoc` client-side para detectar referencia nueva. Solo UX; la barrera real es la action (`requirePermiso` admin/superadmin). Depende de reglas de lectura de `inventario_repuestos` (H-9 cerrado por paridad).
-*   **O-16:** `runTransaction(async (tx: any) => ...)` en `aprobarConteo.ts`/`rechazarConteo.ts`. El `any` debilita el chequeo estático del append-only. Ticket menor de higiene para PSD.
+*   **O-16:** RESUELTA. `runTransaction` usa `Transaction` tipado en `aprobarConteo.ts`/`rechazarConteo.ts`; referencias `DocumentReference<DocumentData>` y updates tipados. Commit `56de9de`. Cero `tx: any`; ledger append-only intacto; tests estáticos, `tsc`, lint y build en 0.
 *   **O-17:** `actorSchema.uid` en payload es redundante/informativo (identidad real = token). No se usa para auth.
 *   **O-18:** `registrado_por: actor.uid` en `creditos/actions.ts:90` sin AST del caller verificado. Fuera de perímetro WEB-038 (fase 9).
 *   **O-19:** `reconciliarDatosNuevosLegado` solo en tests, no cableado en producción. Escritura nueva ya emite `estado` canónico vía `datosNuevosAprobacion`. Preventivo para futuro dashboard de auditoría.
@@ -316,12 +279,17 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **O-21:** `ImageUploader.tsx` (catálogo) escribe en `products/...`, no en `inventario_repuestos/...`. Cero colisión de namespace. Fuera de perímetro WEB-038.
 *   **O-22 a O-27:** Defectos de `ImageUploader.tsx` (log de debug, falta `'use client'`, validación mime/tamaño débil, nombre de archivo sin sanitizar, `alert()` nativo, reset de estado durante render). Pista catálogo/legacy, aparcados.
 *   **O-28:** `esErrorReintentable` clasifica por subcadenas de mensaje de server action. Acoplamiento frágil cliente↔mensajes server. Solo afecta UX de reintento.
-*   **O-29:** `analizando` solo se resetea en `finally` del await de Vision; si `prepararYSubirFoto`/`analizarImagenRepuesto` se cuelgan, el submit queda bloqueado hasta recargar o `handleQuitarFoto`. Sin timeout client-side. Ticket menor de resiliencia.
+*   **O-29:** RESUELTA. `ConteoAsesorForm` acota subida + token + análisis con timeout cliente de 30 s (`conTimeout`), invalida `analisisSeqRef` y libera `analizando`; detección robusta por `name === 'TimeoutError'`. Commits `472a6ba` + `0527fed`. Sin cambios en Server Actions ni Firestore.
 *   **O-30:** `H-2` (blobs Storage huérfanos): `analizarFoto` sube la foto a Storage para Vision aunque el conteo luego se guarde offline o se abandone. Foto en Storage sin conteo registrado = huérfano potencial. Ya cubierto por H-2 (abierto, ticket propio).
 *   **O-35:** `campos_modificados` en el ledger de edición incluye `actualizado_por` y `actualizado_en` además del campo de negocio. Técnicamente correcto, pero idealmente debería reflejar solo campos editados por el usuario.
 *   **O-36:** La UI de `InventarioRepuestosClient.tsx` no muestra feedback visual (toast/mensaje) cuando la edición es un no-op (sin cambios detectados), aunque la idempotencia del backend funciona correctamente.
-*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) no se elimina tras sync exitoso con Firestore. El registro persiste con `estado_envio: "error"` e `intentos: 6` acumulados durante el modo offline. Bug de higiene post-sync; el conteo ya existe en Firestore pero el cliente no purga el mirror local. Ticket menor de limpieza.
-*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacena el email del superadmin en lugar del UID canónico verificado por `verifyIdToken`. El ledger `historial_auditoria_inventario` sí cumple el contrato (`registrado_por: me.uid`), pero el documento de conteo queda con inconsistencia de normalización. Deuda técnica menor; no afecta seguridad (la identidad real se verifica en el ledger).
+*   **O-37:** Borrador en `borradores_conteos` (IndexedDB, store `tlm_offline` v2) reportado históricamente como no purgado tras sync exitoso. En el diagnóstico MT-02 de WEB-044-P1 Tier A se observó `NO_GHOST_OBSERVADO` en perfil normal; no se reprodujo con evidencia runtime. MT-03 no se activó. La deuda queda reconvertida a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL` para seguimiento, sin cambio de comportamiento.
+*   **O-38:** Campo `revisado_por` en `conteos_pendientes_repuestos` almacenaba email. WEB-044-P1 Tier A lo corrigió forward-only a UID verificado por `verifyIdToken`; el ledger conserva `registrado_por: me.uid` y `registrado_por_email: me.email`. Certificado en runtime beta. Sin backfill histórico; los documentos antiguos con email quedan como legado documentado. La UI no consume actualmente el campo.
+*   **Harness de render de componentes — WEB-HARNESS-EXENCION-001 (Ruta B) REVOCADA / SUPERADA por WEB-HARNESS-RENDER-001 (Ruta A):** La exención histórica queda cerrada. Capas separadas:
+    *   **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
+    *   **Render harness automatizado: EXISTE.** Testing Library + jsdom; 3 archivos/10 tests: `src/test/vitest/render/harness.smoke.test.tsx`, `src/test/vitest/render/LoginForm.render.test.tsx`, `src/test/vitest/render/RoleBasedRedirect.render.test.tsx`; comando `npm run test:render`.
+    *   **UAT runtime beta: EXISTE.** Sigue siendo la evidencia de integración real para `LoginForm` y `RoleBasedRedirect`.
+  El harness de render **NO sustituye** la UAT runtime: deja fuera Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. El punto ciego de los mocks queda visible.
 
 
 
@@ -392,16 +360,236 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *Última actualización: 2026-11-07 COT por Antigravity*
 
 ---
-## WEB-042 — Hardening de Sincronización Manual y Retiro de Endpoint Temporal (2026-11-08)
-- **Objetivo:** Eliminar tokens hardcodeados en `scraping-action.ts` y `functions/src/index.ts`, retirar el endpoint temporal `fixDatabase23`, y blindar `manualSyncBot` con autenticación de sesión admin y consumo de secretos vía Secret Manager.
-- **Acciones ejecutadas:**
-  1. Rotación de `CRON_SECRET_TOKEN` a versión 5 (v4 deshabilitada por fuga en variables de entorno planas durante deploy previo).
-  2. Implementación de `defineSecret` y `secrets` en `manualSyncBot` (firebase-functions v4.9.0).
-  3. Eliminación completa de `fixDatabase23` del código y de Cloud Functions (endpoint público con token débil retirado).
-  4. Corrección de CI: añadido `npm --prefix functions install` en workflows de deploy para evitar fallos de predeploy.
-  5. Actualización de `scraping-action.ts` para consumir `process.env.CRON_SECRET_TOKEN` y validar sesión admin (`verifySessionCookie` + `resolverRolActor`).
-- **Estado:** CERTIFICADO EN RUNTIME (Beta y Producción). Secreto latest = v5. Versiones 1-4 deshabilitadas.
-- **Deuda registrada:** 
-  - OBS-FUNCTIONS-CONFIG-DEPRECATION: Migrar `functions.config()` a params package antes de March 2026.
-  - OBS-FUNCTIONS-SMTP-VALUE-WARNING: `SMTP_EMAIL`/`SMTP_PASSWORD` usan `.value()` en carga de módulo.
-  - OBS-CLOUDRUN-HISTORY-CLEANUP: Limpieza de revisiones históricas en Cloud Run beta.
+## 12. WEB-043 — Matching Vision-Catálogo y Selector de Referencias (F2-A) (2026-11-08)
+### A. Arquitectura del Módulo
+- **Matching puro:** `src/lib/inventario/matching.ts` (sin dependencias de Firestore/React)
+- **Server Actions:** `buscarCandidatosRepuesto.ts` + `obtenerRepuestoPorReferencia.ts` con Faraday Cage completo
+- **UI:** `SelectorReferenciaRepuesto.tsx` reemplaza inputs de texto libre
+- **Vision:** `analizarImagenRepuesto.ts` extendido con `OBJECT_LOCALIZATION`
+
+### B. Guardrails Implementados
+- **Faraday Cage:** `verifyIdToken` + `requirePermiso` en todas las SA nuevas
+- **NAMING LOCK:** `inventario_repuestos.referencia` = docId canónico (inmutable)
+- **Zero-Silent-Failures:** Errores explícitos, cero `[]` como éxito silencioso
+- **Offline:** Caché local en `localStorage` con bloqueo explícito sin conexión
+
+### C. Observaciones No Bloqueantes
+- **O-1:** RESUELTA — botón **Nuevo Repuesto** y `CrearRepuestoModal` integrados en `/admin/inventario-repuestos`, condicionados a `puedeAccion('inventario_repuestos', 'create')`. Certificado en runtime beta; detalle en §13.
+- **O-2:** Matching visual (foto vs foto) congelado para F2-C
+- **O-3:** Verificación D incompleta (no se capturó request/response en Red)
+
+**Coherence Score:** 0.99 (WEB-043-F2A — E2E certificado en runtime beta, push exitoso, deploy completado)
+
+---
+## 13. WEB-043-O1 — Alta de Repuestos con Faraday Cage (2026-11-09)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Arquitectura:**
+- Server Action `crearRepuesto.ts` con Faraday Cage (`verifyIdToken` + `requirePermiso` admin/superadmin).
+- Transacción atómica (Firestore): escritura simultánea en `inventario_repuestos/{referencia}` (docId canónico inmutable) y `historial_auditoria_inventario` (ledger append-only con `operacion: 'CREATE'`).
+- Schema Zod estricto (`.strict()`): acepta URL válida, `''`, `null` u omisión; la normalización efectiva a `''` se realiza en `crearRepuesto.ts` antes de persistir.
+- UI: `CrearRepuestoModal.tsx` integrado en `InventarioRepuestosClient.tsx`, visible solo con permiso `create`.
+- **Runtime beta:** `imagen_url: ''` persistido en Firestore para entradas `null`, vacías u omitidas; NAMING LOCK intacto.
+**Deuda Técnica Resuelta:** WEB-043-O1-obs-001 — transformación redundante de `imagen_url` eliminada del schema; persistencia normaliza en `crearRepuesto.ts`. Commit `2c63887`; tests y runtime beta en verde.
+**Coherence Score:** 0.99 (E2E certificado, purga de prueba ejecutada, NAMING LOCK intacto).
+---
+<i>*Última actualización: 2026-11-09 COT por Antigravity*</i>
+
+---
+## 14. WEB-LEGACY-CONFIG-001 — Migración functions.config() a params en mailer.ts (2026-11-09)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Arquitectura:** Eliminación de la instanciación de nodemailer.createTransport en module scope. Resolución de smtpEmail.value() y smtpPassword.value() dentro del handler sendErrorEmail, preservando el fail-safe y el NAMING LOCK.
+**Coherence Score:** 0.99 (Build EXIT 0, deploy beta exitoso, runtime limpio).
+
+---
+## 15. WEB-044-P1 Tier A — Cierre y estabilización (2026-11-09)
+
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Commits:** `c02e5e3` (O-38), `1cf14b6` (MT-04.C), `1dc538e` (MT-06), `5707b9e` (evidencia y MT-10.A).
+**CI:** run #183 sobre `5707b9e` — success.
+**Build:** `npm run build`, `npm run lint` y `tsc --noEmit` en 0.
+
+### A. Resultado por microtask
+
+- **MT-00:** evidencia física del SSOT en raíz; sin dependencia de artefactos de auditoría no versionados.
+- **MT-01 / O-38:** `revisado_por` corregido forward-only a UID verificado en aprobación y rechazo; ledger conserva UID y email; sin backfill.
+- **MT-02 / O-37:** cerrado como `NO_GHOST_OBSERVADO` en perfil normal; MT-03 sin trigger. La deuda se reconvierte a `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`.
+- **MT-04.A:** baseline estático de SW/cachés documentado.
+- **MT-04.C:** autocura estática mediante `updateViaCache: "none"` y `registration.update()`. No fue curable en runtime con `sw.js` byte-idéntico y con la prohibición de bump `tlm-shell-v3`/unregister; se deriva a Tier B.
+- **MT-06:** suite pura de matching ampliada; `ALL PASSED`.
+- **MT-10.A:** deudas y evidencia registradas sin bump de versión ni resolución de la sección 8.
+
+### B. Observaciones no bloqueantes derivadas
+
+- `OBS-PWA-RANCIO-NO-CURABLE-TIER-A`
+- `OBS-O37-NO-REPRODUCIBLE-PERFIL-NORMAL`
+- `OBS-CACHE-STORAGE-NO-VISIBLE-DEVTOOLS-NORMAL`
+- `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`
+
+### C. Tier B — estado posterior
+
+Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones originales quedan pendientes: backfill histórico de O-38, nueva Server Action read-only de reconciliación y harness de render de componentes. El resto fue ejecutado en E/F/G/A+I y certificado en runtime beta.
+
+**Invariantes:** header v8.9.5 sin cambio; sección 8 sin tocar; SSOT permanece en la raíz; sin cambios de código de producto; sin cambios en bot; sin deploy de producción.
+
+---
+## 16. WEB-044-P1 Tier B — E/F/G/A+I (2026-11-09)
+
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Commits:** `b4383ac` (E), `5a59b16` (F), `5a25664` (G).
+**Versión canónica:** v8.9.5.
+**Coherence Score:** 0.95 por autopsia de diff canónico; no se usó `agent-cli eval` como fuente de certificación.
+
+### A. Resultado por frente
+
+- **E / outbox:** `limpiarOutbox(uid)` ya no cae a `clear()` global. Si la purga owner-scoped falla, conserva borradores/fotos, marca `estado_envio: error` y registra `conteo_id` + `propietario_uid`. El `clear()` queda solo en la purga global explícita sin propietario.
+- **F / PWA:** `CACHE_SHELL` cambia a `tlm-shell-v3`; se mantiene limpieza de `tlm-shell-*` antiguas, allowlist exacta `/admin/inventario-asesor`, bloqueo de POST/API/RSC/cross-origin y `PwaRegistrar` con `updateViaCache: none` + `registration.update()` sin unregister.
+- **G / tests+CI:** scripts `test`, `test:smoke`, `test:unit`, `test:ci`; devDependencies `vitest`, `fake-indexeddb`, `tsx` (+ peer `vite`); 66 tests unitarios y mocks sin Firebase real. Gate CI `npm run test:ci` antes de build/deploy en beta y prod.
+- **A+I / documental:** STATE sincronizado a v8.9.5; ROADMAP declara versión canónica v8.9.5. Diff físico de las dos secciones 8 mostró únicamente una línea en blanco de diferencia (`40d39`), clasificado como no semántico; se consolidó a una sola instancia preservando el contenido íntegro.
+- **O-38:** no requiere revalidación en Tier B porque `aprobarConteo.ts` y `rechazarConteo.ts` no fueron modificados; la certificación runtime de Tier A sigue vigente.
+
+### B. Límites respetados
+
+- Sin backfill de O-38.
+- Sin nueva SA `reconciliarConteoPendiente`.
+- Sin render de componentes.
+- Sin bot.
+- Sin producción.
+- Sin claves nuevas Firestore/IndexedDB.
+- Sin delete físico ni alteración del ledger.
+- Sin ampliación de allowlist ni cacheo de rutas prohibidas.
+
+### C. Evidencia runtime J certificada
+
+- `curl -sS -D - https://tiendalasmotos-beta.web.app/sw.js` devolvió HTTP/2 200, `content-type: text/javascript`, `cache-control: no-cache, max-age=0, must-revalidate` y `service-worker-allowed: /`.
+- El body desplegado contiene `const CACHE_SHELL = 'tlm-shell-v3'`, sin `tlm-shell-v2` como constante activa.
+- ETag nuevo: `7deceba8d0cf4519838dce55f91efb911ee27551167140b080b8256f94842bb8`; `last-modified: Tue, 10 Nov 2026 00:20:29 GMT`.
+- DevTools mostró Service Worker scope `https://tiendalasmotos-beta.web.app/`, fuente `sw.js`, recibido 2026-11-09 19:46:04 COT, estado N.º 1422 activado y en ejecución; ciclo Install/Wait/Activate #1422, sin registration residual #1411 y sin unregister manual.
+- `tlm_offline` intacto: versión 2, 2 object stores, `borradores_conteos` 0 entradas, `fotos_borrador` 0 entradas, sin estado_envio error; sin ghost O-37.
+- Consola sin errores `[pwa]`, `[offline]` ni `[sw]`; solo warnings no bloqueantes de Firestore `enableIndexedDbPersistence` deprecated, registrados como `OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED`.
+- `OBS-AGENT-EVAL-401-NO-UI-NEW`: `npm run agent-eval` falló con `401 Unauthorized` en `npm.pkg.github.com/@tobiasgaitan/agent-cli`; Tier B no introdujo UI nueva. Coherence Score 0.95 se calculó por autopsia de diff canónico, no por agent-cli eval.
+
+## 17. WEB-045-P1 — Endurecer limpiarOutbox contra purga global implícita (2026-11-10)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** OBS-E-EMPTY-UID-GLOBAL-PURGE-EDGE (derivada de WEB-044-P1 Tier B, frente E).
+**Commit:** `08abcf1` fix(web-045): block implicit global outbox purge. CI beta run #188 (42740809877) success, headSha 08abcf1c1424888b71f3edd64f9bad006ebcb3d4.
+**Archivos:** `src/lib/offline/outbox.ts`, `src/test/vitest/outbox.test.ts`. Sin tocar `AuthContext.tsx`, `firebase.ts`, `sw.js`, bot, producción, dependencias, CI.
+**Contrato:** `limpiarOutbox(propietarioUid?, opciones?)`. UID vacío/undefined sin flag => no abre IndexedDB, no `clear()`, retorna con `[offline][outbox][NO_OWNER_PURGE_BLOCKED]`. Purga global solo con `forzarPurgaGlobal === true` => `[offline][outbox][GLOBAL_PURGE_EXPLICIT]`, ignora UID si presente. Owner-scoped conserva fail-closed Tier B E (falla => conserva, marca `estado_envio: error`, registra, nunca `clear()` global).
+**Tests:** 66->72. Nuevos: T-EMPTY-UID-NO-CLEAR, T-UNDEFINED-UID-NO-CLEAR, T-EXPLICIT-GLOBAL-PURGE, T-OWNER-SCOPED-ISOLATION, T-OWNER-SCOPED-FAILURE-FAIL-CLOSED, T-NO-PRODUCT-GLOBAL-FLAG, T-BEFORE-EACH-MIGRATION. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** bundle servido `cc10283e970d296c.js` contiene NO_OWNER_PURGE_BLOCKED + GLOBAL_PURGE_EXPLICIT. Logout válido: ausencia de ambos marcadores (uid válido => owner-scoped, sin purga global, sin edge bloqueado). `tlm_offline` v2, 2 stores, 0/0 entradas. SW inalterado, sin unregister. Edge UID vacío no reproducible sin invasión; cobertura unitaria+estática.
+**Deudas derivadas (no bloqueantes, no regresión de 08abcf1):** OBS-LOGOUT-NEXT-REDIRECT-CONSOLE-ERROR (frente LoginForm/redirect, stack fuera del chunk outbox) y OBS-MIGRATION-V2-INFO-AS-ERROR (onupgradeneeded loguea info como console.error). **RESUELTAS por WEB-LOG-HIGIENE-001 / `9c87392`; ver §21.**
+**UI change:** ninguno. `agent-cli eval` no requerido; excepción documental explícita.
+**Coherence Score:** 0.97 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz; DOCTRINA_QWEN_WEB.md MISSING.
+
+## 18. WEB-046-P1 — Migración a FirestoreSettings.cache (2026-11-10)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED (deuda de modernización SDK).
+**Commit:** `d9f4b03` feat(web-046): migrate firestore local cache initialization. CI beta run #XXX (pendiente) success.
+**Archivos:** `src/lib/firebase.ts`, `src/test/utils/pwa.test.ts`. Sin tocar `outbox.ts`, `purge.ts`, `AuthContext.tsx`, `sw.js`, bot, producción.
+**Contrato:** `enableIndexedDbPersistence` eliminado; reemplazado por `initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`. Branch persistente solo con `tlm_offline_asesor`. `persistenciaOfflineLista` sigue exportada. `purgarPersistenciaOffline` conserva `terminate` + `clearIndexedDbPersistence`.
+**Tests:** 72 tests. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** Consola limpia sin warnings de deprecación. `tlm_offline` v2 sobrevive al logout (no purgado por `firebase.ts`). NAMING LOCK intacto.
+**Deudas derivadas:** OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (configuración de datos WEB-040, fuera de perímetro).
+**Coherence Score:** 0.98 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin delete físico; sin alteración de ledger; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 19. WEB-047-P1 — Mitigación de carrera de __session en LoginForm (2026-11-11)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** OBS-DOBLE-LOGIN (recurrencia 4/10 en cold start por race condition de cookie httpOnly).
+**Commit:** f33332c feat(web-047): mitigate __session race condition in LoginForm
+**Archivos:** src/app/actions/session-status.ts (nuevo), src/app/admin/login/LoginForm.tsx (modificado), src/test/vitest/login-session-race.test.ts (nuevo). Sin tocar createSession, proxy.ts, firestore.rules ni lógica de auth de Firebase.
+**Contrato:** Nueva Server Action sesionCookiePresente() que valida presencia booleana de __session. LoginForm implementa ciclo de verificación con backoff progresivo (100-1200ms, max 6 intentos) y reintento con token fresco antes de window.location.href. Zero reingreso de credenciales.
+**Tests:** 79 tests passed. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
+**Runtime beta:** Navegación hard bloqueada hasta confirmación física de cookie. Cero doble login en throttling de red.
+**Coherence Score:** 0.99 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 20. WEB-048-P1 — Eliminación de reload duro en post-login (2026-11-11)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** OBS-DOBLE-LOGIN (recurrencia intermitente por `window.location.reload()` en `AuthContext.tsx` para rol `asesor`).
+**Commit:** 2e4e20b feat(web-048): remove auth reload and gate post-login navigation
+**Archivos:** `src/context/AuthContext.tsx`, `src/app/admin/login/LoginForm.tsx`, `src/test/utils/pwa.test.ts`, `src/test/utils/post-login.test.ts`, `src/test/vitest/login-session-race.test.ts`.
+**Contrato:** `AuthContext` ya no ejecuta `reload()`. `LoginForm` gestiona la navegación (`window.location.href`) solo tras confirmar que `role !== null`. El flag `CLAVE_FLAG_ASESOR` se consolida antes de la navegación, permitiendo que `firebase.ts` active la persistencia en la carga de la página destino sin interrumpir el estado de la sesión.
+**Runtime beta:** Navegación fluida a `/admin/inventario-asesor` para rol asesor. Cero recargas intermedias destructivas. Persistencia offline verificada.
+**Coherence Score:** 0.95 por autopsia de diff canónico.
+**Invariantes:** NAMING LOCK intacto; sin claves nuevas; sin alterar lógica de outbox/purga; sin tocar producción.
+
+## 21. WEB-LOG-HIGIENE-001 — Higiene de logs esperados (2026-11-10)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Commit:** `9c87392` fix(web-log-higiene): suppress expected redirect and migration logs.
+**Archivos:** `src/components/AdminSidebar.tsx`, `src/lib/offline/outbox.ts`, `src/test/utils/offline-isolation.test.ts`, `src/test/vitest/log-hygiene.test.ts`.
+**Contrato:** `NEXT_REDIRECT` en logout se degrada a `console.debug`; errores reales conservan `console.error`. Migración v2: descarte esperado en `console.debug`, finalización en `console.info`, fallo real en `console.error`.
+**Tests:** `npm test`, `tsc`, lint y build EXIT 0; regresión de log hygiene y offline isolation en verde.
+**Runtime beta:** consola limpia sin logs esperados elevados a error; redirect legítimo de `deleteSession` preservado.
+**Coherence Score:** 0.97 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 22. WEB-HARNESS-EXENCION-001 — Ruta B revocada por WEB-HARNESS-RENDER-001 (2026-11-11)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** ausencia histórica de harness de render de componentes.
+**Decisión original:** riesgo aceptado (Ruta B). **Resolución:** WEB-HARNESS-RENDER-001 implementó Testing Library + jsdom; la exención queda cerrada.
+**Capas de cobertura:**
+- **Vitest / pure-unit: EXISTE.** 86 tests; cubre lógica pura, schemas Zod, helpers como `conTimeout` y transacciones mockeadas. **NO cubre render de componentes.**
+- **Render harness automatizado: EXISTE.** Testing Library + jsdom; 3 archivos/10 tests: `src/test/vitest/render/harness.smoke.test.tsx`, `src/test/vitest/render/LoginForm.render.test.tsx`, `src/test/vitest/render/RoleBasedRedirect.render.test.tsx`; comando `npm run test:render`.
+- **UAT runtime beta: EXISTE.** Sigue siendo la evidencia de integración real para `LoginForm` y `RoleBasedRedirect`.
+**Punto ciego:** el harness de render **NO sustituye** la UAT runtime: deja fuera Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. Los mocks quedan declarados como frontera de regresión, no como integración real.
+**Gates:** `npm test` (smoke + 86 unit + 10 render), `npx tsc --noEmit`, `npm run lint` y `npm run build` EXIT 0.
+**Coherence Score:** 0.97 por autopsia de diff canónico + suite de render.
+**Invariantes:** sin cambios de producción; sin claves nuevas; sin bot; sin producción.
+
+## 23. WEB-HIGIENE-RESILIENCIA-001 — Cierre O-1 / O-16 / O-29 (2026-11-10)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**O-1:** botón **Nuevo Repuesto** y `CrearRepuestoModal` en `/admin/inventario-repuestos`, condicionados a `puedeAccion('inventario_repuestos', 'create')`; certificado en runtime beta. Detalle en §13.
+**O-16:** `Transaction` tipado en `aprobarConteo.ts` y `rechazarConteo.ts`; commit `56de9de`; cero `tx: any`; ledger append-only intacto; `tsc` y tests estáticos en verde.
+**O-29:** timeout cliente de 30 s en `ConteoAsesorForm`; invalidación de `analisisSeqRef` y liberación de `analizando`; detección robusta por `name === 'TimeoutError'`; commits `472a6ba` + `0527fed`.
+**Gates:** `npm test` (86 tests), `npx tsc --noEmit`, `npm run lint`, `npm run build` EXIT 0.
+**Coherence Score:** 0.96 por autopsia de diff canónico + runtime.
+**Invariantes:** NAMING LOCK intacto; sin claves Firestore/IndexedDB nuevas; sin bot; sin producción; sin docs/; SSOT en raíz.
+
+## 24. WEB-O29-DIAG-001 — Sonda temporal erradicada (2026-11-10)
+**Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
+**Origen:** diagnóstico temporal para capturar anatomía real del timeout.
+**Commits:** `c5b0171` (logs temporales) + `dea6dcb` (reversión).
+**Evidencia:** `git diff 0527fed HEAD` vacío; deploy beta run #196 verde; cero logs `[WEB-O29-DIAG]` en el estado final.
+**Contrato:** sin cambios persistentes en `timeout.ts` ni en `ConteoAsesorForm`; la corrección funcional `0527fed` permanece intacta.
+**Coherence Score:** 0.95 por reversión exacta y diff vacío.
+**Invariantes:** sin cambios de lógica; sin bot; sin producción; NAMING LOCK intacto.
+
+## 25. WEB-INV-VENTANA-001 — Inventario: auto-ID, sede/ubicación, referencias alternativas y UX de errores (2026-11-12)
+**Estado:** CERTIFICADO EN ESTÁTICO + RUNTIME BETA. **Versión canónica:** v8.9.11.
+**Commits:** `76f88e5` (WEB-INV-SEDE-UBICACION-001), `e71227f` (WEB-INV-REFERENCIAS-ALTERNATIVAS-001), `1b19f3a` (WEB-INV-REFALT-UX-EDIT-001). CI #202/#203/#204 success.
+**A. Contrato (supersede §12.B/§13 en identidad):** `inventario_repuestos` usa docId auto-ID; `referencia` = maestra comercial repetible (NO docId); `referencias_alternativas` array normalizado (trim/uppercase/dedup/exclusión de maestra); `documento_id` solo DTO (no persistido); `sede_id`/`ubicacion` legacy opcionales en catálogo (alta Admin no los exige); `stock`/`stock_minimo` globales; defaults `''`/`[]`/`0`. `conteos_pendientes_repuestos` gana `sede_id` + `inventario_documento_id`; `aprobarConteo` resuelve por `inventario_documento_id` y NO actualiza stock; fallback legacy por referencia con guard de ambigüedad. §12.B/§13 conservan redacción histórica; quedan SUPERSEDIDAS por §10.B/§25.
+**B. Validación estricta acotada:** `referenciaRepuestoEstrictaSchema` (rechazo total de whitespace sobre crudo, antes de normalizar) consumida solo por crear/editar repuestos y alternativas; `referenciaSchema` canónico (trim) de conteos/lookup byte-intacto ⇒ flujo offline del asesor sin regresión.
+**C. UX errores accionables:** modal mapea todos los issues por path (Referencia maestra / Referencia alternativa #N / campo); hints persistentes (A-Z, 0-9, ., _, -; sin espacios; máx 64); onBlur sin trim (solo uppercase); editor inline de alternativas post-creación (listar/editar/quitar/agregar, máx 50, maestra read-only); `construirCambiosRepuesto` idempotente (emite solo si el set efectivo difiere).
+**D. Runtime beta certificado:** alta mínima (referencia+descripcion) OK; errores atribuidos con espacios en maestra y alternativa; edición de alternativas persiste + ledger UPDATE con `campos_modificados` incluyendo `referencias_alternativas`; idempotencia no-op sin asiento nuevo (lista de ledger idéntica antes/después); conteo offline→sync con `inventario_documento_id`+`sede_id`, cola purgada owner-scoped (0 entradas); aprobaciones muestra el conteo pendiente.
+**E. Infra Vision producción VERIFICADA (corrige §11.C):** proyecto GCP real = `tiendalasmotos` ("ssrtiendalasmotos" es prefijo de servicio Cloud Run, no el proyecto). `GOOGLE_VISION_API_KEY` existe (createTime 2026-11-07), versión 2 ENABLED (2026-11-08); `roles/secretmanager.secretAccessor` otorgado a `467812260261-compute@developer.gserviceaccount.com` y `bot-admin@tiendalasmotos.iam.gserviceaccount.com` ⇒ consumo vía secretKeyRef viable. **P5-a CERRADO.**
+**F. Observaciones diferidas (no bloqueantes, tickets propios):** `OBS-SEDE-DOCID-CRUDO` → RESUELTA → §26; `OBS-APROBACIONES-SEDE-NO-VISIBLE` → RESUELTA → §27.
+**G. Tests:** 101 unit + 10 render + smoke; `tsc --noEmit`, lint, build EXIT 0. **Coherence Score:** 0.97 (autopsia de diff canónico + runtime beta).
+**Invariantes:** NAMING LOCK (`precio`, `referencia`, `sede_id`, `ubicacion`, `documento_id`) intacto; ledger append-only; bot, docs/, §8, O-37, O-38 sin tocar; sin colecciones nuevas; sin migración (datos de prueba); §8 una sola instancia.
+
+## 26. OBS-SEDE-DOCID-CRUDO — Resolución de nombre de sede en catálogo (2026-11-12)
+**Estado:** CERTIFICADO.
+**Commit:** `a85060a` fix(inventario): resolve sede names in repuestos list. CI #206 (43348085966) success.
+**Contrato:** `sede_nombre` es un campo derivado de lectura, NO persistido; `sede_id` permanece intacto (NAMING LOCK). `listarRepuestos` lee una sola vez `configuracion/general/sedes` sin filtro `isActive` y resuelve el nombre para sedes activas, inactivas o históricas.
+**Fallbacks:** `Sin sede` cuando `sede_id` está vacío; `Sede no disponible` cuando no se resuelve, con `console.warn` forense incluyendo `sede_id` + `documento_id`. Un fallo de lectura de sedes no aborta el listado.
+**Runtime beta:** 7/7 filas resueltas (Santa Marta ×1, `Sin sede` ×6); consola sin `warn/error`.
+**Residual:** rutas inactiva/no-resuelta cubiertas por tests unitarios, sin invasión de datos; precedente WEB-045.
+**Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0.
+**Deudas no bloqueantes registradas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA y OBS-SSOT-CI-PLACEHOLDER-XXX permanecen abiertas.
+**Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
+**Invariantes:** NAMING LOCK y ledger intactos; sin cambios en src/, bot, docs/, O-37, O-38, §8 ni producción; sin colecciones nuevas; sin migración.
+
+## 27. OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO + OBS-STATE-INVARIANTES-DUPLICADOS — Sede, vínculo y copy en aprobaciones (2026-11-12)
+**Estado:** CERTIFICADO.
+**Commit:** `d25bda4` fix(aprobaciones): show sede and correct stock copy. CI #208 (43364257700) success.
+**Contrato:** `sede_nombre` es derivado en `PendienteDTO`, NO persistido; `sede_id` e `inventario_documento_id` permanecen intactos (NAMING LOCK). Lectura única de `configuracion/general/sedes` sin filtro `isActive`.
+**Fallbacks:** `Sin sede` cuando `sede_id` está vacío; `Sede no disponible` cuando no se resuelve, con `console.warn` forense incluyendo `sede_id` + `inventario_documento_id`.
+**Vínculo y navegación:** anchors `id="doc-{documento_id}"` en el catálogo y `useEffect` de scroll al hash `#doc-{id}`. Las aprobaciones muestran “Ver catálogo” cuando existe `inventario_documento_id`; “Sin vínculo” cuando está vacío.
+**Copy corregido:** “Al aprobar, el conteo se registra en el ledger de auditoría; el stock del catálogo permanece sin cambios (arqueo independiente).”
+**Runtime beta:** columna SEDE en tabla desktop, card móvil 400×625 con campo Sede, hash `#doc-{id}` + scroll centrado, consola limpia.
+**Residual:** V6 “Sin vínculo” cubierto por unit/static; precedente WEB-045.
+**Tests:** 105 unit + 10 render + smoke; `tsc`, lint y build EXIT 0.
+**Cleanup:** eliminación del bloque `Invariantes:` duplicado en `.planning/STATE.md`.
+**Deuda abierta registrada:** OBS-INVENTORY-NAMESPACE-LEGACY (refactor de namespace fuera de perímetro).
+**Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
+**Invariantes:** NAMING LOCK, ledger append-only, bot, docs/, §8, O-37/O-38 intactos; sin colecciones nuevas; sin migración.

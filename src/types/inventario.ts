@@ -17,6 +17,8 @@ export type EstadoConteo = (typeof ESTADOS_CONTEO)[number];
 export interface ConteoPendiente {
     referencia_sugerida: string;
     referencia_confirmada: string;
+    inventario_documento_id: string;
+    sede_id: string;
     descripcion: string;
     cantidad_contada: number;
     ubicacion: string;
@@ -33,19 +35,33 @@ export interface ConteoPendiente {
 
 export interface InventarioRepuesto {
     referencia: string;
+    sede_id?: string;
     descripcion: string;
     fabricante: string;
     aplica_a: string[];
     categoria: string;
     precio: number;
-    ubicacion: string;
+    ubicacion?: string;
     stock: number;
     stock_minimo: number;
+    referencias_alternativas: string[];
     imagen_url: string;
     creado_por: string;
     creado_en: Timestamp;
     actualizado_por: string;
     actualizado_en: Timestamp;
+}
+
+export interface SedeOpcion {
+    id: string;
+    name: string;
+    department: string;
+}
+
+export interface ListarSedesResult {
+    success: boolean;
+    message?: string;
+    sedes: SedeOpcion[];
 }
 
 export interface FotoInventario {
@@ -91,6 +107,7 @@ export type PendienteDTO = Omit<
     'creado_en' | 'revisado_en'
 > & {
     id: string;
+    sede_nombre: string;
     creado_en: string;
     revisado_en: string | null;
 };
@@ -106,13 +123,46 @@ export interface VisionSugerencia {
     score: number;
 }
 
+export interface VisionUnidad {
+    etiqueta: string;
+    score: number;
+    cantidad: number;
+}
+
+export interface RepuestoCandidato {
+    documento_id: string;
+    referencia: string;
+    referencias_alternativas: string[];
+    descripcion: string;
+    fabricante: string;
+    categoria: string;
+    aplica_a: string[];
+    stock: number;
+    score: number;
+    coincidencias: string[];
+}
+
 export type VisionResult =
     | {
           success: true;
           etiquetas: string[];
           sugerencias: VisionSugerencia[];
+          unidades: VisionUnidad[];
       }
     | {
           success: false;
           message: string;
       };
+
+export interface BuscarCandidatosResult {
+    success: boolean;
+    message?: string;
+    candidatos: RepuestoCandidato[];
+    total?: number;
+}
+
+export interface ObtenerRepuestoResult {
+    success: boolean;
+    message?: string;
+    existe: boolean;
+}

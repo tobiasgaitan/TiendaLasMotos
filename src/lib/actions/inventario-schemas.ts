@@ -23,11 +23,48 @@ export const referenciaSchema = z
     .toUpperCase()
     .regex(/^[A-Z0-9][A-Z0-9._-]{0,63}$/, 'Referencia inválida.');
 
+const REFERENCIA_REPUESTO_REGEX = /^[A-Z0-9][A-Z0-9._-]{0,63}$/;
+const REFERENCIA_REPUESTO_MENSAJE =
+    'La referencia no puede contener espacios. Usa A-Z, 0-9, ., _, -; máximo 64 caracteres.';
+
+export const referenciaRepuestoEstrictaSchema = z
+    .string()
+    .refine(
+        (value) =>
+            !/\s/.test(value) &&
+            REFERENCIA_REPUESTO_REGEX.test(value.trim().toUpperCase()),
+        { message: REFERENCIA_REPUESTO_MENSAJE }
+    )
+    .pipe(referenciaSchema);
+
 export const ubicacionSchema = z
     .string()
     .trim()
-    .toUpperCase()
-    .regex(/^[A-Z]-\d{2}-\d{2}$/, 'Ubicación inválida. Formato: A-01-05.');
+    .min(1, 'La ubicación es obligatoria.')
+    .max(100, 'La ubicación no puede superar 100 caracteres.');
+
+export const referenciasAlternativasSchema = z
+    .array(referenciaRepuestoEstrictaSchema)
+    .max(50)
+    .optional();
+
+export function normalizarReferenciasAlternativas(
+    referencias: readonly string[] | undefined,
+    maestra: string
+): string[] {
+    const master = maestra.trim().toUpperCase();
+    const vistas = new Set<string>();
+    const resultado: string[] = [];
+
+    for (const referencia of referencias ?? []) {
+        const limpia = referencia.trim().toUpperCase();
+        if (!limpia || limpia === master || vistas.has(limpia)) continue;
+        vistas.add(limpia);
+        resultado.push(limpia);
+    }
+
+    return resultado;
+}
 
 export const mimeTypeSchema = z.enum([
     'image/jpeg',
@@ -92,6 +129,8 @@ export const crearConteoSchema = z
         conteo_id: z.string().uuid(),
         referencia_sugerida: z.string().trim().max(64).default(''),
         referencia_confirmada: referenciaSchema,
+        inventario_documento_id: z.string().trim().min(1).max(200),
+        sede_id: z.string().trim().min(1).max(200),
         descripcion: z.string().trim().min(2).max(200),
         cantidad_contada: z.coerce.number().int().min(0).max(1_000_000),
         ubicacion: ubicacionSchema,

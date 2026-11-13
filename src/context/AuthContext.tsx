@@ -15,7 +15,6 @@ import {
     persistenciaOfflineLista,
     purgarPersistenciaOffline,
     CLAVE_FLAG_ASESOR,
-    CLAVE_RECARGA_OFFLINE,
 } from "@/lib/firebase";
 import { limpiarOutbox } from "@/lib/offline/outbox";
 import { limpiarCachesServiceWorker } from "@/lib/offline/purge";
@@ -234,39 +233,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // WEB-038: solo asesor activa persistencia offline. El flag se escribe
-    // después de resolver el rol y se hace UNA recarga controlada para que
-    // src/lib/firebase.ts lo lea antes de inicializar Firestore.
+    // WEB-038 / WEB-048: solo asesor activa persistencia offline. El flag se
+    // escribe después de resolver el rol, sin recargar la página. LoginForm
+    // espera a este estado y navega con el flag ya consolidado; la siguiente
+    // carga inicializa Firestore con la caché local persistente.
     useEffect(() => {
         if (loading) return;
         if (typeof window === "undefined") return;
 
         try {
             if (role === "asesor") {
-                const flag = window.localStorage.getItem(CLAVE_FLAG_ASESOR);
-                if (flag !== "1") {
+                if (
+                    window.localStorage.getItem(CLAVE_FLAG_ASESOR) !== "1"
+                ) {
                     window.localStorage.setItem(CLAVE_FLAG_ASESOR, "1");
-                    const recargaHecha =
-                        window.sessionStorage.getItem(
-                            CLAVE_RECARGA_OFFLINE
-                        ) === "1";
-
-                    if (!recargaHecha) {
-                        window.sessionStorage.setItem(
-                            CLAVE_RECARGA_OFFLINE,
-                            "1"
-                        );
-                        window.location.reload();
-                        return;
-                    }
-
-                    console.error(
-                        "[pwa] El flag offline se activó sin recarga; la persistencia se aplicará en la próxima apertura."
-                    );
                 }
             } else if (role !== null) {
                 window.localStorage.removeItem(CLAVE_FLAG_ASESOR);
-                window.sessionStorage.removeItem(CLAVE_RECARGA_OFFLINE);
             }
         } catch (error) {
             console.error(

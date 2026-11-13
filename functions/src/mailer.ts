@@ -5,15 +5,8 @@ const smtpEmail = defineString('SMTP_EMAIL');
 const smtpPassword = defineString('SMTP_PASSWORD');
 const adminAlertEmails = defineString('ADMIN_ALERT_EMAILS');
 
-// Configure Transporter
-// Requires Firebase params: SMTP_EMAIL, SMTP_PASSWORD
-const transporter = nodemailer.createTransport({
-    service: 'gmail', // Can be customized or use host/port
-    auth: {
-        user: smtpEmail.value() || "conexion@tiendalasmotos.com",
-        pass: smtpPassword.value() || "placeholder_pass"
-    }
-});
+// The transporter is created inside sendErrorEmail so Firebase params are
+// resolved at invocation time, never during module initialization.
 
 export interface SendErrorEmailOptions {
     subject?: string;
@@ -62,10 +55,20 @@ export const sendErrorEmail = async (error: any, contextInfo: string, options: S
     };
 
     try {
-        if (!smtpEmail.value()) {
+        const email = smtpEmail.value();
+        if (!email) {
             console.warn("SMTP config missing. Email not sent, but logged.");
             return;
         }
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail', // Can be customized or use host/port
+            auth: {
+                user: email,
+                pass: smtpPassword.value() || "placeholder_pass"
+            }
+        });
+
         await transporter.sendMail(mailOptions);
         console.log("Fail-Safe Email sent successfully.");
     } catch (mailError) {

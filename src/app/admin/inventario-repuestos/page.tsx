@@ -30,11 +30,13 @@ export default function InventarioRepuestosPage() {
     }
 
     const esAdmin = role === 'admin' || role === 'superadmin';
+    const puedeLeer = puedeAccion('inventario_repuestos', 'read');
+    const puedeCrear = puedeAccion('inventario_repuestos', 'create');
     const puedeEditar = puedeAccion('inventario_repuestos', 'update');
 
-    if (!esAdmin || !puedeEditar) {
+    if (!esAdmin || !puedeLeer || (!puedeCrear && !puedeEditar)) {
         return (
-            <AccesoDenegado mensaje="Solo administradores pueden gestionar el inventario de repuestos." />
+            <AccesoDenegado mensaje="Solo administradores con permiso de inventario pueden gestionar los repuestos." />
         );
     }
 
