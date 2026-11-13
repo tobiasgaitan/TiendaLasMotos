@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.11
+**Versión Canónica Vigente:** v8.9.12
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -126,3 +126,4 @@
 - [x] **WEB-INV-SEDE-UBICACION-001 (v8.9.11, 2026-11-12):** inventario_repuestos a auto-ID; sede_id/ubicacion libre; documento_id DTO; conteos con sede_id+inventario_documento_id; aprobación sin stock. Commit `76f88e5`, CI #202.
 - [x] **WEB-INV-REFERENCIAS-ALTERNATIVAS-001 (v8.9.11, 2026-11-12):** referencias_alternativas normalizadas + búsqueda maestra/alternativa + selector asesor extendido. Commit `e71227f`, CI #203.
 - [x] **WEB-INV-REFALT-UX-EDIT-001 (v8.9.11, 2026-11-12):** errores atribuidos por campo/índice + hints + editor inline de alternativas + idempotencia; runtime beta + ledger UPDATE certificados; infra Vision verificada (P5-a cerrado). Commit `1b19f3a`, CI #204. OBS-SEDE-DOCID-CRUDO y OBS-APROBACIONES-SEDE-NO-VISIBLE diferidos.
+- [x] **OBS-SEDE-DOCID-CRUDO (v8.9.12, 2026-11-12):** `sede_nombre` derivado de lectura, no persistido; `sede_id` intacto; fallbacks `Sin sede` / `Sede no disponible` + warning; runtime 7/7. Commit `a85060a`, CI #206 (43348085966) success.

@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.11
+**Versión Actual:** v8.9.12
 **Fecha:** 2026-11-12
 **Rama Activa:** beta
-**Última actividad:** 2026-11-11 — WEB-HARNESS-RENDER-001 (Ruta A) implementado; Ruta B revocada/superada; Testing Library + jsdom; 3 archivos/10 tests; 86 unit intactos; UAT runtime vigente.
+**Última actividad:** 2026-11-12 — Cierre OBS-SEDE-DOCID-CRUDO (a85060a, CI #206); sede_nombre derivado de lectura, fallbacks y evidencia runtime 7/7; 102 unit + 10 render; deudas residuales registradas.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -61,5 +61,13 @@
 ## Cierre WEB-INV-VENTANA-001 (2026-11-12)
 - **CERTIFICADO (estático + runtime beta):** `76f88e5`/`e71227f`/`1b19f3a`; CI #202/#203/#204 success. Inventario auto-ID + `referencias_alternativas` + `sede_id`/`inventario_documento_id` en conteos + UX de errores atribuidos + editor inline de alternativas + idempotencia. 101 unit + 10 render. Versión canónica v8.9.11.
 - **Infra Vision producción VERIFICADA:** proyecto `tiendalasmotos`; secreto v2 ENABLED; secretAccessor en compute+bot-admin. P5-a CERRADO.
-- **Diferidos:** `OBS-SEDE-DOCID-CRUDO`, `OBS-APROBACIONES-SEDE-NO-VISIBLE`.
+- **Diferidos:** `OBS-APROBACIONES-SEDE-NO-VISIBLE`.
+- **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
+
+## Cierre OBS-SEDE-DOCID-CRUDO (2026-11-12)
+- **CERTIFICADO:** commit `a85060a`; CI #206 (43348085966) success. `sede_nombre` derivado de lectura, no persistido; `sede_id` intacto; lectura única de `configuracion/general/sedes` sin filtro `isActive`.
+- **Fallbacks:** `Sin sede` / `Sede no disponible` + `console.warn` forense con `sede_id` + `documento_id`; fallo de lectura de sedes no aborta el listado.
+- **Runtime beta:** 7/7 filas (Santa Marta ×1, `Sin sede` ×6); consola `warn/error` vacía.
+- **Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0. Residual inactiva/no-resuelta cubierto por unit tests.
+- **Deudas:** OBS-APROBACIONES-COPY-STOCK-FALSO, OBS-DOCTRINA-NO-VERSIONADA, OBS-SSOT-CI-PLACEHOLDER-XXX.
 - **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
