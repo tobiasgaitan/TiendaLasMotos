@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.10
+**Versión Canónica Vigente:** v8.9.11
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -123,3 +123,6 @@
 - [x] **WEB-048-P1 (2026-11-10):** Eliminado `window.location.reload()` de AuthContext; LoginForm espera rol/UID, consolida `CLAVE_FLAG_ASESOR` y navega después. `CLAVE_RECARGA_OFFLINE` preservada como clave. RoleBasedRedirect sin cambios; outbox owner-scoped intacto. 79 tests, tsc/lint/build verdes. Commit `2e4e20b`.
 - [x] **Cierre ventana PRIORIDAD 1–4 (v8.9.9, 2026-11-10):** WEB-LOG-HIGIENE-001 (`9c87392`, estático+runtime); WEB-HARNESS-EXENCION-001 (Ruta B: riesgo aceptado por Dirección; harness de render inexistente, Vitest no lo sustituye, única cobertura de render = UAT runtime beta); WEB-043-O1-obs-001 (`2c63887`, `imagen_url:''` en Firestore); WEB-HIGIENE-RESILIENCIA-001 (O-1 runtime; O-16 `56de9de`; O-29 `472a6ba`+`0527fed`); WEB-O29-DIAG-001 erradicada (`c5b0171`→`dea6dcb`, diff 0527fed..HEAD vacío, run #196 verde). Sin cambios en src/, bot, producción ni NAMING LOCK.
 - [x] **WEB-HARNESS-RENDER-001 (v8.9.10, 2026-11-11):** Ruta A implementada; Ruta B revocada/superada. Harness de render con Testing Library + jsdom; 3 archivos/10 tests (`harness.smoke`, `LoginForm.render`, `RoleBasedRedirect.render`); `npm run test:render` integrado en `test:ci`; 86 unit intactos; UAT runtime beta sigue vigente para Firebase Auth real, cookies, proxy, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion`. Sin cambios de producción ni NAMING LOCK.
+- [x] **WEB-INV-SEDE-UBICACION-001 (v8.9.11, 2026-11-12):** inventario_repuestos a auto-ID; sede_id/ubicacion libre; documento_id DTO; conteos con sede_id+inventario_documento_id; aprobación sin stock. Commit `76f88e5`, CI #202.
+- [x] **WEB-INV-REFERENCIAS-ALTERNATIVAS-001 (v8.9.11, 2026-11-12):** referencias_alternativas normalizadas + búsqueda maestra/alternativa + selector asesor extendido. Commit `e71227f`, CI #203.
+- [x] **WEB-INV-REFALT-UX-EDIT-001 (v8.9.11, 2026-11-12):** errores atribuidos por campo/índice + hints + editor inline de alternativas + idempotencia; runtime beta + ledger UPDATE certificados; infra Vision verificada (P5-a cerrado). Commit `1b19f3a`, CI #204. OBS-SEDE-DOCID-CRUDO y OBS-APROBACIONES-SEDE-NO-VISIBLE diferidos.

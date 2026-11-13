@@ -1,6 +1,6 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.10
-**Fecha:** 2026-11-11
+**Versión Actual:** v8.9.11
+**Fecha:** 2026-11-12
 **Rama Activa:** beta
 **Última actividad:** 2026-11-11 — WEB-HARNESS-RENDER-001 (Ruta A) implementado; Ruta B revocada/superada; Testing Library + jsdom; 3 archivos/10 tests; 86 unit intactos; UAT runtime vigente.
 
@@ -57,3 +57,9 @@
 ## Cierre WEB-HARNESS-RENDER-001 (2026-11-11)
 - **WEB-HARNESS-RENDER-001 CERTIFICADO (estático):** Ruta A implementada; Ruta B revocada/superada. Harness de render con Testing Library + jsdom; 3 archivos/10 tests (`harness.smoke`, `LoginForm.render`, `RoleBasedRedirect.render`); `npm run test:render` integrado en `test:ci`; 86 unit intactos; gates npm test, tsc, lint y build EXIT 0.
 - **Punto ciego conservado:** el render no sustituye la UAT runtime beta; Firebase Auth real, cookies `__session`, `proxy.ts`, router real, SSR/hidratación, navegación hard y polling real de `EsperandoActivacion` siguen fuera del harness mockeado.
+
+## Cierre WEB-INV-VENTANA-001 (2026-11-12)
+- **CERTIFICADO (estático + runtime beta):** `76f88e5`/`e71227f`/`1b19f3a`; CI #202/#203/#204 success. Inventario auto-ID + `referencias_alternativas` + `sede_id`/`inventario_documento_id` en conteos + UX de errores atribuidos + editor inline de alternativas + idempotencia. 101 unit + 10 render. Versión canónica v8.9.11.
+- **Infra Vision producción VERIFICADA:** proyecto `tiendalasmotos`; secreto v2 ENABLED; secretAccessor en compute+bot-admin. P5-a CERRADO.
+- **Diferidos:** `OBS-SEDE-DOCID-CRUDO`, `OBS-APROBACIONES-SEDE-NO-VISIBLE`.
+- **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
