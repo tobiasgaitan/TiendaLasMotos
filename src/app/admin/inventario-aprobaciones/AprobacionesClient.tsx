@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
     AlertCircle,
     CheckCircle2,
@@ -205,8 +206,9 @@ export default function AprobacionesClient() {
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
                         Revisa los conteos enviados por los asesores. Al
-                        aprobar, el stock se sobrescribe con la cantidad
-                        contada.
+                        aprobar, el conteo se registra en el ledger de
+                        auditoría; el stock del catálogo permanece sin cambios
+                        (arqueo independiente).
                     </p>
                 </div>
 
@@ -291,7 +293,7 @@ export default function AprobacionesClient() {
             {pendientes.length > 0 ? (
                 <>
                     <div className="hidden overflow-x-auto rounded-2xl border border-gray-800 bg-gray-900/60 shadow-lg md:block">
-                        <table className="w-full min-w-[1100px] text-left text-sm">
+                        <table className="w-full min-w-[1200px] text-left text-sm">
                             <thead className="border-b border-gray-800 text-xs uppercase tracking-wide text-gray-400">
                                 <tr>
                                     <th scope="col" className="px-4 py-3">
@@ -311,6 +313,9 @@ export default function AprobacionesClient() {
                                     </th>
                                     <th scope="col" className="px-4 py-3">
                                         Ubicación
+                                    </th>
+                                    <th scope="col" className="px-4 py-3">
+                                        Sede
                                     </th>
                                     <th scope="col" className="px-4 py-3">
                                         Asesor
@@ -362,6 +367,21 @@ export default function AprobacionesClient() {
                                         </td>
                                         <td className="px-4 py-4 font-mono text-xs text-gray-300">
                                             {pendiente.ubicacion || '—'}
+                                        </td>
+                                        <td className="max-w-[180px] px-4 py-4 text-xs text-gray-300">
+                                            <p>{pendiente.sede_nombre}</p>
+                                            {pendiente.inventario_documento_id ? (
+                                                <Link
+                                                    href={`/admin/inventario-repuestos#doc-${pendiente.inventario_documento_id}`}
+                                                    className="mt-1 inline-block text-xs font-semibold text-red-300 underline-offset-2 hover:underline"
+                                                >
+                                                    Ver catálogo
+                                                </Link>
+                                            ) : (
+                                                <span className="mt-1 inline-block text-xs text-gray-500">
+                                                    Sin vínculo
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="max-w-[180px] break-all px-4 py-4 text-xs text-gray-400">
                                             {pendiente.asesor_email || '—'}
@@ -439,6 +459,26 @@ export default function AprobacionesClient() {
                                         </dt>
                                         <dd className="mt-0.5 font-mono text-gray-200">
                                             {pendiente.ubicacion || '—'}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-gray-500">
+                                            Sede
+                                        </dt>
+                                        <dd className="mt-0.5 text-gray-200">
+                                            <p>{pendiente.sede_nombre}</p>
+                                            {pendiente.inventario_documento_id ? (
+                                                <Link
+                                                    href={`/admin/inventario-repuestos#doc-${pendiente.inventario_documento_id}`}
+                                                    className="mt-1 inline-block font-semibold text-red-300 underline-offset-2 hover:underline"
+                                                >
+                                                    Ver catálogo
+                                                </Link>
+                                            ) : (
+                                                <span className="mt-1 inline-block text-gray-500">
+                                                    Sin vínculo
+                                                </span>
+                                            )}
                                         </dd>
                                     </div>
                                     <div className="col-span-2">

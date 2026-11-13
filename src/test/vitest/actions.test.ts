@@ -8,6 +8,7 @@ const mockState = vi.hoisted(() => {
         data: Record<string, unknown>;
     }> = [];
     let sequence = 0;
+    let fallarSedes = false;
 
     const makeRef = (collection: string, id?: string) => {
         const ref = {
@@ -28,6 +29,21 @@ const mockState = vi.hoisted(() => {
         return ref;
     };
 
+    interface MockQuery {
+        kind: 'query';
+        get: () => Promise<{
+            docs: Array<{
+                id: string;
+                ref: ReturnType<typeof makeRef>;
+                data: () => Record<string, unknown>;
+            }>;
+            empty: boolean;
+            size: number;
+        }>;
+        limit: (n: number) => MockQuery;
+        orderBy: (...args: unknown[]) => MockQuery;
+    }
+
     const makeQuery = (
         collection: string,
         filters: Array<{
@@ -36,9 +52,9 @@ const mockState = vi.hoisted(() => {
             value: unknown;
         }>,
         limit?: number
-    ) => {
-        const query = {
-            kind: 'query' as const,
+    ): MockQuery => {
+        const query: MockQuery = {
+            kind: 'query',
             get: async () => {
                 const resultados = Array.from(docs.entries())
                     .filter(([path]) => path.startsWith(`${collection}/`))
@@ -70,6 +86,7 @@ const mockState = vi.hoisted(() => {
                 };
             },
             limit: (n: number) => makeQuery(collection, filters, n),
+            orderBy: () => makeQuery(collection, filters, limit),
         };
         return query;
     };
@@ -112,14 +129,24 @@ const mockState = vi.hoisted(() => {
     const db = {
         collection: (nombre: string) => ({
             doc: (id?: string) => makeRef(nombre, id),
-            get: async () => ({
-                docs: Array.from(docs.entries())
-                    .filter(([path]) => path.startsWith(`${nombre}/`))
-                    .map(([path, data]) => ({
-                        id: path.slice(nombre.length + 1),
-                        data: () => data,
-                    })),
-            }),
+            get: async () => {
+                if (
+                    nombre === 'configuracion/general/sedes' &&
+                    fallarSedes
+                ) {
+                    throw new Error('Fallo simulado leyendo sedes');
+                }
+                return {
+                    docs: Array.from(docs.entries())
+                        .filter(([path]) =>
+                            path.startsWith(`${nombre}/`)
+                        )
+                        .map(([path, data]) => ({
+                            id: path.slice(nombre.length + 1),
+                            data: () => data,
+                        })),
+                };
+            },
             where: (field: string, op: string, value: unknown) => {
                 if (op !== '==' && op !== 'array-contains') {
                     throw new Error(`Operador no soportado: ${op}`);
@@ -140,6 +167,10 @@ const mockState = vi.hoisted(() => {
             docs.clear();
             writes.length = 0;
             sequence = 0;
+            fallarSedes = false;
+        },
+        setFallaSedes(value: boolean) {
+            fallarSedes = value;
         },
     };
 });
@@ -184,6 +215,7 @@ import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRep
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
+import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import { requireActorInventario } from '@/lib/actions/inventario-actor';
 import { requirePermiso } from '@/lib/auth/require-permiso';
@@ -198,12 +230,15 @@ function seedConteo(estado = 'pendiente_revision') {
     mockState.docs.set(`conteos_pendientes_repuestos/${UUID}`, {
         estado,
         referencia_confirmada: 'BRK-001',
+        inventario_documento_id: 'BRK-001',
+        sede_id: 'sede-1',
         descripcion: 'Disco de freno',
         cantidad_contada: 4,
         ubicacion: 'A-01-05',
         foto_url: FOTO_URL,
         asesor_email: 'asesor@test.com',
         asesor_uid: 'uid-asesor',
+        creado_en: new Date(),
     });
 }
 
@@ -580,6 +615,75 @@ describe('MT-07 Server Actions contracts', () => {
         );
     });
 
+    it('listarPendientes resuelve sede_nombre', async () => {
+        seedConteo();
+
+        const resultado = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.pendientes[0].sede_nombre).toBe('Sede Principal');
+        expect(resultado.pendientes[0].sede_id).toBe('sede-1');
+        expect(resultado.pendientes[0].inventario_documento_id).toBe(
+            'BRK-001'
+        );
+    });
+
+    it('listarPendientes usa fallbacks para sede vacía o no resuelta', async () => {
+        seedConteo();
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        if (!conteo) throw new Error('seedConteo no creó el conteo');
+        conteo.sede_id = '';
+
+        const vacia = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+        expect(vacia.pendientes[0].sede_nombre).toBe('Sin sede');
+
+        conteo.sede_id = 'sede-inexistente';
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const noResuelta = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+
+        expect(noResuelta.pendientes[0].sede_nombre).toBe(
+            'Sede no disponible'
+        );
+        expect(warn).toHaveBeenCalledWith(
+            '[inventario] Sede no resuelta en pendiente:',
+            expect.objectContaining({
+                sedeId: 'sede-inexistente',
+                inventarioDocumentoId: 'BRK-001',
+            })
+        );
+    });
+
+    it('listarPendientes continúa si falla la lectura de sedes', async () => {
+        seedConteo();
+        mockState.setFallaSedes(true);
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const resultado = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.pendientes[0].sede_nombre).toBe(
+            'Sede no disponible'
+        );
+        expect(error).toHaveBeenCalledWith(
+            '[inventario] No se pudieron cargar las sedes; se usará fallback:',
+            expect.any(Error)
+        );
+    });
+
     it('obtenerRepuestoPorReferencia consulta la referencia comercial', async () => {
         seedInventario();
 
@@ -730,6 +834,11 @@ describe('MT-07 Server Actions contracts', () => {
     it('aprobarConteo rechaza referencia ambigua', async () => {
         seedConteo();
         seedInventario();
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        if (!conteo) throw new Error('seedConteo no creó el conteo');
+        delete conteo.inventario_documento_id;
         mockState.docs.set('inventario_repuestos/auto-2', {
             referencia: 'BRK-001',
             sede_id: 'sede-2',

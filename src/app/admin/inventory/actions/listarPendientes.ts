@@ -23,6 +23,26 @@ function numero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function nombreSede(
+    sedeId: string,
+    inventarioDocumentoId: string,
+    nombres: Map<string, string>,
+    sedesCargadas: boolean
+): string {
+    if (!sedeId) return 'Sin sede';
+
+    const nombre = nombres.get(sedeId);
+    if (nombre) return nombre;
+
+    if (sedesCargadas) {
+        console.warn('[inventario] Sede no resuelta en pendiente:', {
+            sedeId,
+            inventarioDocumentoId,
+        });
+    }
+    return 'Sede no disponible';
+}
+
 function aISO(value: unknown): string | null {
     if (value === null || value === undefined) return null;
     if (value instanceof Date) return value.toISOString();
@@ -92,6 +112,28 @@ export async function listarPendientes(
             .limit(100)
             .get();
 
+        const nombresSedes = new Map<string, string>();
+        let sedesCargadas = true;
+
+        try {
+            const sedesSnap = await adminDb
+                .collection('configuracion/general/sedes')
+                .get();
+            for (const sedeDoc of sedesSnap.docs) {
+                const sedeData = sedeDoc.data() as Record<string, unknown>;
+                const nombre = texto(sedeData.name).trim();
+                if (nombre) {
+                    nombresSedes.set(sedeDoc.id, nombre);
+                }
+            }
+        } catch (errorSedes) {
+            sedesCargadas = false;
+            console.error(
+                '[inventario] No se pudieron cargar las sedes; se usará fallback:',
+                errorSedes
+            );
+        }
+
         const pendientes: PendienteDTO[] = [];
 
         for (const doc of snap.docs) {
@@ -122,6 +164,12 @@ export async function listarPendientes(
                     data.inventario_documento_id
                 ),
                 sede_id: texto(data.sede_id),
+                sede_nombre: nombreSede(
+                    texto(data.sede_id),
+                    texto(data.inventario_documento_id),
+                    nombresSedes,
+                    sedesCargadas
+                ),
                 descripcion: texto(data.descripcion),
                 cantidad_contada: numero(data.cantidad_contada),
                 ubicacion: texto(data.ubicacion),

@@ -39,6 +39,18 @@ const FORM_ASESOR_SOURCE = readFileSync(
     'src/app/admin/inventario-asesor/ConteoAsesorForm.tsx',
     'utf8'
 );
+const APROBACIONES_SOURCE = readFileSync(
+    'src/app/admin/inventario-aprobaciones/AprobacionesClient.tsx',
+    'utf8'
+);
+const LISTAR_PENDIENTES_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/listarPendientes.ts',
+    'utf8'
+);
+const INVENTARIO_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -166,6 +178,31 @@ async function run() {
             FORM_ASESOR_SOURCE.includes('fabricante') &&
             FORM_ASESOR_SOURCE.includes('categoria') &&
             FORM_ASESOR_SOURCE.includes('aplicaA')
+    );
+    check(
+        'listarPendientes enriquece sede_nombre con fallbacks',
+        LISTAR_PENDIENTES_SOURCE.includes('sede_nombre') &&
+            LISTAR_PENDIENTES_SOURCE.includes(
+                'configuracion/general/sedes'
+            ) &&
+            LISTAR_PENDIENTES_SOURCE.includes('Sin sede') &&
+            LISTAR_PENDIENTES_SOURCE.includes('Sede no disponible') &&
+            LISTAR_PENDIENTES_SOURCE.includes(
+                'Sede no resuelta en pendiente'
+            )
+    );
+    check(
+        'aprobaciones muestra sede, copy correcto y enlace al catálogo',
+        APROBACIONES_SOURCE.includes('sede_nombre') &&
+            APROBACIONES_SOURCE.includes('arqueo independiente') &&
+            APROBACIONES_SOURCE.includes('Ver catálogo') &&
+            APROBACIONES_SOURCE.includes('#doc-') &&
+            APROBACIONES_SOURCE.includes('Sin vínculo')
+    );
+    check(
+        'catálogo expone anchor y scroll al documento',
+        INVENTARIO_SOURCE.includes('id={`doc-${repuesto.documento_id}`}') &&
+            INVENTARIO_SOURCE.includes('scrollIntoView')
     );
 
     const datosAprobacion = datosNuevosAprobacion(

@@ -147,6 +147,18 @@ export default function InventarioRepuestosClient() {
         void cargarRepuestos();
     }, [cargarRepuestos]);
 
+    useEffect(() => {
+        if (repuestos.length === 0) return;
+
+        const hash = window.location.hash;
+        if (!hash.startsWith('#doc-')) return;
+
+        const objetivo = document.getElementById(hash.slice(1));
+        if (objetivo) {
+            objetivo.scrollIntoView({ block: 'center' });
+        }
+    }, [repuestos]);
+
     const categorias = useMemo(() => {
         const valores = new Set<string>();
         for (const repuesto of repuestos) {
@@ -582,6 +594,7 @@ export default function InventarioRepuestosClient() {
                                 return (
                                     <tr
                                         key={repuesto.documento_id}
+                                        id={`doc-${repuesto.documento_id}`}
                                         className="align-top hover:bg-gray-900/80"
                                     >
                                         <td className="min-w-[150px] px-4 py-4">

@@ -107,6 +107,7 @@ export type PendienteDTO = Omit<
     'creado_en' | 'revisado_en'
 > & {
     id: string;
+    sede_nombre: string;
     creado_en: string;
     revisado_en: string | null;
 };

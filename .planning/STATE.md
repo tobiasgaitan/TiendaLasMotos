@@ -61,7 +61,7 @@
 ## Cierre WEB-INV-VENTANA-001 (2026-11-12)
 - **CERTIFICADO (estático + runtime beta):** `76f88e5`/`e71227f`/`1b19f3a`; CI #202/#203/#204 success. Inventario auto-ID + `referencias_alternativas` + `sede_id`/`inventario_documento_id` en conteos + UX de errores atribuidos + editor inline de alternativas + idempotencia. 101 unit + 10 render. Versión canónica v8.9.11.
 - **Infra Vision producción VERIFICADA:** proyecto `tiendalasmotos`; secreto v2 ENABLED; secretAccessor en compute+bot-admin. P5-a CERRADO.
-- **Diferidos:** `OBS-APROBACIONES-SEDE-NO-VISIBLE`.
+- **Diferidos:** Ninguno.
 - **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
 
 ## Cierre OBS-SEDE-DOCID-CRUDO (2026-11-12)
@@ -70,4 +70,6 @@
 - **Runtime beta:** 7/7 filas (Santa Marta ×1, `Sin sede` ×6); consola `warn/error` vacía.
 - **Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0. Residual inactiva/no-resuelta cubierto por unit tests.
 - **Deudas:** OBS-APROBACIONES-COPY-STOCK-FALSO, OBS-DOCTRINA-NO-VERSIONADA, OBS-SSOT-CI-PLACEHOLDER-XXX.
-- **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
+
+## Observaciones no bloqueantes (2026-11-12)
+- **OBS-INVENTORY-NAMESPACE-LEGACY:** `listarPendientes` vive en `src/app/admin/inventory/actions/` (legacy) mientras la UI vive en `src/app/admin/inventario-aprobaciones/`; refactor de namespace fuera del perímetro de este ticket.
