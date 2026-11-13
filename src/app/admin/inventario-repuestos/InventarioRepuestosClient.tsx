@@ -589,7 +589,7 @@ export default function InventarioRepuestosClient() {
                                                 {repuesto.referencia}
                                             </p>
                                             <p className="mt-1 text-xs text-gray-500">
-                                                Sede: {repuesto.sede_id || '—'}
+                                                Sede: {repuesto.sede_nombre}
                                             </p>
                                             {borrador ? (
                                                 <div className="mt-2 space-y-1.5">

@@ -494,9 +494,32 @@ describe('MT-07 Server Actions contracts', () => {
         expect(resultado.repuestos[0].documento_id).toBe('BRK-001');
         expect(resultado.repuestos[0].referencia).toBe('BRK-001');
         expect(resultado.repuestos[0].sede_id).toBe('sede-1');
+        expect(resultado.repuestos[0].sede_nombre).toBe('Sede Principal');
         expect(resultado.repuestos[0].referencias_alternativas).toEqual([
             'ALT-1',
         ]);
+    });
+
+    it('listarRepuestos usa fallback para sede vacía o no resuelta', async () => {
+        seedInventario();
+        const sinSede = mockState.docs.get('inventario_repuestos/BRK-001');
+        if (!sinSede) throw new Error('seedInventario no creó el repuesto');
+        sinSede.sede_id = '';
+
+        const vacia = await listarRepuestos({}, ACTOR);
+        expect(vacia.repuestos[0].sede_nombre).toBe('Sin sede');
+
+        sinSede.sede_id = 'sede-inexistente';
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const noResuelta = await listarRepuestos({}, ACTOR);
+
+        expect(noResuelta.repuestos[0].sede_nombre).toBe(
+            'Sede no disponible'
+        );
+        expect(warn).toHaveBeenCalledWith(
+            '[inventario-repuestos] Sede no resuelta:',
+            expect.objectContaining({ sedeId: 'sede-inexistente' })
+        );
     });
 
     it('editarRepuesto usa documento_id como identidad', async () => {

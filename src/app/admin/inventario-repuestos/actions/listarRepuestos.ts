@@ -25,6 +25,26 @@ function arregloTexto(value: unknown): string[] {
     return value.filter((item): item is string => typeof item === 'string');
 }
 
+function nombreSede(
+    sedeId: string,
+    documentoId: string,
+    nombres: Map<string, string>,
+    sedesCargadas: boolean
+): string {
+    if (!sedeId) return 'Sin sede';
+
+    const nombre = nombres.get(sedeId);
+    if (nombre) return nombre;
+
+    if (sedesCargadas) {
+        console.warn('[inventario-repuestos] Sede no resuelta:', {
+            sedeId,
+            documentoId,
+        });
+    }
+    return 'Sede no disponible';
+}
+
 function aISO(value: unknown): string | null {
     if (value === null || value === undefined) return null;
     if (value instanceof Date) return value.toISOString();
@@ -92,6 +112,28 @@ export async function listarRepuestos(
 
         const adminDb = getDb();
         const snap = await adminDb.collection('inventario_repuestos').get();
+        const nombresSedes = new Map<string, string>();
+        let sedesCargadas = true;
+
+        try {
+            const sedesSnap = await adminDb
+                .collection('configuracion/general/sedes')
+                .get();
+            for (const sedeDoc of sedesSnap.docs) {
+                const sedeData = sedeDoc.data() as Record<string, unknown>;
+                const nombre = texto(sedeData.name).trim();
+                if (nombre) {
+                    nombresSedes.set(sedeDoc.id, nombre);
+                }
+            }
+        } catch (errorSedes) {
+            sedesCargadas = false;
+            console.warn(
+                '[inventario-repuestos] No se pudieron cargar las sedes; se usará fallback:',
+                errorSedes
+            );
+        }
+
         const repuestos: RepuestoInventarioDTO[] = [];
 
         for (const doc of snap.docs) {
@@ -111,6 +153,12 @@ export async function listarRepuestos(
                 documento_id: doc.id,
                 referencia: referenciaDocumento,
                 sede_id: texto(data.sede_id),
+                sede_nombre: nombreSede(
+                    texto(data.sede_id),
+                    doc.id,
+                    nombresSedes,
+                    sedesCargadas
+                ),
                 descripcion: texto(data.descripcion),
                 fabricante: texto(data.fabricante),
                 aplica_a: arregloTexto(data.aplica_a),

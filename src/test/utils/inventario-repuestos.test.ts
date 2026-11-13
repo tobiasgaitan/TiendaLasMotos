@@ -81,6 +81,7 @@ const BASE: RepuestoInventarioDTO = {
     documento_id: 'doc-brk-001',
     referencia: 'BRK-001',
     sede_id: 'sede-1',
+    sede_nombre: 'Sede Principal',
     descripcion: 'Disco de freno delantero',
     fabricante: 'Honda',
     aplica_a: ['Honda CB 190'],
@@ -572,12 +573,14 @@ async function run() {
     );
 
     check(
-        'cliente usa documento_id como identidad y edita alternativas',
+        'cliente usa documento_id, edita alternativas y muestra sede_nombre',
         CLIENT_SOURCE.includes('documento_id') &&
             CLIENT_SOURCE.includes('referencias_alternativas') &&
             CLIENT_SOURCE.includes('Alternativas:') &&
             CLIENT_SOURCE.includes('actualizarAlternativas') &&
-            CLIENT_SOURCE.includes('+ Alternativa')
+            CLIENT_SOURCE.includes('+ Alternativa') &&
+            CLIENT_SOURCE.includes('sede_nombre') &&
+            !CLIENT_SOURCE.includes('Sede: {repuesto.sede_id')
     );
 
     check(
@@ -615,6 +618,7 @@ async function run() {
             TYPES_SOURCE.includes('Omit<') &&
             TYPES_SOURCE.includes('documento_id') &&
             TYPES_SOURCE.includes('referencias_alternativas') &&
+            TYPES_SOURCE.includes('sede_nombre') &&
             TYPES_SOURCE.includes('creado_en') &&
             TYPES_SOURCE.includes('actualizado_en')
     );

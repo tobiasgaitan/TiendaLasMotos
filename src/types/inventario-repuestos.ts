@@ -14,6 +14,7 @@ export type RepuestoInventarioDTO = Omit<
     'creado_en' | 'actualizado_en'
 > & {
     documento_id: string;
+    sede_nombre: string;
     creado_en: string | null;
     actualizado_en: string | null;
 };
