@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.12
+**Versión Actual:** v8.9.13
 **Fecha:** 2026-11-12
 **Rama Activa:** beta
-**Última actividad:** 2026-11-12 — Cierre OBS-SEDE-DOCID-CRUDO (a85060a, CI #206); sede_nombre derivado de lectura, fallbacks y evidencia runtime 7/7; 102 unit + 10 render; deudas residuales registradas.
+**Última actividad:** 2026-11-12 — Cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO (d25bda4, CI #208); 105 unit + 10 render; limpieza de Invariantes duplicado.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -61,7 +61,7 @@
 ## Cierre WEB-INV-VENTANA-001 (2026-11-12)
 - **CERTIFICADO (estático + runtime beta):** `76f88e5`/`e71227f`/`1b19f3a`; CI #202/#203/#204 success. Inventario auto-ID + `referencias_alternativas` + `sede_id`/`inventario_documento_id` en conteos + UX de errores atribuidos + editor inline de alternativas + idempotencia. 101 unit + 10 render. Versión canónica v8.9.11.
 - **Infra Vision producción VERIFICADA:** proyecto `tiendalasmotos`; secreto v2 ENABLED; secretAccessor en compute+bot-admin. P5-a CERRADO.
-- **Diferidos:** Ninguno.
+- **Diferidos:** `OBS-APROBACIONES-SEDE-NO-VISIBLE` → RESUELTA → §27.
 - **Invariantes:** NAMING LOCK, ledger append-only, bot/docs/§8/O-37/O-38 intactos; sin colecciones nuevas; sin migración.
 
 ## Cierre OBS-SEDE-DOCID-CRUDO (2026-11-12)
@@ -73,3 +73,12 @@
 
 ## Observaciones no bloqueantes (2026-11-12)
 - **OBS-INVENTORY-NAMESPACE-LEGACY:** `listarPendientes` vive en `src/app/admin/inventory/actions/` (legacy) mientras la UI vive en `src/app/admin/inventario-aprobaciones/`; refactor de namespace fuera del perímetro de este ticket.
+
+## Cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO (2026-11-12)
+- **CERTIFICADO:** commit `d25bda4`; CI #208 (43364257700) success. `sede_nombre` derivado en `PendienteDTO`, no persistido; `sede_id` e `inventario_documento_id` intactos.
+- **Fallbacks:** `Sin sede` / `Sede no disponible` + `console.warn` forense con `sede_id` + `inventario_documento_id`; fallo de lectura de sedes no aborta el listado.
+- **UI:** columna SEDE en tabla desktop, campo Sede en card móvil 400×625, anchors `doc-{documento_id}` + scroll al hash, enlace “Ver catálogo” y fallback “Sin vínculo”.
+- **Copy corregido:** “Al aprobar, el conteo se registra en el ledger de auditoría; el stock del catálogo permanece sin cambios (arqueo independiente).”
+- **Tests:** 105 unit + 10 render + smoke; `tsc`, lint y build EXIT 0. Residual V6 “Sin vínculo” cubierto por unit/static.
+- **Cleanup:** eliminación del bloque duplicado de invariantes en este archivo.
+- **Deuda:** OBS-INVENTORY-NAMESPACE-LEGACY registrada como no bloqueante.

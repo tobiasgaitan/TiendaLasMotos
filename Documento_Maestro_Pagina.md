@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.12  
+**Versión del Stack & Hitos:** v8.9.13  
 **Última Actualización:** 2026-11-12  
-**Estado:** cierre OBS-SEDE-DOCID-CRUDO certificado.
+**Estado:** cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO + OBS-STATE-INVARIANTES-DUPLICADOS certificado.
 
 ---
 
@@ -563,7 +563,7 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **C. UX errores accionables:** modal mapea todos los issues por path (Referencia maestra / Referencia alternativa #N / campo); hints persistentes (A-Z, 0-9, ., _, -; sin espacios; máx 64); onBlur sin trim (solo uppercase); editor inline de alternativas post-creación (listar/editar/quitar/agregar, máx 50, maestra read-only); `construirCambiosRepuesto` idempotente (emite solo si el set efectivo difiere).
 **D. Runtime beta certificado:** alta mínima (referencia+descripcion) OK; errores atribuidos con espacios en maestra y alternativa; edición de alternativas persiste + ledger UPDATE con `campos_modificados` incluyendo `referencias_alternativas`; idempotencia no-op sin asiento nuevo (lista de ledger idéntica antes/después); conteo offline→sync con `inventario_documento_id`+`sede_id`, cola purgada owner-scoped (0 entradas); aprobaciones muestra el conteo pendiente.
 **E. Infra Vision producción VERIFICADA (corrige §11.C):** proyecto GCP real = `tiendalasmotos` ("ssrtiendalasmotos" es prefijo de servicio Cloud Run, no el proyecto). `GOOGLE_VISION_API_KEY` existe (createTime 2026-11-07), versión 2 ENABLED (2026-11-08); `roles/secretmanager.secretAccessor` otorgado a `467812260261-compute@developer.gserviceaccount.com` y `bot-admin@tiendalasmotos.iam.gserviceaccount.com` ⇒ consumo vía secretKeyRef viable. **P5-a CERRADO.**
-**F. Observaciones diferidas (no bloqueantes, tickets propios):** `OBS-SEDE-DOCID-CRUDO` → RESUELTA → §26; `OBS-APROBACIONES-SEDE-NO-VISIBLE` permanece abierta.
+**F. Observaciones diferidas (no bloqueantes, tickets propios):** `OBS-SEDE-DOCID-CRUDO` → RESUELTA → §26; `OBS-APROBACIONES-SEDE-NO-VISIBLE` → RESUELTA → §27.
 **G. Tests:** 101 unit + 10 render + smoke; `tsc --noEmit`, lint, build EXIT 0. **Coherence Score:** 0.97 (autopsia de diff canónico + runtime beta).
 **Invariantes:** NAMING LOCK (`precio`, `referencia`, `sede_id`, `ubicacion`, `documento_id`) intacto; ledger append-only; bot, docs/, §8, O-37, O-38 sin tocar; sin colecciones nuevas; sin migración (datos de prueba); §8 una sola instancia.
 
@@ -575,6 +575,21 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Runtime beta:** 7/7 filas resueltas (Santa Marta ×1, `Sin sede` ×6); consola sin `warn/error`.
 **Residual:** rutas inactiva/no-resuelta cubiertas por tests unitarios, sin invasión de datos; precedente WEB-045.
 **Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0.
-**Deudas no bloqueantes registradas:** OBS-APROBACIONES-COPY-STOCK-FALSO, OBS-DOCTRINA-NO-VERSIONADA, OBS-SSOT-CI-PLACEHOLDER-XXX.
+**Deudas no bloqueantes registradas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA y OBS-SSOT-CI-PLACEHOLDER-XXX permanecen abiertas.
 **Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
 **Invariantes:** NAMING LOCK y ledger intactos; sin cambios en src/, bot, docs/, O-37, O-38, §8 ni producción; sin colecciones nuevas; sin migración.
+
+## 27. OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO + OBS-STATE-INVARIANTES-DUPLICADOS — Sede, vínculo y copy en aprobaciones (2026-11-12)
+**Estado:** CERTIFICADO.
+**Commit:** `d25bda4` fix(aprobaciones): show sede and correct stock copy. CI #208 (43364257700) success.
+**Contrato:** `sede_nombre` es derivado en `PendienteDTO`, NO persistido; `sede_id` e `inventario_documento_id` permanecen intactos (NAMING LOCK). Lectura única de `configuracion/general/sedes` sin filtro `isActive`.
+**Fallbacks:** `Sin sede` cuando `sede_id` está vacío; `Sede no disponible` cuando no se resuelve, con `console.warn` forense incluyendo `sede_id` + `inventario_documento_id`.
+**Vínculo y navegación:** anchors `id="doc-{documento_id}"` en el catálogo y `useEffect` de scroll al hash `#doc-{id}`. Las aprobaciones muestran “Ver catálogo” cuando existe `inventario_documento_id`; “Sin vínculo” cuando está vacío.
+**Copy corregido:** “Al aprobar, el conteo se registra en el ledger de auditoría; el stock del catálogo permanece sin cambios (arqueo independiente).”
+**Runtime beta:** columna SEDE en tabla desktop, card móvil 400×625 con campo Sede, hash `#doc-{id}` + scroll centrado, consola limpia.
+**Residual:** V6 “Sin vínculo” cubierto por unit/static; precedente WEB-045.
+**Tests:** 105 unit + 10 render + smoke; `tsc`, lint y build EXIT 0.
+**Cleanup:** eliminación del bloque `Invariantes:` duplicado en `.planning/STATE.md`.
+**Deuda abierta registrada:** OBS-INVENTORY-NAMESPACE-LEGACY (refactor de namespace fuera de perímetro).
+**Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
+**Invariantes:** NAMING LOCK, ledger append-only, bot, docs/, §8, O-37/O-38 intactos; sin colecciones nuevas; sin migración.
