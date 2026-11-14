@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.13  
-**Última Actualización:** 2026-11-12  
-**Estado:** cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO + OBS-STATE-INVARIANTES-DUPLICADOS certificado.
+**Última Actualización:** 2026-11-13  
+**Estado:** promoción v8.9.13 a main certificada (merge ad3b497; deploy main #65 success).
 
 ---
 
@@ -593,3 +593,16 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Deuda abierta registrada:** OBS-INVENTORY-NAMESPACE-LEGACY (refactor de namespace fuera de perímetro).
 **Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
 **Invariantes:** NAMING LOCK, ledger append-only, bot, docs/, §8, O-37/O-38 intactos; sin colecciones nuevas; sin migración.
+
+## 28. Registro de promoción v8.9.13 — Merge beta→main (2026-11-13)
+**Estado:** PROMOCIÓN EJECUTADA Y CERTIFICADA.
+**Merge:** `ad3b497ba22f997621642017087f8080f7242639`; padres `24d1d0aa5057a0cfa665bd1a238f9b7a15b9a67e` + `1a7350da2526d868964eb49746f4c28bfcefd883`; mensaje `merge(beta): promote v8.9.13 — WEB-045/046/047/048, WEB-INV-VENTANA-001, OBS-SEDE-DOCID-CRUDO, OBS-APROBACIONES-SEDE-NO-VISIBLE + COPY-STOCK-FALSO`.
+**Deploy main:** run #65 (`43468414966`) success; headSha `ad3b497`; workflow `Deploy to Firebase Hosting`.
+**Paridad de árbol:** `main^{tree}` = `beta^{tree}` = `e89726fb78d9c4238385b4f93b67e02549985ab9`; `git diff --quiet beta` exit 0.
+**Resolución:** `--theirs` (beta) exclusivamente en `Documento_Maestro_Pagina.md`, `.planning/STATE.md` y `.planning/ROADMAP.md`; cero conflictos de código.
+**Descarte:** `DISCARDED` vacío; no se ejecutó `git read-tree`; ningún archivo de código fue descartado.
+**Evidencia beta:** CI #209 (`43369523137`) success; head `1a7350d`; previo al merge.
+**Tickets promovidos:** WEB-045/046/047/048, WEB-INV-VENTANA-001, OBS-SEDE-DOCID-CRUDO, OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO.
+**OBS no bloqueantes abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` (datos de prueba residuales en producción; sin saneamiento en este ticket) y `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (push directo `24d1d0a..ad3b497` a `main` omitió la regla de Pull Request; promoción directa autorizada).
+**Versión:** se mantiene `v8.9.13`; sin bump.
+**Invariantes:** NAMING LOCK intacto; `bot-tiendalasmotos` intacto; sin colecciones nuevas; sin migraciones; sin escrituras Firestore/IndexedDB; `feature/production-promotion` sin tocar; sin cambios de código.

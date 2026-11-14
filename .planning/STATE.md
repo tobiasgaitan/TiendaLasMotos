@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
 **Versión Actual:** v8.9.13
-**Fecha:** 2026-11-12
-**Rama Activa:** beta
-**Última actividad:** 2026-11-12 — Cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO (d25bda4, CI #208); 105 unit + 10 render; limpieza de Invariantes duplicado.
+**Fecha:** 2026-11-13
+**Rama Activa:** main
+**Última actividad:** 2026-11-13 — Promoción v8.9.13 a main (merge ad3b497, padres 24d1d0a + 1a7350d; deploy main #65 43468414966 success; paridad de árbol e89726f; DISCARDED vacío).
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -82,3 +82,13 @@
 - **Tests:** 105 unit + 10 render + smoke; `tsc`, lint y build EXIT 0. Residual V6 “Sin vínculo” cubierto por unit/static.
 - **Cleanup:** eliminación del bloque duplicado de invariantes en este archivo.
 - **Deuda:** OBS-INVENTORY-NAMESPACE-LEGACY registrada como no bloqueante.
+
+## Promoción v8.9.13 beta→main (2026-11-13)
+- **CERTIFICADA:** merge `ad3b497` (padres `24d1d0a` + `1a7350d`); deploy main #65 (`43468414966`) success; headSha `ad3b497`.
+- **Paridad:** `main^{tree}` = `beta^{tree}` = `e89726fb78d9c4238385b4f93b67e02549985ab9`; `git diff --quiet beta` exit 0.
+- **Conflictos:** `--theirs` solo en `Documento_Maestro_Pagina.md`, `.planning/STATE.md` y `.planning/ROADMAP.md`; cero conflictos de código.
+- **Descarte:** `DISCARDED` vacío; sin `read-tree`; ningún archivo de código descartado.
+- **Evidencia beta:** CI #209 (`43369523137`) success en `1a7350d`.
+- **OBS no bloqueantes:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` y `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (abiertas, sin impacto en la promoción).
+- **Sin cambios de código:** NAMING LOCK, bot, colecciones, migraciones y `feature/production-promotion` intactos.
+- **Versión:** v8.9.13 sin bump.
