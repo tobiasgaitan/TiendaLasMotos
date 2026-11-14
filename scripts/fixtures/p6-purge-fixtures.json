@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "name": "extra_inventory_id",
+      "case": "extra_inventory_id",
+      "expected": "WHITELIST_SET_MISMATCH"
+    },
+    {
+      "name": "missing_inventory_id",
+      "case": "missing_inventory_id",
+      "expected": "WHITELIST_SET_MISMATCH"
+    },
+    {
+      "name": "altered_whitelist_hash",
+      "case": "altered_whitelist_hash",
+      "expected": "WHITELIST_HASH_MISMATCH"
+    },
+    {
+      "name": "wrong_confirmation",
+      "case": "wrong_confirmation",
+      "expected": "CONFIRMATION_REJECTED"
+    },
+    {
+      "name": "extra_storage_path",
+      "case": "extra_storage_path",
+      "expected": "STORAGE_PATH_MISMATCH"
+    }
+  ]
+}
