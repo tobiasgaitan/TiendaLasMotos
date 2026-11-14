@@ -484,7 +484,7 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 ## 18. WEB-046-P1 — Migración a FirestoreSettings.cache (2026-11-10)
 **Estado:** ventana WEB-INV-VENTANA-001 certificada (inventario auto-ID + referencias alternativas + UX de errores + infra Vision verificada); v8.9.11; UAT runtime beta vigente
 **Origen:** OBS-FIRESTORE-ENABLEINDEXEDDBPERSISTENCE-DEPRECATED (deuda de modernización SDK).
-**Commit:** `d9f4b03` feat(web-046): migrate firestore local cache initialization. CI beta run #XXX (pendiente) success.
+**Commit:** `d9f4b03` feat(web-046): migrate firestore local cache initialization. CI beta run #190 (42755251313) success, headSha d9f4b03021dbeac206cbe5e7568d2c281c3360d7.
 **Archivos:** `src/lib/firebase.ts`, `src/test/utils/pwa.test.ts`. Sin tocar `outbox.ts`, `purge.ts`, `AuthContext.tsx`, `sw.js`, bot, producción.
 **Contrato:** `enableIndexedDbPersistence` eliminado; reemplazado por `initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`. Branch persistente solo con `tlm_offline_asesor`. `persistenciaOfflineLista` sigue exportada. `purgarPersistenciaOffline` conserva `terminate` + `clearIndexedDbPersistence`.
 **Tests:** 72 tests. Gates: npm test, tsc --noEmit, lint, build EXIT 0.
@@ -575,7 +575,7 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **Runtime beta:** 7/7 filas resueltas (Santa Marta ×1, `Sin sede` ×6); consola sin `warn/error`.
 **Residual:** rutas inactiva/no-resuelta cubiertas por tests unitarios, sin invasión de datos; precedente WEB-045.
 **Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0.
-**Deudas no bloqueantes registradas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA y OBS-SSOT-CI-PLACEHOLDER-XXX permanecen abiertas.
+**Deudas no bloqueantes registradas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA permanece abierta; OBS-SSOT-CI-PLACEHOLDER-XXX → RESUELTA → §18.
 **Coherence Score:** por autopsia de diff canónico del commit documental; excepción agent-eval 401 declarada si aplica.
 **Invariantes:** NAMING LOCK y ledger intactos; sin cambios en src/, bot, docs/, O-37, O-38, §8 ni producción; sin colecciones nuevas; sin migración.
 
@@ -606,3 +606,5 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 **OBS no bloqueantes abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` (datos de prueba residuales en producción; sin saneamiento en este ticket) y `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (push directo `24d1d0a..ad3b497` a `main` omitió la regla de Pull Request; promoción directa autorizada).
 **Versión:** se mantiene `v8.9.13`; sin bump.
 **Invariantes:** NAMING LOCK intacto; `bot-tiendalasmotos` intacto; sin colecciones nuevas; sin migraciones; sin escrituras Firestore/IndexedDB; `feature/production-promotion` sin tocar; sin cambios de código.
+
+Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y queda SUPERSEDIDA por §28. Verificación física 2026-11-13: origin/main sí contenía asesor en roles.ts (L11) y DEFAULT_MATRIZ (L87) antes del merge; C4/B no era bloqueante. La promoción ad3b497 está ejecutada y certificada (deploy main #65). C4/B queda CERRADO; no es frente pendiente.
