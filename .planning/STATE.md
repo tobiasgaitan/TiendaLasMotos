@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
 **Versión Actual:** v8.9.13
-**Fecha:** 2026-11-13
+**Fecha:** 2026-11-14
 **Rama Activa:** main
-**Última actividad:** 2026-11-13 — Promoción v8.9.13 a main (merge ad3b497, padres 24d1d0a + 1a7350d; deploy main #65 43468414966 success; paridad de árbol e89726f; DISCARDED vacío).
+**Última actividad:** 2026-11-14 — Cierre OBS-SSOT-CI-PLACEHOLDER-XXX + C4/B; SSOT §18/§28 actualizado; PSD STATE/ROADMAP sincronizado.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -69,7 +69,7 @@
 - **Fallbacks:** `Sin sede` / `Sede no disponible` + `console.warn` forense con `sede_id` + `documento_id`; fallo de lectura de sedes no aborta el listado.
 - **Runtime beta:** 7/7 filas (Santa Marta ×1, `Sin sede` ×6); consola `warn/error` vacía.
 - **Tests:** 102 unit + 10 render + smoke; `tsc`, lint y build EXIT 0. Residual inactiva/no-resuelta cubierto por unit tests.
-- **Deudas:** OBS-APROBACIONES-COPY-STOCK-FALSO, OBS-DOCTRINA-NO-VERSIONADA, OBS-SSOT-CI-PLACEHOLDER-XXX.
+- **Deudas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA permanece abierta; OBS-SSOT-CI-PLACEHOLDER-XXX → RESUELTA → §18.
 
 ## Observaciones no bloqueantes (2026-11-12)
 - **OBS-INVENTORY-NAMESPACE-LEGACY:** `listarPendientes` vive en `src/app/admin/inventory/actions/` (legacy) mientras la UI vive en `src/app/admin/inventario-aprobaciones/`; refactor de namespace fuera del perímetro de este ticket.
@@ -91,4 +91,11 @@
 - **Evidencia beta:** CI #209 (`43369523137`) success en `1a7350d`.
 - **OBS no bloqueantes:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` y `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (abiertas, sin impacto en la promoción).
 - **Sin cambios de código:** NAMING LOCK, bot, colecciones, migraciones y `feature/production-promotion` intactos.
+- **Versión:** v8.9.13 sin bump.
+
+## Cierre OBS-SSOT-CI-PLACEHOLDER-XXX + C4/B (2026-11-14)
+- **CERTIFICADO:** `OBS-SSOT-CI-PLACEHOLDER-XXX` → RESUELTA → §18; `OBS-SSOT-C4B-STALE-POST-PROMOCION` → RESUELTA → §28.
+- **§18:** placeholder `CI beta run #XXX` sustituido por `CI beta run #190 (42755251313) success`, headSha `d9f4b03021dbeac206cbe5e7568d2c281c3360d7`.
+- **§28:** nota de supersesión C4/B añadida; L347 conservada byte-idéntica; C4/B cerrado.
+- **No regresión:** NAMING LOCK, bot, colecciones, migraciones y `feature/production-promotion` intactos; sin cambios de código; SSOT en raíz.
 - **Versión:** v8.9.13 sin bump.
