@@ -1,0 +1,109 @@
+{
+  "canonicalization": {
+    "input": {
+      "b": [2, 1],
+      "a": {
+        "d": 4,
+        "c": 3
+      },
+      "t": {
+        "__timestamp": "2026-11-14T00:00:00.000Z"
+      }
+    },
+    "expected": "{\"a\":{\"c\":3,\"d\":4},\"b\":[2,1],\"t\":\"2026-11-14T00:00:00.000Z\"}"
+  },
+  "inventory": [
+    {
+      "docId": "inv-1",
+      "data": {
+        "coleccion_afectada": "inventario_repuestos",
+        "documento_id": "ltezdKf6P3nG4tBZRTx3",
+        "operacion": "UPDATE",
+        "registrado_por": "uid-inv",
+        "registrado_por_email": "inv@test.com",
+        "creado_en": {
+          "__timestamp": "2026-11-14T00:00:00.000Z"
+        },
+        "datos_anteriores": null,
+        "datos_nuevos": {
+          "b": 2,
+          "a": 1,
+          "id_credito": "ltezdKf6P3nG4tBZRTx3"
+        }
+      }
+    },
+    {
+      "docId": "inv-2",
+      "data": {
+        "coleccion_afectada": "conteos_pendientes_repuestos",
+        "documento_id": "conteo-2",
+        "operacion": "UNKNOWN_OP",
+        "registrado_por": "uid-inv",
+        "created_at": {
+          "__timestamp": "2026-11-13T00:00:00.000Z"
+        },
+        "datos_nuevos": {
+          "fecha_registro": {
+            "__timestamp": "2026-11-12T00:00:00.000Z"
+          }
+        }
+      }
+    }
+  ],
+  "financial": [
+    {
+      "docId": "fin-1",
+      "data": {
+        "coleccion_afectada": "creditos",
+        "documento_id": "credit-x",
+        "operacion": "UPDATE",
+        "registrado_por": "uid-fin",
+        "registrado_por_email": "fin@test.com",
+        "created_at": {
+          "__timestamp": "2026-11-10T00:00:00.000Z"
+        },
+        "datos_nuevos": {
+          "id_credito": "ltezdKf6P3nG4tBZRTx3",
+          "id_cliente": "otro-cliente"
+        }
+      }
+    },
+    {
+      "docId": "fin-2",
+      "data": {
+        "coleccion_afectada": "sys_admin_users",
+        "documento_id": "user-x",
+        "operacion": "CREATE",
+        "registrado_por": "uid-admin",
+        "created_at": {
+          "__timestamp": "2026-11-09T00:00:00.000Z"
+        },
+        "datos_nuevos": {
+          "rol": "admin"
+        }
+      }
+    },
+    {
+      "docId": "fin-3",
+      "data": {
+        "coleccion_afectada": "otra",
+        "documento_id": "x",
+        "registrado_por": "",
+        "fecha_registro": {
+          "__timestamp": "2026-11-08T00:00:00.000Z"
+        },
+        "datos_nuevos": null
+      }
+    }
+  ],
+  "expected_real_ids": {
+    "ltezdKf6P3nG4tBZRTx3": {
+      "found": true,
+      "count": 2
+    },
+    "jHTQNJvFbECaDAj98Pvo": {
+      "found": false,
+      "count": 0
+    }
+  }
+}
