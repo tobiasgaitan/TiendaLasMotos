@@ -18,7 +18,7 @@
             "target": "tiendalasmotos",
             "source": ".",
             "predeploy": [
-                "node scripts/patch-firebase-frameworks-689.mjs --site tiendalasmotos"
+                "node scripts/prepare-firebase-frameworks-689.mjs --site tiendalasmotos"
             ],
             "ignore": [
                 "firebase.json",
@@ -89,7 +89,7 @@
             "target": "beta",
             "source": ".",
             "predeploy": [
-                "node scripts/patch-firebase-frameworks-689.mjs --site tiendalasmotos-beta"
+                "node scripts/prepare-firebase-frameworks-689.mjs --site tiendalasmotos-beta"
             ],
             "ignore": [
                 "firebase.json",

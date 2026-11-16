@@ -162,20 +162,81 @@ function queryCloudLogging(options, since) {
     }
 }
 
+function queryRuntimeMarker(options, since) {
+    const markerWindow = new Date(
+        new Date(since).getTime() - 2 * 60 * 60 * 1000
+    ).toISOString();
+    if (options.logJson) {
+        if (!existsSync(options.logJson)) {
+            return { present: null, status: 'LOG_JSON_MISSING' };
+        }
+        const parsed = JSON.parse(readFileSync(options.logJson, 'utf8'));
+        const present = JSON.stringify(parsed).includes(
+            'FIREBASE_FRAMEWORKS_PR689_PATCH_ACTIVE=1'
+        );
+        return { present, status: 'OK' };
+    }
+    const filter = [
+        'resource.type="cloud_run_revision"',
+        `resource.labels.service_name="${options.service}"`,
+        `timestamp>="${markerWindow}"`,
+        'textPayload:"FIREBASE_FRAMEWORKS_PR689_PATCH_ACTIVE=1"',
+    ].join(' AND ');
+    try {
+        const output = execFileSync(
+            'gcloud',
+            [
+                'logging',
+                'read',
+                filter,
+                '--project',
+                options.project,
+                '--limit',
+                '20',
+                '--format',
+                'json',
+            ],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+        );
+        return {
+            present: output.includes(
+                'FIREBASE_FRAMEWORKS_PR689_PATCH_ACTIVE=1'
+            ),
+            status: 'OK',
+            window_start_utc: markerWindow,
+        };
+    } catch (error) {
+        return {
+            present: null,
+            status: 'GCLOUD_ERROR',
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
 function checkDeployLog(path) {
     if (!path) return { failures: null, status: 'NOT_PROVIDED' };
     if (!existsSync(path)) return { failures: null, status: 'MISSING' };
     const content = readFileSync(path, 'utf8');
-    const hasApplied = content.includes('FIREBASE_FRAMEWORKS_PATCH_APPLIED');
-    const hasAlready = content.includes(
-        'FIREBASE_FRAMEWORKS_PATCH_ALREADY_APPLIED'
+    const hasPrepared = content.includes(
+        'FIREBASE_FRAMEWORKS_TARBALL_PREPARED'
     );
+    const hasAlreadyPrepared = content.includes(
+        'FIREBASE_FRAMEWORKS_TARBALL_ALREADY_PREPARED'
+    );
+    const hasApplied =
+        hasPrepared || content.includes('FIREBASE_FRAMEWORKS_PATCH_APPLIED');
+    const hasAlready =
+        hasAlreadyPrepared ||
+        content.includes('FIREBASE_FRAMEWORKS_PATCH_ALREADY_APPLIED');
     const hasPredeployError = /predeploy error/i.test(content);
     return {
         failures: hasPredeployError || (!hasApplied && !hasAlready) ? 1 : 0,
         status: 'OK',
         has_applied: hasApplied,
         has_already: hasAlready,
+        has_prepared: hasPrepared,
+        has_already_prepared: hasAlreadyPrepared,
         has_predeploy_error: hasPredeployError,
     };
 }
@@ -260,6 +321,7 @@ async function main() {
     );
 
     const logs = queryCloudLogging(options, since);
+    const runtime = queryRuntimeMarker(options, since);
     const deploy = checkDeployLog(options.deployLog);
 
     const ok200 = (statusCounts['200'] ?? 0) === options.n;
@@ -267,6 +329,7 @@ async function main() {
         ok200 &&
         rate500 === 0 &&
         logs.count === 0 &&
+        runtime.present === true &&
         deploy.failures === 0;
 
     const report = {
@@ -281,10 +344,16 @@ async function main() {
         app_app_deleted_count: logs.count,
         log_query_status: logs.status,
         log_query_error: logs.error ?? null,
+        runtime_marker_present: runtime.present,
+        runtime_marker_status: runtime.status,
+        runtime_marker_error: runtime.error ?? null,
+        runtime_marker_window_start_utc: runtime.window_start_utc ?? null,
         hook_failures: deploy.failures,
         hook_status: deploy.status,
         hook_has_applied: deploy.has_applied ?? null,
         hook_has_already: deploy.has_already ?? null,
+        hook_has_prepared: deploy.has_prepared ?? null,
+        hook_has_already_prepared: deploy.has_already_prepared ?? null,
         hook_has_predeploy_error: deploy.has_predeploy_error ?? null,
         wait_idle_seconds: options.waitIdle,
         started_at_utc: startedAt.toISOString(),
@@ -299,6 +368,9 @@ async function main() {
     console.log(`REPRO_200=${statusCounts['200'] ?? 0}`);
     console.log(`REPRO_500=${statusCounts['500'] ?? 0}`);
     console.log(`REPRO_APP_DELETED=${logs.count === null ? 'UNKNOWN' : logs.count}`);
+    console.log(
+        `REPRO_RUNTIME_MARKER=${runtime.present === null ? 'UNKNOWN' : runtime.present}`
+    );
     console.log(
         `REPRO_HOOK_FAILURES=${deploy.failures === null ? 'UNKNOWN' : deploy.failures}`
     );
