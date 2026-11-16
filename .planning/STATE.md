@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.14
+**Versión Actual:** v8.9.15
 **Fecha:** 2026-11-16
 **Rama Activa:** main
-**Última actividad:** 2026-11-16 — PSD v8.9.14; cierre P6/ledgers/PR #689; Ruta 1 programada.
+**Última actividad:** 2026-11-16 — Corrección v8.9.15 de secuenciación PR #689; tarball source dependency + runtime marker; beta validada.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -109,3 +109,11 @@
 - **Stack:** 7 commits + este 8º; Ruta 1 push beta → CI → ff main → push main → paridad; `OBS-LOCAL-COMMITS-UNPUSHED-STACK` se cierra con la paridad.
 - **Versión:** v8.9.14; NAMING LOCK intacto; sin cambios de código; SSOT en raíz.
 - **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`.
+
+## Corrección v8.9.15 — Secuenciación PR #689 (2026-11-16)
+- **Causa raíz:** `prepareFunctionsUpload` ignora `node_modules`; el parche local no se subía. Cloud Build instalaba `firebase-frameworks@0.11.8` desde npm.
+- **Fix:** hook `hosting.predeploy` genera `vendor/firebase-frameworks-0.11.8-pr689.tgz` desde 0.11.8 + PR #689; reescribe `package.json`/`package-lock.json` generados a `file:...`; inyecta marcador `FIREBASE_FRAMEWORKS_PR689_PATCH_ACTIVE=1`; retira el parche de `node_modules`.
+- **Evidencia beta:** commit `faeb3c9`; hook `FIREBASE_FRAMEWORKS_TARBALL_PREPARED`; tarball SHA `b5aca54…`; `firebase-aware.js` SHA `973a…`; marcador runtime presente; C4 cold/idle `8/8` 200, `0/0/0`; usuario Auth temporal eliminado.
+- **Observaciones:** `OBS-PROD-ASESOR-AUTH-RACE-CONDITION` reabierta respecto de v8.9.14 y cerrada en beta v8.9.15; producción pendiente Ruta 1. Nuevas `OBS-PR689-PATCH-NOT-UPLOADED` y `OBS-PR689-C4-WITHOUT-ARTIFACT-MARKER`, cerradas en beta y pendientes de producción.
+- **Versión:** v8.9.15; NAMING LOCK intacto; sin cambios de código de app; SSOT en raíz.
+- **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`.

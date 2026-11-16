@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.14  
-**Última Actualización:** 2026-11-13  
-**Estado:** PSD v8.9.14 documentado; Ruta 1 se ejecuta inmediatamente después del 8º commit.
+**Versión del Stack & Hitos:** v8.9.15  
+**Última Actualización:** 2026-11-16  
+**Estado:** corrección v8.9.15 validada en beta; producción pendiente Ruta 1.
 
 ---
 
@@ -634,3 +634,12 @@ Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y que
 **G. Invariantes.** Cero cambios en `src/`, `functions/`, bot, reglas, índices, migraciones, `package.json` y `package-lock.json`; NAMING LOCK intacto; L347 y secciones históricas sin reescritura; §28 intacto; §29 es aditivo conforme al precedente §25.A; SSOT en raíz, sin `docs/` ni nombres legacy; `feature/production-promotion` sin tocar.
 
 **H. Observaciones abiertas que permanecen.** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (re-manifestación esperada en el push directo a main; se captura en el reporte de publicación), `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, además de las tres nuevas de §29.D. No se cierran ni se reescriben en este PSD.
+
+## 30. v8.9.15 — Corrección de secuenciación del backport PR #689 (2026-11-16)
+**Estado:** FIX VALIDADO EN BETA; PRODUCCIÓN PENDIENTE RUTA 1.
+**Versión:** v8.9.15 (corrección de código/dependencia; no doc-only).
+**Causa raíz:** `prepareFunctionsUpload` empaqueta el source con `ignore` por defecto `["node_modules", ".git"]`; el parche aplicado a `.firebase/<site>/functions/node_modules/firebase-frameworks/dist/firebase-aware.js` **no se subía**. Cloud Build ejecuta `npm install` y resolvía `firebase-frameworks@0.11.8` desde npm. El log `FIREBASE_FRAMEWORKS_PATCH_APPLIED` era una señal pre-upload, no prueba del artefacto desplegado.
+**Fix:** hook `hosting.predeploy` con `scripts/prepare-firebase-frameworks-689.mjs`: genera el tarball `vendor/firebase-frameworks-0.11.8-pr689.tgz` desde 0.11.8 + cambios de PR #689, reescribe el `package.json`/`package-lock.json` generados a `file:vendor/firebase-frameworks-0.11.8-pr689.tgz`, e inyecta el marcador `FIREBASE_FRAMEWORKS_PR689_PATCH_ACTIVE=1` en `dist/index.js`. El parche directo de `node_modules` queda retirado.
+**Evidencia beta:** commit `faeb3c9`; deploy beta local; hook `FIREBASE_FRAMEWORKS_TARBALL_PREPARED`; tarball SHA-256 `b5aca54dfed17843220810138ce3d01712c6885d5bba2d0e809832ffcbbf8910`; `firebase-aware.js` SHA-256 `973a836ed72cab54e39f2ffff6b3ff70bcf2c790fe616f23303aa18f38c457dc`; marcador runtime presente; C4 cold `8/8` 200, `0/0/0`, latencia media `3861.92 ms`; C4 idle `8/8` 200, `0/0/0`, latencia media `858.08 ms`; usuario Auth temporal eliminado.
+**Observaciones:** `OBS-PROD-ASESOR-AUTH-RACE-CONDITION` se reabre respecto de v8.9.14 porque el artefacto desplegado no estaba parchado; queda **CERRADA EN BETA v8.9.15; PRODUCCIÓN PENDIENTE RUTA 1**. Se registran `OBS-PR689-PATCH-NOT-UPLOADED` y `OBS-PR689-C4-WITHOUT-ARTIFACT-MARKER`, cerradas en beta y pendientes de producción en la misma Ruta 1.
+**Invariantes:** cero cambios en `src/`, `functions/`, bot, reglas, índices, migraciones, `package.json` ni `package-lock.json` raíz; NAMING LOCK intacto; L347, §28 y §29 conservan su contenido; §30 es aditivo conforme a §25.A; SSOT en raíz; sin `docs/`.
