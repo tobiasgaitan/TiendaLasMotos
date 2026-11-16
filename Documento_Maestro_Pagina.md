@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.13  
+**Versión del Stack & Hitos:** v8.9.14  
 **Última Actualización:** 2026-11-13  
-**Estado:** promoción v8.9.13 a main certificada (merge ad3b497; deploy main #65 success).
+**Estado:** PSD v8.9.14 documentado; Ruta 1 se ejecuta inmediatamente después del 8º commit.
 
 ---
 
@@ -610,3 +610,27 @@ Tier B fue ejecutado y Runtime J fue certificado en §16. De las 10 decisiones o
 Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y queda SUPERSEDIDA por §28. Verificación física 2026-11-13: origin/main sí contenía asesor en roles.ts (L11) y DEFAULT_MATRIZ (L87) antes del merge; C4/B no era bloqueante. La promoción ad3b497 está ejecutada y certificada (deploy main #65). C4/B queda CERRADO; no es frente pendiente.
 
 **Supersesión formal — purga única de ledgers simulados (2026-11-14).** Los 32 asientos identificados por WEB-FORENSE-LEDGERS-001 (14 en `historial_auditoria_inventario`, 18 en `historial_auditoria`) son simulaciones de configuración, no movimientos reales. Esta declaración incluye los asientos que referencian el identificador `ltezdKf6P3nG4tBZRTx3`, tratado aquí como dato de simulacro. **Autorización:** el Director confirmó "TODO ES SIMULACIÓN" y ratificó la purga total de ambos ledgers con whitelist cerrada de 32 docIds. **Alcance:** eliminación única de los 32 docIds exactos en un batch atómico (14 de inventario y 18 financieros); sin acceso a colecciones de dominio ni Storage. **Vigencia:** §8.B.6 y §10.B.6 conservan su redacción y su prohibición de borrado; esta nota solo supersede el contrato append-only para esta purga única de asientos simulados. El contrato append-only sigue vigente para futuros movimientos reales. **Evidencia:** `ledger-export-32.json` (write-once) con los 32 docIds y los hashes pre-purga `a83fcb61…` / `1ea68239…`.
+
+## 29. PSD v8.9.14 — Cierre P6, ledgers, crédito CRE-2026-0001, PR #689 y Ruta 1 (2026-11-16)
+**Estado:** DOCUMENTADO; Ruta 1 se ejecuta inmediatamente después del 8º commit.
+**Versión:** v8.9.14 (bump por backport runtime; no doc-only).
+**Pila local:** 8 commits sobre `924e4a6`: `6b608ee`, `715f9ea`, `9524892`, `2efb9a6`, `378d99b`, `f38a080`, `be81542` y este commit documental.
+
+**A. Cierre P6 — vaciado total del módulo de repuestos.** 17 docIds + 5 blobs; commit `2efb9a6`; resultado `0/0/0`; ledger `14 / a83fcb61…`; sedes `e449e9af…`; evidencia en `~/opencode-evidence/p6-fase0/`. El docId `ltezdKf6P3nG4tBZRTx3` no estuvo en la whitelist P6 y no fue eliminado por este cierre.
+
+**B. Purga de ledgers simulados.** 14 asientos en `historial_auditoria_inventario` + 18 en `historial_auditoria` = 32; commit `f38a080`; post-purga `0/0` y hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; export write-once `ledger-export-32.json` con SHA-256 `fe59abf925a2630fb4a3e02d87ccbc7140ae27a83976db288402bac39b6387c4`; evidencia en `~/opencode-evidence/ledgers-purga-20261115T031832Z/`. §28 contiene la nota de supersesión append-only; §8.B.6 y §10.B.6 conservan su redacción y su prohibición de borrado.
+
+**C. Revocación de `OBS-P6-CRE-2026-0001-INEXISTENTE`.** El contrato existe como auto-ID `ltezdKf6P3nG4tBZRTx3`, con campo `numero_credito: "CRE-2026-0001"`. El forense P6 buscó el número como docId, no como campo `numero_credito`; fue un defecto de lookup, no ausencia de contrato. El docId no estuvo en la whitelist de 32 y no fue eliminado; la purga de ledgers eliminó 2 asientos de auditoría que lo referenciaban, declarados simulación en §28. La observación queda **REVOCADA**.
+
+**D. Nuevas observaciones registradas.** Todas abiertas y no bloqueantes:
+- `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`: corrección diferida del forense para buscar `numero_credito` como campo, no como docId; ticket forense propio.
+- `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`: el selector atribuye el vacío a “No hay referencias que coincidan con la búsqueda” cuando el catálogo maestro está vacío; deuda de copy UX.
+- `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`: log duplicado en la migración offline v1→v2; sin impacto funcional; deuda de higiene.
+
+**E. Cierre `OBS-PROD-ASESOR-AUTH-RACE-CONDITION`.** Backport PR #689 en `be81542`; hook `hosting.predeploy`; bundle beta `973a836ed72cab54e39f2ffff6b3ff70bcf2c790fe616f23303aa18f38c457dc`; C4 cold e idle con `8/8` respuestas 200, `0` respuestas 500, `0` `app/app-deleted` y `0` fallas del hook; UI limpia. Estado: **CERRADA EN BETA; PRODUCCIÓN PENDIENTE RUTA 1**. El cierre definitivo se certifica con el deploy main de Ruta 1 y C4 producción, o por paridad de artefacto si `PROD_C4=NOT_EXECUTED`.
+
+**F. Cierre `OBS-LOCAL-COMMITS-UNPUSHED-STACK`.** Pila de 7 commits + este 8º documental sobre `924e4a6`. Ruta 1: push beta → CI beta → `merge --ff-only` main → push main → paridad `origin/main = origin/beta = HEAD`. El 8º commit documenta la condición de cierre; los run IDs de CI/producción se registran en el reporte de publicación fuera del repo. La observación se cierra al completar la paridad.
+
+**G. Invariantes.** Cero cambios en `src/`, `functions/`, bot, reglas, índices, migraciones, `package.json` y `package-lock.json`; NAMING LOCK intacto; L347 y secciones históricas sin reescritura; §28 intacto; §29 es aditivo conforme al precedente §25.A; SSOT en raíz, sin `docs/` ni nombres legacy; `feature/production-promotion` sin tocar.
+
+**H. Observaciones abiertas que permanecen.** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR` (re-manifestación esperada en el push directo a main; se captura en el reporte de publicación), `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, además de las tres nuevas de §29.D. No se cierran ni se reescriben en este PSD.

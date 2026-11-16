@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.13
-**Fecha:** 2026-11-14
+**Versión Actual:** v8.9.14
+**Fecha:** 2026-11-16
 **Rama Activa:** main
-**Última actividad:** 2026-11-14 — Cierre OBS-SSOT-CI-PLACEHOLDER-XXX + C4/B; SSOT §18/§28 actualizado; PSD STATE/ROADMAP sincronizado.
+**Última actividad:** 2026-11-16 — PSD v8.9.14; cierre P6/ledgers/PR #689; Ruta 1 programada.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -99,3 +99,13 @@
 - **§28:** nota de supersesión C4/B añadida; L347 conservada byte-idéntica; C4/B cerrado.
 - **No regresión:** NAMING LOCK, bot, colecciones, migraciones y `feature/production-promotion` intactos; sin cambios de código; SSOT en raíz.
 - **Versión:** v8.9.13 sin bump.
+
+## Cierre PSD v8.9.14 (2026-11-16)
+- **P6:** 17 docIds + 5 blobs; commit `2efb9a6`; `0/0/0`; ledger `14 / a83fcb61…`; sedes `e449e9af…`.
+- **Ledgers:** 32 asientos (14+18); commit `f38a080`; `0/0`; hash `e3b0c442…`; §28 vigente.
+- **Revocación:** `OBS-P6-CRE-2026-0001-INEXISTENTE` → REVOCADA; contrato `ltezdKf6P3nG4tBZRTx3` con `numero_credito: "CRE-2026-0001"`; el forense P6 buscó por docId, no por campo; no fue eliminado.
+- **Nuevas OBS:** `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO` (abiertas, no bloqueantes).
+- **Auth race:** backport `be81542`; hook `hosting.predeploy`; C4 beta cold/idle `8/8` 200, `0/0/0`; cerrada en beta; producción pendiente Ruta 1.
+- **Stack:** 7 commits + este 8º; Ruta 1 push beta → CI → ff main → push main → paridad; `OBS-LOCAL-COMMITS-UNPUSHED-STACK` se cierra con la paridad.
+- **Versión:** v8.9.14; NAMING LOCK intacto; sin cambios de código; SSOT en raíz.
+- **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`.

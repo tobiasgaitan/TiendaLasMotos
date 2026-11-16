@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.13
+**Versión Canónica Vigente:** v8.9.14
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -130,3 +130,4 @@
 - [x] **OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO (v8.9.13, 2026-11-12):** sede_nombre en aprobaciones, enlace/anchor al catálogo, copy de arqueo independiente y cleanup de Invariantes duplicado. Commit `d25bda4`, CI #208 (43364257700) success.
 - [x] **Promoción v8.9.13 beta→main (2026-11-13):** merge `ad3b497` (padres `24d1d0a` + `1a7350d`); deploy main #65 (`43468414966`) success; paridad de árbol `e89726f`; `--theirs` solo en los 3 documentos; `DISCARDED` vacío; sin cambios de código. OBS abiertas no bloqueantes: `OBS-PROD-DATOS-PRUEBA-RESIDUALES` y `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`.
 - [x] **Cierre OBS-SSOT-CI-PLACEHOLDER-XXX + OBS-SSOT-C4B-STALE-POST-PROMOCION (v8.9.13, 2026-11-14):** §18 sustituye `CI beta run #XXX` por CI beta run #190 (`42755251313`) success en `d9f4b03`; §28 añade la nota de supersesión C4/B; L347 conservada byte-idéntica; sin cambios de código.
+- [x] **PSD v8.9.14 — Cierre P6/ledgers/PR #689 + Ruta 1 (2026-11-16):** P6 17+5; ledgers 32 + §28; revocación OBS-P6-CRE-2026-0001-INEXISTENTE; nuevas OBS de lookup/copy UX/log offline; backport `be81542` con C4 beta `8/8` 200 y `0/0/0`; 8º commit documental; Ruta 1 push beta→CI→ff main→push main→paridad. Sin cambios de código; NAMING LOCK intacto.
