@@ -100,24 +100,30 @@ export function writeManifestAndReport(
     data: unknown,
     reportText: string,
     extraFiles: Record<string, unknown> = {},
-    manifestMeta: Record<string, unknown> = {}
+    manifestMeta: Record<string, unknown> = {},
+    hashField: string = 'hashes'
 ): WriteManifestResult {
     mkdirSync(outDir, { recursive: true });
 
     const hashes: Record<string, string> = {};
 
-    const writeJson = (name: string, value: unknown): void => {
-        const serialized = `${JSON.stringify(value, null, 2)}\n`;
+    const writeFile = (name: string, value: unknown): void => {
+        const serialized =
+            typeof value === 'string'
+                ? value.endsWith('\n')
+                    ? value
+                    : `${value}\n`
+                : `${JSON.stringify(value, null, 2)}\n`;
         writeFileSync(join(outDir, name), serialized, 'utf8');
         hashes[name] = sha256(serialized);
     };
 
-    writeJson(fileName, data);
+    writeFile(fileName, data);
     for (const [name, value] of Object.entries(extraFiles)) {
         if (name === fileName || name === 'report.md' || name === 'manifest.json') {
             throw new Error(`ARCHIVO_RESERVADO: ${name}`);
         }
-        writeJson(name, value);
+        writeFile(name, value);
     }
 
     const report = `${reportText}\n`;
@@ -126,7 +132,7 @@ export function writeManifestAndReport(
 
     const manifest: Record<string, unknown> = {
         ...manifestMeta,
-        hashes,
+        [hashField]: hashes,
         outputs: [...Object.keys(hashes), 'manifest.json'],
     };
     writeFileSync(

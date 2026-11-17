@@ -26,11 +26,13 @@
  *
  * PROHIBIDO importar este archivo desde Server Actions o código de la app.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import {
+    assertOutDirOutsideRepo,
+    initFirebaseGuarded,
+    writeManifestAndReport,
+} from './lib/forensic-utils';
 
 const PROJECT_ID = 'tiendalasmotos';
 const PREFIX = 'inventario_repuestos/';
@@ -352,17 +354,6 @@ Opcionales:
 
 Prohibido: --apply --delete --purge --fix --write --yes
 `);
-}
-
-function assertOutDirOutsideRepo(outDir: string): string {
-    const resolved = resolve(outDir);
-    const repo = resolve(process.cwd());
-    if (resolved === repo || resolved.startsWith(`${repo}${sep}`)) {
-        throw new Error(
-            `--out no puede estar dentro del repositorio: ${resolved}`
-        );
-    }
-    return resolved;
 }
 
 function makeRunId(date: Date): string {
@@ -1001,8 +992,6 @@ function writeReports(
     result: ClassificationResult,
     firestoreCounts: { fotos: number; conteos: number }
 ): void {
-    mkdirSync(context.outDir, { recursive: true });
-
     const summary = {
         runId: context.runId,
         mode: context.mode,
@@ -1152,63 +1141,33 @@ function writeReports(
         ])
     );
 
-    const manifest = {
-        ticket: 'WEB-FORENSE-O30-001',
-        script: 'scripts/forense-o30-storage-orphans.ts',
-        mode: context.mode,
-        command: context.command,
-        projectId: context.projectId,
-        bucket: context.bucket,
-        bucketSource: context.bucketSource,
-        defaultBucket: context.defaultBucket,
-        prefix: context.prefix,
-        whitelist: summary.whitelist,
-        startedAt: context.startedAt,
-        finishedAt: context.finishedAt,
-        readOnly: true,
-        outputs: [
-            'summary.json',
-            'orphans.json',
-            'orphans.csv',
-            'blobs.csv',
-            'missing-blobs.csv',
-            'inconsistencies.csv',
-            'report.md',
-            'manifest.json',
-        ],
-    };
-
-    writeFileSync(
-        join(context.outDir, 'summary.json'),
-        `${JSON.stringify(summary, null, 2)}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        join(context.outDir, 'orphans.json'),
-        `${JSON.stringify(orphans, null, 2)}\n`,
-        'utf8'
-    );
-    writeFileSync(join(context.outDir, 'orphans.csv'), `${orphansCsv}\n`, 'utf8');
-    writeFileSync(join(context.outDir, 'blobs.csv'), `${blobsCsv}\n`, 'utf8');
-    writeFileSync(
-        join(context.outDir, 'missing-blobs.csv'),
-        `${missingCsv}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        join(context.outDir, 'inconsistencies.csv'),
-        `${inconsistenciesCsv}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        join(context.outDir, 'report.md'),
-        `${buildReport(context, result, firestoreCounts)}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        join(context.outDir, 'manifest.json'),
-        `${JSON.stringify(manifest, null, 2)}\n`,
-        'utf8'
+    writeManifestAndReport(
+        context.outDir,
+        'summary.json',
+        summary,
+        buildReport(context, result, firestoreCounts),
+        {
+            'orphans.json': orphans,
+            'orphans.csv': orphansCsv,
+            'blobs.csv': blobsCsv,
+            'missing-blobs.csv': missingCsv,
+            'inconsistencies.csv': inconsistenciesCsv,
+        },
+        {
+            ticket: 'WEB-FORENSE-O30-001',
+            script: 'scripts/forense-o30-storage-orphans.ts',
+            mode: context.mode,
+            command: context.command,
+            projectId: context.projectId,
+            bucket: context.bucket,
+            bucketSource: context.bucketSource,
+            defaultBucket: context.defaultBucket,
+            prefix: context.prefix,
+            whitelist: summary.whitelist,
+            startedAt: context.startedAt,
+            finishedAt: context.finishedAt,
+            readOnly: true,
+        }
     );
 }
 
@@ -1339,32 +1298,24 @@ async function runFixtures(options: CliOptions): Promise<void> {
     printResult(context, result);
 }
 
-async function runLive(options: CliOptions): Promise<void> {
+async function ejecutarForenseO30(options: CliOptions): Promise<void> {
     const startedAt = new Date();
     const configuredBucket = resolveConfiguredBucket();
-    const app =
-        getApps()[0] ??
-        initializeApp({
-            projectId: options.projectId,
-            ...(configuredBucket
-                ? { storageBucket: configuredBucket }
-                : {}),
-        });
+    const outDirCandidate =
+        options.outDir ??
+        join(DEFAULT_OUT_ROOT, `o30-forensics-${makeRunId(startedAt)}`);
+    const { db, storage } = initFirebaseGuarded({
+        outDir: outDirCandidate,
+        projectId: PROJECT_ID,
+    });
 
-    if (app.options.projectId && app.options.projectId !== PROJECT_ID) {
-        throw new Error(
-            `App Firebase inicializada con proyecto no autorizado: ${app.options.projectId}`
-        );
-    }
-
-    const storage = getStorage(app);
     let defaultBucket: string | null = null;
     try {
         defaultBucket = storage.bucket().name;
     } catch {
         defaultBucket = null;
     }
-    const bucketName = options.bucket ?? defaultBucket ?? configuredBucket;
+    const bucketName = options.bucket ?? configuredBucket ?? defaultBucket;
     if (!bucketName) {
         throw new Error(
             'No se pudo resolver el bucket. Usa --bucket=<nombre> tras confirmarlo con gcloud storage buckets list.'
@@ -1414,7 +1365,6 @@ async function runLive(options: CliOptions): Promise<void> {
         });
     }
 
-    const db = getFirestore(app);
     const fotosSnap = await db
         .collection(COLLECTION_FOTOS)
         .select(...FOTO_FIELDS)
@@ -1457,10 +1407,7 @@ async function runLive(options: CliOptions): Promise<void> {
     });
 
     const result = classify({ blobs, fotos, conteos });
-    const outDir = assertOutDirOutsideRepo(
-        options.outDir ??
-            join(DEFAULT_OUT_ROOT, `o30-forensics-${makeRunId(startedAt)}`)
-    );
+    const outDir = assertOutDirOutsideRepo(outDirCandidate);
     const finishedAt = new Date();
     const context = makeContext(
         'live',
@@ -1530,7 +1477,7 @@ async function main(): Promise<void> {
         await runFixtures(options);
         return;
     }
-    await runLive(options);
+    await ejecutarForenseO30(options);
 }
 
 main().catch((error) => {
