@@ -20,11 +20,6 @@ import type { ActionResult } from "@/lib/actions/result";
 // 0. Tipos y núcleo compartido (movido a src/lib/actions)
 // ==========================================
 
-export { requireActor } from '@/lib/actions/actor';
-export { appendAuditoria } from '@/lib/actions/audit';
-export type { ActionResult } from '@/lib/actions/result';
-export type { ActorInput, VerifiedActor } from '@/lib/actions/actor';
-export type { AuditoriaInput, OperacionAuditoria } from '@/lib/actions/audit';
 
 // ==========================================
 // 2. Utilidades
