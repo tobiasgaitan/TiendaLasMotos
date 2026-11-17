@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 const fuentes = [
     'src/types/inventario.ts',
     'src/lib/offline/outbox.ts',
+    'src/lib/offline/outbox/types.ts',
+    'src/lib/offline/outbox/db.ts',
+    'src/lib/offline/outbox/images.ts',
+    'src/lib/offline/outbox/sync.ts',
     'src/lib/offline/outbox-utils.ts',
     'src/lib/actions/inventario-schemas.ts',
     'src/app/admin/inventory/actions/crearConteoPendiente.ts',
