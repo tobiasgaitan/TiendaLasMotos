@@ -10,7 +10,9 @@ import {
     appendAuditoria,
     type ActionResult,
 } from "./actions";
-import { actorSchema, moneySchema } from "@/lib/actions/creditos-schemas";
+import { moneySchema } from "@/lib/actions/creditos-schemas";
+import { validarActor } from "@/lib/actions/actor";
+import { runAction } from "@/lib/actions/run-action";
 import { requirePermiso } from "@/lib/auth/require-permiso";
 
 /**
@@ -33,11 +35,6 @@ export type PagoResult = ActionResult & {
     valor_comision?: number;
     valor_neto_empresa?: number;
 };
-
-function validarActor(actor: unknown) {
-    const parsed = actorSchema.safeParse(actor);
-    return parsed.success ? parsed.data : null;
-}
 
 /** Autorización P5: requireAdmin absorbido por requirePermiso (matriz configurable). */
 
@@ -76,74 +73,93 @@ const pagoSchema = z.object({
     });
 
 export async function createPagoYMulta(input: unknown, actor: unknown): Promise<PagoResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = pagoSchema.safeParse(input);
-    if (!validated.success) {
-        const first = validated.error.errors[0];
-        return { success: false, message: first?.message || 'Datos del pago inválidos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const adminDb = getDb();
-        const data = validated.data;
+    return runAction<z.infer<typeof pagoSchema>, PagoResult>(
+        {
+            name: 'createPagoYMulta',
+            schema: pagoSchema,
+            invalidMessage: (error) =>
+                error.errors[0]?.message || 'Datos del pago inválidos.',
+            revalidate: [
+                '/admin/creditos/pagos',
+                '/admin/creditos/remisiones',
+                '/admin/creditos/inversores',
+            ],
+            errorPrefix: 'Error al registrar el cobro',
+        },
+        input,
+        actor,
+        async ({ db, actor: me, input: data, requirePermiso, audit }) => {
+            // El crédito debe existir y estar activo (prohibido huérfano silencioso)
+            const creditoSnap = await db
+                .collection('creditos')
+                .doc(data.id_credito)
+                .get();
+            if (!creditoSnap.exists) {
+                return { success: false, message: 'El crédito no existe.' };
+            }
+            const credito = creditoSnap.data() as {
+                activo?: boolean;
+                condiciones?: CreditoCondiciones;
+            };
+            if (credito.activo === false) {
+                return { success: false, message: 'El crédito está dado de baja.' };
+            }
+            if (!credito.condiciones) {
+                return {
+                    success: false,
+                    message: 'El crédito no tiene condiciones registradas.',
+                };
+            }
+            const asignCobro = (
+                creditoSnap.data() as {
+                    asignaciones?: { email_usuario?: string | null };
+                }
+            ).asignaciones;
+            await requirePermiso('pagos_y_multas', 'create', {
+                email_usuario: asignCobro?.email_usuario ?? null,
+            });
 
-        // El crédito debe existir y estar activo (prohibido huérfano silencioso)
-        const creditoSnap = await adminDb.collection('creditos').doc(data.id_credito).get();
-        if (!creditoSnap.exists) {
-            return { success: false, message: 'El crédito no existe.' };
+            // Regla A — cálculo en SERVIDOR; se ignoran valores del cliente.
+            const { valor_comision, valor_neto_empresa } = calcularComision(
+                data.valor_pagado_cliente,
+                data.tipo_transaccion,
+                credito.condiciones
+            );
+
+            const payload: Record<string, unknown> = {
+                id_credito: data.id_credito,
+                valor_pagado_cliente: data.valor_pagado_cliente,
+                tipo_transaccion: data.tipo_transaccion,
+                valor_comision,
+                valor_neto_empresa,
+                fecha_registro: new Date(),
+                registrado_por: me.uid,
+                registrado_por_email: me.email ?? null,
+                created_at: new Date(),
+                updated_at: new Date(),
+                activo: true,
+            };
+            if (data.metodo_pago) payload.metodo_pago = data.metodo_pago;
+            if (data.referencia) payload.referencia = data.referencia.trim();
+            if (data.motivo) payload.motivo = data.motivo.trim();
+
+            const docRef = await db.collection('pagos_y_multas').add(payload);
+            await audit({
+                coleccion: 'pagos_y_multas',
+                documentoId: docRef.id,
+                operacion: 'CREATE',
+                antes: null,
+                despues: payload,
+            });
+            return {
+                success: true,
+                message: 'Cobro registrado correctamente.',
+                id: docRef.id,
+                valor_comision,
+                valor_neto_empresa,
+            };
         }
-        const credito = creditoSnap.data() as { activo?: boolean; condiciones?: CreditoCondiciones };
-        if (credito.activo === false) {
-            return { success: false, message: 'El crédito está dado de baja.' };
-        }
-        if (!credito.condiciones) {
-            return { success: false, message: 'El crédito no tiene condiciones registradas.' };
-        }
-        const asignCobro = (creditoSnap.data() as { asignaciones?: { email_usuario?: string | null } }).asignaciones;
-        await requirePermiso(me, 'pagos_y_multas', 'create', { email_usuario: asignCobro?.email_usuario ?? null });
-
-        // Regla A — cálculo en SERVIDOR; se ignoran valores del cliente.
-        const { valor_comision, valor_neto_empresa } = calcularComision(
-            data.valor_pagado_cliente,
-            data.tipo_transaccion,
-            credito.condiciones
-        );
-
-        const payload: Record<string, unknown> = {
-            id_credito: data.id_credito,
-            valor_pagado_cliente: data.valor_pagado_cliente,
-            tipo_transaccion: data.tipo_transaccion,
-            valor_comision,
-            valor_neto_empresa,
-            fecha_registro: new Date(),
-            registrado_por: me.uid,
-            registrado_por_email: me.email ?? null,
-            created_at: new Date(),
-            updated_at: new Date(),
-            activo: true,
-        };
-        if (data.metodo_pago) payload.metodo_pago = data.metodo_pago;
-        if (data.referencia) payload.referencia = data.referencia.trim();
-        if (data.motivo) payload.motivo = data.motivo.trim();
-
-        const docRef = await adminDb.collection('pagos_y_multas').add(payload);
-        await appendAuditoria({
-            coleccion: 'pagos_y_multas', documentoId: docRef.id, operacion: 'CREATE',
-            antes: null, despues: payload, actor: me,
-        });
-        revalidatePath('/admin/creditos/pagos');
-        revalidatePath('/admin/creditos/remisiones');
-        revalidatePath('/admin/creditos/inversores');
-        return {
-            success: true, message: 'Cobro registrado correctamente.', id: docRef.id,
-            valor_comision, valor_neto_empresa,
-        };
-    } catch (error) {
-        console.error('[creditos] createPagoYMulta falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al registrar el cobro: ${msg}` };
-    }
+    );
 }
 
 const pagoPatchSchema = z.object({

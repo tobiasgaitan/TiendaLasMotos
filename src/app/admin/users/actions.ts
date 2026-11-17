@@ -7,7 +7,8 @@ import {
     appendAuditoria,
     type ActionResult,
 } from "@/app/admin/creditos/actions";
-import { actorSchema } from "@/lib/actions/creditos-schemas";
+import { validarActor } from "@/lib/actions/actor";
+import { runAction } from "@/lib/actions/run-action";
 import { requirePermiso } from "@/lib/auth/require-permiso";
 import {
     userCreateSchema,
@@ -27,12 +28,6 @@ import {
  * - Ledger `historial_auditoria` append-only vía `add()` (OVERRIDE QWEN #4).
  * - PROHIBIDO `delete()` físico: la baja es `active: false` (baja lógica).
  */
-
-function validarActor(actor: unknown): { uid: string; idToken: string } | null {
-    const parsed = actorSchema.safeParse(actor);
-    if (!parsed.success) return null;
-    return parsed.data;
-}
 
 export async function createUser(input: unknown, actor: unknown): Promise<ActionResult> {
     const a = validarActor(actor);
@@ -141,49 +136,70 @@ export async function updateUser(
 }
 
 export async function deleteUser(emailKey: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: "No autorizado. Sesión inválida." };
-    try {
-        const me = await requireActor(a.idToken);
-        const emailCanon =
-            typeof emailKey === "string" ? emailKey.toLowerCase().trim() : "";
-        if (!emailCanon) {
-            return { success: false, message: "Correo inválido." };
-        }
-        // Guard anti-suicidio: nadie revoca su propio acceso.
-        if (esAutoBorrado(emailCanon, me.email)) {
-            return { success: false, message: "No puedes revocar tu propio acceso (403)." };
-        }
-        await requirePermiso(me, "sys_admin_users", "delete");
-        const adminDb = getDb();
-        const docRef = adminDb.collection("sys_admin_users").doc(emailCanon);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: "El usuario no existe." };
-        const antes = snap.data() as Record<string, unknown>;
-
-        // Baja lógica — PROHIBIDO delete() físico del documento.
-        const updates = {
-            active: false,
-            motivo_baja: "Revocación de acceso al panel",
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.set(updates, { merge: true });
-        await appendAuditoria({
-            coleccion: "sys_admin_users",
-            documentoId: emailCanon,
-            operacion: "SOFT_DELETE",
-            antes,
-            despues: { ...antes, ...updates },
+    return runAction<unknown, ActionResult>(
+        {
+            name: 'deleteUser',
+            revalidate: ['/admin/users'],
+            errorPrefix: 'Error al revocar el acceso',
+        },
+        emailKey,
+        actor,
+        async ({
+            db,
             actor: me,
-        });
-        revalidatePath("/admin/users");
-        return { success: true, message: "Acceso revocado correctamente.", id: emailCanon };
-    } catch (error) {
-        console.error("[users] deleteUser falló:", error);
-        const msg = error instanceof Error ? error.message : "Excepción desconocida";
-        return { success: false, message: `Error al revocar el acceso: ${msg}` };
-    }
+            input: rawEmail,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            const emailCanon =
+                typeof rawEmail === "string"
+                    ? rawEmail.toLowerCase().trim()
+                    : "";
+            if (!emailCanon) {
+                return { success: false, message: "Correo inválido." };
+            }
+
+            // Guard anti-suicidio: nadie revoca su propio acceso.
+            if (esAutoBorrado(emailCanon, me.email)) {
+                return {
+                    success: false,
+                    message: "No puedes revocar tu propio acceso (403).",
+                };
+            }
+
+            await requirePermiso("sys_admin_users", "delete");
+
+            const docRef = db
+                .collection("sys_admin_users")
+                .doc(emailCanon);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: "El usuario no existe." };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+
+            // Baja lógica — PROHIBIDO delete() físico del documento.
+            const updates = {
+                active: false,
+                motivo_baja: "Revocación de acceso al panel",
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.set(updates, { merge: true });
+            await audit({
+                coleccion: "sys_admin_users",
+                documentoId: emailCanon,
+                operacion: "SOFT_DELETE",
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: "Acceso revocado correctamente.",
+                id: emailCanon,
+            };
+        }
+    );
 }

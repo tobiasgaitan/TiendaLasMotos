@@ -8,13 +8,6 @@ import { z } from "zod";
  * `actions.ts` y `financiero-actions.ts` consumen estos esquemas por import.
  */
 
-export const actorSchema = z.object({
-    uid: z.string().min(1),
-    idToken: z.string().min(1),
-});
-
-export type ActorInput = z.infer<typeof actorSchema>;
-
 // Float (double) para dinero — Int64/Float del Módulo 1
 export const moneySchema = z.coerce.number().finite().min(0);
 // Int64 para contadores/enteros

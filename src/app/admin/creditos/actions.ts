@@ -1,11 +1,14 @@
 'use server';
 
 import { z } from "zod";
-import { getDb, getAdminAuth } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
-import type { OperacionAuditoria } from "@/types/creditos";
-import { actorSchema, moneySchema, intSchema } from "@/lib/actions/creditos-schemas";
+import { moneySchema, intSchema } from "@/lib/actions/creditos-schemas";
 import { requirePermiso } from "@/lib/auth/require-permiso";
+import { requireActor, validarActor } from "@/lib/actions/actor";
+import { appendAuditoria } from "@/lib/actions/audit";
+import { runAction, withAuthAndAudit } from "@/lib/actions/run-action";
+import type { ActionResult } from "@/lib/actions/result";
 
 /**
  * Server Actions core — Módulo de Gestión de Créditos y Renting (Fase 9).
@@ -18,93 +21,14 @@ import { requirePermiso } from "@/lib/auth/require-permiso";
  */
 
 // ==========================================
-// 0. Esquemas compartidos (vía @/lib/actions/creditos-schemas —
-//    los archivos 'use server' solo pueden exportar funciones async)
+// 0. Tipos y núcleo compartido (movido a src/lib/actions)
 // ==========================================
 
-export type ActionResult = {
-    success: boolean;
-    message?: string;
-    id?: string;
-    numero_credito?: string;
-};
-
-// ==========================================
-// 1. Núcleo de confianza: requireActor + appendAuditoria
-// ==========================================
-
-export async function requireActor(idToken: string): Promise<{ uid: string; email?: string }> {
-    if (!idToken || typeof idToken !== 'string') {
-        throw new Error('No autorizado');
-    }
-    try {
-        const adminAuth = getAdminAuth();
-        const decoded = await adminAuth.verifyIdToken(idToken);
-        if (!decoded || !decoded.uid) {
-            throw new Error('No autorizado');
-        }
-        return { uid: decoded.uid, email: decoded.email };
-    } catch (error) {
-        console.error('[creditos] requireActor: token inválido', error);
-        throw new Error('No autorizado');
-    }
-}
-
-export type AuditoriaInput = {
-    coleccion: string;
-    documentoId: string;
-    operacion: OperacionAuditoria;
-    antes: Record<string, unknown> | null;
-    despues: Record<string, unknown> | null;
-    actor: { uid: string; email?: string };
-};
-
-function diffKeys(antes: Record<string, unknown>, despues: Record<string, unknown>): string[] {
-    const keys = new Set([...Object.keys(antes), ...Object.keys(despues)]);
-    const changed: string[] = [];
-    for (const k of keys) {
-        let a: string, b: string;
-        try { a = JSON.stringify(antes[k] ?? null); } catch { a = '[no-serializable]'; }
-        try { b = JSON.stringify(despues[k] ?? null); } catch { b = '[no-serializable]'; }
-        if (a !== b) changed.push(k);
-    }
-    return changed;
-}
-
-export async function appendAuditoria(input: AuditoriaInput): Promise<void> {
-    // OVERRIDE QWEN #4 — append-only vía add(); batch.set() PROHIBIDO en el ledger.
-    const { coleccion, documentoId, operacion, antes, despues, actor } = input;
-    const campos_modificados =
-        operacion === 'CREATE'
-            ? Object.keys(despues ?? {})
-            : diffKeys(antes ?? {}, despues ?? {});
-    try {
-        const adminDb = getDb();
-        await adminDb.collection('historial_auditoria').add({
-            coleccion_afectada: coleccion,
-            documento_id: documentoId,
-            operacion,
-            datos_anteriores: antes,
-            datos_nuevos: despues,
-            campos_modificados,
-            registrado_por: actor.uid,
-            registrado_por_email: actor.email ?? null,
-            created_at: new Date(),
-            version: 1,
-        });
-    } catch (error) {
-        console.error('[creditos] appendAuditoria falló:', {
-            coleccion, documentoId, operacion, error,
-        });
-        throw error;
-    }
-}
-
-function validarActor(actor: unknown): { uid: string; idToken: string } | null {
-    const parsed = actorSchema.safeParse(actor);
-    if (!parsed.success) return null;
-    return parsed.data;
-}
+export { requireActor } from '@/lib/actions/actor';
+export { appendAuditoria } from '@/lib/actions/audit';
+export type { ActionResult } from '@/lib/actions/result';
+export type { ActorInput, VerifiedActor } from '@/lib/actions/actor';
+export type { AuditoriaInput, OperacionAuditoria } from '@/lib/actions/audit';
 
 // ==========================================
 // 2. Utilidades
@@ -176,22 +100,28 @@ const creditoSchema = z.object({
     asignaciones: asignacionesSchema,
 });
 
-export async function createCredito(input: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = creditoSchema.safeParse(input);
-    if (!validated.success) {
-        return { success: false, message: 'Datos del crédito inválidos. Revisa los campos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'creditos', 'create');
-        const adminDb = getDb();
-        const data = validated.data;
-
+const createCreditoImpl = withAuthAndAudit<
+    z.infer<typeof creditoSchema>,
+    ActionResult
+>(
+    {
+        name: 'createCredito',
+        schema: creditoSchema,
+        invalidMessage: 'Datos del crédito inválidos. Revisa los campos.',
+        permission: { coleccion: 'creditos', accion: 'create' },
+        revalidate: ['/admin/creditos'],
+        errorPrefix: 'Error al crear el crédito',
+    },
+    async ({ db, actor: me, input: data, audit }): Promise<ActionResult> => {
         // FK: el cliente debe existir y estar activo (prohibido huérfano silencioso)
-        const clienteSnap = await adminDb.collection('clientes_credito').doc(data.id_cliente).get();
-        if (!clienteSnap.exists || (clienteSnap.data() as { activo?: boolean } | undefined)?.activo === false) {
+        const clienteSnap = await db
+            .collection('clientes_credito')
+            .doc(data.id_cliente)
+            .get();
+        if (
+            !clienteSnap.exists ||
+            (clienteSnap.data() as { activo?: boolean } | undefined)?.activo === false
+        ) {
             return { success: false, message: 'El cliente no existe o está inactivo.' };
         }
 
@@ -210,18 +140,25 @@ export async function createCredito(input: unknown, actor: unknown): Promise<Act
             updated_at: new Date(),
             activo: true,
         };
-        const docRef = await adminDb.collection('creditos').add(payload);
-        await appendAuditoria({
-            coleccion: 'creditos', documentoId: docRef.id, operacion: 'CREATE',
-            antes: null, despues: { ...payload, fecha_registro: fechaRegistro.toISOString() }, actor: me,
+        const docRef = await db.collection('creditos').add(payload);
+        await audit({
+            coleccion: 'creditos',
+            documentoId: docRef.id,
+            operacion: 'CREATE',
+            antes: null,
+            despues: { ...payload, fecha_registro: fechaRegistro.toISOString() },
         });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Crédito creado correctamente.', id: docRef.id, numero_credito };
-    } catch (error) {
-        console.error('[creditos] createCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al crear el crédito: ${msg}` };
+        return {
+            success: true,
+            message: 'Crédito creado correctamente.',
+            id: docRef.id,
+            numero_credito,
+        };
     }
+);
+
+export async function createCredito(input: unknown, actor: unknown): Promise<ActionResult> {
+    return createCreditoImpl(input, actor);
 }
 
 const creditoPatchSchema = z.object({
@@ -230,49 +167,61 @@ const creditoPatchSchema = z.object({
     asignaciones: asignacionesSchema.partial().optional(),
 });
 
+const updateCreditoSchema = z.object({
+    id: z.string(),
+    patch: creditoPatchSchema,
+});
+
 export async function updateCredito(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = creditoPatchSchema.safeParse(patch);
-    if (!validated.success) {
-        return { success: false, message: 'Datos de actualización inválidos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'creditos', 'update');
-        const adminDb = getDb();
-        const docRef = adminDb.collection('creditos').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El crédito no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        if ((antes as { activo?: boolean }).activo === false) {
-            return { success: false, message: 'El crédito está dado de baja.' };
-        }
+    return runAction<z.infer<typeof updateCreditoSchema>, ActionResult>(
+        {
+            name: 'updateCredito',
+            schema: updateCreditoSchema,
+            invalidMessage: 'Datos de actualización inválidos.',
+            permission: { coleccion: 'creditos', accion: 'update' },
+            revalidate: ['/admin/creditos'],
+            errorPrefix: 'Error al actualizar el crédito',
+        },
+        { id, patch },
+        actor,
+        async ({ db, actor: me, input, audit }): Promise<ActionResult> => {
+            const docRef = db.collection('creditos').doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El crédito no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            if ((antes as { activo?: boolean }).activo === false) {
+                return { success: false, message: 'El crédito está dado de baja.' };
+            }
 
-        // numero_credito y fecha_registro son inmutables: si vienen, se descartan y loguean.
-        const rawPatch = (patch ?? {}) as Record<string, unknown>;
-        if ('numero_credito' in rawPatch || 'fecha_registro' in rawPatch) {
-            console.warn('[creditos] updateCredito: intento de modificar numero_credito/fecha_registro — descartado', { id });
-        }
+            // numero_credito y fecha_registro son inmutables: si vienen, se descartan y loguean.
+            const rawPatch = (patch ?? {}) as Record<string, unknown>;
+            if ('numero_credito' in rawPatch || 'fecha_registro' in rawPatch) {
+                console.warn('[creditos] updateCredito: intento de modificar numero_credito/fecha_registro — descartado', { id });
+            }
 
-        const updates: Record<string, unknown> = {
-            ...validated.data,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        const despues = { ...antes, ...updates };
-        await appendAuditoria({
-            coleccion: 'creditos', documentoId: id, operacion: 'UPDATE',
-            antes, despues, actor: me,
-        });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Crédito actualizado correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] updateCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al actualizar el crédito: ${msg}` };
-    }
+            const updates: Record<string, unknown> = {
+                ...input.patch,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            const despues = { ...antes, ...updates };
+            await audit({
+                coleccion: 'creditos',
+                documentoId: input.id,
+                operacion: 'UPDATE',
+                antes,
+                despues,
+            });
+            return {
+                success: true,
+                message: 'Crédito actualizado correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }
 
 export async function softDeleteCredito(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
