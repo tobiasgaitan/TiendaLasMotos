@@ -21,6 +21,7 @@ export interface ConteoPendiente {
     sede_id: string;
     descripcion: string;
     cantidad_contada: number;
+    precio_etiqueta_fisica: number | null;
     ubicacion: string;
     anotaciones: string;
     foto_url: string;

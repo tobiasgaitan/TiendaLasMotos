@@ -125,6 +125,7 @@ export async function encolarConteo(
             mime_type: mimeType,
             tamano_bytes: tamanoBytes,
             etiquetas_vision: etiquetasVision,
+            precio_etiqueta_fisica: entrada.precio_etiqueta_fisica ?? null,
         };
 
         const borrador: BorradorConteoOutbox = {

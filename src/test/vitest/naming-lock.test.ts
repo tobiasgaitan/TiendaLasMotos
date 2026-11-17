@@ -37,6 +37,7 @@ const clavesFirestore = [
     'referencia_sugerida',
     'descripcion',
     'cantidad_contada',
+    'precio_etiqueta_fisica',
     'ubicacion',
     'anotaciones',
     'foto_url',
@@ -91,5 +92,11 @@ describe('NAMING LOCK', () => {
 
     it('no usa revisado_por_email como alias', () => {
         expect(fuentes).not.toContain('revisado_por_email');
+    });
+
+    it('declara precio_etiqueta_fisica y prohíbe alias', () => {
+        expect(fuentes).toContain('precio_etiqueta_fisica');
+        expect(fuentes).not.toContain('precio_compra');
+        expect(fuentes).not.toMatch(/\bprecio_etiqueta\b(?!_fisica)/);
     });
 });
