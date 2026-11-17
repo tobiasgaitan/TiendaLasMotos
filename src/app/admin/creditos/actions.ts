@@ -2,11 +2,7 @@
 
 import { z } from "zod";
 import { getDb } from "@/lib/firebase-admin";
-import { revalidatePath } from "next/cache";
 import { moneySchema, intSchema } from "@/lib/actions/creditos-schemas";
-import { requirePermiso } from "@/lib/auth/require-permiso";
-import { requireActor, validarActor } from "@/lib/actions/actor";
-import { appendAuditoria } from "@/lib/actions/audit";
 import { runAction, withAuthAndAudit } from "@/lib/actions/run-action";
 import type { ActionResult } from "@/lib/actions/result";
 
@@ -172,6 +168,11 @@ const updateCreditoSchema = z.object({
     patch: creditoPatchSchema,
 });
 
+const softDeleteCreditoSchema = z.object({
+    id: z.string(),
+    motivo: z.unknown(),
+});
+
 export async function updateCredito(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
     return runAction<z.infer<typeof updateCreditoSchema>, ActionResult>(
         {
@@ -225,39 +226,57 @@ export async function updateCredito(id: string, patch: unknown, actor: unknown):
 }
 
 export async function softDeleteCredito(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    if (!motivo || !String(motivo).trim()) {
-        return { success: false, message: 'La baja exige un motivo.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'creditos', 'update');
-        const adminDb = getDb();
-        const docRef = adminDb.collection('creditos').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El crédito no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        const updates = {
-            activo: false,
-            motivo_baja: String(motivo).trim(),
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'creditos', documentoId: id, operacion: 'SOFT_DELETE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Crédito dado de baja correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] softDeleteCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al dar de baja el crédito: ${msg}` };
-    }
+    return runAction<z.infer<typeof softDeleteCreditoSchema>, ActionResult>(
+        {
+            name: 'softDeleteCredito',
+            schema: softDeleteCreditoSchema,
+            revalidate: ['/admin/creditos'],
+            errorPrefix: 'Error al dar de baja el crédito',
+        },
+        { id, motivo },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            if (!input.motivo || !String(input.motivo).trim()) {
+                return { success: false, message: 'La baja exige un motivo.' };
+            }
+
+            await requirePermiso('creditos', 'update');
+
+            const docRef = db.collection('creditos').doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El crédito no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            const updates = {
+                activo: false,
+                motivo_baja: String(input.motivo).trim(),
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'creditos',
+                documentoId: input.id,
+                operacion: 'SOFT_DELETE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Crédito dado de baja correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }
 
 // ==========================================
@@ -276,29 +295,40 @@ const clienteSchema = z.object({
     ciudad: z.string().optional(),
 });
 
-export async function createClienteCredito(input: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = clienteSchema.safeParse(input);
-    if (!validated.success) {
-        return { success: false, message: 'Datos del cliente inválidos. Revisa los campos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'clientes_credito', 'create');
-        const adminDb = getDb();
-        const data = validated.data;
-
+const createClienteCreditoImpl = withAuthAndAudit<
+    z.infer<typeof clienteSchema>,
+    ActionResult
+>(
+    {
+        name: 'createClienteCredito',
+        schema: clienteSchema,
+        invalidMessage: 'Datos del cliente inválidos. Revisa los campos.',
+        permission: { coleccion: 'clientes_credito', accion: 'create' },
+        revalidate: ['/admin/creditos'],
+        errorPrefix: 'Error al crear el cliente',
+    },
+    async ({ db, actor: me, input: data, audit }): Promise<ActionResult> => {
         // Normalización 12 dígitos (contrato UNE); tolera legacy 10 dígitos.
         const celular = normalizarCelular(data.celular);
         if (!celular) {
-            return { success: false, message: 'El celular no es normalizable (se esperan 10 o 12 dígitos).' };
+            return {
+                success: false,
+                message:
+                    'El celular no es normalizable (se esperan 10 o 12 dígitos).',
+            };
         }
 
         // Duplicado por cedula (clave canónica de documento)
-        const dup = await adminDb.collection('clientes_credito').where('cedula', '==', data.cedula).limit(1).get();
+        const dup = await db
+            .collection('clientes_credito')
+            .where('cedula', '==', data.cedula)
+            .limit(1)
+            .get();
         if (!dup.empty) {
-            return { success: false, message: 'Ya existe un cliente con esa cédula.' };
+            return {
+                success: false,
+                message: 'Ya existe un cliente con esa cédula.',
+            };
         }
 
         const fechaRegistro = parseFechaISO(data.fecha_registro) ?? new Date();
@@ -319,18 +349,29 @@ export async function createClienteCredito(input: unknown, actor: unknown): Prom
         if (data.email) payload.email = data.email;
         if (data.ciudad) payload.ciudad = data.ciudad.trim();
 
-        const docRef = await adminDb.collection('clientes_credito').add(payload);
-        await appendAuditoria({
-            coleccion: 'clientes_credito', documentoId: docRef.id, operacion: 'CREATE',
-            antes: null, despues: { ...payload, fecha_registro: fechaRegistro.toISOString() }, actor: me,
+        const docRef = await db
+            .collection('clientes_credito')
+            .add(payload);
+        await audit({
+            coleccion: 'clientes_credito',
+            documentoId: docRef.id,
+            operacion: 'CREATE',
+            antes: null,
+            despues: {
+                ...payload,
+                fecha_registro: fechaRegistro.toISOString(),
+            },
         });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Cliente creado correctamente.', id: docRef.id };
-    } catch (error) {
-        console.error('[creditos] createClienteCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al crear el cliente: ${msg}` };
+        return {
+            success: true,
+            message: 'Cliente creado correctamente.',
+            id: docRef.id,
+        };
     }
+);
+
+export async function createClienteCredito(input: unknown, actor: unknown): Promise<ActionResult> {
+    return createClienteCreditoImpl(input, actor);
 }
 
 const clientePatchSchema = z.object({
@@ -344,98 +385,164 @@ const clientePatchSchema = z.object({
     ciudad: z.string().optional(),
 });
 
+const updateClienteCreditoSchema = z.object({
+    id: z.string(),
+    patch: clientePatchSchema,
+});
+
+const softDeleteClienteCreditoSchema = z.object({
+    id: z.string(),
+    motivo: z.unknown(),
+});
+
 export async function updateClienteCredito(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = clientePatchSchema.safeParse(patch);
-    if (!validated.success) {
-        return { success: false, message: 'Datos de actualización inválidos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'clientes_credito', 'update');
-        const adminDb = getDb();
-        const docRef = adminDb.collection('clientes_credito').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El cliente no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
+    return runAction<z.infer<typeof updateClienteCreditoSchema>, ActionResult>(
+        {
+            name: 'updateClienteCredito',
+            schema: updateClienteCreditoSchema,
+            invalidMessage: 'Datos de actualización inválidos.',
+            permission: { coleccion: 'clientes_credito', accion: 'update' },
+            revalidate: ['/admin/creditos'],
+            errorPrefix: 'Error al actualizar el cliente',
+        },
+        { id, patch },
+        actor,
+        async ({ db, actor: me, input, audit }): Promise<ActionResult> => {
+            const docRef = db
+                .collection('clientes_credito')
+                .doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El cliente no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
 
-        // fecha_registro es inmutable: si viene en el patch, se descarta y loguea.
-        const rawPatch = (patch ?? {}) as Record<string, unknown>;
-        if ('fecha_registro' in rawPatch) {
-            console.warn('[creditos] updateClienteCredito: intento de modificar fecha_registro — descartado', { id });
-        }
+            // fecha_registro es inmutable: si viene en el patch, se descarta y loguea.
+            const rawPatch = (patch ?? {}) as Record<string, unknown>;
+            if ('fecha_registro' in rawPatch) {
+                console.warn(
+                    '[creditos] updateClienteCredito: intento de modificar fecha_registro — descartado',
+                    { id: input.id }
+                );
+            }
 
-        const data = validated.data;
-        const updates: Record<string, unknown> = {
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        if (data.nombres !== undefined) updates.nombres = data.nombres;
-        if (data.direccion !== undefined) updates.direccion = data.direccion;
-        if (data.tipo_documento !== undefined) updates.tipo_documento = data.tipo_documento;
-        if (data.apellidos !== undefined) updates.apellidos = data.apellidos.trim();
-        if (data.email !== undefined) updates.email = data.email;
-        if (data.ciudad !== undefined) updates.ciudad = data.ciudad.trim();
-        if (data.celular !== undefined) {
-            const celular = normalizarCelular(data.celular);
-            if (!celular) return { success: false, message: 'El celular no es normalizable.' };
-            updates.celular = celular;
-        }
-        if (data.cedula !== undefined) {
-            // cedula editable solo si no colisiona con otro doc
-            const dup = await adminDb.collection('clientes_credito').where('cedula', '==', data.cedula).get();
-            const colision = dup.docs.some((d: any) => d.id !== id);
-            if (colision) return { success: false, message: 'Otra ficha ya usa esa cédula.' };
-            updates.cedula = data.cedula;
-        }
+            const data = input.patch;
+            const updates: Record<string, unknown> = {
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            if (data.nombres !== undefined) updates.nombres = data.nombres;
+            if (data.direccion !== undefined) updates.direccion = data.direccion;
+            if (data.tipo_documento !== undefined) {
+                updates.tipo_documento = data.tipo_documento;
+            }
+            if (data.apellidos !== undefined) {
+                updates.apellidos = data.apellidos.trim();
+            }
+            if (data.email !== undefined) updates.email = data.email;
+            if (data.ciudad !== undefined) {
+                updates.ciudad = data.ciudad.trim();
+            }
+            if (data.celular !== undefined) {
+                const celular = normalizarCelular(data.celular);
+                if (!celular) {
+                    return {
+                        success: false,
+                        message: 'El celular no es normalizable.',
+                    };
+                }
+                updates.celular = celular;
+            }
+            if (data.cedula !== undefined) {
+                // cedula editable solo si no colisiona con otro doc
+                const dup = await db
+                    .collection('clientes_credito')
+                    .where('cedula', '==', data.cedula)
+                    .get();
+                const colision = dup.docs.some(
+                    (d: any) => d.id !== input.id
+                );
+                if (colision) {
+                    return {
+                        success: false,
+                        message: 'Otra ficha ya usa esa cédula.',
+                    };
+                }
+                updates.cedula = data.cedula;
+            }
 
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'clientes_credito', documentoId: id, operacion: 'UPDATE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Cliente actualizado correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] updateClienteCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al actualizar el cliente: ${msg}` };
-    }
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'clientes_credito',
+                documentoId: input.id,
+                operacion: 'UPDATE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Cliente actualizado correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }
 
 export async function softDeleteClienteCredito(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    if (!motivo || !String(motivo).trim()) {
-        return { success: false, message: 'La baja exige un motivo.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'clientes_credito', 'update');
-        const adminDb = getDb();
-        const docRef = adminDb.collection('clientes_credito').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El cliente no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        const updates = {
-            activo: false,
-            motivo_baja: String(motivo).trim(),
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'clientes_credito', documentoId: id, operacion: 'SOFT_DELETE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos');
-        return { success: true, message: 'Cliente dado de baja correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] softDeleteClienteCredito falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al dar de baja el cliente: ${msg}` };
-    }
+    return runAction<
+        z.infer<typeof softDeleteClienteCreditoSchema>,
+        ActionResult
+    >(
+        {
+            name: 'softDeleteClienteCredito',
+            schema: softDeleteClienteCreditoSchema,
+            revalidate: ['/admin/creditos'],
+            errorPrefix: 'Error al dar de baja el cliente',
+        },
+        { id, motivo },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            if (!input.motivo || !String(input.motivo).trim()) {
+                return { success: false, message: 'La baja exige un motivo.' };
+            }
+
+            await requirePermiso('clientes_credito', 'update');
+
+            const docRef = db
+                .collection('clientes_credito')
+                .doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El cliente no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            const updates = {
+                activo: false,
+                motivo_baja: String(input.motivo).trim(),
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'clientes_credito',
+                documentoId: input.id,
+                operacion: 'SOFT_DELETE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Cliente dado de baja correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }

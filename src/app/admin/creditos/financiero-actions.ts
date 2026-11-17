@@ -1,19 +1,11 @@
 'use server';
 
 import { z } from "zod";
-import { getDb } from "@/lib/firebase-admin";
-import { revalidatePath } from "next/cache";
 import { calcularComision } from "@/lib/actions/creditos-calc";
 import type { CreditoCondiciones } from "@/types/creditos";
-import {
-    requireActor,
-    appendAuditoria,
-    type ActionResult,
-} from "./actions";
+import type { ActionResult } from "@/lib/actions/result";
 import { moneySchema } from "@/lib/actions/creditos-schemas";
-import { validarActor } from "@/lib/actions/actor";
 import { runAction } from "@/lib/actions/run-action";
-import { requirePermiso } from "@/lib/auth/require-permiso";
 
 /**
  * Server Actions financieras — Fase 9 (Regla A + M3 + M4).
@@ -169,116 +161,212 @@ const pagoPatchSchema = z.object({
     motivo: z.string().optional(),
 });
 
+const updatePagoYMultaSchema = z.object({
+    id: z.string(),
+    patch: pagoPatchSchema,
+});
+
+const softDeletePagoYMultaSchema = z.object({
+    id: z.string(),
+    motivo: z.unknown(),
+});
+
 export async function updatePagoYMulta(id: string, patch: unknown, actor: unknown): Promise<PagoResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = pagoPatchSchema.safeParse(patch);
-    if (!validated.success) {
-        return { success: false, message: 'Datos de actualización inválidos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const adminDb = getDb();
-        const docRef = adminDb.collection('pagos_y_multas').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El registro no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        const creditoPrevio = await adminDb.collection('creditos').doc(String(antes.id_credito)).get();
-        const asignPrevia = (creditoPrevio.data() as { asignaciones?: { email_usuario?: string | null } } | undefined)?.asignaciones;
-        await requirePermiso(me, 'pagos_y_multas', 'update', { email_usuario: asignPrevia?.email_usuario ?? null });
-
-        // id_credito y tipo_transaccion son inmutables (prohibido PAGO↔MULTA).
-        const rawPatch = (patch ?? {}) as Record<string, unknown>;
-        if ('id_credito' in rawPatch || 'tipo_transaccion' in rawPatch) {
-            console.warn('[creditos] updatePagoYMulta: intento de reasignar id_credito/tipo_transaccion — descartado', { id });
-        }
-
-        const data = validated.data;
-        const tipo = antes.tipo_transaccion as 'pago_cuota' | 'multa' | 'nota_credito';
-        const updates: Record<string, unknown> = {
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        if (data.valor_pagado_cliente !== undefined) {
-            if (tipo !== 'nota_credito' && data.valor_pagado_cliente < 0) {
-                return { success: false, message: 'Solo la nota crédito admite valor negativo.' };
+    return runAction<z.infer<typeof updatePagoYMultaSchema>, PagoResult>(
+        {
+            name: 'updatePagoYMulta',
+            schema: updatePagoYMultaSchema,
+            invalidMessage: 'Datos de actualización inválidos.',
+            revalidate: ['/admin/creditos/pagos'],
+            errorPrefix: 'Error al actualizar el registro',
+        },
+        { id, patch },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<PagoResult> => {
+            const docRef = db.collection('pagos_y_multas').doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El registro no existe.' };
             }
-            // Recalcular comisión/neto con las condiciones del crédito
-            const creditoSnap = await adminDb.collection('creditos').doc(String(antes.id_credito)).get();
-            const credito = creditoSnap.data() as { condiciones?: CreditoCondiciones } | undefined;
-            if (!credito?.condiciones) {
-                return { success: false, message: 'El crédito no tiene condiciones registradas.' };
-            }
-            const calc = calcularComision(data.valor_pagado_cliente, tipo, credito.condiciones);
-            updates.valor_pagado_cliente = data.valor_pagado_cliente;
-            updates.valor_comision = calc.valor_comision;
-            updates.valor_neto_empresa = calc.valor_neto_empresa;
-        }
-        if (data.metodo_pago !== undefined) updates.metodo_pago = data.metodo_pago;
-        if (data.referencia !== undefined) updates.referencia = data.referencia.trim();
-        if (data.motivo !== undefined) {
-            const motivo = data.motivo.trim();
-            if (tipo === 'multa' && motivo.length === 0) {
-                return { success: false, message: 'La multa exige motivo.' };
-            }
-            updates.motivo = motivo;
-        }
+            const antes = snap.data() as Record<string, unknown>;
+            const creditoPrevio = await db
+                .collection('creditos')
+                .doc(String(antes.id_credito))
+                .get();
+            const asignPrevia = (
+                creditoPrevio.data() as
+                    | { asignaciones?: { email_usuario?: string | null } }
+                    | undefined
+            )?.asignaciones;
+            await requirePermiso('pagos_y_multas', 'update', {
+                email_usuario: asignPrevia?.email_usuario ?? null,
+            });
 
-        await docRef.update(updates);
-        const despues = { ...antes, ...updates };
-        await appendAuditoria({
-            coleccion: 'pagos_y_multas', documentoId: id, operacion: 'UPDATE',
-            antes, despues, actor: me,
-        });
-        revalidatePath('/admin/creditos/pagos');
-        return {
-            success: true, message: 'Registro actualizado correctamente.', id,
-            valor_comision: despues.valor_comision as number | undefined,
-            valor_neto_empresa: despues.valor_neto_empresa as number | undefined,
-        };
-    } catch (error) {
-        console.error('[creditos] updatePagoYMulta falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al actualizar el registro: ${msg}` };
-    }
+            // id_credito y tipo_transaccion son inmutables (prohibido PAGO↔MULTA).
+            const rawPatch = (patch ?? {}) as Record<string, unknown>;
+            if ('id_credito' in rawPatch || 'tipo_transaccion' in rawPatch) {
+                console.warn(
+                    '[creditos] updatePagoYMulta: intento de reasignar id_credito/tipo_transaccion — descartado',
+                    { id: input.id }
+                );
+            }
+
+            const data = input.patch;
+            const tipo = antes.tipo_transaccion as
+                | 'pago_cuota'
+                | 'multa'
+                | 'nota_credito';
+            const updates: Record<string, unknown> = {
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            if (data.valor_pagado_cliente !== undefined) {
+                if (
+                    tipo !== 'nota_credito' &&
+                    data.valor_pagado_cliente < 0
+                ) {
+                    return {
+                        success: false,
+                        message: 'Solo la nota crédito admite valor negativo.',
+                    };
+                }
+                // Recalcular comisión/neto con las condiciones del crédito
+                const creditoSnap = await db
+                    .collection('creditos')
+                    .doc(String(antes.id_credito))
+                    .get();
+                const credito = creditoSnap.data() as
+                    | { condiciones?: CreditoCondiciones }
+                    | undefined;
+                if (!credito?.condiciones) {
+                    return {
+                        success: false,
+                        message:
+                            'El crédito no tiene condiciones registradas.',
+                    };
+                }
+                const calc = calcularComision(
+                    data.valor_pagado_cliente,
+                    tipo,
+                    credito.condiciones
+                );
+                updates.valor_pagado_cliente = data.valor_pagado_cliente;
+                updates.valor_comision = calc.valor_comision;
+                updates.valor_neto_empresa = calc.valor_neto_empresa;
+            }
+            if (data.metodo_pago !== undefined) {
+                updates.metodo_pago = data.metodo_pago;
+            }
+            if (data.referencia !== undefined) {
+                updates.referencia = data.referencia.trim();
+            }
+            if (data.motivo !== undefined) {
+                const motivo = data.motivo.trim();
+                if (tipo === 'multa' && motivo.length === 0) {
+                    return {
+                        success: false,
+                        message: 'La multa exige motivo.',
+                    };
+                }
+                updates.motivo = motivo;
+            }
+
+            await docRef.update(updates);
+            const despues = { ...antes, ...updates };
+            await audit({
+                coleccion: 'pagos_y_multas',
+                documentoId: input.id,
+                operacion: 'UPDATE',
+                antes,
+                despues,
+            });
+            return {
+                success: true,
+                message: 'Registro actualizado correctamente.',
+                id: input.id,
+                valor_comision: despues.valor_comision as
+                    | number
+                    | undefined,
+                valor_neto_empresa: despues.valor_neto_empresa as
+                    | number
+                    | undefined,
+            };
+        }
+    );
 }
 
 export async function softDeletePagoYMulta(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    if (!motivo || !String(motivo).trim()) {
-        return { success: false, message: 'La baja exige un motivo.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const adminDb = getDb();
-        const docRef = adminDb.collection('pagos_y_multas').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El registro no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        const creditoBaja = await adminDb.collection('creditos').doc(String(antes.id_credito)).get();
-        const asignBaja = (creditoBaja.data() as { asignaciones?: { email_usuario?: string | null } } | undefined)?.asignaciones;
-        await requirePermiso(me, 'pagos_y_multas', 'update', { email_usuario: asignBaja?.email_usuario ?? null });
-        const updates = {
-            activo: false,
-            motivo_baja: String(motivo).trim(),
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'pagos_y_multas', documentoId: id, operacion: 'SOFT_DELETE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos/pagos');
-        return { success: true, message: 'Registro dado de baja correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] softDeletePagoYMulta falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al dar de baja el registro: ${msg}` };
-    }
+    return runAction<
+        z.infer<typeof softDeletePagoYMultaSchema>,
+        ActionResult
+    >(
+        {
+            name: 'softDeletePagoYMulta',
+            schema: softDeletePagoYMultaSchema,
+            revalidate: ['/admin/creditos/pagos'],
+            errorPrefix: 'Error al dar de baja el registro',
+        },
+        { id, motivo },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            if (!input.motivo || !String(input.motivo).trim()) {
+                return { success: false, message: 'La baja exige un motivo.' };
+            }
+
+            const docRef = db.collection('pagos_y_multas').doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El registro no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            const creditoBaja = await db
+                .collection('creditos')
+                .doc(String(antes.id_credito))
+                .get();
+            const asignBaja = (
+                creditoBaja.data() as
+                    | { asignaciones?: { email_usuario?: string | null } }
+                    | undefined
+            )?.asignaciones;
+            await requirePermiso('pagos_y_multas', 'update', {
+                email_usuario: asignBaja?.email_usuario ?? null,
+            });
+
+            const updates = {
+                activo: false,
+                motivo_baja: String(input.motivo).trim(),
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'pagos_y_multas',
+                documentoId: input.id,
+                operacion: 'SOFT_DELETE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Registro dado de baja correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }
 
 // ==========================================
@@ -294,57 +382,84 @@ const pagoInversorSchema = z.object({
 });
 
 export async function createPagoInversor(input: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = pagoInversorSchema.safeParse(input);
-    if (!validated.success) {
-        return { success: false, message: 'Datos del giro inválidos. Revisa los campos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const actorEmail = (me.email ?? '').toLowerCase().trim();
-        if (!actorEmail) {
-            return { success: false, message: 'La cuenta no tiene email verificado.' };
-        }
-        const adminDb = getDb();
-        const data = validated.data;
+    return runAction<z.infer<typeof pagoInversorSchema>, ActionResult>(
+        {
+            name: 'createPagoInversor',
+            schema: pagoInversorSchema,
+            invalidMessage: 'Datos del giro inválidos. Revisa los campos.',
+            revalidate: ['/admin/creditos/inversores'],
+            errorPrefix: 'Error al registrar el giro',
+        },
+        input,
+        actor,
+        async ({
+            db,
+            actor: me,
+            input: data,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            const actorEmail = (me.email ?? '').toLowerCase().trim();
+            if (!actorEmail) {
+                return {
+                    success: false,
+                    message: 'La cuenta no tiene email verificado.',
+                };
+            }
 
-        const creditoSnap = await adminDb.collection('creditos').doc(data.id_credito).get();
-        if (!creditoSnap.exists) {
-            return { success: false, message: 'El crédito no existe.' };
-        }
-        if ((creditoSnap.data() as { activo?: boolean } | undefined)?.activo === false) {
-            return { success: false, message: 'El crédito está dado de baja.' };
-        }
-        await requirePermiso(me, 'pagos_inversores', 'create');
+            const creditoSnap = await db
+                .collection('creditos')
+                .doc(data.id_credito)
+                .get();
+            if (!creditoSnap.exists) {
+                return { success: false, message: 'El crédito no existe.' };
+            }
+            if (
+                (creditoSnap.data() as { activo?: boolean } | undefined)
+                    ?.activo === false
+            ) {
+                return {
+                    success: false,
+                    message: 'El crédito está dado de baja.',
+                };
+            }
 
-        const payload: Record<string, unknown> = {
-            id_credito: data.id_credito,
-            email_admin: actorEmail, // email canónico del admin que gira (Ruta A')
-            email_inversor: data.email_inversor.trim(),
-            monto: data.monto,
-            fecha_registro: new Date(),
-            registrado_por: me.uid,
-            registrado_por_email: me.email ?? null,
-            created_at: new Date(),
-            updated_at: new Date(),
-            activo: true,
-        };
-        if (data.metodo_pago) payload.metodo_pago = data.metodo_pago;
-        if (data.referencia) payload.referencia = data.referencia.trim();
+            await requirePermiso('pagos_inversores', 'create');
 
-        const docRef = await adminDb.collection('pagos_inversores').add(payload);
-        await appendAuditoria({
-            coleccion: 'pagos_inversores', documentoId: docRef.id, operacion: 'CREATE',
-            antes: null, despues: payload, actor: me,
-        });
-        revalidatePath('/admin/creditos/inversores');
-        return { success: true, message: 'Giro registrado correctamente.', id: docRef.id };
-    } catch (error) {
-        console.error('[creditos] createPagoInversor falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al registrar el giro: ${msg}` };
-    }
+            const payload: Record<string, unknown> = {
+                id_credito: data.id_credito,
+                email_admin: actorEmail, // email canónico del admin que gira (Ruta A')
+                email_inversor: data.email_inversor.trim(),
+                monto: data.monto,
+                fecha_registro: new Date(),
+                registrado_por: me.uid,
+                registrado_por_email: me.email ?? null,
+                created_at: new Date(),
+                updated_at: new Date(),
+                activo: true,
+            };
+            if (data.metodo_pago) payload.metodo_pago = data.metodo_pago;
+            if (data.referencia) {
+                payload.referencia = data.referencia.trim();
+            }
+
+            const docRef = await db
+                .collection('pagos_inversores')
+                .add(payload);
+            await audit({
+                coleccion: 'pagos_inversores',
+                documentoId: docRef.id,
+                operacion: 'CREATE',
+                antes: null,
+                despues: payload,
+            });
+            return {
+                success: true,
+                message: 'Giro registrado correctamente.',
+                id: docRef.id,
+            };
+        }
+    );
 }
 
 const pagoInversorPatchSchema = z.object({
@@ -353,85 +468,147 @@ const pagoInversorPatchSchema = z.object({
     referencia: z.string().optional(),
 });
 
+const updatePagoInversorSchema = z.object({
+    id: z.string(),
+    patch: pagoInversorPatchSchema,
+});
+
+const softDeletePagoInversorSchema = z.object({
+    id: z.string(),
+    motivo: z.unknown(),
+});
+
 export async function updatePagoInversor(id: string, patch: unknown, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    const validated = pagoInversorPatchSchema.safeParse(patch);
-    if (!validated.success) {
-        return { success: false, message: 'Datos de actualización inválidos.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const adminDb = getDb();
-        const docRef = adminDb.collection('pagos_inversores').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El giro no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        await requirePermiso(me, 'pagos_inversores', 'update');
+    return runAction<
+        z.infer<typeof updatePagoInversorSchema>,
+        ActionResult
+    >(
+        {
+            name: 'updatePagoInversor',
+            schema: updatePagoInversorSchema,
+            invalidMessage: 'Datos de actualización inválidos.',
+            revalidate: ['/admin/creditos/inversores'],
+            errorPrefix: 'Error al actualizar el giro',
+        },
+        { id, patch },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            const docRef = db
+                .collection('pagos_inversores')
+                .doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El giro no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            await requirePermiso('pagos_inversores', 'update');
 
-        // id_credito / email_inversor / email_admin son inmutables (prohibido reasignar).
-        const rawPatch = (patch ?? {}) as Record<string, unknown>;
-        if ('id_credito' in rawPatch || 'email_inversor' in rawPatch || 'email_admin' in rawPatch) {
-            console.warn('[creditos] updatePagoInversor: intento de reasignar FK — descartado', { id });
+            // id_credito / email_inversor / email_admin son inmutables (prohibido reasignar).
+            const rawPatch = (patch ?? {}) as Record<string, unknown>;
+            if (
+                'id_credito' in rawPatch ||
+                'email_inversor' in rawPatch ||
+                'email_admin' in rawPatch
+            ) {
+                console.warn(
+                    '[creditos] updatePagoInversor: intento de reasignar FK — descartado',
+                    { id: input.id }
+                );
+            }
+
+            const data = input.patch;
+            const updates: Record<string, unknown> = {
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            if (data.monto !== undefined) updates.monto = data.monto;
+            if (data.metodo_pago !== undefined) {
+                updates.metodo_pago = data.metodo_pago;
+            }
+            if (data.referencia !== undefined) {
+                updates.referencia = data.referencia.trim();
+            }
+
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'pagos_inversores',
+                documentoId: input.id,
+                operacion: 'UPDATE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Giro actualizado correctamente.',
+                id: input.id,
+            };
         }
-
-        const data = validated.data;
-        const updates: Record<string, unknown> = {
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        if (data.monto !== undefined) updates.monto = data.monto;
-        if (data.metodo_pago !== undefined) updates.metodo_pago = data.metodo_pago;
-        if (data.referencia !== undefined) updates.referencia = data.referencia.trim();
-
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'pagos_inversores', documentoId: id, operacion: 'UPDATE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos/inversores');
-        return { success: true, message: 'Giro actualizado correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] updatePagoInversor falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al actualizar el giro: ${msg}` };
-    }
+    );
 }
 
 export async function softDeletePagoInversor(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    if (!motivo || !String(motivo).trim()) {
-        return { success: false, message: 'La baja exige un motivo.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        const adminDb = getDb();
-        const docRef = adminDb.collection('pagos_inversores').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'El giro no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        await requirePermiso(me, 'pagos_inversores', 'update');
-        const updates = {
-            activo: false,
-            motivo_baja: String(motivo).trim(),
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'pagos_inversores', documentoId: id, operacion: 'SOFT_DELETE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos/inversores');
-        return { success: true, message: 'Giro dado de baja correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] softDeletePagoInversor falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al dar de baja el giro: ${msg}` };
-    }
+    return runAction<
+        z.infer<typeof softDeletePagoInversorSchema>,
+        ActionResult
+    >(
+        {
+            name: 'softDeletePagoInversor',
+            schema: softDeletePagoInversorSchema,
+            revalidate: ['/admin/creditos/inversores'],
+            errorPrefix: 'Error al dar de baja el giro',
+        },
+        { id, motivo },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            if (!input.motivo || !String(input.motivo).trim()) {
+                return { success: false, message: 'La baja exige un motivo.' };
+            }
+
+            const docRef = db
+                .collection('pagos_inversores')
+                .doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return { success: false, message: 'El giro no existe.' };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            await requirePermiso('pagos_inversores', 'update');
+
+            const updates = {
+                activo: false,
+                motivo_baja: String(input.motivo).trim(),
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'pagos_inversores',
+                documentoId: input.id,
+                operacion: 'SOFT_DELETE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Giro dado de baja correctamente.',
+                id: input.id,
+            };
+        }
+    );
 }
 
 // ==========================================
@@ -441,132 +618,215 @@ export async function softDeletePagoInversor(id: string, motivo: string, actor: 
 export type RemisionResult = ActionResult & { monto?: number };
 
 export async function generarCierreCaja(actor: unknown): Promise<RemisionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    try {
-        const me = await requireActor(a.idToken);
-        const actorEmail = (me.email ?? '').toLowerCase().trim();
-        if (!actorEmail) {
-            return { success: false, message: 'La cuenta no tiene email verificado.' };
+    return runAction<undefined, RemisionResult>(
+        {
+            name: 'generarCierreCaja',
+            revalidate: ['/admin/creditos/remisiones'],
+            errorPrefix: 'Error al generar el cierre',
+        },
+        undefined,
+        actor,
+        async ({
+            db,
+            actor: me,
+            requirePermiso,
+            audit,
+        }): Promise<RemisionResult> => {
+            const actorEmail = (me.email ?? '').toLowerCase().trim();
+            if (!actorEmail) {
+                return {
+                    success: false,
+                    message: 'La cuenta no tiene email verificado.',
+                };
+            }
+            await requirePermiso('remisiones_dinero', 'create', {
+                email_usuario: actorEmail,
+            });
+
+            const { inicio, fin } = rangoDiaBogota();
+
+            // Suma de valor_neto_empresa del día del cobrador (registrado_por = uid).
+            const snap = await db
+                .collection('pagos_y_multas')
+                .where('registrado_por', '==', me.uid)
+                .where('fecha_registro', '>=', inicio)
+                .where('fecha_registro', '<=', fin)
+                .get();
+            let monto = 0;
+            snap.docs.forEach((d: any) => {
+                const v = (
+                    d.data() as { valor_neto_empresa?: number }
+                ).valor_neto_empresa;
+                if (typeof v === 'number' && Number.isFinite(v)) monto += v;
+            });
+            monto = Math.round(monto * 100) / 100;
+
+            const payload = {
+                email_cobrador: actorEmail,
+                email_admin: '',
+                monto,
+                fecha_registro: new Date(),
+                estado: 'pendiente' as const,
+                registrado_por: me.uid,
+                registrado_por_email: me.email ?? null,
+                created_at: new Date(),
+                updated_at: new Date(),
+                activo: true,
+            };
+            const docRef = await db
+                .collection('remisiones_dinero')
+                .add(payload);
+            await audit({
+                coleccion: 'remisiones_dinero',
+                documentoId: docRef.id,
+                operacion: 'CREATE',
+                antes: null,
+                despues: { ...payload },
+            });
+            return {
+                success: true,
+                message: 'Cierre de caja generado (pendiente).',
+                id: docRef.id,
+                monto,
+            };
         }
-        const adminDb = getDb();
-        await requirePermiso(me, 'remisiones_dinero', 'create', { email_usuario: actorEmail });
-        const { inicio, fin } = rangoDiaBogota();
-
-        // Suma de valor_neto_empresa del día del cobrador (registrado_por = uid).
-        const snap = await adminDb
-            .collection('pagos_y_multas')
-            .where('registrado_por', '==', me.uid)
-            .where('fecha_registro', '>=', inicio)
-            .where('fecha_registro', '<=', fin)
-            .get();
-        let monto = 0;
-        snap.docs.forEach((d: any) => {
-            const v = (d.data() as { valor_neto_empresa?: number }).valor_neto_empresa;
-            if (typeof v === 'number' && Number.isFinite(v)) monto += v;
-        });
-        monto = Math.round(monto * 100) / 100;
-
-        const payload = {
-            email_cobrador: actorEmail,
-            email_admin: '',
-            monto,
-            fecha_registro: new Date(),
-            estado: 'pendiente' as const,
-            registrado_por: me.uid,
-            registrado_por_email: me.email ?? null,
-            created_at: new Date(),
-            updated_at: new Date(),
-            activo: true,
-        };
-        const docRef = await adminDb.collection('remisiones_dinero').add(payload);
-        await appendAuditoria({
-            coleccion: 'remisiones_dinero', documentoId: docRef.id, operacion: 'CREATE',
-            antes: null, despues: { ...payload }, actor: me,
-        });
-        revalidatePath('/admin/creditos/remisiones');
-        return { success: true, message: 'Cierre de caja generado (pendiente).', id: docRef.id, monto };
-    } catch (error) {
-        console.error('[creditos] generarCierreCaja falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al generar el cierre: ${msg}` };
-    }
+    );
 }
 
 export async function aprobarRemision(id: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'remisiones_dinero', 'update');
-        const actorEmail = (me.email ?? '').toLowerCase().trim();
-        if (!actorEmail) {
-            return { success: false, message: 'La cuenta no tiene email verificado.' };
+    return runAction<string, ActionResult>(
+        {
+            name: 'aprobarRemision',
+            permission: {
+                coleccion: 'remisiones_dinero',
+                accion: 'update',
+            },
+            revalidate: ['/admin/creditos/remisiones'],
+            errorPrefix: 'Error al aprobar la remisión',
+        },
+        id,
+        actor,
+        async ({ db, actor: me, input, audit }): Promise<ActionResult> => {
+            const actorEmail = (me.email ?? '').toLowerCase().trim();
+            if (!actorEmail) {
+                return {
+                    success: false,
+                    message: 'La cuenta no tiene email verificado.',
+                };
+            }
+
+            const docRef = db
+                .collection('remisiones_dinero')
+                .doc(input);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return {
+                    success: false,
+                    message: 'La remisión no existe.',
+                };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            if (antes.estado !== 'pendiente') {
+                return {
+                    success: false,
+                    message:
+                        'Solo se puede aprobar una remisión en estado pendiente.',
+                };
+            }
+            const updates = {
+                estado: 'recibido',
+                email_admin: actorEmail,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'remisiones_dinero',
+                documentoId: input,
+                operacion: 'UPDATE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Remisión aprobada (recibido).',
+                id: input,
+            };
         }
-        const adminDb = getDb();
-        const docRef = adminDb.collection('remisiones_dinero').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'La remisión no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        if (antes.estado !== 'pendiente') {
-            return { success: false, message: 'Solo se puede aprobar una remisión en estado pendiente.' };
-        }
-        const updates = {
-            estado: 'recibido',
-            email_admin: actorEmail,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'remisiones_dinero', documentoId: id, operacion: 'UPDATE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos/remisiones');
-        return { success: true, message: 'Remisión aprobada (recibido).', id };
-    } catch (error) {
-        console.error('[creditos] aprobarRemision falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al aprobar la remisión: ${msg}` };
-    }
+    );
 }
 
+const anularRemisionSchema = z.object({
+    id: z.string(),
+    motivo: z.unknown(),
+});
+
 export async function anularRemision(id: string, motivo: string, actor: unknown): Promise<ActionResult> {
-    const a = validarActor(actor);
-    if (!a) return { success: false, message: 'No autorizado. Sesión inválida.' };
-    if (!motivo || !String(motivo).trim()) {
-        return { success: false, message: 'La anulación exige un motivo.' };
-    }
-    try {
-        const me = await requireActor(a.idToken);
-        await requirePermiso(me, 'remisiones_dinero', 'update');
-        const adminDb = getDb();
-        const docRef = adminDb.collection('remisiones_dinero').doc(id);
-        const snap = await docRef.get();
-        if (!snap.exists) return { success: false, message: 'La remisión no existe.' };
-        const antes = snap.data() as Record<string, unknown>;
-        if (antes.estado !== 'pendiente') {
-            return { success: false, message: 'Solo se puede anular una remisión en estado pendiente.' };
+    return runAction<z.infer<typeof anularRemisionSchema>, ActionResult>(
+        {
+            name: 'anularRemision',
+            schema: anularRemisionSchema,
+            revalidate: ['/admin/creditos/remisiones'],
+            errorPrefix: 'Error al anular la remisión',
+        },
+        { id, motivo },
+        actor,
+        async ({
+            db,
+            actor: me,
+            input,
+            requirePermiso,
+            audit,
+        }): Promise<ActionResult> => {
+            if (!input.motivo || !String(input.motivo).trim()) {
+                return {
+                    success: false,
+                    message: 'La anulación exige un motivo.',
+                };
+            }
+
+            await requirePermiso('remisiones_dinero', 'update');
+
+            const docRef = db
+                .collection('remisiones_dinero')
+                .doc(input.id);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                return {
+                    success: false,
+                    message: 'La remisión no existe.',
+                };
+            }
+            const antes = snap.data() as Record<string, unknown>;
+            if (antes.estado !== 'pendiente') {
+                return {
+                    success: false,
+                    message:
+                        'Solo se puede anular una remisión en estado pendiente.',
+                };
+            }
+            const updates = {
+                estado: 'anulado',
+                activo: false,
+                motivo_baja: String(input.motivo).trim(),
+                fecha_baja: new Date(),
+                baja_por: me.uid,
+                updated_at: new Date(),
+                actualizado_por: me.uid,
+            };
+            await docRef.update(updates);
+            await audit({
+                coleccion: 'remisiones_dinero',
+                documentoId: input.id,
+                operacion: 'SOFT_DELETE',
+                antes,
+                despues: { ...antes, ...updates },
+            });
+            return {
+                success: true,
+                message: 'Remisión anulada correctamente.',
+                id: input.id,
+            };
         }
-        const updates = {
-            estado: 'anulado',
-            activo: false,
-            motivo_baja: String(motivo).trim(),
-            fecha_baja: new Date(),
-            baja_por: me.uid,
-            updated_at: new Date(),
-            actualizado_por: me.uid,
-        };
-        await docRef.update(updates);
-        await appendAuditoria({
-            coleccion: 'remisiones_dinero', documentoId: id, operacion: 'SOFT_DELETE',
-            antes, despues: { ...antes, ...updates }, actor: me,
-        });
-        revalidatePath('/admin/creditos/remisiones');
-        return { success: true, message: 'Remisión anulada correctamente.', id };
-    } catch (error) {
-        console.error('[creditos] anularRemision falló:', error);
-        const msg = error instanceof Error ? error.message : 'Excepción desconocida';
-        return { success: false, message: `Error al anular la remisión: ${msg}` };
-    }
+    );
 }
