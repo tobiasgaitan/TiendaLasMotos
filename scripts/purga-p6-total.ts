@@ -12,13 +12,15 @@
  */
 import { execFileSync } from 'node:child_process';
 import { hash as cryptoHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { createInterface } from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import {
+    assertOutDirOutsideRepo,
+    initFirebaseGuarded,
+    requireConfirmation,
+} from './lib/forensic-utils';
 
 const BASE = '/Users/tobiasgaitangallego/opencode-evidence/p6-fase0';
 const PROJECT_ID = 'tiendalasmotos';
@@ -621,15 +623,6 @@ function parseArgs(argv: string[]): CliOptions {
     };
 }
 
-function assertOutDirOutsideRepo(outDir: string): string {
-    const resolved = resolve(outDir);
-    const repo = resolve(process.cwd());
-    if (resolved === repo || resolved.startsWith(`${repo}${sep}`)) {
-        fail('OUT_DIR_INVALIDO', resolved);
-    }
-    return resolved;
-}
-
 function makeRunId(date: Date): string {
     return date.toISOString().replace(/[:.]/g, '-');
 }
@@ -850,19 +843,16 @@ async function applyAll(
     }
 }
 
-async function runLive(options: CliOptions): Promise<void> {
+async function ejecutarPurgaP6(options: CliOptions): Promise<void> {
     const bundle = loadAndValidateArtifacts();
-    const app =
-        getApps()[0] ??
-        initializeApp({
-            projectId: PROJECT_ID,
-            storageBucket: BUCKET_NAME,
-        });
-    if (app.options.projectId && app.options.projectId !== PROJECT_ID) {
-        fail('PROYECTO_NO_AUTORIZADO', app.options.projectId);
-    }
-    const db = getFirestore(app);
-    const bucket = getStorage(app).bucket(BUCKET_NAME);
+    const runId = makeRunId(new Date());
+    const requestedOutDir =
+        options.outDir ?? join(BASE, `apply-${runId}`);
+    const { db, storage } = initFirebaseGuarded({
+        outDir: requestedOutDir,
+        projectId: PROJECT_ID,
+    });
+    const bucket = storage.bucket(BUCKET_NAME);
     if (bucket.name !== BUCKET_NAME) {
         fail('BUCKET_NO_AUTORIZADO', bucket.name);
     }
@@ -870,11 +860,7 @@ async function runLive(options: CliOptions): Promise<void> {
     await preflightDocs(db, bundle.evidence);
     await preflightStorage(bucket);
 
-    const runId = makeRunId(new Date());
-    const outDir = assertOutDirOutsideRepo(
-        options.outDir ?? join(BASE, `apply-${runId}`)
-    );
-    mkdirSync(outDir, { recursive: true });
+    const outDir = assertOutDirOutsideRepo(requestedOutDir);
 
     if (!options.apply) {
         const checkedAt = new Date().toISOString();
@@ -914,16 +900,13 @@ async function runLive(options: CliOptions): Promise<void> {
         );
     }
 
-    console.log('\n[purga] MODO DESTRUCTIVO');
-    console.log('Se eliminarán 17 documentos y 5 blobs.');
-    console.log('El batch Firestore se ejecuta primero; Storage después.');
-    console.log('Escribe exactamente la frase:');
-    console.log(CONFIRMATION_PHRASE);
-    const rl = createInterface({ input, output });
-    const answer = await rl.question('> ');
-    rl.close();
+    const confirmed = await requireConfirmation(
+        '[purga] MODO DESTRUCTIVO: se eliminarán 17 documentos y 5 blobs de forma IRREVERSIBLE.\n' +
+            'El batch Firestore se ejecuta primero; Storage después.',
+        CONFIRMATION_PHRASE
+    );
 
-    if (answer.trim() !== CONFIRMATION_PHRASE) {
+    if (!confirmed) {
         const abortedAt = new Date().toISOString();
         writeJson(join(outDir, 'purge-p6-apply.json'), {
             ticket: 'WEB-PURGA-P6-002',
@@ -1012,7 +995,6 @@ function runFixtures(options: CliOptions): void {
     const outDir = assertOutDirOutsideRepo(
         options.outDir ?? join(BASE, `fixtures-${runId}`)
     );
-    mkdirSync(outDir, { recursive: true });
     writeJson(join(outDir, 'purge-p6-fixtures.json'), {
         ticket: 'WEB-PURGA-P6-002',
         mode: 'fixtures',
@@ -1045,7 +1027,7 @@ async function main(): Promise<void> {
         runFixtures(options);
         return;
     }
-    await runLive(options);
+    await ejecutarPurgaP6(options);
 }
 
 main().catch((error) => {
