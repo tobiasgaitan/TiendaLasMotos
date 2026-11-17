@@ -498,7 +498,10 @@ function run() {
             purgeSource.includes('unregister')
     );
 
-    const outboxSource = readFileSync('src/lib/offline/outbox/sync.ts', 'utf8');
+    const outboxSource = [
+        readFileSync('src/lib/offline/outbox/sync/queue.ts', 'utf8'),
+        readFileSync('src/lib/offline/outbox/sync/runner.ts', 'utf8'),
+    ].join('\n');
     check(
         'outbox sube foto y llama crearConteoPendiente',
         outboxSource.includes('uploadBytes') &&

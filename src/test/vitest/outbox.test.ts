@@ -353,7 +353,7 @@ describe('MT-08 outbox/offline contracts', () => {
         expect(lineas.length).toBeGreaterThan(0);
         expect(
             lineas.every((linea) =>
-                linea.startsWith('src/lib/offline/outbox/sync.ts:')
+                linea.startsWith('src/lib/offline/outbox/sync/purge.ts:')
             )
         ).toBe(true);
     });
@@ -369,7 +369,7 @@ describe('MT-08 outbox/offline contracts', () => {
     });
 
     it('outbox no contiene fallback global en la rama owner-scoped', () => {
-        const source = readFileSync('src/lib/offline/outbox/sync.ts', 'utf8');
+        const source = readFileSync('src/lib/offline/outbox/sync/purge.ts', 'utf8');
         const inicioFuncion = source.indexOf(
             'export async function limpiarOutbox'
         );

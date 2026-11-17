@@ -48,7 +48,15 @@ const outboxImages = readFileSync(
     'utf8'
 );
 const outboxSync = readFileSync(
-    'src/lib/offline/outbox/sync.ts',
+    'src/lib/offline/outbox/sync/queue.ts',
+    'utf8'
+);
+const outboxSyncRunner = readFileSync(
+    'src/lib/offline/outbox/sync/runner.ts',
+    'utf8'
+);
+const outboxSyncPurge = readFileSync(
+    'src/lib/offline/outbox/sync/purge.ts',
     'utf8'
 );
 const outboxUtils = readFileSync(
@@ -238,7 +246,9 @@ const archivosCambiados = [
     'src/lib/offline/outbox/types.ts',
     'src/lib/offline/outbox/db.ts',
     'src/lib/offline/outbox/images.ts',
-    'src/lib/offline/outbox/sync.ts',
+    'src/lib/offline/outbox/sync/queue.ts',
+    'src/lib/offline/outbox/sync/runner.ts',
+    'src/lib/offline/outbox/sync/purge.ts',
     'src/lib/offline/outbox-utils.ts',
     'src/hooks/useOfflineQueue.ts',
     'src/components/OfflineIndicator.tsx',
@@ -260,6 +270,8 @@ const archivosUiOffline = [
     outboxDb,
     outboxImages,
     outboxSync,
+    outboxSyncRunner,
+    outboxSyncPurge,
     outboxUtils,
     hook,
     indicator,
