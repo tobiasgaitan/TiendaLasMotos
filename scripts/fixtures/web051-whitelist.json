@@ -1,0 +1,118 @@
+{
+  "ticket": "WEB-051-P1",
+  "project_id": "tiendalasmotos",
+  "ratified": false,
+  "ratified_by": null,
+  "ratified_at": null,
+  "qwen_verdict": null,
+  "approval_reference": null,
+  "source_inventory_sha256": null,
+  "firestore": [
+    {
+      "collection": "creditos",
+      "docs": [
+        {
+          "doc_id": "Qw54o4ebHx5qxSzSxZJp",
+          "status": "APPROVED",
+          "justification": "whitelist base confirmada por evidencia física",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "ltezdKf6P3nG4tBZRTx3",
+          "status": "APPROVED",
+          "justification": "whitelist base; numero_credito CRE-2026-0001",
+          "risk": null,
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "clientes_credito",
+      "docs": [
+        {
+          "doc_id": "cpGYSKqffu4evPHqoTTh",
+          "status": "APPROVED",
+          "justification": "whitelist base confirmada por evidencia física",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "jHTQNJvFbECaDAj98Pvo",
+          "status": "PENDING",
+          "justification": "candidato 16-oct; requiere aprobación por ítem del Director",
+          "risk": "REAL_ID_EN_FORENSE_PREVIO",
+          "fingerprint": null
+        },
+        {
+          "doc_id": "qbx10kbQsk3yd9YiVwwl",
+          "status": "PENDING",
+          "justification": "candidato 16-oct; requiere aprobación por ítem del Director",
+          "risk": null,
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "pagos_y_multas",
+      "docs": [
+        {
+          "doc_id": "RKqUf3oZjLXuVXqMZdQ6",
+          "status": "PENDING",
+          "justification": "FK explícita id_credito=ltezdKf6P3nG4tBZRTx3",
+          "risk": "FK_EXPLICITA",
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "remisiones_dinero",
+      "docs": [
+        {
+          "doc_id": "6eJcPQiLqw0HTaYvzk03",
+          "status": "PENDING",
+          "justification": "misma sesión 16-oct; monto 585000 == valor_neto_empresa del pago",
+          "risk": "SIN_FK_EXPLICITA",
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "sys_admin_users",
+      "docs": [
+        {
+          "doc_id": "prueba@prueba.com",
+          "status": "APPROVED",
+          "justification": "usuario Auth temporal E2E WEB051; docId canónico",
+          "risk": null,
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "historial_auditoria",
+      "docs": []
+    }
+  ],
+  "auth": {
+    "email": "prueba@prueba.com",
+    "expected_uid": "t05KiQCGQgUWFARvczn3nuXp9Qz2",
+    "uid": null,
+    "status": "ABSENT"
+  },
+  "counter": {
+    "path": "configuracion/counters",
+    "field": "creditoCount",
+    "target": 0,
+    "status": "APPROVED"
+  },
+  "pagos_inversores": {
+    "collection": "pagos_inversores",
+    "status": "ABSENT",
+    "doc_ids": []
+  },
+  "subcollections": [],
+  "protected_set": [
+    "historial_auditoria_inventario"
+  ]
+}
