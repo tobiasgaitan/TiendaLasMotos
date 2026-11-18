@@ -12,6 +12,7 @@ export const PROJECT_ID = 'tiendalasmotos';
 export const E2E_EMAIL = 'prueba@prueba.com';
 export const E2E_UID = 't05KiQCGQgUWFARvczn3nuXp9Qz2';
 export const E2E_WINDOW_START_UTC = '2026-11-17T00:00:00.000Z';
+export const DIRECTOR_EMAIL = 'tobiasgaitan@gmail.com';
 
 export const COLLECTION_CREDITOS = 'creditos';
 export const COLLECTION_CLIENTES = 'clientes_credito';
@@ -431,8 +432,14 @@ export function validateWhitelist(
         fail('APPROVAL_PENDING', 'whitelist no ratificada');
     }
     if (whitelist.ratified) {
-        if (whitelist.ratified_by !== 'Director') {
-            fail('WHITELIST_INVALID', 'ratified_by distinto de Director');
+        if (
+            whitelist.ratified_by !== 'Director' &&
+            whitelist.ratified_by !== DIRECTOR_EMAIL
+        ) {
+            fail(
+                'WHITELIST_INVALID',
+                'ratified_by distinto de Director/tobiasgaitan@gmail.com'
+            );
         }
         if (!text(whitelist.ratified_at).trim()) {
             fail('WHITELIST_INVALID', 'ratified_at vacío');
