@@ -1,6 +1,6 @@
 # STATE.md - Tienda Las Motos
 **Versión Actual:** v8.9.16
-**Fecha:** 2026-11-16
+**Fecha:** 2026-11-18
 **Rama Activa:** main
 **Última actividad:** 2026-11-16 — Corrección v8.9.16 de secuenciación PR #689; tarball source dependency + runtime marker; beta validada.
 
