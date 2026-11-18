@@ -259,6 +259,37 @@ function seedInventario(alternativas: string[] = []) {
     });
 }
 
+function seedAsesor() {
+    vi.mocked(requireActorInventario).mockResolvedValueOnce({
+        uid: 'uid-asesor',
+        email: 'asesor@test.com',
+    });
+    vi.mocked(requirePermiso).mockResolvedValue({
+        rol: 'asesor',
+        email: 'asesor@test.com',
+    });
+}
+
+function inputCrearConteo() {
+    return {
+        conteo_id: UUID,
+        referencia_sugerida: '',
+        referencia_confirmada: 'BRK-001',
+        inventario_documento_id: 'BRK-001',
+        sede_id: 'sede-1',
+        descripcion: 'Disco de freno',
+        cantidad_contada: 4,
+        ubicacion: 'A-01-05',
+        anotaciones: '',
+        foto_url: FOTO_URL,
+        storage_path: 'inventario_repuestos/asesor@test.com/foto.jpg',
+        nombre_archivo: 'foto.jpg',
+        mime_type: 'image/jpeg',
+        tamano_bytes: 1024,
+        etiquetas_vision: [],
+    };
+}
+
 function repuestosPorReferencia(referencia: string) {
     return Array.from(mockState.docs.entries())
         .filter(
@@ -829,6 +860,189 @@ describe('MT-07 Server Actions contracts', () => {
             mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
                 ?.sede_id
         ).toBe('sede-1');
+    });
+
+    it('crearConteoPendiente persiste precio_etiqueta_fisica', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                precio_etiqueta_fisica: 87500,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        expect(conteo?.precio_etiqueta_fisica).toBe(87500);
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')?.precio
+        ).toBe(1000);
+    });
+
+    it('crearConteoPendiente persiste 0 y no lo convierte en null', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                precio_etiqueta_fisica: 0,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        expect(conteo?.precio_etiqueta_fisica).toBe(0);
+        expect(conteo?.precio_etiqueta_fisica).not.toBeNull();
+    });
+
+    it('crearConteoPendiente persiste null con cadena vacía', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                precio_etiqueta_fisica: '',
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
+                ?.precio_etiqueta_fisica
+        ).toBeNull();
+    });
+
+    it('crearConteoPendiente persiste null con valor nulo', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                precio_etiqueta_fisica: null,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
+                ?.precio_etiqueta_fisica
+        ).toBeNull();
+    });
+
+    it('crearConteoPendiente persiste null cuando el campo se omite', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            inputCrearConteo(),
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get(`conteos_pendientes_repuestos/${UUID}`)
+                ?.precio_etiqueta_fisica
+        ).toBeNull();
+    });
+
+    it.each([
+        ['negativo', -1],
+        ['cadena numérica', '1500'],
+        ['booleano', true],
+        ['NaN', Number.NaN],
+        ['infinito', Number.POSITIVE_INFINITY],
+    ])(
+        'crearConteoPendiente rechaza precio_etiqueta_fisica %s',
+        async (_nombre, valor) => {
+            seedInventario();
+            seedAsesor();
+
+            const resultado = await crearConteoPendiente(
+                {
+                    ...inputCrearConteo(),
+                    precio_etiqueta_fisica: valor,
+                },
+                ACTOR
+            );
+
+            expect(resultado.success).toBe(false);
+            expect(
+                mockState.docs.get(
+                    `conteos_pendientes_repuestos/${UUID}`
+                )
+            ).toBeUndefined();
+            expect(ledgerWrites()).toHaveLength(0);
+        }
+    );
+
+    it('aprobarConteo no propaga precio_etiqueta_fisica al ledger', async () => {
+        seedConteo();
+        seedInventario();
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        if (!conteo) throw new Error('seedConteo no creó el conteo');
+        conteo.precio_etiqueta_fisica = 87500;
+
+        const resultado = await aprobarConteo(
+            { conteo_id: UUID },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(JSON.stringify(ledger[0].data)).not.toContain(
+            'precio_etiqueta_fisica'
+        );
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')?.precio
+        ).toBe(1000);
+    });
+
+    it('listarPendientes transporta precio_etiqueta_fisica y conserva null', async () => {
+        seedConteo();
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        if (!conteo) throw new Error('seedConteo no creó el conteo');
+
+        conteo.precio_etiqueta_fisica = 12345;
+        const conValor = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+        expect(conValor.pendientes[0].precio_etiqueta_fisica).toBe(12345);
+
+        conteo.precio_etiqueta_fisica = 0;
+        const conCero = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+        expect(conCero.pendientes[0].precio_etiqueta_fisica).toBe(0);
+
+        delete conteo.precio_etiqueta_fisica;
+        const sinCampo = await listarPendientes(
+            { estado: 'pendiente_revision' },
+            ACTOR
+        );
+        expect(
+            sinCampo.pendientes[0].precio_etiqueta_fisica
+        ).toBeNull();
     });
 
     it('aprobarConteo rechaza referencia ambigua', async () => {

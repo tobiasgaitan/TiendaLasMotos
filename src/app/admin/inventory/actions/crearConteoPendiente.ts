@@ -135,6 +135,7 @@ export async function crearConteoPendiente(
                 sede_id: data.sede_id,
                 descripcion: data.descripcion,
                 cantidad_contada: data.cantidad_contada,
+                precio_etiqueta_fisica: data.precio_etiqueta_fisica ?? null,
                 ubicacion: data.ubicacion,
                 anotaciones: data.anotaciones,
                 foto_url: data.foto_url,

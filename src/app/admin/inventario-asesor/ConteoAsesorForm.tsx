@@ -79,6 +79,30 @@ function mensajeDeError(error: unknown, fallback: string): string {
     return fallback;
 }
 
+const PRECIO_ETIQUETA_FISICA_ERROR =
+    "El precio de la etiqueta debe ser un número mayor o igual a 0. Ejemplo: 12500.";
+
+interface ResultadoPrecioEtiquetaFisica {
+    valor: number | null;
+    error: string | null;
+}
+
+function evaluarPrecioEtiquetaFisica(
+    valor: string
+): ResultadoPrecioEtiquetaFisica {
+    const limpio = valor.trim();
+    if (!limpio) {
+        return { valor: null, error: null };
+    }
+
+    const numero = Number(limpio);
+    if (!Number.isFinite(numero) || numero < 0) {
+        return { valor: null, error: PRECIO_ETIQUETA_FISICA_ERROR };
+    }
+
+    return { valor: numero, error: null };
+}
+
 export default function ConteoAsesorForm() {
     const { user } = useAuth();
     const {
@@ -111,6 +135,10 @@ export default function ConteoAsesorForm() {
     const [cargandoSedes, setCargandoSedes] = useState(false);
     const [sedeError, setSedeError] = useState<string | null>(null);
     const [cantidadContada, setCantidadContada] = useState("");
+    const [precioEtiquetaFisica, setPrecioEtiquetaFisica] = useState("");
+    const [precioEtiquetaError, setPrecioEtiquetaError] = useState<
+        string | null
+    >(null);
     const [ubicacion, setUbicacion] = useState("");
     const [anotaciones, setAnotaciones] = useState("");
     const [analizando, setAnalizando] = useState(false);
@@ -218,6 +246,8 @@ export default function ConteoAsesorForm() {
         setAplicaA([]);
         setSedeId("");
         setCantidadContada("");
+        setPrecioEtiquetaFisica("");
+        setPrecioEtiquetaError(null);
         setUbicacion("");
         setAnotaciones("");
         setError(null);
@@ -367,6 +397,8 @@ export default function ConteoAsesorForm() {
         setFabricante("");
         setCategoria("");
         setAplicaA([]);
+        setPrecioEtiquetaFisica("");
+        setPrecioEtiquetaError(null);
         setVisionError(null);
         setError(null);
         setPuedeReintentar(false);
@@ -410,6 +442,8 @@ export default function ConteoAsesorForm() {
         setFabricante("");
         setCategoria("");
         setAplicaA([]);
+        setPrecioEtiquetaFisica("");
+        setPrecioEtiquetaError(null);
         setVisionError(null);
         setFotoError(null);
         setError(null);
@@ -479,6 +513,14 @@ export default function ConteoAsesorForm() {
             return null;
         }
 
+        const precioEtiqueta = evaluarPrecioEtiquetaFisica(
+            precioEtiquetaFisica
+        );
+        setPrecioEtiquetaError(precioEtiqueta.error);
+        if (precioEtiqueta.error) {
+            return null;
+        }
+
         const sugerida = referenciaSugerida.trim().slice(0, 64);
 
         return {
@@ -488,6 +530,7 @@ export default function ConteoAsesorForm() {
             sede_id: sedeId.trim(),
             descripcion: descripcionLimpia,
             cantidad_contada: cantidad,
+            precio_etiqueta_fisica: precioEtiqueta.valor,
             ubicacion: ubicacionValidada.data,
             anotaciones: anotacionesLimpias,
             etiquetas_vision: etiquetas.slice(0, 10),
@@ -757,6 +800,8 @@ export default function ConteoAsesorForm() {
                             setReferenciaSugerida(referencia.slice(0, 64))
                         }
                         onSeleccion={(candidato: RepuestoCandidato | null) => {
+                            setPrecioEtiquetaFisica("");
+                            setPrecioEtiquetaError(null);
                             setReferenciaConfirmada(
                                 candidato ? candidato.referencia : ""
                             );
@@ -935,6 +980,72 @@ export default function ConteoAsesorForm() {
                                 placeholder="Ej. Pasillo 3, estante B"
                             />
                         </div>
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="precio-etiqueta-fisica"
+                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                        >
+                            Precio en etiqueta física (opcional)
+                        </label>
+                        <input
+                            id="precio-etiqueta-fisica"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            inputMode="decimal"
+                            value={precioEtiquetaFisica}
+                            disabled={guardando}
+                            aria-invalid={
+                                precioEtiquetaError ? true : undefined
+                            }
+                            aria-describedby={
+                                precioEtiquetaError
+                                    ? "precio-etiqueta-fisica-hint precio-etiqueta-fisica-error"
+                                    : "precio-etiqueta-fisica-hint"
+                            }
+                            onChange={(event) => {
+                                const valor = event.target.value;
+                                setPrecioEtiquetaFisica(valor);
+                                if (precioEtiquetaError) {
+                                    setPrecioEtiquetaError(
+                                        evaluarPrecioEtiquetaFisica(valor)
+                                            .error
+                                    );
+                                }
+                            }}
+                            onBlur={() => {
+                                setPrecioEtiquetaError(
+                                    evaluarPrecioEtiquetaFisica(
+                                        precioEtiquetaFisica
+                                    ).error
+                                );
+                            }}
+                            className={`mt-2 w-full rounded-xl border bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
+                                precioEtiquetaError
+                                    ? "border-red-500 focus:border-red-400 focus:ring-red-500/30"
+                                    : "border-gray-700 focus:border-red-500 focus:ring-red-500/30"
+                            }`}
+                            placeholder="Ej. 12500"
+                        />
+                        <p
+                            id="precio-etiqueta-fisica-hint"
+                            className="mt-1 text-xs leading-relaxed text-gray-400"
+                        >
+                            Opcional. Déjalo vacío si la etiqueta está dañada
+                            o ausente. No es el precio del catálogo ni un
+                            costo contable.
+                        </p>
+                        {precioEtiquetaError ? (
+                            <p
+                                id="precio-etiqueta-fisica-error"
+                                role="alert"
+                                className="mt-1 text-xs font-medium text-red-300"
+                            >
+                                {precioEtiquetaError}
+                            </p>
+                        ) : null}
                     </div>
 
                     <div>

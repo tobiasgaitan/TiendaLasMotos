@@ -1,0 +1,56 @@
+{
+  "ticket": "WEB-051-P1",
+  "base_whitelist": "scripts/fixtures/web051-whitelist.json",
+  "cases": [
+    {
+      "name": "extra credit id",
+      "case": "extra_credit_id",
+      "expected": "WHITELIST_SET_MISMATCH"
+    },
+    {
+      "name": "missing base client",
+      "case": "missing_base_client",
+      "expected": "WHITELIST_SET_MISMATCH"
+    },
+    {
+      "name": "protected ledger collection",
+      "case": "protected_ledger_collection",
+      "expected": "PROTECTED_LEDGER"
+    },
+    {
+      "name": "real user email",
+      "case": "real_user_email",
+      "expected": "PROHIBITED_USER"
+    },
+    {
+      "name": "counter wrong path",
+      "case": "counter_wrong_path",
+      "expected": "COUNTER_SCOPE_VIOLATION"
+    },
+    {
+      "name": "counter wrong field",
+      "case": "counter_wrong_field",
+      "expected": "COUNTER_SCOPE_VIOLATION"
+    },
+    {
+      "name": "pending candidate apply",
+      "case": "pending_candidate_apply",
+      "expected": "APPROVAL_PENDING"
+    },
+    {
+      "name": "pagos inversores nonempty",
+      "case": "pagos_inversores_nonempty",
+      "expected": "UNIVERSE_DRIFT"
+    },
+    {
+      "name": "subcollection not approved",
+      "case": "subcollection_not_approved",
+      "expected": "SUBCOLLECTION_NOT_APPROVED"
+    },
+    {
+      "name": "project mismatch",
+      "case": "project_mismatch",
+      "expected": "PROYECTO_NO_AUTORIZADO"
+    }
+  ]
+}

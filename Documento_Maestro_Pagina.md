@@ -643,3 +643,24 @@ Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y que
 **Evidencia beta:** commit `faeb3c9`; deploy beta local; hook `FIREBASE_FRAMEWORKS_TARBALL_PREPARED`; tarball SHA-256 `b5aca54dfed17843220810138ce3d01712c6885d5bba2d0e809832ffcbbf8910`; `firebase-aware.js` SHA-256 `973a836ed72cab54e39f2ffff6b3ff70bcf2c790fe616f23303aa18f38c457dc`; marcador runtime presente; C4 cold `8/8` 200, `0/0/0`, latencia media `3861.92 ms`; C4 idle `8/8` 200, `0/0/0`, latencia media `858.08 ms`; usuario Auth temporal eliminado.
 **Observaciones:** `OBS-PROD-ASESOR-AUTH-RACE-CONDITION` se reabre respecto de v8.9.15 porque el artefacto desplegado no estaba parchado; queda **CERRADA EN BETA v8.9.15; CERTIFICADO EN PRODUCCIÓN (v8.9.15) - Marcador runtime verificado**. Se registran `OBS-PR689-PATCH-NOT-UPLOADED` y `OBS-PR689-C4-WITHOUT-ARTIFACT-MARKER`, cerradas en beta y pendientes de producción en la misma Ruta 1.
 **Invariantes:** cero cambios en `src/`, `functions/`, bot, reglas, índices, migraciones, `package.json` ni `package-lock.json` raíz; NAMING LOCK intacto; L347, §28 y §29 conservan su contenido; §30 es aditivo conforme a §25.A; SSOT en raíz; sin `docs/`.
+
+## 31. WEB-051-P1 — Purga del clúster de simulación E2E 2026-11-17 + 16-oct (2026-11-18)
+**Estado:** EJECUTADO Y CERTIFICADO — `PARITY=PASS`.
+**Autorización:** Director (`ratified_by=tobiasgaitan@gmail.com`; `approval_reference=Clasificación Director 2026-11-18`) + QWEN `APROBADO`. Whitelist cerrada versionada en `scripts/fixtures/web051-whitelist.json`, con SHA-256 canónico `2be656d2e27f6d086ca98de724f2724877e66c606f56d16f2f095cf76dd09954` e inventario fuente `9ade5a7105b02a86dc580aec03cf42e223ff12da44c720185f56d9abf1fbb0e7`.
+**Alcance exacto (22 documentos + 4 usuarios Auth):**
+- `creditos`: `Qw54o4ebHx5qxSzSxZJp` (CRE-2026-0002) y `ltezdKf6P3nG4tBZRTx3` (CRE-2026-0001).
+- `clientes_credito`: `cpGYSKqffu4evPHqoTTh`, `jHTQNJvFbECaDAj98Pvo`, `qbx10kbQsk3yd9YiVwwl`.
+- `pagos_y_multas`: `RKqUf3oZjLXuVXqMZdQ6` (FK `id_credito=ltezdKf6P3nG4tBZRTx3`; `valor_neto_empresa=585000`).
+- `remisiones_dinero`: `6eJcPQiLqw0HTaYvzk03` (`monto=585000`; sin FK explícita, match por sesión y monto).
+- `sys_admin_users`: `prueba@prueba.com`, `admin@tiendalasmotos.com`, `test_admin@tiendalasmotos.com`, `admin.creditos@tiendalasmotos.com`, `web038.s7@tiendalasmotos.com`.
+- `historial_auditoria`: `HbhOlb0z6GbKt3XiIoPM`, `JA37MZbZHnQ7Cwuqck0v`, `M02hD07sGpKtBmHwypB7`, `TQE3ScrUVIbKFfl0jZi9`, `dykKm8G2TP8YA9D0rMTG`, `pLhcYNMzbnopMGSE19wY`, `q2DF9ETaVqMBYCrk4tAt`, `rvIZpBU8yGUTGRtzHxMS`, `wINZTNlL5dI7P8KO8xYj`, `xfJYwrxJSAl5V0NDZky4`.
+- Auth eliminados: `admin@tiendalasmotos.com`, `test_admin@tiendalasmotos.com`, `admin.creditos@tiendalasmotos.com`, `web038.s7@tiendalasmotos.com`. `prueba@prueba.com` ya estaba ausente (`AUTH_ALREADY_ABSENT`).
+- `configuracion/counters.creditoCount`: `2 → 0`; `creditoYear=2026` preservado.
+- `pagos_inversores`: colección ausente, sin deletes.
+- `historial_auditoria_inventario`: protegido, sin cambios; count `0`, hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- El uid real `t05KiQCGQgUWFARvczn3nuXp9Qz2` (`tobiasgaitan@gmail.com`) se preservó; no fue target de Auth.
+**Ejecución:** apply con TTY y frase `PURGAR WEB051 SIMULACROS IRREVERSIBLE`; `BATCH_DELETES=22`, `RECURSIVE_DELETES=0`, `ALREADY_ABSENT=0`, `FAILED=0`; `AUTH_DELETED=4`, `AUTH_ALREADY_ABSENT=1`, `AUTH_NOT_FOUND=0`; `REAL_UID_PRESERVED=true`; `COUNTER_BEFORE=2`, `COUNTER_AFTER=0`; `REMAINING_TARGETS=0`.
+**Paridad post-apply:** `creditos=0`, `clientes_credito=0`, `pagos_y_multas=0`, `remisiones_dinero=0`, `pagos_inversores=0`, `sys_admin_users=4` (usuarios reales; sin los 5 targets), `historial_auditoria=0`, `historial_auditoria_inventario=0` (hash sin cambios), `creditoCount=0`, `Auth not-found` para los 5 emails. `PARITY=PASS`.
+**Supersesión append-only documental:** la eliminación de los 10 asientos simulados de `historial_auditoria` se autoriza por esta nota, siguiendo el precedente §28. No se escribió un asiento de autorización en el ledger; `historial_auditoria_inventario` permaneció intacto.
+**Evidencia:** `/private/var/folders/wv/332j5kzn75d7kjnsj6l_3hhc0000gn/T/opencode/web051-apply-20261118T032345Z/` con `apply.json` (SHA-256 `0a4eaeed547db82d7557adefaf81b1c2813de32175b078c0181da7a87fa6efb0`), `report.md` (`751ae9425699c0eb916427847554677ed03a4e80b766a7bda19be3b2824f352c`), `parity-check.json`, `parity-check.txt`, `manifest.json`.
+**Invariantes:** cero cambios en `src/`, `functions/`, bot, reglas, índices, `sw.js`, `tlm-shell`, `AuthContext` o `proxy.ts`; NAMING LOCK intacto; ledger de inventario intacto; sin push a beta/main; §31 es aditivo conforme a §25.A y no reescribe §28/§29/§30.

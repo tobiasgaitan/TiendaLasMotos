@@ -133,6 +133,18 @@ export const crearConteoSchema = z
         sede_id: z.string().trim().min(1).max(200),
         descripcion: z.string().trim().min(2).max(200),
         cantidad_contada: z.coerce.number().int().min(0).max(1_000_000),
+        precio_etiqueta_fisica: z
+            .preprocess(
+                (value) => {
+                    if (value === null || value === undefined) return null;
+                    if (typeof value === 'string' && value.trim() === '') {
+                        return null;
+                    }
+                    return value;
+                },
+                z.number().finite().min(0).nullable()
+            )
+            .default(null),
         ubicacion: ubicacionSchema,
         anotaciones: z.string().trim().max(500).default(''),
         foto_url: z.string().trim().url(),

@@ -23,6 +23,14 @@ function numero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function numeroONull(value: unknown): number | null {
+    return typeof value === 'number' &&
+        Number.isFinite(value) &&
+        value >= 0
+        ? value
+        : null;
+}
+
 function nombreSede(
     sedeId: string,
     inventarioDocumentoId: string,
@@ -172,6 +180,9 @@ export async function listarPendientes(
                 ),
                 descripcion: texto(data.descripcion),
                 cantidad_contada: numero(data.cantidad_contada),
+                precio_etiqueta_fisica: numeroONull(
+                    data.precio_etiqueta_fisica
+                ),
                 ubicacion: texto(data.ubicacion),
                 anotaciones: texto(data.anotaciones),
                 foto_url: texto(data.foto_url),

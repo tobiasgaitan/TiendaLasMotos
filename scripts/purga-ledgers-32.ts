@@ -12,12 +12,14 @@
  * de dominio. Reportes únicamente fuera del repo.
  */
 import { hash as cryptoHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { createInterface } from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getFirestore } from 'firebase-admin/firestore';
+import {
+    assertOutDirOutsideRepo,
+    initFirebaseGuarded,
+    requireConfirmation,
+} from './lib/forensic-utils';
 
 const BASE =
     '/Users/tobiasgaitangallego/opencode-evidence/ledgers-purga-20261115T031832Z';
@@ -244,15 +246,6 @@ function assertExportIntegrity(exportPath: string): LedgerExport {
     return parsed;
 }
 
-function assertOutDirOutsideRepo(outDir: string): string {
-    const resolved = resolve(outDir);
-    const repo = resolve(process.cwd());
-    if (resolved === repo || resolved.startsWith(`${repo}${sep}`)) {
-        fail('OUT_DIR_INVALIDO', resolved);
-    }
-    return resolved;
-}
-
 function parseArgs(argv: string[]): CliOptions {
     let exportPath = EXPORT_PATH;
     let project = PROJECT_ID;
@@ -383,16 +376,13 @@ function buildBaseReport(
     };
 }
 
-async function runLive(options: CliOptions): Promise<void> {
+async function ejecutarPurgaLedgers32(options: CliOptions): Promise<void> {
     const exported = assertExportIntegrity(options.export);
-    const app =
-        getApps()[0] ?? initializeApp({ projectId: PROJECT_ID });
-    if (app.options.projectId && app.options.projectId !== PROJECT_ID) {
-        fail('PROYECTO_NO_AUTORIZADO', app.options.projectId);
-    }
-    const db = getFirestore(app);
     const outDir = assertOutDirOutsideRepo(options.outDir);
-    mkdirSync(outDir, { recursive: true });
+    const { db } = initFirebaseGuarded({
+        outDir,
+        projectId: PROJECT_ID,
+    });
 
     const before = await preflight(db);
 
@@ -428,16 +418,14 @@ async function runLive(options: CliOptions): Promise<void> {
         );
     }
 
-    console.log('\n[purga] MODO DESTRUCTIVO');
-    console.log('Se eliminarán 32 asientos simulados en un solo batch atómico.');
-    console.log('Orden: historial_auditoria_inventario (14) → historial_auditoria (18).');
-    console.log('Escribe exactamente la frase:');
-    console.log(CONFIRMATION_PHRASE);
-    const rl = createInterface({ input, output });
-    const answer = await rl.question('> ');
-    rl.close();
+    const confirmed = await requireConfirmation(
+        '[purga] MODO DESTRUCTIVO: se eliminarán 32 asientos simulados en un solo batch atómico.\n' +
+            'Orden: historial_auditoria_inventario (14) → historial_auditoria (18).\n' +
+            'Escribe exactamente la frase:',
+        CONFIRMATION_PHRASE
+    );
 
-    if (answer.trim() !== CONFIRMATION_PHRASE) {
+    if (!confirmed) {
         const abortedAt = new Date().toISOString();
         writeJson(join(outDir, 'purga-ledgers-32-apply.json'), {
             ...buildBaseReport('apply', exported),
@@ -542,7 +530,7 @@ async function main(): Promise<void> {
         }
         throw error;
     }
-    await runLive(options);
+    await ejecutarPurgaLedgers32(options);
 }
 
 main().catch((error) => {

@@ -9,10 +9,14 @@
  * Reportes únicamente en el directorio de evidencias fuera del repo.
  */
 import { hash as cryptoHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getFirestore } from 'firebase-admin/firestore';
+import {
+    assertOutDirOutsideRepo,
+    initFirebaseGuarded,
+    writeManifestAndReport,
+} from './lib/forensic-utils';
 
 const PROJECT_ID = 'tiendalasmotos';
 const LEDGER_INVENTORY = 'historial_auditoria_inventario';
@@ -784,15 +788,6 @@ function writeJson(path: string, value: unknown): void {
     writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function assertOutDirOutsideRepo(outDir: string): string {
-    const resolved = resolve(outDir);
-    const repo = resolve(process.cwd());
-    if (resolved === repo || resolved.startsWith(`${repo}${sep}`)) {
-        fail('OUT_DIR_INVALIDO', resolved);
-    }
-    return resolved;
-}
-
 function makeRunId(date: Date): string {
     return date.toISOString().replace(/[:.]/g, '-');
 }
@@ -870,16 +865,15 @@ function buildReport(summary: Record<string, unknown>): string {
     ].join('\n');
 }
 
-async function runLive(options: CliOptions): Promise<void> {
-    const app =
-        getApps()[0] ??
-        initializeApp({
-            projectId: PROJECT_ID,
-        });
-    if (app.options.projectId && app.options.projectId !== PROJECT_ID) {
-        fail('PROYECTO_NO_AUTORIZADO', app.options.projectId);
-    }
-    const db = getFirestore(app);
+async function ejecutarForenseLedgers(options: CliOptions): Promise<void> {
+    const runId = makeRunId(new Date());
+    const outDirCandidate =
+        options.outDir || join(DEFAULT_OUT_ROOT, `ledgers-forense-${runId}`);
+    const { db } = initFirebaseGuarded({
+        outDir: outDirCandidate,
+        projectId: PROJECT_ID,
+    });
+
     const inventory = await readLedger(db, LEDGER_INVENTORY);
     const financial = await readLedger(db, LEDGER_FINANCIAL);
 
@@ -927,11 +921,7 @@ async function runLive(options: CliOptions): Promise<void> {
         }
     }
 
-    const runId = makeRunId(new Date());
-    const outDir = assertOutDirOutsideRepo(
-        options.outDir || join(DEFAULT_OUT_ROOT, `ledgers-forense-${runId}`)
-    );
-    mkdirSync(outDir, { recursive: true });
+    const outDir = assertOutDirOutsideRepo(outDirCandidate);
 
     const generatedAt = new Date().toISOString();
     const summary = {
@@ -981,16 +971,7 @@ async function runLive(options: CliOptions): Promise<void> {
         'actors.json': actors,
     };
 
-    const hashes: Record<string, string> = {};
-    for (const [name, value] of Object.entries(files)) {
-        const serialized = `${JSON.stringify(value, null, 2)}\n`;
-        writeFileSync(join(outDir, name), serialized, 'utf8');
-        hashes[name] = sha256(serialized);
-    }
-
     const report = buildReport(summary);
-    writeFileSync(join(outDir, 'report.md'), `${report}\n`, 'utf8');
-    hashes['report.md'] = sha256(`${report}\n`);
 
     let scriptHash: string | null = null;
     try {
@@ -999,20 +980,28 @@ async function runLive(options: CliOptions): Promise<void> {
         scriptHash = null;
     }
 
-    writeJson(join(outDir, 'manifest.json'), {
-        ticket: 'WEB-FORENSE-LEDGERS-001',
-        generated_at_utc: generatedAt,
-        read_whitelist: [LEDGER_INVENTORY, LEDGER_FINANCIAL],
-        write_whitelist: [],
-        reports_outside_repo: true,
-        scope_note: SCOPE_NOTE,
-        script_sha256: scriptHash,
-        report_hashes: hashes,
-        ledger_hashes: {
-            [LEDGER_INVENTORY]: inventory.hash,
-            [LEDGER_FINANCIAL]: financial.hash,
+    const { 'summary.json': summaryFile, ...extraFiles } = files;
+    writeManifestAndReport(
+        outDir,
+        'summary.json',
+        summaryFile,
+        report,
+        extraFiles,
+        {
+            ticket: 'WEB-FORENSE-LEDGERS-001',
+            generated_at_utc: generatedAt,
+            read_whitelist: [LEDGER_INVENTORY, LEDGER_FINANCIAL],
+            write_whitelist: [],
+            reports_outside_repo: true,
+            scope_note: SCOPE_NOTE,
+            script_sha256: scriptHash,
+            ledger_hashes: {
+                [LEDGER_INVENTORY]: inventory.hash,
+                [LEDGER_FINANCIAL]: financial.hash,
+            },
         },
-    });
+        'report_hashes'
+    );
 
     console.log(`INVENTORY_COUNT=${inventory.count}`);
     console.log(`INVENTORY_HASH=${inventory.hash}`);
@@ -1082,7 +1071,6 @@ function runFixtures(options: CliOptions): void {
     }
 
     const outDir = assertOutDirOutsideRepo(options.outDir);
-    mkdirSync(outDir, { recursive: true });
     const output = {
         ticket: 'WEB-FORENSE-LEDGERS-001',
         mode: 'fixtures',
@@ -1159,7 +1147,7 @@ async function main(): Promise<void> {
         runFixtures(options);
         return;
     }
-    await runLive(options);
+    await ejecutarForenseLedgers(options);
 }
 
 main().catch((error) => {

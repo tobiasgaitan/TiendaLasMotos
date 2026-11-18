@@ -9,7 +9,7 @@ const loginActions = readFileSync(
     'src/app/admin/login/actions.ts',
     'utf8'
 );
-const outbox = readFileSync('src/lib/offline/outbox.ts', 'utf8');
+const outbox = readFileSync('src/lib/offline/outbox/db.ts', 'utf8');
 
 describe('WEB-LOG-HIGIENE-001', () => {
     it('detecta NEXT_REDIRECT en el logout y no lo loguea como error', () => {

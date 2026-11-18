@@ -1,0 +1,243 @@
+{
+  "ticket": "WEB-051-P1",
+  "project_id": "tiendalasmotos",
+  "ratified": true,
+  "ratified_by": "tobiasgaitan@gmail.com",
+  "ratified_at": "2026-11-18T03:19:53Z",
+  "qwen_verdict": "APROBADO",
+  "approval_reference": "Clasificación Director 2026-11-18",
+  "source_inventory_sha256": "9ade5a7105b02a86dc580aec03cf42e223ff12da44c720185f56d9abf1fbb0e7",
+  "firestore": [
+    {
+      "collection": "creditos",
+      "docs": [
+        {
+          "doc_id": "Qw54o4ebHx5qxSzSxZJp",
+          "status": "APPROVED",
+          "justification": "whitelist base confirmada por evidencia física",
+          "risk": null,
+          "fingerprint": "880022645929b81fceabdd31c00b9c01ef0b20c950a33099176a5d0876d98440"
+        },
+        {
+          "doc_id": "ltezdKf6P3nG4tBZRTx3",
+          "status": "APPROVED",
+          "justification": "whitelist base; numero_credito CRE-2026-0001",
+          "risk": null,
+          "fingerprint": "bbc58e75b88fc15256a58685a45b6f73f0c993250d146b2b5163fc517ee1bffe"
+        }
+      ]
+    },
+    {
+      "collection": "clientes_credito",
+      "docs": [
+        {
+          "doc_id": "cpGYSKqffu4evPHqoTTh",
+          "status": "APPROVED",
+          "justification": "whitelist base confirmada por evidencia física",
+          "risk": null,
+          "fingerprint": "cac922741a5fa1ea50d4882d0e4ca7e5b77cb91eb7c5dc23d8243b44a8a0e214"
+        },
+        {
+          "doc_id": "jHTQNJvFbECaDAj98Pvo",
+          "status": "APPROVED",
+          "justification": "candidato 16-oct aprobado por el Director",
+          "risk": "REAL_ID_EN_FORENSE_PREVIO",
+          "fingerprint": "980065b3d5e382269dedd8e7117de1042c78728685d6c79f279ef70abb7e553a"
+        },
+        {
+          "doc_id": "qbx10kbQsk3yd9YiVwwl",
+          "status": "APPROVED",
+          "justification": "candidato aprobado por el Director; fecha 2026-10-05",
+          "risk": null,
+          "fingerprint": "828c1ae5edcf718455fa3ce595a23277dda570e267396aee43a5096c07bb9ae9"
+        }
+      ]
+    },
+    {
+      "collection": "pagos_y_multas",
+      "docs": [
+        {
+          "doc_id": "RKqUf3oZjLXuVXqMZdQ6",
+          "status": "APPROVED",
+          "justification": "FK explícita id_credito=ltezdKf6P3nG4tBZRTx3; valor_neto_empresa=585000",
+          "risk": "FK_EXPLICITA",
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "remisiones_dinero",
+      "docs": [
+        {
+          "doc_id": "6eJcPQiLqw0HTaYvzk03",
+          "status": "APPROVED",
+          "justification": "misma sesión 16-oct; monto 585000 == valor_neto_empresa del pago",
+          "risk": "SIN_FK_EXPLICITA",
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "sys_admin_users",
+      "docs": [
+        {
+          "doc_id": "prueba@prueba.com",
+          "status": "APPROVED",
+          "justification": "usuario Auth temporal E2E WEB051; docId canónico",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "admin@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "test_admin@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "admin.creditos@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "web038.s7@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        }
+      ]
+    },
+    {
+      "collection": "historial_auditoria",
+      "docs": [
+        {
+          "doc_id": "HbhOlb0z6GbKt3XiIoPM",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; UPDATE creditos",
+          "risk": "REFERENCIA_CLUSTER",
+          "fingerprint": "6d25aa416012963737590d21d721e5b5c964c0d3993ddc5352012eb870af8759"
+        },
+        {
+          "doc_id": "JA37MZbZHnQ7Cwuqck0v",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; SOFT_DELETE sys_admin_users",
+          "risk": null,
+          "fingerprint": "ad2f8d57324e8b0e776ac9bcb2850a8111d25302774565aeb6c7243f0971c243"
+        },
+        {
+          "doc_id": "M02hD07sGpKtBmHwypB7",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; SOFT_DELETE creditos",
+          "risk": "REFERENCIA_CLUSTER",
+          "fingerprint": "0aca00845809a6732d8e82f6fdfb3d185b3d1aac0dae0c72384b8e71002450a8"
+        },
+        {
+          "doc_id": "TQE3ScrUVIbKFfl0jZi9",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; UPDATE sys_admin_users",
+          "risk": null,
+          "fingerprint": "cfd6498a9aef59f6d37a70ec2e18a7eb462bbf4e4e9ea96cfc2cc008c99dfce9"
+        },
+        {
+          "doc_id": "dykKm8G2TP8YA9D0rMTG",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; UPDATE sys_admin_users",
+          "risk": null,
+          "fingerprint": "7bda8d22d0f7b671d514a83cf5830b1cd209b993665025dc31a83142fe281aaa"
+        },
+        {
+          "doc_id": "pLhcYNMzbnopMGSE19wY",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; CREATE creditos",
+          "risk": "REFERENCIA_CLUSTER",
+          "fingerprint": "287a5c2ee2b16a4cd440fe8e376d6d289ac1898a374dca84c6d3d8318b6d2d8b"
+        },
+        {
+          "doc_id": "q2DF9ETaVqMBYCrk4tAt",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; UPDATE sys_admin_users",
+          "risk": null,
+          "fingerprint": "40be1de0b07a0a0221783745af5e268b718809a21bc350adb1c04bbcb0de2dd0"
+        },
+        {
+          "doc_id": "rvIZpBU8yGUTGRtzHxMS",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; CREATE sys_admin_users",
+          "risk": null,
+          "fingerprint": "ab5c869201ffeebfa629f4bada57fc43f28cb279e340e8f680e1ccb05daad820"
+        },
+        {
+          "doc_id": "wINZTNlL5dI7P8KO8xYj",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; UPDATE sys_admin_users",
+          "risk": null,
+          "fingerprint": "6dcc05ec92b5b29088e6cee5b6141990ef757b36f281f1b0e4cc63a5f60003d4"
+        },
+        {
+          "doc_id": "xfJYwrxJSAl5V0NDZky4",
+          "status": "APPROVED",
+          "justification": "ventana E2E 2026-11-17; CREATE clientes_credito",
+          "risk": "REFERENCIA_CLUSTER",
+          "fingerprint": "cc794be380ef3c5311443d0e86e9371709d492885bc367ab2bcfcd8dc919b2e4"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "email": "prueba@prueba.com",
+    "expected_uid": "t05KiQCGQgUWFARvczn3nuXp9Qz2",
+    "uid": null,
+    "status": "ABSENT",
+    "targets": [
+      {
+        "email": "admin@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "test_admin@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "admin.creditos@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "web038.s7@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      }
+    ]
+  },
+  "counter": {
+    "path": "configuracion/counters",
+    "field": "creditoCount",
+    "target": 0,
+    "status": "APPROVED"
+  },
+  "pagos_inversores": {
+    "collection": "pagos_inversores",
+    "status": "ABSENT",
+    "doc_ids": []
+  },
+  "subcollections": [],
+  "protected_set": [
+    "historial_auditoria_inventario"
+  ]
+}

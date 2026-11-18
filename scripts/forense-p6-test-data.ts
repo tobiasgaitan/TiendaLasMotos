@@ -11,11 +11,15 @@
  * Este script NO tiene modo de escritura remota. Solo escribe reportes locales.
  */
 import { hash as cryptoHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import {
+    assertOutDirOutsideRepo,
+    initFirebaseGuarded,
+    writeManifestAndReport,
+} from './lib/forensic-utils';
 
 const PROJECT_ID = 'tiendalasmotos';
 const BUCKET_NAME = 'tiendalasmotos.appspot.com';
@@ -1013,17 +1017,6 @@ function mapPhotoDoc(docId: string, data: Record<string, unknown>): PhotoDoc {
     };
 }
 
-function assertOutDirOutsideRepo(outDir: string): string {
-    const resolved = resolve(outDir);
-    const repo = resolve(process.cwd());
-    if (resolved === repo || resolved.startsWith(`${repo}${sep}`)) {
-        throw new Error(
-            `--out no puede estar dentro del repositorio: ${resolved}`
-        );
-    }
-    return resolved;
-}
-
 function writeJson(path: string, value: unknown): void {
     writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
@@ -1368,7 +1361,6 @@ async function runFixtures(options: {
     }
 
     const outDir = assertOutDirOutsideRepo(options.outDir);
-    mkdirSync(outDir, { recursive: true });
     const whitelist = buildWhitelist(result);
     const ledger = {
         collection: COLLECTION_LEDGER,
@@ -1574,29 +1566,18 @@ async function readStorageStatuses(
     return statuses;
 }
 
-async function runLive(options: {
-    project: string;
-    outDir: string;
-}): Promise<void> {
-    const app =
-        getApps()[0] ??
-        initializeApp({
-            projectId: PROJECT_ID,
-            storageBucket: BUCKET_NAME,
-        });
-    if (app.options.projectId && app.options.projectId !== PROJECT_ID) {
-        throw new Error(
-            `App inicializada con proyecto no autorizado: ${app.options.projectId}`
-        );
-    }
+async function ejecutarForenseP6(options: { outDir: string }): Promise<void> {
+    const { db, storage } = initFirebaseGuarded({
+        outDir: options.outDir,
+        projectId: PROJECT_ID,
+    });
     const configuredBucket = resolveConfiguredBucket();
     if (configuredBucket && configuredBucket !== BUCKET_NAME) {
         throw new Error(
             `Bucket configurado no autorizado: ${configuredBucket}`
         );
     }
-    const db = getFirestore(app);
-    const bucket = getStorage(app).bucket(BUCKET_NAME);
+    const bucket = storage.bucket(BUCKET_NAME);
 
     const [inventorySnap, countsSnap, photosSnap] = await Promise.all([
         db.collection(COLLECTION_INVENTORY).get(),
@@ -1664,7 +1645,6 @@ async function runLive(options: {
     const sedes = await readSedes(db);
 
     const outDir = assertOutDirOutsideRepo(options.outDir);
-    mkdirSync(outDir, { recursive: true });
     const whitelist = buildWhitelist(result);
     const manifestBase = {
         ticket: 'WEB-FORENSE-P6-001',
@@ -1743,27 +1723,22 @@ async function runLive(options: {
         'whitelist.json': whitelist,
     };
 
-    const hashes: Record<string, string> = {};
-    for (const [name, value] of Object.entries(files)) {
-        const serialized = `${JSON.stringify(value, null, 2)}\n`;
-        writeFileSync(join(outDir, name), serialized, 'utf8');
-        hashes[name] = sha256(serialized);
-    }
-
     const report = buildReport(
         result,
         manifestBase,
         files['ledger_baseline.json'],
         files['external_baseline.json']
     );
-    writeFileSync(join(outDir, 'report.md'), `${report}\n`, 'utf8');
-    hashes['report.md'] = sha256(`${report}\n`);
 
-    writeJson(join(outDir, 'manifest.json'), {
-        ...manifestBase,
-        hashes,
-        outputs: Object.keys(files).concat('report.md', 'manifest.json'),
-    });
+    const { 'summary.json': summary, ...extraFiles } = files;
+    writeManifestAndReport(
+        outDir,
+        'summary.json',
+        summary,
+        report,
+        extraFiles,
+        manifestBase
+    );
 
     console.log('[p6] LIVE PASS');
     console.log(`[p6] universe=${result.universe.inventory}/${result.universe.counts}/${result.universe.photos}`);
@@ -1847,10 +1822,7 @@ async function main(): Promise<void> {
         });
         return;
     }
-    await runLive({
-        project: options.project,
-        outDir: options.outDir,
-    });
+    await ejecutarForenseP6({ outDir: options.outDir });
 }
 
 main().catch((error) => {

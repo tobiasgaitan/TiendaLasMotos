@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest';
 const fuentes = [
     'src/types/inventario.ts',
     'src/lib/offline/outbox.ts',
+    'src/lib/offline/outbox/types.ts',
+    'src/lib/offline/outbox/db.ts',
+    'src/lib/offline/outbox/images.ts',
+    'src/lib/offline/outbox/sync.ts',
+    'src/lib/offline/outbox/sync/queue.ts',
+    'src/lib/offline/outbox/sync/runner.ts',
+    'src/lib/offline/outbox/sync/purge.ts',
     'src/lib/offline/outbox-utils.ts',
     'src/lib/actions/inventario-schemas.ts',
     'src/app/admin/inventory/actions/crearConteoPendiente.ts',
@@ -30,6 +37,7 @@ const clavesFirestore = [
     'referencia_sugerida',
     'descripcion',
     'cantidad_contada',
+    'precio_etiqueta_fisica',
     'ubicacion',
     'anotaciones',
     'foto_url',
@@ -84,5 +92,11 @@ describe('NAMING LOCK', () => {
 
     it('no usa revisado_por_email como alias', () => {
         expect(fuentes).not.toContain('revisado_por_email');
+    });
+
+    it('declara precio_etiqueta_fisica y prohíbe alias', () => {
+        expect(fuentes).toContain('precio_etiqueta_fisica');
+        expect(fuentes).not.toContain('precio_compra');
+        expect(fuentes).not.toMatch(/\bprecio_etiqueta\b(?!_fisica)/);
     });
 });

@@ -26,6 +26,7 @@ import {
     listarBorradores,
     OUTBOX_DB,
     sincronizarOutbox,
+    type EntradaBorradorConteo,
 } from '@/lib/offline/outbox';
 import {
     OUTBOX_DB_NAME,
@@ -47,6 +48,7 @@ const ENTRADA = {
     sede_id: 'sede-1',
     descripcion: 'Disco de freno',
     cantidad_contada: 4,
+    precio_etiqueta_fisica: null,
     ubicacion: 'A-01-05',
     anotaciones: '',
     etiquetas_vision: [],
@@ -70,10 +72,11 @@ async function encolar(
     uid: string,
     conteoId: string,
     storagePath: string,
-    fotoUrl: string
+    fotoUrl: string,
+    entrada: EntradaBorradorConteo = ENTRADA
 ): Promise<void> {
     await encolarConteo(
-        ENTRADA,
+        entrada,
         blobVacio(),
         'asesor@test.com',
         uid,
@@ -124,6 +127,30 @@ async function sembrarFoto(
     });
 }
 
+async function sembrarBorrador(
+    uid: string,
+    conteoId: string,
+    payload: Record<string, unknown>
+): Promise<void> {
+    const db = await abrirDbDirecto();
+    await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(OUTBOX_STORE_BORRADORES, 'readwrite');
+        tx.objectStore(OUTBOX_STORE_BORRADORES).put({
+            conteo_id: conteoId,
+            propietario_uid: uid,
+            payload,
+            intentos: 0,
+            estado_envio: 'pendiente',
+            creado_en: Date.now(),
+            actualizado_en: Date.now(),
+            proximo_intento_en: 0,
+            ultimo_error: '',
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
 beforeEach(async () => {
     await limpiarOutbox('', { forzarPurgaGlobal: true });
     vi.mocked(crearConteoPendiente).mockReset();
@@ -142,6 +169,96 @@ describe('MT-08 outbox/offline contracts', () => {
         expect(propios).toHaveLength(1);
         expect(propios[0].conteo_id).toBe(UUID_A);
         expect((await listarBorradores('uid-B'))[0].conteo_id).toBe(UUID_B);
+    });
+
+    it('persiste precio_etiqueta_fisica en el borrador de IndexedDB', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A, {
+            ...ENTRADA,
+            precio_etiqueta_fisica: 12500.75,
+        });
+
+        const [borrador] = await listarBorradores('uid-A');
+        expect(borrador.payload.precio_etiqueta_fisica).toBe(12500.75);
+        expect(typeof borrador.payload.precio_etiqueta_fisica).toBe(
+            'number'
+        );
+    });
+
+    it('distingue null de 0 en el payload', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A, {
+            ...ENTRADA,
+            precio_etiqueta_fisica: null,
+        });
+        await encolar('uid-A', UUID_B, STORAGE_PATH_B, FOTO_URL_B, {
+            ...ENTRADA,
+            precio_etiqueta_fisica: 0,
+        });
+
+        const borradores = await listarBorradores('uid-A');
+        const nulo = borradores.find(
+            (borrador) => borrador.conteo_id === UUID_A
+        );
+        const cero = borradores.find(
+            (borrador) => borrador.conteo_id === UUID_B
+        );
+
+        expect(nulo).toBeDefined();
+        expect(cero).toBeDefined();
+        expect(nulo?.payload.precio_etiqueta_fisica).toBeNull();
+        expect(cero?.payload.precio_etiqueta_fisica).toBe(0);
+        expect(
+            Object.prototype.hasOwnProperty.call(
+                nulo?.payload,
+                'precio_etiqueta_fisica'
+            )
+        ).toBe(true);
+        expect(
+            Object.prototype.hasOwnProperty.call(
+                cero?.payload,
+                'precio_etiqueta_fisica'
+            )
+        ).toBe(true);
+    });
+
+    it('sincroniza precio_etiqueta_fisica hacia crearConteoPendiente', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A, {
+            ...ENTRADA,
+            precio_etiqueta_fisica: 43210,
+        });
+
+        const resultado = await sincronizarOutbox({
+            uid: 'uid-A',
+            idToken: 'token',
+        });
+
+        expect(resultado.exitosos).toBe(1);
+        const input = vi.mocked(crearConteoPendiente).mock
+            .calls[0][0] as {
+            precio_etiqueta_fisica?: number | null;
+        };
+        expect(input.precio_etiqueta_fisica).toBe(43210);
+    });
+
+    it('sincroniza un borrador antiguo sin precio_etiqueta_fisica', async () => {
+        const payloadAntiguo = {
+            ...ENTRADA,
+            conteo_id: UUID_A,
+            foto_url: FOTO_URL_A,
+            storage_path: STORAGE_PATH_A,
+            nombre_archivo: 'foto.jpg',
+            mime_type: 'image/jpeg',
+            tamano_bytes: 1024,
+        } as Record<string, unknown>;
+        delete payloadAntiguo.precio_etiqueta_fisica;
+        await sembrarBorrador('uid-A', UUID_A, payloadAntiguo);
+
+        const resultado = await sincronizarOutbox({
+            uid: 'uid-A',
+            idToken: 'token',
+        });
+
+        expect(resultado.exitosos).toBe(1);
+        expect(resultado.fallidos).toBe(0);
     });
 
     it('rechaza encolar sin propietario', async () => {
@@ -353,7 +470,7 @@ describe('MT-08 outbox/offline contracts', () => {
         expect(lineas.length).toBeGreaterThan(0);
         expect(
             lineas.every((linea) =>
-                linea.startsWith('src/lib/offline/outbox.ts:')
+                linea.startsWith('src/lib/offline/outbox/sync/purge.ts:')
             )
         ).toBe(true);
     });
@@ -369,7 +486,7 @@ describe('MT-08 outbox/offline contracts', () => {
     });
 
     it('outbox no contiene fallback global en la rama owner-scoped', () => {
-        const source = readFileSync('src/lib/offline/outbox.ts', 'utf8');
+        const source = readFileSync('src/lib/offline/outbox/sync/purge.ts', 'utf8');
         const inicioFuncion = source.indexOf(
             'export async function limpiarOutbox'
         );

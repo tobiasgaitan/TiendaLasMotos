@@ -35,6 +35,30 @@ function lanza(fn: () => void): boolean {
 }
 
 const outbox = readFileSync('src/lib/offline/outbox.ts', 'utf8');
+const outboxTypes = readFileSync(
+    'src/lib/offline/outbox/types.ts',
+    'utf8'
+);
+const outboxDb = readFileSync(
+    'src/lib/offline/outbox/db.ts',
+    'utf8'
+);
+const outboxImages = readFileSync(
+    'src/lib/offline/outbox/images.ts',
+    'utf8'
+);
+const outboxSync = readFileSync(
+    'src/lib/offline/outbox/sync/queue.ts',
+    'utf8'
+);
+const outboxSyncRunner = readFileSync(
+    'src/lib/offline/outbox/sync/runner.ts',
+    'utf8'
+);
+const outboxSyncPurge = readFileSync(
+    'src/lib/offline/outbox/sync/purge.ts',
+    'utf8'
+);
 const outboxUtils = readFileSync(
     'src/lib/offline/outbox-utils.ts',
     'utf8'
@@ -106,19 +130,19 @@ check(
 check(
     'listarBorradores exige propietarioUid en la firma',
     /export async function listarBorradores\(\s*propietarioUid:\s*string\s*\)/.test(
-        outbox
+        outboxSync
     )
 );
 
 check(
     'contarPendientes exige propietarioUid en la firma',
     /export async function contarPendientes\(\s*propietarioUid:\s*string\s*\)/.test(
-        outbox
+        outboxSync
     )
 );
 
 const bloqueMigracion = bloque(
-    outbox,
+    outboxDb,
     'solicitud.onupgradeneeded',
     'solicitud.onsuccess'
 );
@@ -201,7 +225,7 @@ check(
 );
 
 const payloadBlock = bloque(
-    outbox,
+    outboxTypes,
     'export type BorradorConteoPayload',
     'export interface BorradorConteoOutbox'
 );
@@ -219,6 +243,12 @@ check(
 
 const archivosCambiados = [
     'src/lib/offline/outbox.ts',
+    'src/lib/offline/outbox/types.ts',
+    'src/lib/offline/outbox/db.ts',
+    'src/lib/offline/outbox/images.ts',
+    'src/lib/offline/outbox/sync/queue.ts',
+    'src/lib/offline/outbox/sync/runner.ts',
+    'src/lib/offline/outbox/sync/purge.ts',
     'src/lib/offline/outbox-utils.ts',
     'src/hooks/useOfflineQueue.ts',
     'src/components/OfflineIndicator.tsx',
@@ -234,7 +264,20 @@ check(
     )
 );
 
-const archivosUiOffline = [outbox, outboxUtils, hook, indicator, form, uploadFoto];
+const archivosUiOffline = [
+    outbox,
+    outboxTypes,
+    outboxDb,
+    outboxImages,
+    outboxSync,
+    outboxSyncRunner,
+    outboxSyncPurge,
+    outboxUtils,
+    hook,
+    indicator,
+    form,
+    uploadFoto,
+];
 check(
     'sin Firestore directo en UI/offline',
     archivosUiOffline.every(
