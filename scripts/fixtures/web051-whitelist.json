@@ -3,9 +3,9 @@
   "project_id": "tiendalasmotos",
   "ratified": true,
   "ratified_by": "tobiasgaitan@gmail.com",
-  "ratified_at": "2026-11-18T02:56:09Z",
+  "ratified_at": "2026-11-18T03:19:53Z",
   "qwen_verdict": "APROBADO",
-  "approval_reference": "Mensaje Director 2026-11-17 ~21:48 COT + Opción 1 E2E+purga + declaración 3 clientes simulacros + CRE-2026-0001",
+  "approval_reference": "Clasificación Director 2026-11-18",
   "source_inventory_sha256": "9ade5a7105b02a86dc580aec03cf42e223ff12da44c720185f56d9abf1fbb0e7",
   "firestore": [
     {
@@ -84,6 +84,34 @@
           "doc_id": "prueba@prueba.com",
           "status": "APPROVED",
           "justification": "usuario Auth temporal E2E WEB051; docId canónico",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "admin@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "test_admin@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "admin.creditos@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
+          "risk": null,
+          "fingerprint": null
+        },
+        {
+          "doc_id": "web038.s7@tiendalasmotos.com",
+          "status": "APPROVED",
+          "justification": "usuario de prueba clasificado por el Director 2026-11-18",
           "risk": null,
           "fingerprint": null
         }
@@ -169,7 +197,33 @@
     "email": "prueba@prueba.com",
     "expected_uid": "t05KiQCGQgUWFARvczn3nuXp9Qz2",
     "uid": null,
-    "status": "ABSENT"
+    "status": "ABSENT",
+    "targets": [
+      {
+        "email": "admin@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "test_admin@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "admin.creditos@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      },
+      {
+        "email": "web038.s7@tiendalasmotos.com",
+        "expected_uid": null,
+        "uid": null,
+        "status": "APPROVED"
+      }
+    ]
   },
   "counter": {
     "path": "configuracion/counters",

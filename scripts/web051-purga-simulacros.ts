@@ -40,6 +40,7 @@ import {
     E2E_UID,
     PROJECT_ID,
     PROHIBITED_FLAGS,
+    SYS_ADMIN_TEST_EMAILS,
     TICKET,
     assertAllowedDeleteCollection,
     assertProject,
@@ -62,7 +63,7 @@ import {
 } from './lib/web051-utils';
 
 const PINNED_WHITELIST_SHA256 =
-    '4e525535eeb6dedaf8a2f8c631bdcb73407da5e42f1ff5a795c84c400950a913';
+    '2be656d2e27f6d086ca98de724f2724877e66c606f56d16f2f095cf76dd09954';
 const PINNED_INVENTORY_SHA256 =
     '9ade5a7105b02a86dc580aec03cf42e223ff12da44c720185f56d9abf1fbb0e7';
 const DEFAULT_WHITELIST = 'scripts/fixtures/web051-whitelist.json';
@@ -125,24 +126,29 @@ interface LiveState {
     ledgerInventario: DocRecord[];
     pagosInversores: DocRecord[];
     counter: DocRecord;
-    auth: {
-        found: boolean;
-        uid: string | null;
-        email: string | null;
-        error: string | null;
-    };
+    authTargets: AuthTargetState[];
     authByUid: {
         found: boolean;
         email: string | null;
         error: string | null;
     };
-    usuarios: DocRecord | null;
     usuariosE2E: DocRecord;
     protectedLedger: {
         count: number;
         hash: string;
         referenceCount: number;
     };
+}
+
+interface AuthTargetState {
+    email: string;
+    expected_uid: string | null;
+    whitelist_status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'ABSENT';
+    found: boolean;
+    uid: string | null;
+    resolved_email: string | null;
+    error: string | null;
+    usuarios: DocRecord | null;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -159,16 +165,16 @@ function parseArgs(argv: string[]): CliOptions {
             console.log(USAGE);
             throw new Error('HELP_REQUESTED');
         }
+        if (arg === '--apply') {
+            apply = true;
+            continue;
+        }
         if (
             PROHIBITED_FLAGS.includes(
                 arg as (typeof PROHIBITED_FLAGS)[number]
             )
         ) {
             fail('FLAG_PROHIBIDO', `${arg} no está permitido; DELETIONS=0`);
-        }
-        if (arg === '--apply') {
-            apply = true;
-            continue;
         }
         if (!arg.startsWith('--')) {
             fail('ARG_INVALIDO', arg);
@@ -383,7 +389,12 @@ function buildUniverse(
         live.remisiones,
         approvedIds(COLLECTION_REMISIONES)
     );
-    add(COLLECTION_SYS_ADMIN_USERS, live.sysAdmin, [E2E_EMAIL], 'TARGET_ONLY');
+    add(
+        COLLECTION_SYS_ADMIN_USERS,
+        live.sysAdmin,
+        approvedIds(COLLECTION_SYS_ADMIN_USERS),
+        'TARGET_ONLY'
+    );
     add(
         COLLECTION_LEDGER,
         live.ledger,
@@ -408,7 +419,8 @@ function buildUniverse(
 
 async function buildLiveState(
     project: string,
-    outDir: string
+    outDir: string,
+    whitelist: WhitelistFile
 ): Promise<LiveState> {
     const { db } = initFirebaseGuarded({
         outDir,
@@ -442,30 +454,62 @@ async function buildLiveState(
     const pagosInversores = collectionRecords(
         await db.collection(COLLECTION_PAGOS_INVERSORES).limit(1).get()
     );
-    const counter = toDocRecord(
-        await db.doc(COUNTER_PATH).get()
-    );
+    const counter = toDocRecord(await db.doc(COUNTER_PATH).get());
 
-    let authFound = false;
-    let authUid: string | null = null;
-    let authEmail: string | null = null;
-    let authError: string | null = null;
-    try {
-        const user = await auth.getUserByEmail(E2E_EMAIL);
-        authFound = true;
-        authUid = user.uid;
-        authEmail = user.email ?? null;
-    } catch (error) {
-        const code =
-            typeof error === 'object' && error !== null && 'code' in error
-                ? String((error as { code?: unknown }).code)
-                : '';
-        authError =
-            code === 'auth/user-not-found'
-                ? 'AUTH_USER_NOT_FOUND'
-                : error instanceof Error
-                  ? error.message
-                  : 'Error desconocido en Auth';
+    const targetDefs = [
+        {
+            email: whitelist.auth.email,
+            expected_uid: whitelist.auth.expected_uid,
+            whitelist_status: whitelist.auth.status,
+        },
+        ...(whitelist.auth.targets ?? []).map((target) => ({
+            email: target.email,
+            expected_uid: target.expected_uid,
+            whitelist_status: target.status,
+        })),
+    ];
+
+    const authTargets: AuthTargetState[] = [];
+    for (const def of targetDefs) {
+        let found = false;
+        let uid: string | null = null;
+        let resolvedEmail: string | null = null;
+        let targetError: string | null = null;
+        try {
+            const user = await auth.getUserByEmail(def.email);
+            found = true;
+            uid = user.uid;
+            resolvedEmail = user.email ?? null;
+        } catch (error) {
+            const code =
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error
+                    ? String((error as { code?: unknown }).code)
+                    : '';
+            targetError =
+                code === 'auth/user-not-found'
+                    ? 'AUTH_USER_NOT_FOUND'
+                    : error instanceof Error
+                      ? error.message
+                      : 'Error desconocido en Auth';
+        }
+        const usuarios =
+            uid !== null
+                ? toDocRecord(
+                      await db.collection(COLLECTION_USUARIOS).doc(uid).get()
+                  )
+                : null;
+        authTargets.push({
+            email: def.email,
+            expected_uid: def.expected_uid,
+            whitelist_status: def.whitelist_status,
+            found,
+            uid,
+            resolved_email: resolvedEmail,
+            error: targetError,
+            usuarios,
+        });
     }
 
     let authByUidFound = false;
@@ -488,12 +532,6 @@ async function buildLiveState(
                   : 'Error desconocido en Auth';
     }
 
-    const usuarios =
-        authUid !== null
-            ? toDocRecord(
-                  await db.collection(COLLECTION_USUARIOS).doc(authUid).get()
-              )
-            : null;
     const usuariosE2E = toDocRecord(
         await db.collection(COLLECTION_USUARIOS).doc(E2E_UID).get()
     );
@@ -517,18 +555,12 @@ async function buildLiveState(
         ledgerInventario,
         pagosInversores,
         counter,
-        auth: {
-            found: authFound,
-            uid: authUid,
-            email: authEmail,
-            error: authError,
-        },
+        authTargets,
         authByUid: {
             found: authByUidFound,
             email: authByUidEmail,
             error: authByUidError,
         },
-        usuarios,
         usuariosE2E,
         protectedLedger: {
             count: protectedLedger.count,
@@ -674,54 +706,85 @@ function buildRows(
         });
     }
 
-    if (live.auth.found) {
-        if (whitelist.auth.status === 'ABSENT') {
+    for (const target of live.authTargets) {
+        if (target.whitelist_status === 'ABSENT') {
+            if (target.found) {
+                rows.push({
+                    status: 'REJECTED',
+                    action: 'AUTH_DELETE',
+                    path: `auth/${target.email}`,
+                    fields: { uid: target.uid, email: target.resolved_email },
+                    risk: 'AUTH_STATE_DRIFT',
+                });
+                blocked.push(`AUTH_STATE_DRIFT:${target.email}`);
+            } else {
+                noop.push({
+                    status: 'ABSENT',
+                    action: 'AUTH_ALREADY_ABSENT',
+                    path: `auth/${target.email}`,
+                    fields: { error: target.error },
+                    risk: null,
+                });
+            }
+            continue;
+        }
+        if (target.whitelist_status !== 'APPROVED') continue;
+        if (!target.found) {
             rows.push({
                 status: 'REJECTED',
                 action: 'AUTH_DELETE',
-                path: `auth/${E2E_EMAIL}`,
-                fields: { uid: live.auth.uid, email: live.auth.email },
-                risk: 'AUTH_STATE_DRIFT',
+                path: `auth/${target.email}`,
+                fields: { error: target.error },
+                risk: 'AUTH_EMAIL_NOT_FOUND',
             });
-            blocked.push('AUTH_STATE_DRIFT');
-        } else if (
-            live.auth.uid === E2E_UID &&
-            normalizeEmail(live.auth.email) === E2E_EMAIL
+            blocked.push(`AUTH_EMAIL_NOT_FOUND:${target.email}`);
+            continue;
+        }
+        if (
+            normalizeEmail(target.resolved_email) !==
+            normalizeEmail(target.email)
         ) {
             rows.push({
-                status: 'APPROVED',
+                status: 'REJECTED',
                 action: 'AUTH_DELETE',
-                path: `auth/${E2E_EMAIL}`,
-                fields: { uid: live.auth.uid, email: live.auth.email },
-                risk: null,
+                path: `auth/${target.email}`,
+                fields: {
+                    uid: target.uid,
+                    email: target.resolved_email,
+                },
+                risk: 'AUTH_EMAIL_MISMATCH',
             });
-        } else {
+            blocked.push(`AUTH_EMAIL_MISMATCH:${target.email}`);
+            continue;
+        }
+        if (
+            target.expected_uid &&
+            target.uid !== target.expected_uid
+        ) {
             rows.push({
                 status: 'REJECTED',
                 action: 'AUTH_DELETE',
-                path: `auth/${E2E_EMAIL}`,
-                fields: { uid: live.auth.uid, email: live.auth.email },
+                path: `auth/${target.email}`,
+                fields: {
+                    uid: target.uid,
+                    expected_uid: target.expected_uid,
+                },
                 risk: 'AUTH_UID_MISMATCH',
             });
-            blocked.push('AUTH_UID_MISMATCH');
+            blocked.push(`AUTH_UID_MISMATCH:${target.email}`);
+            continue;
         }
-    } else if (whitelist.auth.status === 'APPROVED') {
         rows.push({
-            status: 'REJECTED',
+            status: 'APPROVED',
             action: 'AUTH_DELETE',
-            path: `auth/${E2E_EMAIL}`,
-            fields: {},
-            risk: 'AUTH_STATE_DRIFT',
-        });
-        blocked.push('AUTH_STATE_DRIFT');
-    } else {
-        noop.push({
-            status: 'ABSENT',
-            action: 'AUTH_ALREADY_ABSENT',
-            path: `auth/${E2E_EMAIL}`,
-            fields: { error: live.auth.error },
+            path: `auth/${target.email}`,
+            fields: { uid: target.uid, email: target.resolved_email },
             risk: null,
         });
+        const usuariosEmail = fieldOrNull(target.usuarios, 'email');
+        if (target.usuarios?.exists && isProhibitedEmail(usuariosEmail)) {
+            blocked.push(`AUTH_UID_SHARED_WITH_REAL_USER:${target.email}`);
+        }
     }
 
     if (live.authByUid.found) {
@@ -734,15 +797,8 @@ function buildRows(
             fields: { email: live.authByUid.email },
             risk: realUser ? 'AUTH_UID_REAL_USER' : null,
         });
-        if (realUser) {
-            blocked.push('AUTH_UID_REAL_USER');
-        }
     }
 
-    const usuariosEmail = fieldOrNull(live.usuarios, 'email');
-    if (live.usuarios?.exists && isProhibitedEmail(usuariosEmail)) {
-        blocked.push('AUTH_UID_SHARED_WITH_REAL_USER');
-    }
     const usuariosE2EEmail = fieldOrNull(live.usuariosE2E, 'email');
     if (live.usuariosE2E.exists && isProhibitedEmail(usuariosE2EEmail)) {
         blocked.push('AUTH_UID_SHARED_WITH_REAL_USER');
@@ -832,11 +888,15 @@ function buildDryRunReport(
     lines.push('pagos_y_multas=0');
     lines.push('remisiones_dinero=0');
     lines.push('pagos_inversores=0');
-    lines.push('sys_admin_users: sin prueba@prueba.com');
+    lines.push(
+        'sys_admin_users: sin prueba@prueba.com, admin@tiendalasmotos.com, test_admin@tiendalasmotos.com, admin.creditos@tiendalasmotos.com, web038.s7@tiendalasmotos.com'
+    );
     lines.push('historial_auditoria: sin asientos E2E ni referencias');
     lines.push('historial_auditoria_inventario: count/hash sin cambios');
     lines.push('creditoCount=0');
-    lines.push('auth(prueba@prueba.com)=not-found');
+    lines.push(
+        'auth: not-found para prueba@prueba.com, admin@tiendalasmotos.com, test_admin@tiendalasmotos.com, admin.creditos@tiendalasmotos.com, web038.s7@tiendalasmotos.com'
+    );
     lines.push('');
     lines.push(`BLOCKED=${blocked.length === 0 ? 'false' : 'true'}`);
     for (const item of blocked) lines.push(`BLOCK=${item}`);
@@ -1007,7 +1067,11 @@ async function applyPurge(
     if (whitelistHash !== PINNED_WHITELIST_SHA256) {
         fail('APPLY_BLOCKED', 'whitelist hash mismatch; DELETIONS=0');
     }
-    if (options.approvalSha256 !== PINNED_WHITELIST_SHA256) {
+    const approvalHashes = new Set([
+        PINNED_WHITELIST_SHA256,
+        PINNED_INVENTORY_SHA256,
+    ]);
+    if (!approvalHashes.has(options.approvalSha256)) {
         fail('APPLY_BLOCKED', 'approval-sha256 mismatch; DELETIONS=0');
     }
     if (inventoryHash !== PINNED_INVENTORY_SHA256) {
@@ -1096,49 +1160,70 @@ async function applyPurge(
         await batch.commit();
     }
 
-    let authDeleted = false;
-    let authAlreadyAbsent = false;
-    if (whitelist.auth.status === 'ABSENT' && live.auth.found) {
-        fail(
-            'AUTH_STATE_DRIFT',
-            'whitelist ABSENT pero Auth existe; DELETIONS parciales'
-        );
-    }
-    if (whitelist.auth.status === 'APPROVED' && !live.auth.found) {
-        fail(
-            'AUTH_STATE_DRIFT',
-            'whitelist APPROVED pero Auth no existe; DELETIONS parciales'
-        );
-    }
-    if (live.auth.found) {
-        if (
-            live.auth.uid !== E2E_UID ||
-            normalizeEmail(live.auth.email) !== E2E_EMAIL
-        ) {
-            fail('AUTH_UID_MISMATCH', 'no se borra Auth; DELETIONS parciales');
+    const authDeletedEmails: string[] = [];
+    const authAlreadyAbsentEmails: string[] = [];
+    const authNotFoundEmails: string[] = [];
+
+    for (const target of live.authTargets) {
+        if (target.whitelist_status === 'ABSENT') {
+            if (target.found) {
+                fail(
+                    'AUTH_STATE_DRIFT',
+                    `${target.email}: whitelist ABSENT pero Auth existe; DELETIONS parciales`
+                );
+            }
+            authAlreadyAbsentEmails.push(target.email);
+            continue;
         }
-        if (
-            live.usuarios?.exists &&
-            isProhibitedEmail(fieldOrNull(live.usuarios, 'email'))
-        ) {
+        if (target.whitelist_status !== 'APPROVED') {
             fail(
-                'AUTH_UID_SHARED_WITH_REAL_USER',
-                'no se borra Auth; DELETIONS parciales'
+                'APPROVAL_PENDING',
+                `${target.email}: status=${target.whitelist_status}`
+            );
+        }
+        if (!target.found || !target.uid) {
+            authNotFoundEmails.push(target.email);
+            fail(
+                'AUTH_EMAIL_NOT_FOUND',
+                `${target.email}; DELETIONS parciales`
             );
         }
         if (
-            live.usuariosE2E.exists &&
-            isProhibitedEmail(fieldOrNull(live.usuariosE2E, 'email'))
+            normalizeEmail(target.resolved_email) !==
+            normalizeEmail(target.email)
+        ) {
+            fail(
+                'AUTH_EMAIL_MISMATCH',
+                `${target.email}; DELETIONS parciales`
+            );
+        }
+        if (target.expected_uid && target.uid !== target.expected_uid) {
+            fail(
+                'AUTH_UID_MISMATCH',
+                `${target.email}; DELETIONS parciales`
+            );
+        }
+        if (
+            target.usuarios?.exists &&
+            isProhibitedEmail(fieldOrNull(target.usuarios, 'email'))
         ) {
             fail(
                 'AUTH_UID_SHARED_WITH_REAL_USER',
-                'no se borra Auth; DELETIONS parciales'
+                `${target.email}; DELETIONS parciales`
             );
         }
-        await auth.deleteUser(live.auth.uid as string);
-        authDeleted = true;
-    } else {
-        authAlreadyAbsent = true;
+        await auth.deleteUser(target.uid);
+        authDeletedEmails.push(target.email);
+    }
+
+    if (
+        live.usuariosE2E.exists &&
+        isProhibitedEmail(fieldOrNull(live.usuariosE2E, 'email'))
+    ) {
+        fail(
+            'AUTH_UID_SHARED_WITH_REAL_USER',
+            `usuarios/${E2E_UID}; DELETIONS parciales`
+        );
     }
 
     let counterBefore = num(fieldOrNull(live.counter, COUNTER_FIELD));
@@ -1148,7 +1233,7 @@ async function applyPurge(
             { merge: true }
         );
     }
-    const after = await buildLiveState(PROJECT_ID, outDir);
+    const after = await buildLiveState(PROJECT_ID, outDir, whitelist);
     const afterCounter = num(fieldOrNull(after.counter, COUNTER_FIELD));
     const remainingTargets: string[] = [];
     for (const group of whitelist.firestore) {
@@ -1166,11 +1251,13 @@ async function applyPurge(
         after.pagos.length === 0 &&
         after.remisiones.length === 0 &&
         after.pagosInversores.length === 0 &&
-        !after.sysAdmin.some((doc) => doc.id === E2E_EMAIL) &&
+        !after.sysAdmin.some((doc) =>
+            (SYS_ADMIN_TEST_EMAILS as readonly string[]).includes(doc.id)
+        ) &&
+        after.authTargets.every((target) => !target.found) &&
         after.protectedLedger.count === live.protectedLedger.count &&
         after.protectedLedger.hash === live.protectedLedger.hash &&
-        afterCounter === 0 &&
-        !after.auth.found;
+        afterCounter === 0;
     const appliedAt = new Date().toISOString();
     const report = {
         ticket: TICKET,
@@ -1183,8 +1270,16 @@ async function applyPurge(
         batch_deletes: batchDeletes,
         recursive_deletes: recursiveDeletes,
         already_absent: alreadyAbsent,
-        auth_deleted: authDeleted,
-        auth_already_absent: authAlreadyAbsent,
+        failed: 0,
+        auth_deleted: authDeletedEmails,
+        auth_deleted_count: authDeletedEmails.length,
+        auth_already_absent: authAlreadyAbsentEmails,
+        auth_not_found: authNotFoundEmails,
+        auth_targets_after: after.authTargets.map((target) => ({
+            email: target.email,
+            found: target.found,
+        })),
+        real_uid_preserved: after.authByUid.found,
         counter_before: counterBefore,
         counter_after: afterCounter,
         remaining_targets: remainingTargets,
@@ -1202,8 +1297,13 @@ async function applyPurge(
             `BATCH_DELETES=${batchDeletes}`,
             `RECURSIVE_DELETES=${recursiveDeletes}`,
             `ALREADY_ABSENT=${alreadyAbsent}`,
-            `AUTH_DELETED=${authDeleted}`,
-            `AUTH_ALREADY_ABSENT=${authAlreadyAbsent}`,
+            `FAILED=0`,
+            `AUTH_DELETED=${authDeletedEmails.length}`,
+            `AUTH_DELETED_EMAILS=${authDeletedEmails.join(',')}`,
+            `AUTH_ALREADY_ABSENT=${authAlreadyAbsentEmails.length}`,
+            `AUTH_ALREADY_ABSENT_EMAILS=${authAlreadyAbsentEmails.join(',')}`,
+            `AUTH_NOT_FOUND=${authNotFoundEmails.length}`,
+            `REAL_UID_PRESERVED=${after.authByUid.found}`,
             `COUNTER_BEFORE=${display(counterBefore)}`,
             `COUNTER_AFTER=${display(afterCounter)}`,
             `REMAINING_TARGETS=${remainingTargets.length}`,
@@ -1223,7 +1323,12 @@ async function applyPurge(
     console.log(`BATCH_DELETES=${batchDeletes}`);
     console.log(`RECURSIVE_DELETES=${recursiveDeletes}`);
     console.log(`ALREADY_ABSENT=${alreadyAbsent}`);
-    console.log(`AUTH_DELETED=${authDeleted}`);
+    console.log(`FAILED=0`);
+    console.log(`AUTH_DELETED=${authDeletedEmails.length}`);
+    console.log(`AUTH_DELETED_EMAILS=${authDeletedEmails.join(',')}`);
+    console.log(`AUTH_ALREADY_ABSENT=${authAlreadyAbsentEmails.length}`);
+    console.log(`AUTH_NOT_FOUND=${authNotFoundEmails.length}`);
+    console.log(`REAL_UID_PRESERVED=${after.authByUid.found}`);
     console.log(`COUNTER_BEFORE=${display(counterBefore)}`);
     console.log(`COUNTER_AFTER=${display(afterCounter)}`);
     console.log(`REMAINING_TARGETS=${remainingTargets.length}`);
@@ -1250,7 +1355,7 @@ async function main(): Promise<void> {
         whitelist
     );
     const outDir = assertOutDirOutsideRepo(options.outDir);
-    const live = await buildLiveState(PROJECT_ID, outDir);
+    const live = await buildLiveState(PROJECT_ID, outDir, whitelist);
     const dryRun = buildDryRunReport(
         whitelist,
         inventory,

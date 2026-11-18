@@ -63,13 +63,23 @@ export const E2E_COLLECTIONS = [
 
 export const PROHIBITED_EMAILS = [
     'tobiasgaitan@gmail.com',
-    'admin@tiendalasmotos.com',
-    'admin.creditos@tiendalasmotos.com',
+    'lasmotosauteco@gmail.com',
+    'liseth.padilla@tiendalasmotos.com',
     'conexion@tiendalasmotos.com',
     'janer.mendoza146@gmail.com',
-    'test_admin@tiendalasmotos.com',
-    'web038.s7@tiendalasmotos.com',
     'zlorenamartinez1608@gmail.com',
+] as const;
+
+export const AUTH_TEST_EMAILS = [
+    'admin@tiendalasmotos.com',
+    'test_admin@tiendalasmotos.com',
+    'admin.creditos@tiendalasmotos.com',
+    'web038.s7@tiendalasmotos.com',
+] as const;
+
+export const SYS_ADMIN_TEST_EMAILS = [
+    E2E_EMAIL,
+    ...AUTH_TEST_EMAILS,
 ] as const;
 
 export const ALLOWED_DELETE_COLLECTIONS = [
@@ -139,6 +149,12 @@ export interface WhitelistFile {
         expected_uid: string;
         uid: string | null;
         status: ApprovalStatus;
+        targets?: Array<{
+            email: string;
+            expected_uid: string | null;
+            uid: string | null;
+            status: ApprovalStatus;
+        }>;
     };
     counter: {
         path: string;
@@ -516,6 +532,13 @@ export function validateWhitelist(
         E2E_EMAIL,
         'WHITELIST_SET_MISMATCH'
     );
+    for (const email of AUTH_TEST_EMAILS) {
+        requireId(
+            COLLECTION_SYS_ADMIN_USERS,
+            email,
+            'WHITELIST_SET_MISMATCH'
+        );
+    }
 
     const allowedCredits = new Set<string>(BASE_CREDIT_IDS);
     const allowedClients = new Set<string>([
@@ -545,7 +568,9 @@ export function validateWhitelist(
         }
     }
     for (const doc of byCollection[COLLECTION_SYS_ADMIN_USERS].docs) {
-        if (doc.doc_id !== E2E_EMAIL) {
+        if (
+            !(SYS_ADMIN_TEST_EMAILS as readonly string[]).includes(doc.doc_id)
+        ) {
             fail(
                 'WHITELIST_SET_MISMATCH',
                 `sys_admin_users/${doc.doc_id}`
@@ -572,6 +597,37 @@ export function validateWhitelist(
             }
         } else if (whitelist.auth.status !== 'ABSENT') {
             fail('APPROVAL_PENDING', 'auth');
+        }
+    }
+
+    if (whitelist.auth.targets !== undefined) {
+        const seenTargets = new Set<string>();
+        for (const target of whitelist.auth.targets) {
+            const email = normalizeEmail(target.email);
+            if (
+                !(AUTH_TEST_EMAILS as readonly string[]).includes(email)
+            ) {
+                fail('WHITELIST_SET_MISMATCH', `auth/${email}`);
+            }
+            if (isProhibitedEmail(email)) {
+                fail('PROHIBITED_USER', email);
+            }
+            if (seenTargets.has(email)) {
+                fail('WHITELIST_INVALID', `auth/${email} duplicado`);
+            }
+            seenTargets.add(email);
+            if (requireRatified) {
+                if (target.status === 'APPROVED') {
+                    // El uid se resuelve en runtime por email.
+                } else if (target.status !== 'ABSENT') {
+                    fail('APPROVAL_PENDING', `auth/${email}`);
+                }
+            }
+        }
+        for (const email of AUTH_TEST_EMAILS) {
+            if (!seenTargets.has(email)) {
+                fail('WHITELIST_SET_MISMATCH', `auth/${email}`);
+            }
         }
     }
 
