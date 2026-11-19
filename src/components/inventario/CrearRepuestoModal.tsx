@@ -10,6 +10,10 @@ import { useAuth } from '@/context/AuthContext';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { crearRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import { parseAplicaA } from '@/lib/inventario/ui-helpers';
+import {
+    UNIDADES_MEDIDA,
+    type UnidadMedida,
+} from '@/types/inventario';
 
 interface CrearRepuestoModalProps {
     isOpen: boolean;
@@ -30,6 +34,7 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
     fabricante: 'Fabricante',
     aplica_a: 'Aplica a',
     categoria: 'Categoría',
+    unidad_medida: 'Unidad de medida',
     precio: 'Precio de compra',
     stock: 'Stock',
     stock_minimo: 'Stock mínimo',
@@ -70,6 +75,7 @@ export default function CrearRepuestoModal({
     const [fabricante, setFabricante] = useState('');
     const [aplicaA, setAplicaA] = useState('');
     const [categoria, setCategoria] = useState('');
+    const [unidadMedida, setUnidadMedida] = useState<UnidadMedida>('unidad');
     const [precio, setPrecio] = useState('');
     const [stock, setStock] = useState('0');
     const [stockMinimo, setStockMinimo] = useState('0');
@@ -86,6 +92,7 @@ export default function CrearRepuestoModal({
         setFabricante('');
         setAplicaA('');
         setCategoria('');
+        setUnidadMedida('unidad');
         setPrecio('');
         setStock('0');
         setStockMinimo('0');
@@ -115,6 +122,7 @@ export default function CrearRepuestoModal({
             fabricante,
             aplica_a: parseAplicaA(aplicaA),
             categoria,
+            unidad_medida: unidadMedida,
             precio,
             stock,
             stock_minimo: stockMinimo,
@@ -322,7 +330,7 @@ export default function CrearRepuestoModal({
                     </button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                     <div>
                         <label
                             htmlFor="crear-fabricante"
@@ -363,6 +371,35 @@ export default function CrearRepuestoModal({
                             className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Ej. Filtros"
                         />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="crear-unidad-medida"
+                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
+                        >
+                            Unidad de medida
+                        </label>
+                        <select
+                            id="crear-unidad-medida"
+                            value={unidadMedida}
+                            disabled={creando}
+                            onChange={(event) =>
+                                setUnidadMedida(
+                                    event.target.value as UnidadMedida
+                                )
+                            }
+                            className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {UNIDADES_MEDIDA.map((unidad) => (
+                                <option key={unidad} value={unidad}>
+                                    {unidad === 'litro' ? 'Litro' : 'Unidad'}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                            Default: unidad.
+                        </p>
                     </div>
                 </div>
 

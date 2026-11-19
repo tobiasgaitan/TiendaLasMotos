@@ -56,11 +56,13 @@ check('asesor NO escribe inventario de repuestos',
 check('asesor crea y lee conteos', puede(M.asesor, 'conteos_pendientes_repuestos', 'create') && puede(M.asesor, 'conteos_pendientes_repuestos', 'read'));
 check('asesor crea y lee fotos', puede(M.asesor, 'fotos_inventario', 'create') && puede(M.asesor, 'fotos_inventario', 'read'));
 check('asesor lee ledger de inventario', puede(M.asesor, 'historial_auditoria_inventario', 'read'));
-check('admin CRUD inventario de repuestos sin delete',
+check('admin CRUD inventario de repuestos con delete',
     puede(M.admin, 'inventario_repuestos', 'create') &&
     puede(M.admin, 'inventario_repuestos', 'read') &&
     puede(M.admin, 'inventario_repuestos', 'update') &&
-    !puede(M.admin, 'inventario_repuestos', 'delete'));
+    puede(M.admin, 'inventario_repuestos', 'delete'));
+check('superadmin borra inventario de repuestos',
+    puede(M.superadmin, 'inventario_repuestos', 'delete'));
 check('auditor lee inventario y ledger',
     puede(M.auditor, 'inventario_repuestos', 'read') &&
     puede(M.auditor, 'historial_auditoria_inventario', 'read'));

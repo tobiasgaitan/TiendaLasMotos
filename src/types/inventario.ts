@@ -14,6 +14,10 @@ export const ESTADOS_CONTEO = [
 
 export type EstadoConteo = (typeof ESTADOS_CONTEO)[number];
 
+export const UNIDADES_MEDIDA = ['unidad', 'litro'] as const;
+
+export type UnidadMedida = (typeof UNIDADES_MEDIDA)[number];
+
 export interface ConteoPendiente {
     referencia_sugerida: string;
     referencia_confirmada: string;
@@ -41,6 +45,7 @@ export interface InventarioRepuesto {
     fabricante: string;
     aplica_a: string[];
     categoria: string;
+    unidad_medida: UnidadMedida;
     precio: number;
     ubicacion?: string;
     stock: number;
@@ -86,7 +91,7 @@ export interface HistorialAuditoriaInventario {
     documento_id: string;
     referencia: string | null;
     conteo_id: string | null;
-    operacion: 'CREATE' | 'UPDATE';
+    operacion: 'CREATE' | 'UPDATE' | 'DELETE';
     datos_anteriores: Record<string, unknown> | null;
     datos_nuevos: Record<string, unknown> | null;
     campos_modificados: string[];
@@ -96,11 +101,14 @@ export interface HistorialAuditoriaInventario {
     version: 1;
 }
 
+export type InventarioActionCodigo = 'FK_CONTEOS';
+
 export interface InventarioActionResult {
     success: boolean;
     message?: string;
     id?: string;
     idempotente?: boolean;
+    codigo?: InventarioActionCodigo;
 }
 
 export type PendienteDTO = Omit<

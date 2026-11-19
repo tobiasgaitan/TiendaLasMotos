@@ -1,6 +1,6 @@
 'use server';
 
-import { getDb } from '@/lib/firebase-admin';
+import { getDb, getFieldPath } from '@/lib/firebase-admin';
 import { requirePermiso } from '@/lib/auth/require-permiso';
 import {
     requireActorInventario,
@@ -8,6 +8,7 @@ import {
 } from '@/lib/actions/inventario-actor';
 import { listarRepuestosSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import type {
+    CursorRepuestos,
     ListarRepuestosResult,
     RepuestoInventarioDTO,
 } from '@/types/inventario-repuestos';
@@ -18,6 +19,10 @@ function texto(value: unknown): string {
 
 function numero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function unidadMedida(value: unknown): 'unidad' | 'litro' {
+    return texto(value).trim().toLowerCase() === 'litro' ? 'litro' : 'unidad';
 }
 
 function arregloTexto(value: unknown): string[] {
@@ -69,9 +74,12 @@ function aISO(value: unknown): string | null {
 }
 
 /**
- * Lista todos los documentos de inventario_repuestos para la ruta
- * administrativa. No usa limit/orderBy: no requiere índices nuevos y los
- * filtros/orden se resuelven en el cliente.
+ * Lista una página de inventario_repuestos para la ruta administrativa.
+ *
+ * - Orden estable: referencia ASC + documentId ASC.
+ * - Cursor: startAfter(referencia, documento_id).
+ * - Filtros server-side: categoría/fabricante exactos y referencia por prefijo.
+ * - Se pide limite + 1 para saber si existe página siguiente.
  */
 export async function listarRepuestos(
     input: unknown,
@@ -83,6 +91,7 @@ export async function listarRepuestos(
             success: false,
             message: 'No autorizado. Sesión inválida.',
             repuestos: [],
+            siguienteCursor: null,
         };
     }
 
@@ -92,6 +101,7 @@ export async function listarRepuestos(
             success: false,
             message: 'Filtro de repuestos inválido.',
             repuestos: [],
+            siguienteCursor: null,
         };
     }
 
@@ -107,11 +117,42 @@ export async function listarRepuestos(
                 success: false,
                 message: 'Solo un administrador puede ver el inventario de repuestos.',
                 repuestos: [],
+                siguienteCursor: null,
             };
         }
 
+        const filtros = parsed.data;
         const adminDb = getDb();
-        const snap = await adminDb.collection('inventario_repuestos').get();
+        const FieldPath = getFieldPath();
+        const coleccion = adminDb.collection('inventario_repuestos');
+
+        let query = coleccion;
+        if (filtros.categoria) {
+            query = query.where('categoria', '==', filtros.categoria);
+        }
+        if (filtros.fabricante) {
+            query = query.where('fabricante', '==', filtros.fabricante);
+        }
+        if (filtros.referencia) {
+            query = query
+                .where('referencia', '>=', filtros.referencia)
+                .where('referencia', '<=', `${filtros.referencia}\uf8ff`);
+        }
+
+        query = query
+            .orderBy('referencia')
+            .orderBy(FieldPath.documentId());
+
+        if (filtros.cursor) {
+            query = query.startAfter(
+                filtros.cursor.referencia,
+                filtros.cursor.documento_id
+            );
+        }
+
+        const snap = await query.limit(filtros.limite + 1).get();
+        const hayMas = snap.docs.length > filtros.limite;
+        const docsPagina = snap.docs.slice(0, filtros.limite);
         const nombresSedes = new Map<string, string>();
         let sedesCargadas = true;
 
@@ -136,7 +177,7 @@ export async function listarRepuestos(
 
         const repuestos: RepuestoInventarioDTO[] = [];
 
-        for (const doc of snap.docs) {
+        for (const doc of docsPagina) {
             const data = doc.data() as Record<string, unknown>;
             const referenciaDocumento =
                 texto(data.referencia).trim() || doc.id;
@@ -163,6 +204,7 @@ export async function listarRepuestos(
                 fabricante: texto(data.fabricante),
                 aplica_a: arregloTexto(data.aplica_a),
                 categoria: texto(data.categoria),
+                unidad_medida: unidadMedida(data.unidad_medida),
                 precio: numero(data.precio),
                 ubicacion: texto(data.ubicacion),
                 stock: numero(data.stock),
@@ -178,17 +220,17 @@ export async function listarRepuestos(
             });
         }
 
-        repuestos.sort((a, b) => {
-            const porReferencia = a.referencia.localeCompare(
-                b.referencia,
-                'es'
-            );
-            return porReferencia !== 0
-                ? porReferencia
-                : a.documento_id.localeCompare(b.documento_id, 'es');
-        });
+        let siguienteCursor: CursorRepuestos | null = null;
+        if (hayMas && docsPagina.length > 0) {
+            const ultimo = docsPagina[docsPagina.length - 1];
+            const ultimoData = ultimo.data() as Record<string, unknown>;
+            siguienteCursor = {
+                referencia: texto(ultimoData.referencia) || ultimo.id,
+                documento_id: ultimo.id,
+            };
+        }
 
-        return { success: true, repuestos };
+        return { success: true, repuestos, siguienteCursor };
     } catch (error) {
         console.error('[inventario-repuestos] listarRepuestos falló:', error);
         const msg =
@@ -197,6 +239,7 @@ export async function listarRepuestos(
             success: false,
             message: `Error al listar los repuestos: ${msg}`,
             repuestos: [],
+            siguienteCursor: null,
         };
     }
 }

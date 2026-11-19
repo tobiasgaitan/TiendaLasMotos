@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UNIDADES_MEDIDA } from '@/types/inventario';
 import {
     normalizarReferenciasAlternativas,
     referenciaRepuestoEstrictaSchema,
@@ -17,12 +18,15 @@ import {
 const stockSchema = z.number().int().min(0).max(1_000_000);
 const precioSchema = z.number().finite().min(0);
 
+export const unidadMedidaSchema = z.enum(UNIDADES_MEDIDA);
+
 export const cambiosRepuestoSchema = z
     .object({
         descripcion: z.string().trim().min(1).max(500).optional(),
         stock: stockSchema.optional(),
         stock_minimo: stockSchema.optional(),
         precio: precioSchema.optional(),
+        unidad_medida: unidadMedidaSchema.optional(),
         ubicacion: ubicacionSchema.optional(),
         referencias_alternativas: referenciasAlternativasSchema,
     })
@@ -65,6 +69,7 @@ export const crearRepuestoSchema = z
             .max(50)
             .optional(),
         categoria: z.string().trim().max(100).optional(),
+        unidad_medida: unidadMedidaSchema.default('unidad'),
         precio: z.coerce.number().finite().min(0).optional(),
         ubicacion: ubicacionSchema.optional(),
         stock: z.coerce
@@ -97,8 +102,62 @@ export const crearRepuestoSchema = z
         ),
     }));
 
-export const listarRepuestosSchema = z.object({}).strict();
+export const LIMITE_REPUESTOS_POR_PAGINA = 50;
+export const LIMITE_MAXIMO_REPUESTOS_POR_PAGINA = 200;
+
+const referenciaPrefijoSchema = z
+    .string()
+    .trim()
+    .max(64)
+    .refine(
+        (value) =>
+            value === '' || /^[A-Z0-9._-]+$/i.test(value),
+        {
+            message:
+                'La referencia de búsqueda solo admite A-Z, 0-9, ., _, -.',
+        }
+    )
+    .transform((value) => value.toUpperCase());
+
+const filtrosRepuestosShape = {
+    referencia: referenciaPrefijoSchema.default(''),
+    categoria: z.string().trim().max(100).default(''),
+    fabricante: z.string().trim().max(100).default(''),
+};
+
+export const listarRepuestosSchema = z
+    .object({
+        ...filtrosRepuestosShape,
+        limite: z.coerce
+            .number()
+            .int()
+            .min(1)
+            .max(LIMITE_MAXIMO_REPUESTOS_POR_PAGINA)
+            .default(LIMITE_REPUESTOS_POR_PAGINA),
+        cursor: z
+            .object({
+                referencia: z.string().trim().min(1).max(200),
+                documento_id: z.string().trim().min(1).max(200),
+            })
+            .strict()
+            .optional(),
+    })
+    .strict();
+
+export const contarRepuestosSchema = z
+    .object(filtrosRepuestosShape)
+    .strict();
+
+export const eliminarRepuestoSchema = z
+    .object({
+        documento_id: z.string().trim().min(1).max(200),
+        referencia: referenciaRepuestoEstrictaSchema,
+    })
+    .strict();
 
 export type EditarRepuestoInput = z.infer<typeof editarRepuestoSchema>;
 export type CambiosRepuestoInput = z.infer<typeof cambiosRepuestoSchema>;
 export type CrearRepuestoInput = z.infer<typeof crearRepuestoSchema>;
+export type EliminarRepuestoInput = z.infer<typeof eliminarRepuestoSchema>;
+export type ListarRepuestosInput = z.infer<typeof listarRepuestosSchema>;
+export type ContarRepuestosInput = z.infer<typeof contarRepuestosSchema>;

@@ -1,12 +1,6 @@
 'use client';
 
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AlertCircle,
     Loader2,
@@ -15,25 +9,31 @@ import {
     RefreshCw,
     Save,
     Search,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
+import EliminarRepuestoModal from '@/components/inventario/EliminarRepuestoModal';
 import { listarRepuestos } from './actions/listarRepuestos';
+import { contarRepuestos } from './actions/contarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
+import { construirCambiosRepuesto } from '@/lib/inventario/repuestos';
+import { LIMITE_REPUESTOS_POR_PAGINA } from '@/lib/actions/inventario-repuestos-schemas';
 import {
-    construirCambiosRepuesto,
-    filtrarRepuestos,
-} from '@/lib/inventario/repuestos';
+    UNIDADES_MEDIDA,
+    type UnidadMedida,
+} from '@/types/inventario';
 import type {
     BorradorRepuesto,
+    CursorRepuestos,
     FiltrosRepuesto,
     RepuestoInventarioDTO,
 } from '@/types/inventario-repuestos';
 
 type CampoBorrador = Exclude<
     keyof BorradorRepuesto,
-    'referencias_alternativas'
+    'referencias_alternativas' | 'unidad_medida'
 >;
 
 interface EdicionRepuesto {
@@ -84,67 +84,138 @@ export default function InventarioRepuestosClient() {
     const [filtros, setFiltros] = useState<FiltrosRepuesto>(FILTROS_INICIALES);
     const [edicion, setEdicion] = useState<EdicionRepuesto | null>(null);
     const [loading, setLoading] = useState(true);
+    const [cargandoMas, setCargandoMas] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [total, setTotal] = useState(0);
+    const [siguienteCursor, setSiguienteCursor] =
+        useState<CursorRepuestos | null>(null);
     const [mostrarCrear, setMostrarCrear] = useState(false);
+    const [repuestoAEliminar, setRepuestoAEliminar] =
+        useState<RepuestoInventarioDTO | null>(null);
     const cargaRef = useRef(0);
 
     const puedeCrear = puedeAccion('inventario_repuestos', 'create');
     const puedeEditar = puedeAccion('inventario_repuestos', 'update');
+    const puedeEliminar = puedeAccion('inventario_repuestos', 'delete');
 
-    const cargarRepuestos = useCallback(async () => {
-        if (!user) {
-            setError('Sesión inválida. Vuelve a iniciar sesión.');
-            setLoading(false);
-            return;
-        }
+    const cargarRepuestos = useCallback(
+        async (opciones?: {
+            append?: boolean;
+            cursor?: CursorRepuestos | null;
+        }) => {
+            const append = opciones?.append ?? false;
+            const cursor = opciones?.cursor ?? null;
 
-        const cargaActual = cargaRef.current + 1;
-        cargaRef.current = cargaActual;
-        setLoading(true);
-        setError(null);
-
-        try {
-            const idToken = await user.getIdToken();
-            const resultado = await listarRepuestos(
-                {},
-                { uid: user.uid, idToken }
-            );
-
-            if (cargaActual !== cargaRef.current) return;
-
-            if (!resultado.success) {
-                setError(
-                    mensajeDeRespuesta(
-                        resultado.message,
-                        'No se pudo cargar el inventario de repuestos.'
-                    )
-                );
+            if (!user) {
+                setError('Sesión inválida. Vuelve a iniciar sesión.');
+                setLoading(false);
+                setCargandoMas(false);
                 return;
             }
 
-            setRepuestos(resultado.repuestos);
-        } catch (errorCarga) {
-            if (cargaActual !== cargaRef.current) return;
-            console.error(
-                '[inventario-repuestos-ui] No se pudo cargar el inventario:',
-                errorCarga
-            );
-            setError(
-                mensajeDeError(
-                    errorCarga,
-                    'No se pudo cargar el inventario de repuestos.'
-                )
-            );
-        } finally {
-            if (cargaActual === cargaRef.current) {
-                setLoading(false);
+            const cargaActual = cargaRef.current + 1;
+            cargaRef.current = cargaActual;
+
+            if (append) {
+                setCargandoMas(true);
+            } else {
+                setLoading(true);
+                setError(null);
             }
-        }
-    }, [user]);
+
+            try {
+                const idToken = await user.getIdToken();
+                const actor = { uid: user.uid, idToken };
+                const filtrosInput = {
+                    referencia: filtros.referencia.trim(),
+                    categoria: filtros.categoria.trim(),
+                    fabricante: filtros.fabricante.trim(),
+                };
+
+                const [resultado, conteo] = await Promise.all([
+                    listarRepuestos(
+                        {
+                            ...filtrosInput,
+                            limite: LIMITE_REPUESTOS_POR_PAGINA,
+                            cursor: cursor ?? undefined,
+                        },
+                        actor
+                    ),
+                    append
+                        ? Promise.resolve(null)
+                        : contarRepuestos(filtrosInput, actor),
+                ]);
+
+                if (cargaActual !== cargaRef.current) return;
+
+                if (!resultado.success) {
+                    setError(
+                        mensajeDeRespuesta(
+                            resultado.message,
+                            'No se pudo cargar el inventario de repuestos.'
+                        )
+                    );
+                    return;
+                }
+
+                if (append) {
+                    setRepuestos((actuales) => {
+                        const mapa = new Map(
+                            actuales.map((repuesto) => [
+                                repuesto.documento_id,
+                                repuesto,
+                            ])
+                        );
+                        for (const repuesto of resultado.repuestos) {
+                            mapa.set(repuesto.documento_id, repuesto);
+                        }
+                        return Array.from(mapa.values());
+                    });
+                } else {
+                    setRepuestos(resultado.repuestos);
+                }
+
+                setSiguienteCursor(resultado.siguienteCursor);
+
+                if (conteo) {
+                    if (conteo.success) {
+                        setTotal(conteo.total);
+                    } else if (!append) {
+                        setTotal(resultado.repuestos.length);
+                    }
+                }
+            } catch (errorCarga) {
+                if (cargaActual !== cargaRef.current) return;
+                console.error(
+                    '[inventario-repuestos-ui] No se pudo cargar el inventario:',
+                    errorCarga
+                );
+                setError(
+                    mensajeDeError(
+                        errorCarga,
+                        'No se pudo cargar el inventario de repuestos.'
+                    )
+                );
+            } finally {
+                if (cargaActual === cargaRef.current) {
+                    if (append) {
+                        setCargandoMas(false);
+                    } else {
+                        setLoading(false);
+                    }
+                }
+            }
+        },
+        [user, filtros]
+    );
 
     useEffect(() => {
-        void cargarRepuestos();
+        const timer = setTimeout(() => {
+            void cargarRepuestos({ append: false });
+        }, 300);
+
+        return () => clearTimeout(timer);
     }, [cargarRepuestos]);
 
     useEffect(() => {
@@ -159,33 +230,6 @@ export default function InventarioRepuestosClient() {
         }
     }, [repuestos]);
 
-    const categorias = useMemo(() => {
-        const valores = new Set<string>();
-        for (const repuesto of repuestos) {
-            const categoria = repuesto.categoria.trim();
-            if (categoria) valores.add(categoria);
-        }
-        return Array.from(valores).sort((a, b) =>
-            a.localeCompare(b, 'es')
-        );
-    }, [repuestos]);
-
-    const fabricantes = useMemo(() => {
-        const valores = new Set<string>();
-        for (const repuesto of repuestos) {
-            const fabricante = repuesto.fabricante.trim();
-            if (fabricante) valores.add(fabricante);
-        }
-        return Array.from(valores).sort((a, b) =>
-            a.localeCompare(b, 'es')
-        );
-    }, [repuestos]);
-
-    const repuestosFiltrados = useMemo(
-        () => filtrarRepuestos(repuestos, filtros),
-        [repuestos, filtros]
-    );
-
     function iniciarEdicion(repuesto: RepuestoInventarioDTO): void {
         if (guardando) return;
         setEdicion({
@@ -196,6 +240,7 @@ export default function InventarioRepuestosClient() {
                 stock: String(repuesto.stock),
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
+                unidad_medida: repuesto.unidad_medida,
                 ubicacion: repuesto.ubicacion ?? '',
                 referencias_alternativas:
                     repuesto.referencias_alternativas ?? [],
@@ -217,6 +262,19 @@ export default function InventarioRepuestosClient() {
                 borrador: {
                     ...actual.borrador,
                     [campo]: valor,
+                },
+            };
+        });
+    }
+
+    function actualizarUnidadMedida(valor: UnidadMedida): void {
+        setEdicion((actual) => {
+            if (!actual) return actual;
+            return {
+                ...actual,
+                borrador: {
+                    ...actual.borrador,
+                    unidad_medida: valor,
                 },
             };
         });
@@ -305,11 +363,11 @@ export default function InventarioRepuestosClient() {
     }
 
     function renderAcciones(repuesto: RepuestoInventarioDTO) {
-        if (!puedeEditar) return null;
-
         const enEdicion =
             edicion !== null &&
             edicion.documento_id === repuesto.documento_id;
+
+        if (!puedeEditar && !puedeEliminar) return null;
 
         if (enEdicion) {
             return (
@@ -341,16 +399,33 @@ export default function InventarioRepuestosClient() {
         }
 
         return (
-            <button
-                type="button"
-                onClick={() => iniciarEdicion(repuesto)}
-                disabled={guardando}
-                aria-label={`Editar ${repuesto.referencia}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                <Pencil aria-hidden="true" className="h-4 w-4" />
-                Editar
-            </button>
+            <div className="flex flex-wrap gap-2">
+                {puedeEditar ? (
+                    <button
+                        type="button"
+                        onClick={() => iniciarEdicion(repuesto)}
+                        disabled={guardando}
+                        aria-label={`Editar ${repuesto.referencia}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                        Editar
+                    </button>
+                ) : null}
+
+                {puedeEliminar ? (
+                    <button
+                        type="button"
+                        onClick={() => setRepuestoAEliminar(repuesto)}
+                        disabled={guardando || edicion !== null}
+                        aria-label={`Eliminar ${repuesto.referencia}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-900/70 bg-red-950/30 px-3 py-2 text-xs font-semibold text-red-100 transition-colors hover:bg-red-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Trash2 aria-hidden="true" className="h-4 w-4" />
+                        Eliminar
+                    </button>
+                ) : null}
+            </div>
         );
     }
 
@@ -365,9 +440,9 @@ export default function InventarioRepuestosClient() {
                         Repuestos
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                        Consulta y edita stock, stock mínimo, precio, ubicación,
-                        descripción y referencias alternativas. Cada cambio
-                        queda auditado.
+                        Consulta y edita stock, stock mínimo, precio, unidad de
+                        medida, ubicación, descripción y referencias
+                        alternativas. Cada cambio queda auditado.
                     </p>
                 </div>
 
@@ -388,7 +463,7 @@ export default function InventarioRepuestosClient() {
                     <button
                         type="button"
                         onClick={() => {
-                            void cargarRepuestos();
+                            void cargarRepuestos({ append: false });
                         }}
                         disabled={loading || guardando}
                         aria-label="Actualizar lista de repuestos"
@@ -420,7 +495,7 @@ export default function InventarioRepuestosClient() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    void cargarRepuestos();
+                                    void cargarRepuestos({ append: false });
                                 }}
                                 disabled={loading || guardando}
                                 aria-label="Reintentar carga de repuestos"
@@ -450,6 +525,7 @@ export default function InventarioRepuestosClient() {
                         <input
                             type="search"
                             value={filtros.referencia}
+                            maxLength={64}
                             onChange={(event) =>
                                 setFiltros((actual) => ({
                                     ...actual,
@@ -457,7 +533,7 @@ export default function InventarioRepuestosClient() {
                                 }))
                             }
                             aria-label="Filtrar por referencia"
-                            placeholder="Buscar referencia…"
+                            placeholder="Prefijo de referencia…"
                             className="w-full rounded-lg border border-gray-700 bg-gray-950 py-2.5 pl-9 pr-3 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
                         />
                     </span>
@@ -465,8 +541,10 @@ export default function InventarioRepuestosClient() {
 
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Categoría
-                    <select
+                    <input
+                        type="search"
                         value={filtros.categoria}
+                        maxLength={100}
                         onChange={(event) =>
                             setFiltros((actual) => ({
                                 ...actual,
@@ -474,21 +552,17 @@ export default function InventarioRepuestosClient() {
                             }))
                         }
                         aria-label="Filtrar por categoría"
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white outline-none focus:border-red-500"
-                    >
-                        <option value="">Todas</option>
-                        {categorias.map((categoria) => (
-                            <option key={categoria} value={categoria}>
-                                {categoria}
-                            </option>
-                        ))}
-                    </select>
+                        placeholder="Categoría exacta…"
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
+                    />
                 </label>
 
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Fabricante
-                    <select
+                    <input
+                        type="search"
                         value={filtros.fabricante}
+                        maxLength={100}
                         onChange={(event) =>
                             setFiltros((actual) => ({
                                 ...actual,
@@ -496,15 +570,9 @@ export default function InventarioRepuestosClient() {
                             }))
                         }
                         aria-label="Filtrar por fabricante"
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white outline-none focus:border-red-500"
-                    >
-                        <option value="">Todos</option>
-                        {fabricantes.map((fabricante) => (
-                            <option key={fabricante} value={fabricante}>
-                                {fabricante}
-                            </option>
-                        ))}
-                    </select>
+                        placeholder="Fabricante exacto…"
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
+                    />
                 </label>
             </div>
 
@@ -537,11 +605,11 @@ export default function InventarioRepuestosClient() {
                     <div className="border-b border-gray-800 px-4 py-3 text-xs text-gray-400">
                         Mostrando{' '}
                         <span className="font-semibold text-white">
-                            {repuestosFiltrados.length}
+                            {repuestos.length}
                         </span>{' '}
                         de{' '}
                         <span className="font-semibold text-white">
-                            {repuestos.length}
+                            {total > 0 ? total : repuestos.length}
                         </span>{' '}
                         repuestos.
                     </div>
@@ -556,6 +624,9 @@ export default function InventarioRepuestosClient() {
                                 </th>
                                 <th scope="col" className="px-4 py-3">
                                     Categoría
+                                </th>
+                                <th scope="col" className="px-4 py-3">
+                                    Unidad
                                 </th>
                                 <th scope="col" className="px-4 py-3">
                                     Fabricante
@@ -584,7 +655,7 @@ export default function InventarioRepuestosClient() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
-                            {repuestosFiltrados.map((repuesto) => {
+                            {repuestos.map((repuesto) => {
                                 const borrador =
                                     edicion !== null &&
                                     edicion.documento_id === repuesto.documento_id
@@ -746,6 +817,42 @@ export default function InventarioRepuestosClient() {
                                             {repuesto.categoria || '—'}
                                         </td>
                                         <td className="px-4 py-4 text-gray-300">
+                                            {borrador ? (
+                                                <select
+                                                    value={
+                                                        borrador.unidad_medida
+                                                    }
+                                                    onChange={(event) =>
+                                                        actualizarUnidadMedida(
+                                                            event.target
+                                                                .value as UnidadMedida
+                                                        )
+                                                    }
+                                                    aria-label={`Unidad de medida de ${repuesto.referencia}`}
+                                                    className="w-24 rounded-lg border border-gray-700 bg-gray-950 px-2 py-1.5 text-sm text-white outline-none focus:border-red-500"
+                                                >
+                                                    {UNIDADES_MEDIDA.map(
+                                                        (unidad) => (
+                                                            <option
+                                                                key={unidad}
+                                                                value={unidad}
+                                                            >
+                                                                {unidad ===
+                                                                'litro'
+                                                                    ? 'Litro'
+                                                                    : 'Unidad'}
+                                                            </option>
+                                                        )
+                                                    )}
+                                                </select>
+                                            ) : repuesto.unidad_medida ===
+                                              'litro' ? (
+                                                'Litro'
+                                            ) : (
+                                                'Unidad'
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4 text-gray-300">
                                             {repuesto.fabricante || '—'}
                                         </td>
                                         <td className="px-4 py-4 text-right">
@@ -845,9 +952,34 @@ export default function InventarioRepuestosClient() {
                         </tbody>
                     </table>
 
-                    {repuestosFiltrados.length === 0 ? (
+                    {repuestos.length === 0 ? (
                         <div className="border-t border-gray-800 p-8 text-center text-sm text-gray-400">
                             No hay repuestos que coincidan con los filtros.
+                        </div>
+                    ) : null}
+
+                    {siguienteCursor ? (
+                        <div className="flex justify-center border-t border-gray-800 p-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void cargarRepuestos({
+                                        append: true,
+                                        cursor: siguienteCursor,
+                                    });
+                                }}
+                                disabled={cargandoMas || loading}
+                                aria-label="Cargar más repuestos"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 bg-gray-950 px-4 py-2.5 text-sm font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {cargandoMas ? (
+                                    <Loader2
+                                        aria-hidden="true"
+                                        className="h-4 w-4 animate-spin"
+                                    />
+                                ) : null}
+                                {cargandoMas ? 'Cargando…' : 'Cargar más'}
+                            </button>
                         </div>
                     ) : null}
                 </div>
@@ -858,6 +990,15 @@ export default function InventarioRepuestosClient() {
                     isOpen={mostrarCrear}
                     onClose={() => setMostrarCrear(false)}
                     onCreado={cargarRepuestos}
+                />
+            ) : null}
+
+            {puedeEliminar ? (
+                <EliminarRepuestoModal
+                    isOpen={repuestoAEliminar !== null}
+                    repuesto={repuestoAEliminar}
+                    onClose={() => setRepuestoAEliminar(null)}
+                    onEliminado={cargarRepuestos}
                 />
             ) : null}
         </div>

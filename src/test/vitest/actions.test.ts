@@ -4,11 +4,12 @@ const mockState = vi.hoisted(() => {
     const docs = new Map<string, Record<string, unknown>>();
     const writes: Array<{
         path: string;
-        kind: 'set' | 'update' | 'create';
+        kind: 'set' | 'update' | 'create' | 'delete';
         data: Record<string, unknown>;
     }> = [];
     let sequence = 0;
     let fallarSedes = false;
+    let fallarLedger = false;
 
     const makeRef = (collection: string, id?: string) => {
         const ref = {
@@ -29,64 +30,170 @@ const mockState = vi.hoisted(() => {
         return ref;
     };
 
+    type MockRef = ReturnType<typeof makeRef>;
+
+    interface MockDoc {
+        id: string;
+        ref: MockRef;
+        data: () => Record<string, unknown>;
+    }
+
+    interface FiltroQuery {
+        field: string;
+        op: string;
+        value: unknown;
+    }
+
+    interface OrdenQuery {
+        field: string;
+        direction: 'asc' | 'desc';
+    }
+
     interface MockQuery {
         kind: 'query';
         get: () => Promise<{
-            docs: Array<{
-                id: string;
-                ref: ReturnType<typeof makeRef>;
-                data: () => Record<string, unknown>;
-            }>;
+            docs: MockDoc[];
             empty: boolean;
             size: number;
         }>;
         limit: (n: number) => MockQuery;
-        orderBy: (...args: unknown[]) => MockQuery;
+        where: (field: string, op: string, value: unknown) => MockQuery;
+        orderBy: (field: unknown, direction?: 'asc' | 'desc') => MockQuery;
+        startAfter: (...values: unknown[]) => MockQuery;
+        count: () => {
+            get: () => Promise<{ data: () => { count: number } }>;
+        };
     }
+
+    const leerFilas = (
+        collection: string,
+        filters: FiltroQuery[]
+    ): MockDoc[] =>
+        Array.from(docs.entries())
+            .filter(([path]) => path.startsWith(`${collection}/`))
+            .map(([path, data]) => {
+                const id = path.slice(collection.length + 1);
+                return {
+                    id,
+                    ref: makeRef(collection, id),
+                    data: () => data,
+                };
+            })
+            .filter((snap) =>
+                filters.every(({ field, op, value }) => {
+                    const actual = snap.data()[field];
+                    if (op === 'array-contains') {
+                        return (
+                            Array.isArray(actual) &&
+                            actual.includes(value)
+                        );
+                    }
+                    if (op === '>=') {
+                        return String(actual ?? '') >= String(value);
+                    }
+                    if (op === '<=') {
+                        return String(actual ?? '') <= String(value);
+                    }
+                    return actual === value;
+                })
+            );
+
+    const valorOrden = (doc: MockDoc, field: string): string =>
+        field === '__name__'
+            ? doc.id
+            : String(doc.data()[field] ?? '');
 
     const makeQuery = (
         collection: string,
-        filters: Array<{
-            field: string;
-            op: string;
-            value: unknown;
-        }>,
+        filters: FiltroQuery[],
+        orders: OrdenQuery[] = [],
+        after: unknown[] | null = null,
         limit?: number
     ): MockQuery => {
         const query: MockQuery = {
             kind: 'query',
             get: async () => {
-                const resultados = Array.from(docs.entries())
-                    .filter(([path]) => path.startsWith(`${collection}/`))
-                    .map(([path, data]) => {
-                        const id = path.slice(collection.length + 1);
-                        return {
-                            id,
-                            ref: makeRef(collection, id),
-                            data: () => data,
-                        };
-                    })
-                    .filter((snap) =>
-                        filters.every(({ field, op, value }) => {
-                            const actual = snap.data()[field];
-                            if (op === 'array-contains') {
-                                return (
-                                    Array.isArray(actual) &&
-                                    actual.includes(value)
-                                );
+                let resultados = leerFilas(collection, filters);
+
+                if (orders.length > 0) {
+                    resultados = [...resultados].sort((a, b) => {
+                        for (const orden of orders) {
+                            const actual = valorOrden(a, orden.field);
+                            const siguiente = valorOrden(b, orden.field);
+                            const comparacion = actual.localeCompare(
+                                siguiente,
+                                'en'
+                            );
+                            if (comparacion !== 0) {
+                                return orden.direction === 'desc'
+                                    ? -comparacion
+                                    : comparacion;
                             }
-                            return actual === value;
-                        })
-                    )
-                    .slice(0, limit);
+                        }
+                        return 0;
+                    });
+                }
+
+                if (after && orders.length > 0) {
+                    resultados = resultados.filter((doc) => {
+                        for (let i = 0; i < after.length; i += 1) {
+                            const orden = orders[i];
+                            if (!orden) continue;
+                            const actual = valorOrden(doc, orden.field);
+                            const cursor = String(after[i] ?? '');
+                            if (actual === cursor) continue;
+                            return actual > cursor;
+                        }
+                        return false;
+                    });
+                }
+
+                if (limit !== undefined) {
+                    resultados = resultados.slice(0, limit);
+                }
+
                 return {
                     docs: resultados,
                     empty: resultados.length === 0,
                     size: resultados.length,
                 };
             },
-            limit: (n: number) => makeQuery(collection, filters, n),
-            orderBy: () => makeQuery(collection, filters, limit),
+            limit: (n: number) =>
+                makeQuery(collection, filters, orders, after, n),
+            where: (field: string, op: string, value: unknown) =>
+                makeQuery(
+                    collection,
+                    [...filters, { field, op, value }],
+                    orders,
+                    after,
+                    limit
+                ),
+            orderBy: (field: unknown, direction = 'asc') =>
+                makeQuery(
+                    collection,
+                    filters,
+                    [
+                        ...orders,
+                        {
+                            field:
+                                typeof field === 'string'
+                                    ? field
+                                    : '__name__',
+                            direction,
+                        },
+                    ],
+                    after,
+                    limit
+                ),
+            startAfter: (...values: unknown[]) =>
+                makeQuery(collection, filters, orders, values, limit),
+            count: () => ({
+                get: async () => ({
+                    data: () => ({
+                        count: leerFilas(collection, filters).length,
+                    }),
+                }),
+            }),
         };
         return query;
     };
@@ -121,39 +228,68 @@ const mockState = vi.hoisted(() => {
             });
         },
         create: (ref: { path: string }, data: Record<string, unknown>) => {
+            if (
+                fallarLedger &&
+                ref.path.startsWith('historial_auditoria_inventario/')
+            ) {
+                throw new Error('Fallo simulado creando el asiento de ledger');
+            }
             docs.set(ref.path, { ...data });
             writes.push({ path: ref.path, kind: 'create', data: { ...data } });
+        },
+        delete: (ref: { path: string }) => {
+            const anterior = docs.get(ref.path);
+            docs.delete(ref.path);
+            writes.push({
+                path: ref.path,
+                kind: 'delete',
+                data: anterior ? { ...anterior } : {},
+            });
         },
     };
 
     const db = {
-        collection: (nombre: string) => ({
-            doc: (id?: string) => makeRef(nombre, id),
-            get: async () => {
-                if (
-                    nombre === 'configuracion/general/sedes' &&
-                    fallarSedes
-                ) {
-                    throw new Error('Fallo simulado leyendo sedes');
-                }
-                return {
-                    docs: Array.from(docs.entries())
-                        .filter(([path]) =>
-                            path.startsWith(`${nombre}/`)
-                        )
-                        .map(([path, data]) => ({
-                            id: path.slice(nombre.length + 1),
-                            data: () => data,
-                        })),
-                };
-            },
-            where: (field: string, op: string, value: unknown) => {
-                if (op !== '==' && op !== 'array-contains') {
-                    throw new Error(`Operador no soportado: ${op}`);
-                }
-                return makeQuery(nombre, [{ field, op, value }]);
-            },
-        }),
+        collection: (nombre: string) => {
+            const base = makeQuery(nombre, []);
+
+            return {
+                ...base,
+                doc: (id?: string) => makeRef(nombre, id),
+                get: async () => {
+                    if (
+                        nombre === 'configuracion/general/sedes' &&
+                        fallarSedes
+                    ) {
+                        throw new Error('Fallo simulado leyendo sedes');
+                    }
+                    return {
+                        docs: Array.from(docs.entries())
+                            .filter(([path]) =>
+                                path.startsWith(`${nombre}/`)
+                            )
+                            .map(([path, data]) => ({
+                                id: path.slice(nombre.length + 1),
+                                data: () => data,
+                            })),
+                    };
+                },
+                where: (
+                    field: string,
+                    op: string,
+                    value: unknown
+                ) => {
+                    if (
+                        op !== '==' &&
+                        op !== 'array-contains' &&
+                        op !== '>=' &&
+                        op !== '<='
+                    ) {
+                        throw new Error(`Operador no soportado: ${op}`);
+                    }
+                    return makeQuery(nombre, [{ field, op, value }]);
+                },
+            };
+        },
         runTransaction: async (
             callback: (transaction: typeof tx) => Promise<unknown>
         ) => callback(tx),
@@ -168,15 +304,22 @@ const mockState = vi.hoisted(() => {
             writes.length = 0;
             sequence = 0;
             fallarSedes = false;
+            fallarLedger = false;
         },
         setFallaSedes(value: boolean) {
             fallarSedes = value;
+        },
+        setFallaLedger(value: boolean) {
+            fallarLedger = value;
         },
     };
 });
 
 vi.mock('@/lib/firebase-admin', () => ({
     getDb: () => mockState.db,
+    getFieldPath: () => ({
+        documentId: () => '__name__',
+    }),
 }));
 
 vi.mock('@/lib/actions/inventario-actor', () => ({
@@ -213,7 +356,9 @@ import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
 import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
+import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/eliminarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
+import { contarRepuestos } from '@/app/admin/inventario-repuestos/actions/contarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
@@ -250,12 +395,39 @@ function seedInventario(alternativas: string[] = []) {
         fabricante: 'Bosch',
         categoria: 'FRENOS',
         aplica_a: ['Moto 125'],
+        unidad_medida: 'unidad',
         precio: 1000,
         ubicacion: 'A-01-05',
         stock: 1,
         stock_minimo: 0,
         referencias_alternativas: alternativas,
         imagen_url: '',
+    });
+}
+
+function seedRepuesto(
+    id: string,
+    referencia: string,
+    extra: Record<string, unknown> = {}
+) {
+    const ahora = new Date();
+    mockState.docs.set(`inventario_repuestos/${id}`, {
+        referencia,
+        sede_id: 'sede-1',
+        descripcion: `Repuesto ${id}`,
+        fabricante: 'Bosch',
+        categoria: 'FRENOS',
+        aplica_a: [],
+        unidad_medida: 'unidad',
+        precio: 1000,
+        ubicacion: 'A-01-05',
+        stock: 1,
+        stock_minimo: 0,
+        referencias_alternativas: [],
+        imagen_url: '',
+        creado_en: ahora,
+        actualizado_en: ahora,
+        ...extra,
     });
 }
 
@@ -267,6 +439,17 @@ function seedAsesor() {
     vi.mocked(requirePermiso).mockResolvedValue({
         rol: 'asesor',
         email: 'asesor@test.com',
+    });
+}
+
+function prepararAdmin() {
+    vi.mocked(requireActorInventario).mockResolvedValue({
+        uid: 'uid-admin',
+        email: 'admin@test.com',
+    });
+    vi.mocked(requirePermiso).mockResolvedValue({
+        rol: 'admin',
+        email: 'admin@test.com',
     });
 }
 
@@ -527,6 +710,31 @@ describe('MT-07 Server Actions contracts', () => {
         expect(creados[0].data.precio).toBe(0);
         expect(creados[0].data.stock).toBe(0);
         expect(creados[0].data.referencias_alternativas).toEqual([]);
+        expect(creados[0].data.unidad_medida).toBe('unidad');
+    });
+
+    it('crearRepuesto persiste unidad_medida litro y la audita', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-032',
+                descripcion: 'Aceite 20W-50',
+                unidad_medida: 'litro',
+            },
+            ACTOR
+        );
+
+        const creados = repuestosPorReferencia('BRK-032');
+        expect(resultado.success).toBe(true);
+        expect(creados[0].data.unidad_medida).toBe('litro');
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(
+            (ledger[0].data.datos_nuevos as Record<string, unknown>)
+                .unidad_medida
+        ).toBe('litro');
+        expect(ledger[0].data.campos_modificados).toContain(
+            'unidad_medida'
+        );
     });
 
     it('crearRepuesto normaliza y deduplica referencias alternativas', async () => {
@@ -564,6 +772,64 @@ describe('MT-07 Server Actions contracts', () => {
         expect(resultado.repuestos[0].referencias_alternativas).toEqual([
             'ALT-1',
         ]);
+        expect(resultado.repuestos[0].unidad_medida).toBe('unidad');
+    });
+
+    it('listarRepuestos lee unidad legacy como unidad sin escribir', async () => {
+        seedInventario();
+        const legacy = mockState.docs.get(
+            'inventario_repuestos/BRK-001'
+        );
+        if (!legacy) throw new Error('seedInventario no creó el repuesto');
+        delete legacy.unidad_medida;
+
+        const resultado = await listarRepuestos({}, ACTOR);
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.repuestos[0].unidad_medida).toBe('unidad');
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('editarRepuesto actualiza unidad_medida y la incluye en el ledger', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { unidad_medida: 'litro' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')
+                ?.unidad_medida
+        ).toBe('litro');
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.campos_modificados).toContain(
+            'unidad_medida'
+        );
+    });
+
+    it('editarRepuesto no escribe si unidad_medida no cambia', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { unidad_medida: 'unidad' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(mockState.writes).toHaveLength(0);
     });
 
     it('listarRepuestos usa fallback para sede vacía o no resuelta', async () => {
@@ -1067,5 +1333,341 @@ describe('MT-07 Server Actions contracts', () => {
 
         expect(resultado.success).toBe(false);
         expect(resultado.message).toContain('múltiples registros');
+    });
+
+    it('eliminarRepuesto bloquea por FK de conteos sin writes', async () => {
+        prepararAdmin();
+        seedInventario();
+        seedConteo();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.codigo).toBe('FK_CONTEOS');
+        expect(resultado.message).toContain('conteos pendientes');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto elimina y crea un único asiento DELETE', async () => {
+        prepararAdmin();
+        seedInventario();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            false
+        );
+
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].kind).toBe('create');
+        expect(ledger[0].data.operacion).toBe('DELETE');
+        expect(ledger[0].data.documento_id).toBe('BRK-001');
+        expect(ledger[0].data.referencia).toBe('BRK-001');
+        expect(ledger[0].data.datos_nuevos).toBeNull();
+        expect(ledger[0].data.campos_modificados).toEqual([]);
+        expect(
+            (ledger[0].data.datos_anteriores as Record<string, unknown>)
+                .referencia
+        ).toBe('BRK-001');
+        expect(ledger[0].data.registrado_por).toBe('uid-admin');
+
+        const deletes = mockState.writes.filter(
+            (write) => write.kind === 'delete'
+        );
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0].path).toBe('inventario_repuestos/BRK-001');
+    });
+
+    it('eliminarRepuesto es atómico si falla el asiento del ledger', async () => {
+        prepararAdmin();
+        seedInventario();
+        mockState.setFallaLedger(true);
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(
+            mockState.writes.filter((write) => write.kind === 'delete')
+        ).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto es idempotente si el documento no existe', async () => {
+        prepararAdmin();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'NO-EXISTE', referencia: 'NO-EXISTE' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto rechaza referencia que no coincide', async () => {
+        prepararAdmin();
+        seedInventario();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'OTRA-REF' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto rechaza actor o input inválido antes de Firebase', async () => {
+        const sinActor = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            {}
+        );
+        expect(sinActor.success).toBe(false);
+
+        const inputInvalido = await eliminarRepuesto(
+            { documento_id: '', referencia: 'BRK-001' },
+            ACTOR
+        );
+        expect(inputInvalido.success).toBe(false);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto exige permiso delete y rol admin/superadmin', async () => {
+        seedInventario();
+        vi.mocked(requireActorInventario).mockResolvedValue({
+            uid: 'uid-asesor',
+            email: 'asesor@test.com',
+        });
+        vi.mocked(requirePermiso).mockResolvedValue({
+            rol: 'asesor',
+            email: 'asesor@test.com',
+        });
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('Solo un administrador');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto propaga el rechazo de requirePermiso', async () => {
+        seedInventario();
+        vi.mocked(requireActorInventario).mockResolvedValue({
+            uid: 'uid-admin',
+            email: 'admin@test.com',
+        });
+        vi.mocked(requirePermiso).mockRejectedValueOnce(
+            new Error('No autorizado: permiso insuficiente.')
+        );
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('permiso insuficiente');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('listarRepuestos pagina con cursor estable sin duplicados', async () => {
+        prepararAdmin();
+        const referencias = [
+            'A-001',
+            'A-002',
+            'A-003',
+            'A-003',
+            'A-004',
+        ];
+        referencias.forEach((referencia, indice) => {
+            seedRepuesto(`doc-${indice}`, referencia);
+        });
+
+        const pagina1 = await listarRepuestos({ limite: 2 }, ACTOR);
+        expect(pagina1.success).toBe(true);
+        expect(pagina1.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-0',
+            'doc-1',
+        ]);
+        expect(pagina1.siguienteCursor).not.toBeNull();
+
+        const pagina2 = await listarRepuestos(
+            {
+                limite: 2,
+                cursor: pagina1.siguienteCursor ?? undefined,
+            },
+            ACTOR
+        );
+        expect(pagina2.success).toBe(true);
+        expect(pagina2.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-2',
+            'doc-3',
+        ]);
+
+        const pagina3 = await listarRepuestos(
+            {
+                limite: 2,
+                cursor: pagina2.siguienteCursor ?? undefined,
+            },
+            ACTOR
+        );
+        expect(pagina3.success).toBe(true);
+        expect(pagina3.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-4',
+        ]);
+        expect(pagina3.siguienteCursor).toBeNull();
+
+        const ids = [
+            ...pagina1.repuestos,
+            ...pagina2.repuestos,
+            ...pagina3.repuestos,
+        ].map((repuesto) => repuesto.documento_id);
+        expect(ids).toHaveLength(5);
+        expect(new Set(ids).size).toBe(5);
+    });
+
+    it('listarRepuestos aplica filtros server-side', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'Bosch',
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'Honda',
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'Motul',
+        });
+
+        const porCategoria = await listarRepuestos(
+            { categoria: 'FRENOS', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porCategoria.repuestos.map((r) => r.documento_id)
+        ).toEqual(['a', 'b']);
+
+        const porFabricante = await listarRepuestos(
+            { fabricante: 'Honda', limite: 50 },
+            ACTOR
+        );
+        expect(porFabricante.repuestos.map((r) => r.documento_id)).toEqual([
+            'b',
+        ]);
+
+        const porPrefijo = await listarRepuestos(
+            { referencia: 'A-00', limite: 50 },
+            ACTOR
+        );
+        expect(porPrefijo.repuestos).toHaveLength(3);
+    });
+
+    it('contarRepuestos usa count() con filtros y no devuelve documentos', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'Bosch',
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'Honda',
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'Motul',
+        });
+
+        const total = await contarRepuestos({}, ACTOR);
+        expect(total.success).toBe(true);
+        expect(total.total).toBe(3);
+
+        const frenos = await contarRepuestos(
+            { categoria: 'FRENOS' },
+            ACTOR
+        );
+        expect(frenos.total).toBe(2);
+
+        const bosch = await contarRepuestos(
+            { fabricante: 'Bosch' },
+            ACTOR
+        );
+        expect(bosch.total).toBe(1);
+
+        const prefijo = await contarRepuestos(
+            { referencia: 'A-00' },
+            ACTOR
+        );
+        expect(prefijo.total).toBe(3);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('contarRepuestos rechaza actor inválido antes de Firebase', async () => {
+        const resultado = await contarRepuestos({}, {});
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.total).toBe(0);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('buscarCandidatosRepuesto resuelve exacto, prefijo y alternativa', async () => {
+        prepararAdmin();
+        seedRepuesto('brk-1', 'BRK-001', {
+            referencias_alternativas: ['ALT-001'],
+        });
+        seedRepuesto('brk-2', 'BRK-002');
+
+        const exacto = await buscarCandidatosRepuesto(
+            { consulta: 'BRK-001', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(exacto.candidatos[0]?.documento_id).toBe('brk-1');
+
+        const prefijo = await buscarCandidatosRepuesto(
+            { consulta: 'BRK-00', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(
+            prefijo.candidatos.map((c) => c.documento_id)
+        ).toEqual(expect.arrayContaining(['brk-1', 'brk-2']));
+
+        const alternativa = await buscarCandidatosRepuesto(
+            { consulta: 'ALT-001', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(alternativa.candidatos[0]?.documento_id).toBe('brk-1');
+        expect(mockState.writes).toHaveLength(0);
     });
 });

@@ -32,6 +32,7 @@ const clavesFirestore = [
     'referencia',
     'sede_id',
     'referencias_alternativas',
+    'unidad_medida',
     'inventario_documento_id',
     'referencia_confirmada',
     'referencia_sugerida',

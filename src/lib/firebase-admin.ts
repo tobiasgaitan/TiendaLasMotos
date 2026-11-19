@@ -62,3 +62,15 @@ export const getFieldValue = () => {
 
   return adminFirestore.FieldValue;
 };
+
+/**
+ * FieldPath vía require blindado, por la misma razón que getFieldValue:
+ * evitar imports ES6 estáticos de firebase-admin/* en archivos server.
+ */
+export const getFieldPath = () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Dynamic require for ESM compatibility
+  const adminFirestore = eval("require('firebase-admin/firestore')");
+
+  return adminFirestore.FieldPath;
+};
