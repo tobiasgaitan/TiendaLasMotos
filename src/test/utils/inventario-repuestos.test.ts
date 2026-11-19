@@ -10,8 +10,10 @@ import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRep
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import {
+    contarRepuestosSchema,
     crearRepuestoSchema,
     editarRepuestoSchema,
+    listarRepuestosSchema,
 } from '@/lib/actions/inventario-repuestos-schemas';
 import {
     construirCambiosRepuesto,
@@ -65,6 +67,14 @@ const INVENTARIO_TYPES_SOURCE = readFileSync(
 );
 const PERMISOS_MERGE_SOURCE = readFileSync(
     'scripts/merge-permissions-delete-inventario.ts',
+    'utf8'
+);
+const CONTAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/contarRepuestos.ts',
+    'utf8'
+);
+const BUSCAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/buscarCandidatosRepuesto.ts',
     'utf8'
 );
 
@@ -351,6 +361,46 @@ check(
     }).success
 );
 
+const listarDefault = listarRepuestosSchema.parse({});
+check(
+    'listarRepuestosSchema usa PAGE_SIZE=50 y filtros vacíos',
+    listarDefault.limite === 50 &&
+        listarDefault.referencia === '' &&
+        listarDefault.categoria === '' &&
+        listarDefault.fabricante === '' &&
+        listarDefault.cursor === undefined
+);
+check(
+    'listarRepuestosSchema normaliza el prefijo a mayúsculas',
+    listarRepuestosSchema.parse({ referencia: 'brk-0' }).referencia ===
+        'BRK-0'
+);
+check(
+    'listarRepuestosSchema acepta cursor válido',
+    listarRepuestosSchema.safeParse({
+        limite: 25,
+        cursor: { referencia: 'BRK-001', documento_id: 'doc-1' },
+    }).success
+);
+check(
+    'listarRepuestosSchema rechaza cursor incompleto',
+    !listarRepuestosSchema.safeParse({
+        cursor: { referencia: 'BRK-001' },
+    }).success
+);
+check(
+    'listarRepuestosSchema rechaza límite fuera de rango',
+    !listarRepuestosSchema.safeParse({ limite: 201 }).success
+);
+check(
+    'contarRepuestosSchema acepta los mismos filtros sin cursor/límite',
+    contarRepuestosSchema.safeParse({
+        referencia: 'brk',
+        categoria: 'Frenos',
+        fabricante: 'Bosch',
+    }).data?.referencia === 'BRK'
+);
+
 const OTRO: RepuestoInventarioDTO = {
     ...BASE,
     referencia: 'ACE-002',
@@ -519,9 +569,45 @@ async function run() {
     );
 
     check(
-        'listarRepuestos no usa limit ni orderBy',
-        !LISTAR_SOURCE.includes('.limit(') &&
-            !LISTAR_SOURCE.includes('.orderBy(')
+        'listarRepuestos usa cursor, orden estable y límite',
+        LISTAR_SOURCE.includes(".orderBy('referencia')") &&
+            LISTAR_SOURCE.includes('FieldPath.documentId()') &&
+            LISTAR_SOURCE.includes('.startAfter(') &&
+            LISTAR_SOURCE.includes('.limit(filtros.limite + 1)') &&
+            LISTAR_SOURCE.includes('siguienteCursor')
+    );
+
+    check(
+        'listarRepuestos aplica filtros server-side',
+        LISTAR_SOURCE.includes(".where('categoria', '==', filtros.categoria)") &&
+            LISTAR_SOURCE.includes(
+                ".where('fabricante', '==', filtros.fabricante)"
+            ) &&
+            LISTAR_SOURCE.includes(".where('referencia', '>='") &&
+            LISTAR_SOURCE.includes(".where('referencia', '<='")
+    );
+
+    check(
+        'contarRepuestos usa count() y no devuelve documentos',
+        CONTAR_SOURCE.includes('.count().get()') &&
+            CONTAR_SOURCE.includes('snap.data().count') &&
+            CONTAR_SOURCE.includes("where('categoria'") &&
+            CONTAR_SOURCE.includes("where('fabricante'") &&
+            CONTAR_SOURCE.includes("where('referencia', '>='") &&
+            !CONTAR_SOURCE.includes('startAfter') &&
+            !CONTAR_SOURCE.includes('.orderBy(') &&
+            !CONTAR_SOURCE.includes('siguienteCursor')
+    );
+
+    check(
+        'buscarCandidatosRepuesto acota la búsqueda sin scan ilimitado',
+        BUSCAR_SOURCE.includes(".where('referencia', '==', consulta)") &&
+            BUSCAR_SOURCE.includes(".where('referencia', '>='") &&
+            BUSCAR_SOURCE.includes(".where('referencia', '<='") &&
+            BUSCAR_SOURCE.includes('array-contains') &&
+            BUSCAR_SOURCE.includes('.limit(limite)') &&
+            BUSCAR_SOURCE.includes('LIMITE_VENTANA_ETIQUETAS') &&
+            BUSCAR_SOURCE.includes('rankearCandidatos')
     );
 
     check(

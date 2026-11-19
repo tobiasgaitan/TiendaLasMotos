@@ -30,64 +30,170 @@ const mockState = vi.hoisted(() => {
         return ref;
     };
 
+    type MockRef = ReturnType<typeof makeRef>;
+
+    interface MockDoc {
+        id: string;
+        ref: MockRef;
+        data: () => Record<string, unknown>;
+    }
+
+    interface FiltroQuery {
+        field: string;
+        op: string;
+        value: unknown;
+    }
+
+    interface OrdenQuery {
+        field: string;
+        direction: 'asc' | 'desc';
+    }
+
     interface MockQuery {
         kind: 'query';
         get: () => Promise<{
-            docs: Array<{
-                id: string;
-                ref: ReturnType<typeof makeRef>;
-                data: () => Record<string, unknown>;
-            }>;
+            docs: MockDoc[];
             empty: boolean;
             size: number;
         }>;
         limit: (n: number) => MockQuery;
-        orderBy: (...args: unknown[]) => MockQuery;
+        where: (field: string, op: string, value: unknown) => MockQuery;
+        orderBy: (field: unknown, direction?: 'asc' | 'desc') => MockQuery;
+        startAfter: (...values: unknown[]) => MockQuery;
+        count: () => {
+            get: () => Promise<{ data: () => { count: number } }>;
+        };
     }
+
+    const leerFilas = (
+        collection: string,
+        filters: FiltroQuery[]
+    ): MockDoc[] =>
+        Array.from(docs.entries())
+            .filter(([path]) => path.startsWith(`${collection}/`))
+            .map(([path, data]) => {
+                const id = path.slice(collection.length + 1);
+                return {
+                    id,
+                    ref: makeRef(collection, id),
+                    data: () => data,
+                };
+            })
+            .filter((snap) =>
+                filters.every(({ field, op, value }) => {
+                    const actual = snap.data()[field];
+                    if (op === 'array-contains') {
+                        return (
+                            Array.isArray(actual) &&
+                            actual.includes(value)
+                        );
+                    }
+                    if (op === '>=') {
+                        return String(actual ?? '') >= String(value);
+                    }
+                    if (op === '<=') {
+                        return String(actual ?? '') <= String(value);
+                    }
+                    return actual === value;
+                })
+            );
+
+    const valorOrden = (doc: MockDoc, field: string): string =>
+        field === '__name__'
+            ? doc.id
+            : String(doc.data()[field] ?? '');
 
     const makeQuery = (
         collection: string,
-        filters: Array<{
-            field: string;
-            op: string;
-            value: unknown;
-        }>,
+        filters: FiltroQuery[],
+        orders: OrdenQuery[] = [],
+        after: unknown[] | null = null,
         limit?: number
     ): MockQuery => {
         const query: MockQuery = {
             kind: 'query',
             get: async () => {
-                const resultados = Array.from(docs.entries())
-                    .filter(([path]) => path.startsWith(`${collection}/`))
-                    .map(([path, data]) => {
-                        const id = path.slice(collection.length + 1);
-                        return {
-                            id,
-                            ref: makeRef(collection, id),
-                            data: () => data,
-                        };
-                    })
-                    .filter((snap) =>
-                        filters.every(({ field, op, value }) => {
-                            const actual = snap.data()[field];
-                            if (op === 'array-contains') {
-                                return (
-                                    Array.isArray(actual) &&
-                                    actual.includes(value)
-                                );
+                let resultados = leerFilas(collection, filters);
+
+                if (orders.length > 0) {
+                    resultados = [...resultados].sort((a, b) => {
+                        for (const orden of orders) {
+                            const actual = valorOrden(a, orden.field);
+                            const siguiente = valorOrden(b, orden.field);
+                            const comparacion = actual.localeCompare(
+                                siguiente,
+                                'en'
+                            );
+                            if (comparacion !== 0) {
+                                return orden.direction === 'desc'
+                                    ? -comparacion
+                                    : comparacion;
                             }
-                            return actual === value;
-                        })
-                    )
-                    .slice(0, limit);
+                        }
+                        return 0;
+                    });
+                }
+
+                if (after && orders.length > 0) {
+                    resultados = resultados.filter((doc) => {
+                        for (let i = 0; i < after.length; i += 1) {
+                            const orden = orders[i];
+                            if (!orden) continue;
+                            const actual = valorOrden(doc, orden.field);
+                            const cursor = String(after[i] ?? '');
+                            if (actual === cursor) continue;
+                            return actual > cursor;
+                        }
+                        return false;
+                    });
+                }
+
+                if (limit !== undefined) {
+                    resultados = resultados.slice(0, limit);
+                }
+
                 return {
                     docs: resultados,
                     empty: resultados.length === 0,
                     size: resultados.length,
                 };
             },
-            limit: (n: number) => makeQuery(collection, filters, n),
-            orderBy: () => makeQuery(collection, filters, limit),
+            limit: (n: number) =>
+                makeQuery(collection, filters, orders, after, n),
+            where: (field: string, op: string, value: unknown) =>
+                makeQuery(
+                    collection,
+                    [...filters, { field, op, value }],
+                    orders,
+                    after,
+                    limit
+                ),
+            orderBy: (field: unknown, direction = 'asc') =>
+                makeQuery(
+                    collection,
+                    filters,
+                    [
+                        ...orders,
+                        {
+                            field:
+                                typeof field === 'string'
+                                    ? field
+                                    : '__name__',
+                            direction,
+                        },
+                    ],
+                    after,
+                    limit
+                ),
+            startAfter: (...values: unknown[]) =>
+                makeQuery(collection, filters, orders, values, limit),
+            count: () => ({
+                get: async () => ({
+                    data: () => ({
+                        count: leerFilas(collection, filters).length,
+                    }),
+                }),
+            }),
         };
         return query;
     };
@@ -143,33 +249,47 @@ const mockState = vi.hoisted(() => {
     };
 
     const db = {
-        collection: (nombre: string) => ({
-            doc: (id?: string) => makeRef(nombre, id),
-            get: async () => {
-                if (
-                    nombre === 'configuracion/general/sedes' &&
-                    fallarSedes
-                ) {
-                    throw new Error('Fallo simulado leyendo sedes');
-                }
-                return {
-                    docs: Array.from(docs.entries())
-                        .filter(([path]) =>
-                            path.startsWith(`${nombre}/`)
-                        )
-                        .map(([path, data]) => ({
-                            id: path.slice(nombre.length + 1),
-                            data: () => data,
-                        })),
-                };
-            },
-            where: (field: string, op: string, value: unknown) => {
-                if (op !== '==' && op !== 'array-contains') {
-                    throw new Error(`Operador no soportado: ${op}`);
-                }
-                return makeQuery(nombre, [{ field, op, value }]);
-            },
-        }),
+        collection: (nombre: string) => {
+            const base = makeQuery(nombre, []);
+
+            return {
+                ...base,
+                doc: (id?: string) => makeRef(nombre, id),
+                get: async () => {
+                    if (
+                        nombre === 'configuracion/general/sedes' &&
+                        fallarSedes
+                    ) {
+                        throw new Error('Fallo simulado leyendo sedes');
+                    }
+                    return {
+                        docs: Array.from(docs.entries())
+                            .filter(([path]) =>
+                                path.startsWith(`${nombre}/`)
+                            )
+                            .map(([path, data]) => ({
+                                id: path.slice(nombre.length + 1),
+                                data: () => data,
+                            })),
+                    };
+                },
+                where: (
+                    field: string,
+                    op: string,
+                    value: unknown
+                ) => {
+                    if (
+                        op !== '==' &&
+                        op !== 'array-contains' &&
+                        op !== '>=' &&
+                        op !== '<='
+                    ) {
+                        throw new Error(`Operador no soportado: ${op}`);
+                    }
+                    return makeQuery(nombre, [{ field, op, value }]);
+                },
+            };
+        },
         runTransaction: async (
             callback: (transaction: typeof tx) => Promise<unknown>
         ) => callback(tx),
@@ -197,6 +317,9 @@ const mockState = vi.hoisted(() => {
 
 vi.mock('@/lib/firebase-admin', () => ({
     getDb: () => mockState.db,
+    getFieldPath: () => ({
+        documentId: () => '__name__',
+    }),
 }));
 
 vi.mock('@/lib/actions/inventario-actor', () => ({
@@ -235,6 +358,7 @@ import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRep
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/eliminarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
+import { contarRepuestos } from '@/app/admin/inventario-repuestos/actions/contarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
@@ -278,6 +402,32 @@ function seedInventario(alternativas: string[] = []) {
         stock_minimo: 0,
         referencias_alternativas: alternativas,
         imagen_url: '',
+    });
+}
+
+function seedRepuesto(
+    id: string,
+    referencia: string,
+    extra: Record<string, unknown> = {}
+) {
+    const ahora = new Date();
+    mockState.docs.set(`inventario_repuestos/${id}`, {
+        referencia,
+        sede_id: 'sede-1',
+        descripcion: `Repuesto ${id}`,
+        fabricante: 'Bosch',
+        categoria: 'FRENOS',
+        aplica_a: [],
+        unidad_medida: 'unidad',
+        precio: 1000,
+        ubicacion: 'A-01-05',
+        stock: 1,
+        stock_minimo: 0,
+        referencias_alternativas: [],
+        imagen_url: '',
+        creado_en: ahora,
+        actualizado_en: ahora,
+        ...extra,
     });
 }
 
@@ -1348,6 +1498,176 @@ describe('MT-07 Server Actions contracts', () => {
         expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
             true
         );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('listarRepuestos pagina con cursor estable sin duplicados', async () => {
+        prepararAdmin();
+        const referencias = [
+            'A-001',
+            'A-002',
+            'A-003',
+            'A-003',
+            'A-004',
+        ];
+        referencias.forEach((referencia, indice) => {
+            seedRepuesto(`doc-${indice}`, referencia);
+        });
+
+        const pagina1 = await listarRepuestos({ limite: 2 }, ACTOR);
+        expect(pagina1.success).toBe(true);
+        expect(pagina1.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-0',
+            'doc-1',
+        ]);
+        expect(pagina1.siguienteCursor).not.toBeNull();
+
+        const pagina2 = await listarRepuestos(
+            {
+                limite: 2,
+                cursor: pagina1.siguienteCursor ?? undefined,
+            },
+            ACTOR
+        );
+        expect(pagina2.success).toBe(true);
+        expect(pagina2.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-2',
+            'doc-3',
+        ]);
+
+        const pagina3 = await listarRepuestos(
+            {
+                limite: 2,
+                cursor: pagina2.siguienteCursor ?? undefined,
+            },
+            ACTOR
+        );
+        expect(pagina3.success).toBe(true);
+        expect(pagina3.repuestos.map((r) => r.documento_id)).toEqual([
+            'doc-4',
+        ]);
+        expect(pagina3.siguienteCursor).toBeNull();
+
+        const ids = [
+            ...pagina1.repuestos,
+            ...pagina2.repuestos,
+            ...pagina3.repuestos,
+        ].map((repuesto) => repuesto.documento_id);
+        expect(ids).toHaveLength(5);
+        expect(new Set(ids).size).toBe(5);
+    });
+
+    it('listarRepuestos aplica filtros server-side', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'Bosch',
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'Honda',
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'Motul',
+        });
+
+        const porCategoria = await listarRepuestos(
+            { categoria: 'FRENOS', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porCategoria.repuestos.map((r) => r.documento_id)
+        ).toEqual(['a', 'b']);
+
+        const porFabricante = await listarRepuestos(
+            { fabricante: 'Honda', limite: 50 },
+            ACTOR
+        );
+        expect(porFabricante.repuestos.map((r) => r.documento_id)).toEqual([
+            'b',
+        ]);
+
+        const porPrefijo = await listarRepuestos(
+            { referencia: 'A-00', limite: 50 },
+            ACTOR
+        );
+        expect(porPrefijo.repuestos).toHaveLength(3);
+    });
+
+    it('contarRepuestos usa count() con filtros y no devuelve documentos', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'Bosch',
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'Honda',
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'Motul',
+        });
+
+        const total = await contarRepuestos({}, ACTOR);
+        expect(total.success).toBe(true);
+        expect(total.total).toBe(3);
+
+        const frenos = await contarRepuestos(
+            { categoria: 'FRENOS' },
+            ACTOR
+        );
+        expect(frenos.total).toBe(2);
+
+        const bosch = await contarRepuestos(
+            { fabricante: 'Bosch' },
+            ACTOR
+        );
+        expect(bosch.total).toBe(1);
+
+        const prefijo = await contarRepuestos(
+            { referencia: 'A-00' },
+            ACTOR
+        );
+        expect(prefijo.total).toBe(3);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('contarRepuestos rechaza actor inválido antes de Firebase', async () => {
+        const resultado = await contarRepuestos({}, {});
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.total).toBe(0);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('buscarCandidatosRepuesto resuelve exacto, prefijo y alternativa', async () => {
+        prepararAdmin();
+        seedRepuesto('brk-1', 'BRK-001', {
+            referencias_alternativas: ['ALT-001'],
+        });
+        seedRepuesto('brk-2', 'BRK-002');
+
+        const exacto = await buscarCandidatosRepuesto(
+            { consulta: 'BRK-001', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(exacto.candidatos[0]?.documento_id).toBe('brk-1');
+
+        const prefijo = await buscarCandidatosRepuesto(
+            { consulta: 'BRK-00', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(
+            prefijo.candidatos.map((c) => c.documento_id)
+        ).toEqual(expect.arrayContaining(['brk-1', 'brk-2']));
+
+        const alternativa = await buscarCandidatosRepuesto(
+            { consulta: 'ALT-001', etiquetas: [], limite: 10 },
+            ACTOR
+        );
+        expect(alternativa.candidatos[0]?.documento_id).toBe('brk-1');
         expect(mockState.writes).toHaveLength(0);
     });
 });

@@ -45,8 +45,20 @@ export interface CambiosRepuesto {
     referencias_alternativas?: string[];
 }
 
+export interface CursorRepuestos {
+    referencia: string;
+    documento_id: string;
+}
+
 export interface ListarRepuestosResult {
     success: boolean;
     message?: string;
     repuestos: RepuestoInventarioDTO[];
+    siguienteCursor: CursorRepuestos | null;
+}
+
+export interface ContarRepuestosResult {
+    success: boolean;
+    message?: string;
+    total: number;
 }
