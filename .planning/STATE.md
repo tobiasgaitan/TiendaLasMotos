@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
-**Versión Actual:** v8.9.16
-**Fecha:** 2026-11-18
-**Rama Activa:** main
-**Última actividad:** 2026-11-16 — Corrección v8.9.16 de secuenciación PR #689; tarball source dependency + runtime marker; beta validada.
+**Versión Actual:** v8.9.17
+**Fecha:** 2026-11-19
+**Rama Activa:** feature/web-inv-ingesta-002 (F2 aplicado en beta; promoción a main pendiente por PR)
+**Última actividad:** 2026-11-19 — F2 aplicado: 21.256 CREATE + 21.256 asientos ledger, 213 batches, 42.512 writes; evidencia final `86e788ec…`; promoción pendiente por PR estricto.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -117,3 +117,14 @@
 - **Observaciones:** `OBS-PROD-ASESOR-AUTH-RACE-CONDITION` reabierta respecto de v8.9.16 y cerrada en beta v8.9.16; producción pendiente Ruta 1. Nuevas `OBS-PR689-PATCH-NOT-UPLOADED` y `OBS-PR689-C4-WITHOUT-ARTIFACT-MARKER`, cerradas en beta y pendientes de producción.
 - **Versión:** v8.9.16; NAMING LOCK intacto; sin cambios de código de app; SSOT en raíz.
 - **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`.
+
+## Cierre WEB-INV-COMPANIONS-ABC-001 + WEB-INV-INGESTA-002-F2 (2026-11-19)
+- **Versión:** v8.9.17 (bump documental de cabecera; §29–§31 conservan v8.9.16 histórico).
+- **Companions A/B/C:** commits `b64219e`/`2ad70a2`/`30098aa`; PR #6 → beta `3f251ac`; deploy #218; UAT runtime A/B/C PASS (unidad_medida + ledger, borrado con guardia FK, paginación/conteo/filtros).
+- **F2:** rama `feature/web-inv-ingesta-002` en `d2d5acd`; apply real en beta: 21.256 CREATE en `inventario_repuestos` + 21.256 CREATE en `historial_auditoria_inventario`; 213 batches; 42.512 writes; actor `t05KiQCGQgUWFARvczn3nuXp9Qz2`.
+- **Evidencia:** `Desktop/WEB-INV-INGESTA-002-F2-evidence/run-001/`; `FINAL_MANIFEST_SHA256=86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
+- **Rollback:** por manifiesto, batches de 100, verificación de `import_key`; sin borrado del ledger append-only.
+- **Supersesión única:** purga manual pre-apply de 7 asientos UAT + conteo `N5hKkfXcHa0ufOH973GU`, autorizada por Dirección; gap forense declarado (sin export write-once de los 7 docIds).
+- **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` y `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` abiertas/no bloqueantes; `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001` cerrada por este commit.
+- **Topología:** prod `tiendalasmotos.com` + `tiendalasmotos.web.app` (sitio `tiendalasmotos`); beta `tiendalasmotos-beta.web.app` (sitio `tiendalasmotos-beta`); Firestore compartido en proyecto `tiendalasmotos`.
+- **Posición:** F2 aplicado en beta; commit/push/PR `feature/web-inv-ingesta-002 → beta` pendientes de certificación del diff; merge `beta → main` por PR estricto. Sin push directo a main.

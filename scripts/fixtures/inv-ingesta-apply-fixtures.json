@@ -1,0 +1,89 @@
+{
+  "ticket": "WEB-INV-INGESTA-002-F2",
+  "batchSize": 100,
+  "totalPropuestas": 21256,
+  "batchesEsperados": 213,
+  "ultimoBatch": 56,
+  "d4b": [
+    {
+      "id": "sin_existentes",
+      "referencia": "REF-1",
+      "existentes": [],
+      "esperado": "CREATE"
+    },
+    {
+      "id": "una_manual",
+      "referencia": "REF-1",
+      "existentes": [
+        {
+          "documentoId": "manual-1",
+          "referencia": "ref-1",
+          "importKey": null
+        }
+      ],
+      "esperado": "D4B_RECONCILIABLE"
+    },
+    {
+      "id": "dos_manuales",
+      "referencia": "REF-1",
+      "existentes": [
+        {
+          "documentoId": "manual-1",
+          "referencia": "ref-1",
+          "importKey": null
+        },
+        {
+          "documentoId": "manual-2",
+          "referencia": "REF-1",
+          "importKey": null
+        }
+      ],
+      "esperado": "D4B_AMBIGUO"
+    },
+    {
+      "id": "idempotente",
+      "referencia": "REF-1",
+      "existentes": [
+        {
+          "documentoId": "ya-ingerido",
+          "referencia": "ref-1",
+          "importKey": "AUTO"
+        }
+      ],
+      "esperado": "SKIP_IDEMPOTENTE"
+    }
+  ],
+  "rollback": [
+    {
+      "id": "match",
+      "documento_id": "doc-1",
+      "referencia": "REF-1",
+      "actual": {
+        "exists": true,
+        "referencia": "REF-1",
+        "import_key": "AUTO"
+      },
+      "esperado": "DELETE"
+    },
+    {
+      "id": "mismatch",
+      "documento_id": "doc-2",
+      "referencia": "REF-2",
+      "actual": {
+        "exists": true,
+        "referencia": "REF-2",
+        "import_key": "OTRO"
+      },
+      "esperado": "MISMATCH"
+    },
+    {
+      "id": "missing",
+      "documento_id": "doc-3",
+      "referencia": "REF-3",
+      "actual": {
+        "exists": false
+      },
+      "esperado": "MISSING"
+    }
+  ]
+}

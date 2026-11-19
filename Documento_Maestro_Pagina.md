@@ -1,6 +1,6 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.16  
-**Última Actualización:** 2026-11-18  
+**Versión del Stack & Hitos:** v8.9.17  
+**Última Actualización:** 2026-11-19  
 **Estado:** promoción v8.9.16 certificada vía PR #4 (WEB-049-P1, WEB-050-P1, WEB-051-P1 + refactors); UAT runtime prod 4/4 CUMPLE; OBS-PROD-DATOS-PRUEBA-RESIDUALES cerrada §31; OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR RE-ABIERTA por push directo ef7a8e7; OBS-REFACTOR-STACK-UNPUSHED-NO-CI cerrada; OBS-AUTH-WHITELIST-DESPARITY abierta; Frente A (catálogo 0/0/0) diferido con riesgo aceptado por Director.
 
 ---
@@ -664,3 +664,228 @@ Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y que
 **Supersesión append-only documental:** la eliminación de los 10 asientos simulados de `historial_auditoria` se autoriza por esta nota, siguiendo el precedente §28. No se escribió un asiento de autorización en el ledger; `historial_auditoria_inventario` permaneció intacto.
 **Evidencia:** `/private/var/folders/wv/332j5kzn75d7kjnsj6l_3hhc0000gn/T/opencode/web051-apply-20261118T032345Z/` con `apply.json` (SHA-256 `0a4eaeed547db82d7557adefaf81b1c2813de32175b078c0181da7a87fa6efb0`), `report.md` (`751ae9425699c0eb916427847554677ed03a4e80b766a7bda19be3b2824f352c`), `parity-check.json`, `parity-check.txt`, `manifest.json`.
 **Invariantes:** cero cambios en `src/`, `functions/`, bot, reglas, índices, `sw.js`, `tlm-shell`, `AuthContext` o `proxy.ts`; NAMING LOCK intacto; ledger de inventario intacto; sin push a beta/main; §31 es aditivo conforme a §25.A y no reescribe §28/§29/§30.
+
+## 32. WEB-INV-INGESTA-001-F1 — Fase 1 read-only de `inventario_repuestos`: run-7 y registro de decisiones (2026-11-18)
+**Estado:** FASE 1 COMPLETA — `DRY_RUN=PASS`, `SIMULATION=PASS`, `MT5_REQUIRED=NO`; commit local y push **BLOQUEADOS** hasta la certificación de este §32 por el Director.
+**Versión:** v8.9.16; sin bump (documental).
+**Rama/base:** `feature/web-inv-ingesta-001` en `343f748` (`origin/main`); sin cambios en `src/`, `functions/`, reglas, índices, bot, `package.json` ni `package-lock.json`.
+**Naturaleza:** sección aditiva conforme al precedente §25.A. No reescribe §25 ni §28–§31.
+
+### 32.1 Fuente congelada
+
+| Campo | Valor |
+| --- | --- |
+| Ruta | `/Users/tobiasgaitangallego/Desktop/Actualizar pagina web/inventario existencia totales (1).xlsx` |
+| SHA-256 | `3825ca9249da8fcde535819ec39efee73e97674d16422fcf0a1aabcfcd6fbc56` |
+| Tamaño | 2.404.291 bytes |
+| mtime | 2026-11-18 10:39:20 COT (-05) |
+| Hoja | `ExportarAExcel` |
+| Fila de headers | 2 |
+| Datos desde | 3 |
+| Headers | 18 exactos, en orden: `GrupoUno`, `DescGrupoUno`, `GrupoDos`, `DescGrupoDos`, `Codigo Producto`, `Descripción`, `Maximo Permitido`, `Minimo Permitido`, `Punto Reorden`, `UnidadDeMedida`, `Precio1`, `Precio2`, `Precio3`, `Precio4`, `Iva`, `Existencias`, `txtPersonalizado1`, `txtPersonalizado2` |
+| `DATA_ROWS` | 25.255 |
+
+La fuente se validó antes y después del dry-run; cualquier reexportación, guardado abierto o movimiento invalida este §32.
+
+### 32.2 Linaje de configuraciones y parse hash
+
+| Run | Config SHA-256 | Overrides aplicados | CREATE | CUARENTENA |
+| --- | --- | ---: | ---: | ---: |
+| run-5 | `d18b96c89488883f8a352280fd2516777c29b7ecdb0152966f68815bcb105aa5` | 104 | 19.669 | 372 |
+| run-6 | `4aad4822a992557fa16f210fbf71d6b227de6d361636b759d6860b3713255a40` | 1.413 | 20.978 | 372 |
+| run-7 | `1826478790e454e5e84e6b5777b57c87631207a48a81ff0b02a13da0d7071c9b` | 1.691 (1.413 + 278 D-5) | 21.256 | 94 |
+
+`PARSE_HASH=70e86dbd94635b4473fea30899a7930de25e451a48a99d0b847b5c20d4347310` se mantiene estable en run-3, run-4, run-5, run-6 y run-7. Run-3 y run-4 no tienen config de disposiciones; run-5 abre la config y run-6/run-7 solo agregan deltas explícitos.
+
+### 32.3 Censo final run-7
+
+| Categoría | Total | CREATE | CENSAR | EXCLUIR | CUARENTENA | SKIP_CONFLICTO | OMITIDA |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| REPUESTOS | 18883 | 18856 | 0 | 0 | 27 | 0 | 0 |
+| MOTOCICLETAS | 3313 | 0 | 0 | 0 | 0 | 0 | 3313 |
+| LOS ORIGINALES | 1528 | 1507 | 0 | 0 | 21 | 0 | 0 |
+| ACCESORIOS | 812 | 812 | 0 | 0 | 0 | 0 | 0 |
+| HERRAMIENTAS ESPECIALIZADAS | 272 | 0 | 272 | 0 | 0 | 0 | 0 |
+| PRODUCTOS NO FABRICADOS POR LA EMPRESA | 106 | 0 | 102 | 0 | 4 | 0 | 0 |
+| SERVICIOS | 91 | 0 | 0 | 0 | 0 | 0 | 91 |
+| CICLOMOTOR | 55 | 0 | 0 | 0 | 0 | 0 | 55 |
+| LUBRICANTES | 52 | 49 | 0 | 0 | 3 | 0 | 0 |
+| GENERICOS | 47 | 18 | 0 | 0 | 29 | 0 | 0 |
+| MOTOCARROS | 43 | 0 | 0 | 0 | 0 | 0 | 43 |
+| PATINETAS | 28 | 0 | 0 | 0 | 0 | 0 | 28 |
+| LINEA DE CUIDADO | 14 | 14 | 0 | 0 | 0 | 0 | 0 |
+| CATEGORIA_AUSENTE | 10 | 0 | 0 | 0 | 10 | 0 | 0 |
+| BICICLETAS | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+| **Total** | **25255** | **21256** | **374** | **0** | **94** | **0** | **3531** |
+
+Identidades de reconciliación:
+
+- `25.255 = 21.724 + 3.531` (`DATA_ROWS = parsed + omitidas`).
+- `21.724 = 21.256 + 374 + 0 + 94 + 0` (`parsed = CREATE + CENSAR + EXCLUIR + CUARENTENA + SKIP_CONFLICTO`), residuo 0.
+
+Gates: `SOURCE_SCHEMA=PASS`, `SOURCE_HASH=PASS`, `PARSED_ROWS_PLUS_SKIPPED_ROWS=PASS`, `FIRESTORE_WRITES=0`, `STORAGE_WRITES=0`, `DELETIONS=0`, `WRITE_APIS=0`, `RECONCILIACION=PASS`, `MAPEO_FILAS=1.689`, `MAPEO_CAMBIOS=278`, `MAPEO_COLISIONES=0`, `MAPEO_D5_IDENTIDAD=PASS`. El set completo está en `run-7/manifest.json`.
+
+### 32.4 Cuarentena 94 por motivo
+
+| Motivo / causa | Filas | Ubicación |
+| --- | ---: | --- |
+| `REFERENCIA_CHARSET` no elegible D-5 — texto libre | 46 | REPUESTOS 13; LOS ORIGINALES 14; GENERICOS 16; LUBRICANTES 3 |
+| `REFERENCIA_CHARSET` no elegible D-5 — símbolo inválido | 32 | REPUESTOS 12; LOS ORIGINALES 7; GENERICOS 13 |
+| `MT5_DUPLICADO_INTERNO` | 2 | REPUESTOS, filas 6285 y 22311 (`11034067`) |
+| `D5_CATEGORIA_NO_INGESTA` — PNF | 4 | PRODUCTOS NO FABRICADOS POR LA EMPRESA, charset |
+| `CATEGORIA_AUSENTE` — solo categoría | 7 | filas sin categoría, sin charset |
+| `CATEGORIA_AUSENTE` — categoría + charset | 3 | filas sin categoría, charset |
+| **Total** | **94** | |
+
+Comprobación categórica: REPUESTOS 27 + LOS ORIGINALES 21 + GENERICOS 29 + LUBRICANTES 3 + PRODUCTOS NO FABRICADOS POR LA EMPRESA 4 + CATEGORIA_AUSENTE 10 = 94.
+
+**Los 6 EAN cuarentenados.** Los seis son colisiones `EAN13_COLISION_MAESTRA` y están en `REPUESTOS` (6/6); corresponden a filas cuyo `DescGrupoUno` es `PRODUCTOS NO FABRICADOS POR LA EMPRESA` y cuyo `DescGrupoDos` es `REPUESTOS`:
+
+| EAN cuarentenado | Fila del token | Referencia de la fila del token | Fila maestra | Referencia maestra | Categoría |
+| --- | ---: | --- | ---: | --- | --- |
+| `7704919622201` | 19850 | `10046889` | 24828 | `7704919622201` | REPUESTOS |
+| `7704919374544` | 21634 | `11009968` | 24825 | `7704919374544` | REPUESTOS |
+| `7704919751659` | 21639 | `11010194` | 24829 | `7704919751659` | REPUESTOS |
+| `7704919487701` | 21828 | `11013658` | 24827 | `7704919487701` | REPUESTOS |
+| `7704919383201` | 22334 | `11036491` | 24826 | `7704919383201` | REPUESTOS |
+| `7897707508778` | 24692 | `4549` | 24836 | `7897707508778` | REPUESTOS |
+
+`EAN_CUARENTENA_CONFIG=6`, `EAN_CUARENTENA_ENCONTRADAS=6`, `EAN_KEEP_CONFIG=11`, `EAN_KEEP_ENCONTRADAS=11`, `EAN_DISPOSITIONS=MATCH`.
+
+### 32.5 Registro de decisiones
+
+**G1 — categorías.** `REPUESTOS`, `LUBRICANTES` y `ACCESORIOS` ingresan; vehículos/servicios/contratos quedan fuera; `HERRAMIENTAS ESPECIALIZADAS` solo censo; `LOS ORIGINALES` ingresa después de mapping; `LINEA DE CUIDADO` y `GENERICOS` solo con filas válidas; sin categoría = cuarentena.
+
+**G2 — saneamiento.** Cuarentena pura por defecto; sanear solo con regla aprobada por MT-5; `CLEAN` exige crudo ya en mayúsculas; máximo 64 caracteres `A-Z 0-9 . _ -`.
+
+**G3 — lock literal.** `G3-LITERAL-CORREGIDO` queda lock: unión `txtPersonalizado1` + `txtPersonalizado2`, tokenización literal por `[,;\n/]`, EAN-13 no-maestro a `referencias_alternativas`, `aplica_a=''` y sospecha de modelo a cuarentena-manifiesto. `G3-semantic` queda rechazado.
+
+**G4 — borrado.** Borrado físico con guardia de FK a `conteos_pendientes_repuestos`, asiento en ledger, evidencia y referencia maestra read-only en UI.
+
+**Decisiones.** `D1=A` (fuente canónica `.xlsx`); `D4=A` (`import_key` como identidad de ingesta); `D5=A` (sin cambios de paquetes); `D7=SÍ` (Companion C es prerrequisito de Fase 2/UAT); `D8=A` (un asiento de ledger por documento).
+
+**Defaults dictados.** Las dos filas de `11034067` (6285 y 22311) quedan en `CUARENTENA` por `MT5_DUPLICADO_INTERNO`, sin superviviente; `PRODUCTOS NO FABRICADOS POR LA EMPRESA` pasa a `CENSAR` (102 filas), con 4 filas PNF en cuarentena por charset.
+
+**Ruta D4-B.** Para la convivencia de `import_key` con altas manuales se adopta `D4-B`: el loader reconcilia por `referencia` normalizada cuando no encuentra `import_key`, con guard de unicidad y reporte de ambigüedad. `D4-A`/Companion D quedan diferidos; `D4-C` queda rechazada.
+
+**Disposiciones EAN.** 6 EAN-13 en `CUARENTENA` y 11 en `KEEP_ALTERNATIVAS`; `EAN_DISPOSITIONS=MATCH`, `MT5_REQUIRED=NO`.
+
+**Reglas D-5.** Saneamiento `/`→`-` y espacio→`-`, solo para filas `REFERENCIA_CHARSET` en `CUARENTENA` de las seis categorías INGESTA (`REPUESTOS`, `LOS ORIGINALES`, `ACCESORIOS`, `LUBRICANTES`, `GENERICOS`, `LINEA DE CUIDADO`). Texto libre, `+`, `=`, coma, `?`, paréntesis, comilla y longitud >64 permanecen en cuarentena. Cualquier colisión post-mapeo de `import_key`, referencia fuente, referencia mapeada o maestra↔alternativa produce `SKIP_CONFLICTO` con la fila identificada, sin sobrescritura. Resultado: 278 filas saneadas (213 espacio→`-`, 65 `/`→`-`), 0 colisiones; las 278 están fila a fila en `run-7/mapeo.json`.
+
+### 32.6 NAMING LOCK
+
+Revisión ejecutada. Claves aditivas del frente: `{unidad_medida, import_key}`. `Companion A` (`unidad_medida`) entra en scope; `Maximo Permitido`, `Minimo Permitido` y `Punto Reorden` quedan fuera de alcance. No se renombran claves existentes ni se altera el contrato documental previo.
+
+### 32.7 Companions A/B/C — prerrequisitos de Fase 2/UAT
+
+- **Companion A:** `unidad_medida` en tipo, schemas estrictos, acción de alta/edición, DTO, tabla admin y ledger; actualización del test de contrato que hoy exige exactamente 8 columnas.
+- **Companion B:** borrado físico con `verifyIdToken` + permiso `delete`, guardia FK a `conteos_pendientes_repuestos`, asiento `DELETE` append-only y UI de confirmación/bloqueo.
+- **Companion C:** paginación por cursor y búsqueda server-side; actualización de los tests que hoy exigen “colección sin `limit`” y del test de las 8 columnas exactas.
+
+Los tres son prerequisito de Fase 2/UAT. No se implementan en Fase 1.
+
+### 32.8 Inventario de archivos nuevos de Fase 1
+
+Siete archivos (seis scripts TypeScript y un fixture JSON), todos fuera de `src/` y sin dependencias nuevas:
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `scripts/inv-ingesta-dry-run.ts` | `18fd569a0c6ea2d0c7d4153d7d6bf71451a86e6c2a7acaf00d59a85e6c9dcf35` |
+| `scripts/inv-ingesta-fixtures.ts` | `4fb90be0fb976815d51c8d887dc90ab43f66f09049146f9836dd30f2549a54c6` |
+| `scripts/inv-ingesta-simulacion.ts` | `bea0424b47fb227b9667aa54b522d92967e534c5f19eaecb2ed752ece21a25b3` |
+| `scripts/lib/inv-ingesta-disposiciones.ts` | `ebe3f9038381a600e2946fb86db0a66ca9fa90cb758dcb16da3b9b652c5db58f` |
+| `scripts/lib/inv-ingesta-source.ts` | `140a1aadaedf07ef1ce66a01b2c3d4bbe4980e838bd0e5235ac35a411f8d6ca1` |
+| `scripts/lib/inv-ingesta-utils.ts` | `7b9a5efc6016dab19e49a8e5ad40463deed8d2ed68120da3a01dd2860212793a` |
+| `scripts/fixtures/inv-ingesta-fixtures.json` | `c7c9eff87a867623c234f2a768d1e6e090facbc5c6cf13cc4688ed307ade0d53` |
+
+Evidencia: `Desktop/WEB-INV-INGESTA-001-F1-evidence/run-7/` y `run-7/simulacion/`; `surface-verification.md` actualizado a run-7.
+
+### 32.9 Observaciones de entorno
+
+- `origin/beta` fue eliminado del remoto: `git ls-remote --heads origin` solo devuelve `refs/heads/main` y `refs/heads/feature/production-promotion`. La rama local `beta` conserva `[origin/beta: gone]`.
+- Identidad de `343f748`: `343f748a2bb4cc8a5ea24b838305442fb83f62d1`, “Merge pull request #5 from tobiasgaitan/fix/psd-v8.9.16-header”, autor `tobiasgaitan <64673190+tobiasgaitan@users.noreply.github.com>`, fecha `Tue Nov 17 23:57:11 2026 -0500`, padres `ef7a8e7` y `401760e`; `git show --stat --oneline 343f748` reporta 2 archivos, 3 inserciones y 3 eliminaciones (`.planning/STATE.md`, `Documento_Maestro_Pagina.md`).
+- La rama local `fix/psd-v8.9.16-header` está en `401760e` y su upstream `origin/fix/psd-v8.9.16-header` figura `gone`: rama huérfana.
+- Node local `v24.12.0`; el CI y `package.json` fijan Node `22.x`. La diferencia no altera la evidencia read-only, pero debe tenerse presente para Fase 2.
+
+### 32.10 Prohibiciones cumplidas y bloqueo
+
+Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, cero borrados y cero APIs de escritura en run-7 (`FIRESTORE_WRITES=0`, `STORAGE_WRITES=0`, `DELETIONS=0`, `WRITE_APIS=0`). Sin cambios en `src/`, `functions/`, `firestore.rules`, `firestore.indexes.json`, `bot-tiendalasmotos`, `package.json` ni `package-lock.json`.
+
+**Commit local y push permanecen bloqueados hasta la certificación de este §32 por el Director.**
+
+## 33. WEB-INV-COMPANIONS-ABC-001 + WEB-INV-INGESTA-002-F2 — Companions A/B/C, ingesta real y cierre de F2 (2026-11-19)
+**Estado:** F2 **APLICADO EN BETA**; paquete de código preparado para certificación del diff; commit, push y PR `feature/web-inv-ingesta-002 → beta` pendientes de esa certificación. Companions A/B/C certificados, desplegados en beta y con UAT runtime PASS.
+**Versión:** v8.9.17 (bump documental de cabecera). Las menciones históricas de v8.9.16 en §29–§31 quedan **intactas**.
+**Rama:** `feature/web-inv-ingesta-002` en `d2d5acd` (merge de `feature/web-inv-ingesta-001` sobre `beta` `3f251ac`).
+**Naturaleza:** sección aditiva conforme al precedente §25.A. No reescribe §25 ni §28–§32.
+
+### 33.1 Companions A/B/C — `WEB-INV-COMPANIONS-ABC-001`
+
+| Companion | Alcance certificado | Commit |
+| --- | --- | --- |
+| A | `unidad_medida` aditiva (`unidad` \| `litro`, default `unidad`), DTO, schemas, actions, tabla admin y ledger CREATE/UPDATE | `b64219e` |
+| B | Borrado físico controlado: Faraday Cage, permiso `delete`, guardia FK a `conteos_pendientes_repuestos`, ledger `DELETE` append-only y UI de confirmación | `2ad70a2` |
+| C | Paginación por cursor, `contarRepuestos` con `count()`, filtros server-side, búsqueda acotada, ast guard y `referenciaSchema` byte-intacto | `30098aa` |
+
+- **Integración:** PR #6 `feature/web-inv-companions-abc → beta`, merge `3f251ac`; deploy **#218** success.
+- **UAT runtime A/B/C PASS:** unidad_medida + ledger; borrado con guardia FK; paginación, conteo y filtros server-side.
+- **NAMING LOCK:** solo claves aditivas `{unidad_medida, import_key}`; `import_key` entra en F2. No se renombraron claves existentes.
+
+### 33.2 F2 — `WEB-INV-INGESTA-002-F2`
+
+- **Rama:** `feature/web-inv-ingesta-002`, HEAD `d2d5acd`, con F1 (`1aa21f4`) y Companions (`30098aa`) integrados sobre `beta` `3f251ac`.
+- **Apply real:** **21.256 CREATE** en `inventario_repuestos` + **21.256 asientos CREATE** en `historial_auditoria_inventario`; **213 batches** de 100 documentos (212×100 + 56); **42.512 writes** (2 por documento).
+- **D4-B:** `strict-abort`; `D4B_RECONCILIABLE` y `D4B_AMBIGUO` abortan antes de escribir. En la corrida: `D4B_RECONCILIABLES=0`, `D4B_AMBIGUEDADES=0`.
+- **D8-A:** un asiento `CREATE` por documento, en el mismo batch atómico.
+- **Actor:** UID `t05KiQCGQgUWFARvczn3nuXp9Qz2`.
+- **Evidencia:** `Desktop/WEB-INV-INGESTA-002-F2-evidence/run-001/` con `preflight.json`, `apply-plan.json`, `d4b-report.json`, `collisions.json`, `batch-0001.json…batch-0213.json`, `final-manifest.json`, `counts.json`, `report.md` y `run.log`.
+- **FINAL_MANIFEST_SHA256:** `86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
+- **Rollback:** `scripts/inv-ingesta-rollback.ts` por manifiesto, batches de 100, verificación de `import_key`; **cero borrado de `historial_auditoria_inventario`** (ledger append-only).
+
+### 33.3 UAT de volumen real
+
+- Paginación observada **50 → 100 sobre 21.256** documentos.
+- Filtros server-side: **18.856** en REPUESTOS y **1.507** en LOS ORIGINALES.
+- **224 documentos con referencias alternativas**; alternativas visibles en la ficha del repuesto.
+
+### 33.4 Supersesión append-only única (precedente §28/§31)
+
+- **Purga manual** de **7 asientos de UAT** en `historial_auditoria_inventario` + **conteo de prueba `N5hKkfXcHa0ufOH973GU`**, autorizada por el Director y ejecutada **pre-apply**; ledger verificado en **0** antes de la ingesta.
+- La excepción es única y documental; no reescribe §28/§31 ni autoriza purgas futuras del ledger.
+- **Gap forense declarado:** no existe export write-once de los 7 `docIds`; eran datos de prueba, no movimientos reales. Se registra la ausencia de ese artefacto para auditoría futura.
+
+### 33.5 Observaciones
+
+- `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`: **ABIERTA**, no bloqueante.
+- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **ABIERTA**, no bloqueante.
+- `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001`: **CERRADA por este commit**. Se elimina exclusivamente el bloque compuesto `(referencia ASC, __name__ ASC)` de `inventario_repuestos` en `firestore.indexes.json`, rechazado físicamente por Firestore con HTTP 400; sin reformateo del resto.
+
+### 33.6 Corrección de topología
+
+- **Producción:** `tiendalasmotos.com` + `tiendalasmotos.web.app` (sitio `tiendalasmotos`).
+- **Beta:** `tiendalasmotos-beta.web.app` (sitio `tiendalasmotos-beta`).
+- Verificado vía `.firebaserc`; ambos sitios pertenecen al proyecto `tiendalasmotos`, que comparte Firestore. La ingesta F2 se ejecutó sobre ese Firestore compartido con confirmación explícita.
+
+### 33.7 CHANGELOG obligatorio
+
+**Qué se cambió**
+- Nuevos scripts F2: `inv-ingesta-apply.ts`, `inv-ingesta-rollback.ts`, `inv-ingesta-apply-utils.ts`, fixtures y JSON de fixtures.
+- Cabecera del PSD bump a v8.9.17 y nueva §33 aditiva.
+- `firestore.indexes.json`: eliminación del bloque redundante rechazado.
+- `.planning/STATE.md` y `.planning/ROADMAP.md` sincronizados con F2 aplicado.
+
+**Qué se reparó**
+- Deriva repo/índice: el bloque `(referencia ASC, __name__ ASC)` rechazado por Firestore ya no vive en el repo.
+- Documentación de topología prod/beta y estado de promoción.
+- Guardas F2: D4-B strict-abort, preflight de inventario vacío, batches atómicos y rollback sin tocar ledger.
+
+**Qué se preservó intacto**
+- §25 y §28–§32; menciones históricas v8.9.16 de §29–§31.
+- NAMING LOCK, ledger append-only (salvo la supersesión única §33.4), companions A/B/C y evidencia F1.
+- `src/`, `functions/`, `firestore.rules` y `package.json`/`package-lock.json` sin cambios por F2.
+
+### 33.8 Invariantes y bloqueo
+
+- **Cero push a `main`** hasta la certificación de Fase 2 en beta; el merge `beta → main` irá por **PR estricto** (no se re-manifiesta `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`).
+- **Commit, push y PR** del paquete F2 permanecen bloqueados hasta la certificación del diff por el Director.
+- El apply real ya ocurrió; este §33 documenta el estado, no autoriza una nueva escritura.

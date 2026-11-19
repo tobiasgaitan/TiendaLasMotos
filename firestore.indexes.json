@@ -208,14 +208,6 @@
       "collectionGroup": "inventario_repuestos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "referencia", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "inventario_repuestos",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "categoria", "order": "ASCENDING" },
         { "fieldPath": "referencia", "order": "ASCENDING" },
         { "fieldPath": "__name__", "order": "ASCENDING" }
