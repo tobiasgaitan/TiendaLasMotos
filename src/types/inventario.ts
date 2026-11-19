@@ -14,6 +14,10 @@ export const ESTADOS_CONTEO = [
 
 export type EstadoConteo = (typeof ESTADOS_CONTEO)[number];
 
+export const UNIDADES_MEDIDA = ['unidad', 'litro'] as const;
+
+export type UnidadMedida = (typeof UNIDADES_MEDIDA)[number];
+
 export interface ConteoPendiente {
     referencia_sugerida: string;
     referencia_confirmada: string;
@@ -41,6 +45,7 @@ export interface InventarioRepuesto {
     fabricante: string;
     aplica_a: string[];
     categoria: string;
+    unidad_medida: UnidadMedida;
     precio: number;
     ubicacion?: string;
     stock: number;

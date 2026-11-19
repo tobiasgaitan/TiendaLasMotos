@@ -2,6 +2,7 @@ import {
     normalizarReferenciasAlternativas,
     referenciasAlternativasSchema,
 } from '@/lib/actions/inventario-schemas';
+import { UNIDADES_MEDIDA } from '@/types/inventario';
 import type {
     BorradorRepuesto,
     CambiosRepuesto,
@@ -100,6 +101,13 @@ export function construirCambiosRepuesto(
     const precio = parsePrecio(borrador.precio);
     if (precio !== original.precio) {
         cambios.precio = precio;
+    }
+
+    if (!UNIDADES_MEDIDA.includes(borrador.unidad_medida)) {
+        throw new Error('La unidad de medida no es válida.');
+    }
+    if (borrador.unidad_medida !== original.unidad_medida) {
+        cambios.unidad_medida = borrador.unidad_medida;
     }
 
     const ubicacion = borrador.ubicacion.trim();

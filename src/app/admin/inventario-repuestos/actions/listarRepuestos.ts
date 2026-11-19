@@ -20,6 +20,10 @@ function numero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function unidadMedida(value: unknown): 'unidad' | 'litro' {
+    return texto(value).trim().toLowerCase() === 'litro' ? 'litro' : 'unidad';
+}
+
 function arregloTexto(value: unknown): string[] {
     if (!Array.isArray(value)) return [];
     return value.filter((item): item is string => typeof item === 'string');
@@ -163,6 +167,7 @@ export async function listarRepuestos(
                 fabricante: texto(data.fabricante),
                 aplica_a: arregloTexto(data.aplica_a),
                 categoria: texto(data.categoria),
+                unidad_medida: unidadMedida(data.unidad_medida),
                 precio: numero(data.precio),
                 ubicacion: texto(data.ubicacion),
                 stock: numero(data.stock),

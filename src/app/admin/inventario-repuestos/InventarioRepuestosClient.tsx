@@ -25,6 +25,10 @@ import {
     construirCambiosRepuesto,
     filtrarRepuestos,
 } from '@/lib/inventario/repuestos';
+import {
+    UNIDADES_MEDIDA,
+    type UnidadMedida,
+} from '@/types/inventario';
 import type {
     BorradorRepuesto,
     FiltrosRepuesto,
@@ -33,7 +37,7 @@ import type {
 
 type CampoBorrador = Exclude<
     keyof BorradorRepuesto,
-    'referencias_alternativas'
+    'referencias_alternativas' | 'unidad_medida'
 >;
 
 interface EdicionRepuesto {
@@ -196,6 +200,7 @@ export default function InventarioRepuestosClient() {
                 stock: String(repuesto.stock),
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
+                unidad_medida: repuesto.unidad_medida,
                 ubicacion: repuesto.ubicacion ?? '',
                 referencias_alternativas:
                     repuesto.referencias_alternativas ?? [],
@@ -217,6 +222,19 @@ export default function InventarioRepuestosClient() {
                 borrador: {
                     ...actual.borrador,
                     [campo]: valor,
+                },
+            };
+        });
+    }
+
+    function actualizarUnidadMedida(valor: UnidadMedida): void {
+        setEdicion((actual) => {
+            if (!actual) return actual;
+            return {
+                ...actual,
+                borrador: {
+                    ...actual.borrador,
+                    unidad_medida: valor,
                 },
             };
         });
@@ -365,9 +383,9 @@ export default function InventarioRepuestosClient() {
                         Repuestos
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                        Consulta y edita stock, stock mínimo, precio, ubicación,
-                        descripción y referencias alternativas. Cada cambio
-                        queda auditado.
+                        Consulta y edita stock, stock mínimo, precio, unidad de
+                        medida, ubicación, descripción y referencias
+                        alternativas. Cada cambio queda auditado.
                     </p>
                 </div>
 
@@ -558,6 +576,9 @@ export default function InventarioRepuestosClient() {
                                     Categoría
                                 </th>
                                 <th scope="col" className="px-4 py-3">
+                                    Unidad
+                                </th>
+                                <th scope="col" className="px-4 py-3">
                                     Fabricante
                                 </th>
                                 <th
@@ -744,6 +765,42 @@ export default function InventarioRepuestosClient() {
                                         </td>
                                         <td className="px-4 py-4 text-gray-300">
                                             {repuesto.categoria || '—'}
+                                        </td>
+                                        <td className="px-4 py-4 text-gray-300">
+                                            {borrador ? (
+                                                <select
+                                                    value={
+                                                        borrador.unidad_medida
+                                                    }
+                                                    onChange={(event) =>
+                                                        actualizarUnidadMedida(
+                                                            event.target
+                                                                .value as UnidadMedida
+                                                        )
+                                                    }
+                                                    aria-label={`Unidad de medida de ${repuesto.referencia}`}
+                                                    className="w-24 rounded-lg border border-gray-700 bg-gray-950 px-2 py-1.5 text-sm text-white outline-none focus:border-red-500"
+                                                >
+                                                    {UNIDADES_MEDIDA.map(
+                                                        (unidad) => (
+                                                            <option
+                                                                key={unidad}
+                                                                value={unidad}
+                                                            >
+                                                                {unidad ===
+                                                                'litro'
+                                                                    ? 'Litro'
+                                                                    : 'Unidad'}
+                                                            </option>
+                                                        )
+                                                    )}
+                                                </select>
+                                            ) : repuesto.unidad_medida ===
+                                              'litro' ? (
+                                                'Litro'
+                                            ) : (
+                                                'Unidad'
+                                            )}
                                         </td>
                                         <td className="px-4 py-4 text-gray-300">
                                             {repuesto.fabricante || '—'}

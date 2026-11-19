@@ -86,6 +86,7 @@ const BASE: RepuestoInventarioDTO = {
     fabricante: 'Honda',
     aplica_a: ['Honda CB 190'],
     categoria: 'Frenos',
+    unidad_medida: 'unidad',
     precio: 125000,
     ubicacion: 'A-01-05',
     stock: 8,
@@ -103,6 +104,7 @@ const BORRADOR = {
     stock: String(BASE.stock),
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
+    unidad_medida: BASE.unidad_medida,
     ubicacion: BASE.ubicacion ?? '',
     referencias_alternativas: [...BASE.referencias_alternativas],
 };
@@ -291,6 +293,48 @@ check(
     }).success
 );
 
+const crearUnidadDefault = crearRepuestoSchema.safeParse({
+    referencia: 'BRK-040',
+    descripcion: 'Repuesto sin unidad explícita',
+    sede_id: 'sede-1',
+    ubicacion: 'Pasillo 1',
+});
+check(
+    'crearRepuestoSchema usa unidad como default',
+    crearUnidadDefault.success &&
+        crearUnidadDefault.data.unidad_medida === 'unidad'
+);
+check(
+    'crearRepuestoSchema acepta litro',
+    crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        unidad_medida: 'litro',
+    }).data?.unidad_medida === 'litro'
+);
+check(
+    'crearRepuestoSchema rechaza unidad inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        unidad_medida: 'docena',
+    }).success
+);
+check(
+    'cambiosRepuestoSchema acepta unidad_medida aditiva',
+    editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { unidad_medida: 'litro' },
+    }).data?.cambios.unidad_medida === 'litro'
+);
+check(
+    'cambiosRepuestoSchema rechaza unidad inválida',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { unidad_medida: 'gramo' },
+    }).success
+);
+
 const OTRO: RepuestoInventarioDTO = {
     ...BASE,
     referencia: 'ACE-002',
@@ -347,6 +391,25 @@ check(
             stock: '-2',
         })
     )
+);
+
+const soloUnidad = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    unidad_medida: 'litro',
+});
+check(
+    'construirCambiosRepuesto emite unidad_medida solo si cambia',
+    Object.keys(soloUnidad).length === 1 &&
+        soloUnidad.unidad_medida === 'litro'
+);
+check(
+    'construirCambiosRepuesto no emite unidad_medida sin cambios',
+    Object.keys(
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            unidad_medida: 'unidad',
+        })
+    ).length === 0
 );
 
 const conAlternativas = construirCambiosRepuesto(BASE, {
@@ -593,6 +656,7 @@ async function run() {
         'Referencia',
         'Descripción',
         'Categoría',
+        'Unidad',
         'Fabricante',
         'Stock',
         'Stock mínimo',
@@ -600,9 +664,27 @@ async function run() {
         'Precio',
     ];
     check(
-        'tabla expone exactamente las ocho columnas requeridas',
-        (CLIENT_SOURCE.match(/scope="col"/g) ?? []).length === 8 &&
+        'tabla expone exactamente las nueve columnas requeridas',
+        (CLIENT_SOURCE.match(/scope="col"/g) ?? []).length === 9 &&
             columnas.every((columna) => CLIENT_SOURCE.includes(columna))
+    );
+    check(
+        'cliente edita unidad_medida con dominio unidad|litro',
+        CLIENT_SOURCE.includes('unidad_medida') &&
+            CLIENT_SOURCE.includes('UNIDADES_MEDIDA') &&
+            CLIENT_SOURCE.includes('actualizarUnidadMedida')
+    );
+    check(
+        'acciones persisten unidad_medida y el ledger la incluye',
+        CREAR_SOURCE.includes('unidad_medida') &&
+            EDITAR_SOURCE.includes('unidad_medida') &&
+            LISTAR_SOURCE.includes('unidad_medida')
+    );
+    check(
+        'modal de alta permite elegir unidad de medida',
+        MODAL_SOURCE.includes('unidad_medida') &&
+            MODAL_SOURCE.includes('UNIDADES_MEDIDA') &&
+            MODAL_SOURCE.includes('Unidad de medida')
     );
 
     check(

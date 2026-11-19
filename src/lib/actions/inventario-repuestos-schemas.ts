@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UNIDADES_MEDIDA } from '@/types/inventario';
 import {
     normalizarReferenciasAlternativas,
     referenciaRepuestoEstrictaSchema,
@@ -17,12 +18,15 @@ import {
 const stockSchema = z.number().int().min(0).max(1_000_000);
 const precioSchema = z.number().finite().min(0);
 
+export const unidadMedidaSchema = z.enum(UNIDADES_MEDIDA);
+
 export const cambiosRepuestoSchema = z
     .object({
         descripcion: z.string().trim().min(1).max(500).optional(),
         stock: stockSchema.optional(),
         stock_minimo: stockSchema.optional(),
         precio: precioSchema.optional(),
+        unidad_medida: unidadMedidaSchema.optional(),
         ubicacion: ubicacionSchema.optional(),
         referencias_alternativas: referenciasAlternativasSchema,
     })
@@ -65,6 +69,7 @@ export const crearRepuestoSchema = z
             .max(50)
             .optional(),
         categoria: z.string().trim().max(100).optional(),
+        unidad_medida: unidadMedidaSchema.default('unidad'),
         precio: z.coerce.number().finite().min(0).optional(),
         ubicacion: ubicacionSchema.optional(),
         stock: z.coerce

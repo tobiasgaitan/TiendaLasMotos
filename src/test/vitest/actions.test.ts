@@ -250,6 +250,7 @@ function seedInventario(alternativas: string[] = []) {
         fabricante: 'Bosch',
         categoria: 'FRENOS',
         aplica_a: ['Moto 125'],
+        unidad_medida: 'unidad',
         precio: 1000,
         ubicacion: 'A-01-05',
         stock: 1,
@@ -527,6 +528,31 @@ describe('MT-07 Server Actions contracts', () => {
         expect(creados[0].data.precio).toBe(0);
         expect(creados[0].data.stock).toBe(0);
         expect(creados[0].data.referencias_alternativas).toEqual([]);
+        expect(creados[0].data.unidad_medida).toBe('unidad');
+    });
+
+    it('crearRepuesto persiste unidad_medida litro y la audita', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-032',
+                descripcion: 'Aceite 20W-50',
+                unidad_medida: 'litro',
+            },
+            ACTOR
+        );
+
+        const creados = repuestosPorReferencia('BRK-032');
+        expect(resultado.success).toBe(true);
+        expect(creados[0].data.unidad_medida).toBe('litro');
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(
+            (ledger[0].data.datos_nuevos as Record<string, unknown>)
+                .unidad_medida
+        ).toBe('litro');
+        expect(ledger[0].data.campos_modificados).toContain(
+            'unidad_medida'
+        );
     });
 
     it('crearRepuesto normaliza y deduplica referencias alternativas', async () => {
@@ -564,6 +590,64 @@ describe('MT-07 Server Actions contracts', () => {
         expect(resultado.repuestos[0].referencias_alternativas).toEqual([
             'ALT-1',
         ]);
+        expect(resultado.repuestos[0].unidad_medida).toBe('unidad');
+    });
+
+    it('listarRepuestos lee unidad legacy como unidad sin escribir', async () => {
+        seedInventario();
+        const legacy = mockState.docs.get(
+            'inventario_repuestos/BRK-001'
+        );
+        if (!legacy) throw new Error('seedInventario no creó el repuesto');
+        delete legacy.unidad_medida;
+
+        const resultado = await listarRepuestos({}, ACTOR);
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.repuestos[0].unidad_medida).toBe('unidad');
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('editarRepuesto actualiza unidad_medida y la incluye en el ledger', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { unidad_medida: 'litro' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')
+                ?.unidad_medida
+        ).toBe('litro');
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.campos_modificados).toContain(
+            'unidad_medida'
+        );
+    });
+
+    it('editarRepuesto no escribe si unidad_medida no cambia', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { unidad_medida: 'unidad' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(mockState.writes).toHaveLength(0);
     });
 
     it('listarRepuestos usa fallback para sede vacía o no resuelta', async () => {
