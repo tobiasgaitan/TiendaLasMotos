@@ -1,0 +1,2691 @@
+{
+  "ticket": "WEB-INV-INGESTA-001-F1",
+  "descripcion": "Fixtures 100% sintéticos para el parser de ingesta. No contienen filas reales ni datos del .xlsx canónico.",
+  "fixtures": [
+    {
+      "id": "F01",
+      "kind": "headers",
+      "descripcion": "Los 18 headers exactos en orden pasan SOURCE_SCHEMA.",
+      "input": {
+        "headers": [
+          "GrupoUno",
+          "DescGrupoUno",
+          "GrupoDos",
+          "DescGrupoDos",
+          "Codigo Producto",
+          "Descripción",
+          "Maximo Permitido",
+          "Minimo Permitido",
+          "Punto Reorden",
+          "UnidadDeMedida",
+          "Precio1",
+          "Precio2",
+          "Precio3",
+          "Precio4",
+          "Iva",
+          "Existencias",
+          "txtPersonalizado1",
+          "txtPersonalizado2"
+        ]
+      },
+      "esperado": {
+        "pass": true,
+        "code": "PASS",
+        "missing": [],
+        "extra": [],
+        "firstMismatchIndex": null
+      }
+    },
+    {
+      "id": "F02",
+      "kind": "headers",
+      "descripcion": "Un header distinto detiene el parsing con SOURCE_SCHEMA_MISMATCH.",
+      "input": {
+        "headers": [
+          "GrupoUno",
+          "DescGrupoUno",
+          "GrupoDos",
+          "DescGrupoDos",
+          "Codigo Producto",
+          "Descripción",
+          "Maximo Permitido",
+          "Minimo Permitido",
+          "Punto Reorden",
+          "UnidadDeMedida",
+          "Precio1",
+          "PrecioX",
+          "Precio3",
+          "Precio4",
+          "Iva",
+          "Existencias",
+          "txtPersonalizado1",
+          "txtPersonalizado2"
+        ]
+      },
+      "esperado": {
+        "pass": false,
+        "code": "SOURCE_SCHEMA_MISMATCH",
+        "missing": [
+          "Precio2"
+        ],
+        "extra": [
+          "PrecioX"
+        ],
+        "firstMismatchIndex": 11
+      }
+    },
+    {
+      "id": "F03",
+      "kind": "parse",
+      "descripcion": "Forward-fill jerárquico: un cambio de grupo padre reinicia DescGrupoDos; sin D se usa DescGrupoUno como categoría mapeable.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "GrupoUno": "Grupo Uno",
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "GrupoDos": "Grupo Dos",
+              "DescGrupoDos": "HERRAMIENTAS ESPECIALIZADAS",
+              "Codigo Producto": "SYN-TOOL-1",
+              "Descripción": "HERRAMIENTA SINTETICA",
+              "UnidadDeMedida": "Und.",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "Codigo Producto": "SYN-001",
+              "Descripción": "PRODUCTO SINTETICO UNO",
+              "UnidadDeMedida": "Und.",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 2,
+        "parsedRows": 2,
+        "skippedRows": 0,
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "CENSAR",
+            "motivos": [
+              "CATEGORIA_CENSAR"
+            ],
+            "grupos": {
+              "descGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "descGrupoDos": "HERRAMIENTAS ESPECIALIZADAS"
+            },
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "categoriaFuente": "DescGrupoDos",
+            "referenciaBucket": "CLEAN",
+            "documentoPropuesto": null
+          },
+          {
+            "fila": 4,
+            "resultado": "MAPPABLE",
+            "motivos": [
+              "CATEGORIA_REQUIERE_MAPPING"
+            ],
+            "grupos": {
+              "descGrupoUno": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "descGrupoDos": ""
+            },
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "categoriaFuente": "DescGrupoUno",
+            "referenciaBucket": "CLEAN",
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F04",
+      "kind": "parse",
+      "descripcion": "Sin categoría antes del primer valor de A-D: CUARENTENA con CATEGORIA_AUSENTE, sin rescate ad-hoc.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "Codigo Producto": "SYN-010",
+              "Descripción": "PRODUCTO SIN CATEGORIA",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 1,
+        "parsedRows": 1,
+        "skippedRows": 0,
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "CUARENTENA",
+            "motivos": [
+              "CATEGORIA_AUSENTE"
+            ],
+            "categoria": "",
+            "categoriaFuente": "AUSENTE",
+            "referenciaBucket": "CLEAN",
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F05",
+      "kind": "reference",
+      "descripcion": "Referencia ya limpia y en mayúsculas: bucket CLEAN.",
+      "input": {
+        "raw": "ABC-123"
+      },
+      "esperado": {
+        "bucket": "CLEAN",
+        "normalizada": "ABC-123",
+        "motivo": null,
+        "longitudCruda": 7,
+        "longitudNormalizada": 7
+      }
+    },
+    {
+      "id": "F06",
+      "kind": "parse",
+      "descripcion": "Referencia con espacios externos y minúsculas: NORMALIZABLE, no se ingiere hasta que MT-5 apruebe la regla.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "  abc-123  ",
+              "Descripción": "PRODUCTO SINTETICO",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "MAPPABLE",
+            "motivos": [
+              "REFERENCIA_REQUIERE_REGLA"
+            ],
+            "categoria": "REPUESTOS",
+            "referencia": "ABC-123",
+            "referenciaBucket": "NORMALIZABLE",
+            "referenciaMotivo": "ESPACIOS_Y_MINUSCULAS",
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F07",
+      "kind": "reference",
+      "descripcion": "Espacio interno fuera del charset: QUARANTINE REFERENCIA_CHARSET.",
+      "input": {
+        "raw": "ABC 123"
+      },
+      "esperado": {
+        "bucket": "QUARANTINE",
+        "normalizada": "ABC 123",
+        "motivo": "REFERENCIA_CHARSET"
+      }
+    },
+    {
+      "id": "F08",
+      "kind": "reference",
+      "descripcion": "Referencia de 65 caracteres: QUARANTINE REFERENCIA_LARGA, sin truncamiento silencioso.",
+      "input": {
+        "raw": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "esperado": {
+        "bucket": "QUARANTINE",
+        "motivo": "REFERENCIA_LARGA",
+        "longitudCruda": 65,
+        "longitudNormalizada": 65
+      }
+    },
+    {
+      "id": "F09",
+      "kind": "numeros",
+      "descripcion": "Números colombianos y números nativos de Excel; texto inválido se reporta, no se adivina.",
+      "input": {
+        "valores": [
+          "1.234,56",
+          "$ 2.500",
+          "-1",
+          "0,5",
+          1234.56,
+          "abc"
+        ]
+      },
+      "esperado": [
+        {
+          "ok": true,
+          "value": 1234.56
+        },
+        {
+          "ok": true,
+          "value": 2500
+        },
+        {
+          "ok": true,
+          "value": -1
+        },
+        {
+          "ok": true,
+          "value": 0.5
+        },
+        {
+          "ok": true,
+          "value": 1234.56
+        },
+        {
+          "ok": false,
+          "code": "NUMERO_INVALIDO"
+        }
+      ]
+    },
+    {
+      "id": "F10",
+      "kind": "limpieza",
+      "descripcion": "Limpieza de _x000D_ y normalización de CRLF/CR a LF, sin tocar el contenido.",
+      "input": {
+        "raw": "LINEA UNO_x000D_\r\nLINEA DOS\rLINEA TRES"
+      },
+      "esperado": {
+        "valor": "LINEA UNO\nLINEA DOS\nLINEA TRES"
+      }
+    },
+    {
+      "id": "F11",
+      "kind": "parse",
+      "descripcion": "Fila de ruido sin descripción: OMITIDA con motivo y número de fila, sin descarte silencioso.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "SYN-020",
+              "Descripción": "",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 1,
+        "parsedRows": 0,
+        "skippedRows": 1,
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "OMITIDA",
+            "motivos": [
+              "SIN_DESCRIPCION"
+            ],
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F12",
+      "kind": "parse",
+      "descripcion": "Categoría de vehículo fuera de alcance: OMITIDA, sin rescate ad-hoc (COND-7).",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "MOTOCICLETAS",
+              "Codigo Producto": "SYN-030",
+              "Descripción": "MOTO SINTETICA",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 1,
+        "parsedRows": 0,
+        "skippedRows": 1,
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "OMITIDA",
+            "motivos": [
+              "CATEGORIA_FUERA_DE_ALCANCE"
+            ],
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F13",
+      "kind": "parse",
+      "descripcion": "Herramientas especializadas: CENSAR, nunca ingesta.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "HERRAMIENTAS ESPECIALIZADAS",
+              "Codigo Producto": "SYN-TOOL-2",
+              "Descripción": "HERRAMIENTA SINTETICA",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "CENSAR",
+            "motivos": [
+              "CATEGORIA_CENSAR"
+            ],
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F14",
+      "kind": "parse",
+      "descripcion": "Categorías especiales: LOS ORIGINALES queda MAPPABLE; LINEA DE CUIDADO ingresa solo si la fila es válida.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "SYN-ORIG-1",
+              "Descripción": "PRODUCTO ORIGINAL SINTETICO",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoDos": "LINEA DE CUIDADO",
+              "Codigo Producto": "SYN-CARE-1",
+              "Descripción": "PRODUCTO CUIDADO SINTETICO",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "Codigo Producto": "BAD REF",
+              "Descripción": "PRODUCTO CUIDADO INVALIDO",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 3,
+        "parsedRows": 3,
+        "skippedRows": 0,
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "MAPPABLE",
+            "motivos": [
+              "CATEGORIA_REQUIERE_MAPPING"
+            ],
+            "categoria": "LOS ORIGINALES",
+            "documentoPropuesto": null
+          },
+          {
+            "fila": 4,
+            "resultado": "INGRESA",
+            "categoria": "LINEA DE CUIDADO",
+            "documentoPropuesto": {
+              "referencia": "SYN-CARE-1",
+              "categoria": "LINEA DE CUIDADO",
+              "referencias_alternativas": [],
+              "aplica_a": []
+            }
+          },
+          {
+            "fila": 5,
+            "resultado": "CUARENTENA",
+            "motivos": [
+              "REFERENCIA_CHARSET"
+            ],
+            "categoria": "LINEA DE CUIDADO",
+            "referenciaBucket": "QUARANTINE",
+            "documentoPropuesto": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "F15",
+      "kind": "tokens",
+      "descripcion": "Buckets G3-literal: EAN-13 válido, checksum inválido, blocklist censada, sospecha de modelo, MAPPABLE, NORMALIZABLE y CLEAN.",
+      "input": {
+        "textos": [
+          "9990000000005,ALT-001;MODELO SINTETICO\nREF+EXTRA / alt-002 , NOISE-TOKEN , 9990000000000, 9990000000005"
+        ],
+        "blocklist": [
+          "NOISE-TOKEN"
+        ]
+      },
+      "esperado": {
+        "tokens": [
+          {
+            "crudo": "9990000000005",
+            "normalizado": "9990000000005",
+            "bucket": "EAN13",
+            "motivo": null,
+            "ean13": true
+          },
+          {
+            "crudo": "ALT-001",
+            "normalizado": "ALT-001",
+            "bucket": "CLEAN",
+            "motivo": null,
+            "ean13": false
+          },
+          {
+            "crudo": "MODELO SINTETICO",
+            "normalizado": "MODELO SINTETICO",
+            "bucket": "QUARANTINE",
+            "motivo": "SOSPECHA_MODELO",
+            "ean13": false
+          },
+          {
+            "crudo": "REF+EXTRA",
+            "normalizado": "REF+EXTRA",
+            "bucket": "MAPPABLE",
+            "motivo": "REQUIERE_MAPPING",
+            "ean13": false
+          },
+          {
+            "crudo": "alt-002",
+            "normalizado": "ALT-002",
+            "bucket": "NORMALIZABLE",
+            "motivo": "MINUSCULAS",
+            "ean13": false
+          },
+          {
+            "crudo": "NOISE-TOKEN",
+            "normalizado": "NOISE-TOKEN",
+            "bucket": "QUARANTINE",
+            "motivo": "BLOCKLIST_CENSADA",
+            "ean13": false
+          },
+          {
+            "crudo": "9990000000000",
+            "normalizado": "9990000000000",
+            "bucket": "QUARANTINE",
+            "motivo": "EAN13_CHECKSUM",
+            "ean13": true
+          },
+          {
+            "crudo": "9990000000005",
+            "normalizado": "9990000000005",
+            "bucket": "EAN13",
+            "motivo": null,
+            "ean13": true
+          }
+        ],
+        "alternativas": [
+          "9990000000005"
+        ],
+        "resumen": {
+          "total": 8,
+          "unicos": 7,
+          "porBucket": {
+            "CLEAN": 1,
+            "NORMALIZABLE": 1,
+            "MAPPABLE": 1,
+            "QUARANTINE": 3,
+            "EAN13": 2
+          },
+          "ean13": {
+            "tokens": 3,
+            "unicos": 2,
+            "validosUnicos": 1,
+            "invalidosUnicos": 1,
+            "duplicadosUnicos": 1,
+            "ocurrenciasDuplicadas": 1,
+            "colisionesMaestraUnicas": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "F16",
+      "kind": "tokens",
+      "descripcion": "EAN-13 que ya es referencia maestra: colisión reportada, no se agrega a referencias_alternativas.",
+      "input": {
+        "textos": [
+          "9990000000005"
+        ],
+        "masters": [
+          "9990000000005"
+        ]
+      },
+      "esperado": {
+        "tokens": [
+          {
+            "crudo": "9990000000005",
+            "normalizado": "9990000000005",
+            "bucket": "QUARANTINE",
+            "motivo": "EAN13_COLISION_MAESTRA",
+            "ean13": true
+          }
+        ],
+        "alternativas": [],
+        "resumen": {
+          "ean13": {
+            "tokens": 1,
+            "unicos": 1,
+            "validosUnicos": 1,
+            "invalidosUnicos": 0,
+            "duplicadosUnicos": 0,
+            "ocurrenciasDuplicadas": 0,
+            "colisionesMaestraUnicas": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "F17",
+      "kind": "importKey",
+      "descripcion": "import_key determinista: misma referencia normalizada, mismo SHA-256; referencias distintas, claves distintas.",
+      "input": {
+        "refs": [
+          "ABC-123",
+          " abc-123 ",
+          "ABC-124"
+        ]
+      },
+      "esperado": {
+        "keys": [
+          "72ba871d6a6084155bd840d2c31411a181a46b42459184ddf53df2ecfb75e696",
+          "72ba871d6a6084155bd840d2c31411a181a46b42459184ddf53df2ecfb75e696",
+          "3b347d8d5820fa6c853d5a25f7db2c7c5827740a4ab50f37fdca199ce1573120"
+        ],
+        "iguales": true,
+        "distintos": true,
+        "longitudes": [
+          64,
+          64,
+          64
+        ]
+      }
+    },
+    {
+      "id": "F18",
+      "kind": "parse",
+      "descripcion": "Integración COND-1: precio/stock solo como métricas, documento propuesto sin esas claves, aplica_a vacío y alternativas EAN-13.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "SYN-100",
+              "Descripción": "PRODUCTO _x000D_\nSINTETICO",
+              "UnidadDeMedida": "Und.",
+              "Precio1": "195347",
+              "Precio2": "0",
+              "Precio3": "0",
+              "Precio4": "0",
+              "Iva": "0.19",
+              "Existencias": "-1",
+              "txtPersonalizado1": "ALT-001, 9990000000005",
+              "txtPersonalizado2": "MODELO SINTETICO"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 1,
+        "parsedRows": 1,
+        "skippedRows": 0,
+        "metricasResumen": {
+          "preciosConError": 0,
+          "existenciasConError": 0,
+          "existenciasNegativas": 1
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "INGRESA",
+            "categoria": "REPUESTOS",
+            "referencia": "SYN-100",
+            "referenciaBucket": "CLEAN",
+            "descripcion": "PRODUCTO \nSINTETICO",
+            "descripcionLongitud": 19,
+            "metricas": {
+              "precio1": 195347,
+              "precio2": 0,
+              "precio3": 0,
+              "precio4": 0,
+              "iva": 0.19,
+              "existencias": -1
+            },
+            "referenciasAlternativas": [
+              "9990000000005"
+            ],
+            "documentoPropuesto": {
+              "referencia": "SYN-100",
+              "descripcion": "PRODUCTO \nSINTETICO",
+              "categoria": "REPUESTOS",
+              "referencias_alternativas": [
+                "9990000000005"
+              ],
+              "aplica_a": [],
+              "__sinClaves": [
+                "precio",
+                "stock",
+                "stock_minimo",
+                "precio1",
+                "precio2",
+                "precio3",
+                "precio4",
+                "iva",
+                "existencias",
+                "fabricante"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "F19",
+      "kind": "parse",
+      "descripcion": "EAN-13 que ya es referencia maestra de otra fila de la fuente: colisión cuarentenada, nunca alternativa.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "9990000000005",
+              "Descripción": "MASTER EAN SINTETICO",
+              "Precio1": "0",
+              "Existencias": "0"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "SYN-ALT-9",
+              "Descripción": "PRODUCTO CON EAN COLISION",
+              "Precio1": "0",
+              "Existencias": "0",
+              "txtPersonalizado1": "9990000000005"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "totalFilas": 2,
+        "parsedRows": 2,
+        "skippedRows": 0,
+        "tokens": {
+          "ean13": {
+            "tokens": 1,
+            "unicos": 1,
+            "validosUnicos": 1,
+            "colisionesMaestraUnicas": 1
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "INGRESA",
+            "referencia": "9990000000005",
+            "referenciasAlternativas": [],
+            "documentoPropuesto": {
+              "referencia": "9990000000005",
+              "referencias_alternativas": []
+            }
+          },
+          {
+            "fila": 4,
+            "resultado": "INGRESA",
+            "referencia": "SYN-ALT-9",
+            "referenciasAlternativas": [],
+            "tokens": [
+              {
+                "crudo": "9990000000005",
+                "normalizado": "9990000000005",
+                "bucket": "QUARANTINE",
+                "motivo": "EAN13_COLISION_MAESTRA",
+                "ean13": true
+              }
+            ],
+            "documentoPropuesto": {
+              "referencia": "SYN-ALT-9",
+              "referencias_alternativas": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "F20",
+      "kind": "disposiciones",
+      "descripcion": "Disposiciones MT-5: overrides explícitos, cuarentena de 11034067, CENSAR de PRODUCTOS NO FABRICADOS y reconciliación sin residuo.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "SYN-100",
+              "Descripción": "REPUESTO SINTETICO"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "SYN-ORIG-1",
+              "Descripción": "ORIGINAL PENDIENTE DE MAPPING"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "HERRAMIENTAS ESPECIALIZADAS",
+              "Codigo Producto": "SYN-HERR-1",
+              "Descripción": "HERRAMIENTA SINTETICA"
+            }
+          },
+          {
+            "fila": 6,
+            "valores": {
+              "DescGrupoUno": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "DescGrupoDos": "",
+              "Codigo Producto": "SYN-PNF-1",
+              "Descripción": "PRODUCTO NO FABRICADO SINTETICO"
+            }
+          },
+          {
+            "fila": 7,
+            "valores": {
+              "DescGrupoUno": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "DescGrupoDos": "",
+              "Codigo Producto": "SYN PNF 2",
+              "Descripción": "PRODUCTO NO FABRICADO CON REFERENCIA INVALIDA"
+            }
+          },
+          {
+            "fila": 8,
+            "valores": {
+              "DescGrupoUno": "VEHICULOS",
+              "DescGrupoDos": "MOTOCICLETAS",
+              "Codigo Producto": "SYN-MOTO-1",
+              "Descripción": "MOTO SINTETICA"
+            }
+          },
+          {
+            "fila": 9,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "11034067",
+              "Descripción": "BATERIA SINTETICA A"
+            }
+          },
+          {
+            "fila": 10,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "11034067",
+              "Descripción": "BATERIA SINTETICA B"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 8,
+        "parsed": 7,
+        "CREATE": 2,
+        "CENSAR": 2,
+        "EXCLUIR": 0,
+        "CUARENTENA": 3,
+        "OMITIDA": 1,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 4,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 3,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 2,
+            "OMITIDA": 0,
+            "SKIP_CONFLICTO": 0
+          },
+          "LOS ORIGINALES": {
+            "categoria": "LOS ORIGINALES",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "OMITIDA": 0,
+            "SKIP_CONFLICTO": 0
+          },
+          "HERRAMIENTAS ESPECIALIZADAS": {
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 1,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "OMITIDA": 0,
+            "SKIP_CONFLICTO": 0
+          },
+          "PRODUCTOS NO FABRICADOS POR LA EMPRESA": {
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "total": 2,
+            "CREATE": 0,
+            "CENSAR": 1,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "OMITIDA": 0,
+            "SKIP_CONFLICTO": 0
+          },
+          "MOTOCICLETAS": {
+            "categoria": "MOTOCICLETAS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "OMITIDA": 1,
+            "SKIP_CONFLICTO": 0
+          }
+        },
+        "SKIP_CONFLICTO": 0,
+        "mapeo": {
+          "filas": 2,
+          "conCambios": 0,
+          "sinCambios": 2,
+          "colisiones": 0
+        }
+      }
+    },
+    {
+      "id": "F21",
+      "kind": "disposiciones",
+      "descripcion": "D-1: colisión post-mapeo entre una referencia MAPPABLE y una referencia ya existente; la fila mapeada queda SKIP_CONFLICTO y se reporta la fila en conflicto.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "ABC-1",
+              "Descripción": "REPUESTO BASE"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "ABC-1",
+              "Descripción": "ORIGINAL QUE COLISIONA"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "XYZ-2",
+              "Descripción": "ORIGINAL SIN COLISION"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 3,
+        "parsed": 3,
+        "CREATE": 2,
+        "CENSAR": 0,
+        "EXCLUIR": 0,
+        "CUARENTENA": 0,
+        "SKIP_CONFLICTO": 1,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 2,
+        "mapeo": {
+          "filas": 2,
+          "conCambios": 0,
+          "sinCambios": 2,
+          "colisiones": 1
+        },
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "LOS ORIGINALES": {
+            "categoria": "LOS ORIGINALES",
+            "total": 2,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 1,
+            "OMITIDA": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "F22",
+      "kind": "mapeoReferencia",
+      "descripcion": "D-1: sustituciones /→- y espacio→-, conserva el valor original en la evidencia y marca inválida cuando el resultado no cumple el regex.",
+      "input": {
+        "valores": [
+          "A/B C",
+          "-A/B",
+          "SIN-CAMBIOS"
+        ]
+      },
+      "esperado": [
+        {
+          "referencia": "A-B-C",
+          "reglas": [
+            "/->-",
+            " ->-"
+          ],
+          "cambios": true,
+          "invalida": false
+        },
+        {
+          "referencia": "-A-B",
+          "reglas": [
+            "/->-"
+          ],
+          "cambios": true,
+          "invalida": true
+        },
+        {
+          "referencia": "SIN-CAMBIOS",
+          "reglas": [],
+          "cambios": false,
+          "invalida": false
+        }
+      ]
+    },
+    {
+      "id": "F23",
+      "kind": "disposiciones",
+      "descripcion": "D-5: las seis categorías INGESTA sanean /→- y espacio→- en CUARENTENA por charset y pasan a CREATE con el crudo preservado.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB/100",
+              "Descripción": "D5 REPUESTO"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "CD 200",
+              "Descripción": "D5 ORIGINAL"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "ACCESORIOS",
+              "Codigo Producto": "EF/300",
+              "Descripción": "D5 ACCESORIO"
+            }
+          },
+          {
+            "fila": 6,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LUBRICANTES",
+              "Codigo Producto": "GH 400",
+              "Descripción": "D5 LUBRICANTE"
+            }
+          },
+          {
+            "fila": 7,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "GENERICOS",
+              "Codigo Producto": "IJ/500",
+              "Descripción": "D5 GENERICO"
+            }
+          },
+          {
+            "fila": 8,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LINEA DE CUIDADO",
+              "Codigo Producto": "KL 600",
+              "Descripción": "D5 CUIDADO"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 6,
+        "parsed": 6,
+        "CREATE": 6,
+        "CENSAR": 0,
+        "EXCLUIR": 0,
+        "CUARENTENA": 0,
+        "SKIP_CONFLICTO": 0,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 6,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "LOS ORIGINALES": {
+            "categoria": "LOS ORIGINALES",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "ACCESORIOS": {
+            "categoria": "ACCESORIOS",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "LUBRICANTES": {
+            "categoria": "LUBRICANTES",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "GENERICOS": {
+            "categoria": "GENERICOS",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "LINEA DE CUIDADO": {
+            "categoria": "LINEA DE CUIDADO",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          }
+        },
+        "mapeo": {
+          "filas": 6,
+          "conCambios": 6,
+          "sinCambios": 0,
+          "colisiones": 0,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 6,
+            "candidatas": 6,
+            "elegibles": 6,
+            "creadas": 6,
+            "skipConflicto": 0,
+            "textoLibre": 0,
+            "simboloInvalido": 0,
+            "otroDefecto": 0,
+            "fueraDeAlcance": 0,
+            "colisiones": 0
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB/100",
+            "referenciaCruda": "AB/100",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 4,
+            "referencia": "CD-200",
+            "referenciaOriginal": "CD 200",
+            "referenciaCruda": "CD 200",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                " ->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 5,
+            "referencia": "EF-300",
+            "referenciaOriginal": "EF/300",
+            "referenciaCruda": "EF/300",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 6,
+            "referencia": "GH-400",
+            "referenciaOriginal": "GH 400",
+            "referenciaCruda": "GH 400",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                " ->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 7,
+            "referencia": "IJ-500",
+            "referenciaOriginal": "IJ/500",
+            "referenciaCruda": "IJ/500",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 8,
+            "referencia": "KL-600",
+            "referenciaOriginal": "KL 600",
+            "referenciaCruda": "KL 600",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                " ->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          }
+        ],
+        "filasMapeadas": [
+          {
+            "fila": 3,
+            "origen": "D5",
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          },
+          {
+            "fila": 4,
+            "origen": "D5",
+            "categoria": "LOS ORIGINALES",
+            "referenciaCruda": "CD 200",
+            "referenciaOriginal": "CD 200",
+            "referenciaMapeada": "CD-200",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          },
+          {
+            "fila": 5,
+            "origen": "D5",
+            "categoria": "ACCESORIOS",
+            "referenciaCruda": "EF/300",
+            "referenciaOriginal": "EF/300",
+            "referenciaMapeada": "EF-300",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          },
+          {
+            "fila": 6,
+            "origen": "D5",
+            "categoria": "LUBRICANTES",
+            "referenciaCruda": "GH 400",
+            "referenciaOriginal": "GH 400",
+            "referenciaMapeada": "GH-400",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          },
+          {
+            "fila": 7,
+            "origen": "D5",
+            "categoria": "GENERICOS",
+            "referenciaCruda": "IJ/500",
+            "referenciaOriginal": "IJ/500",
+            "referenciaMapeada": "IJ-500",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          },
+          {
+            "fila": 8,
+            "origen": "D5",
+            "categoria": "LINEA DE CUIDADO",
+            "referenciaCruda": "KL 600",
+            "referenciaOriginal": "KL 600",
+            "referenciaMapeada": "KL-600",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          }
+        ],
+        "mapeoCuarentena": [
+          {
+            "fila": 3,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 4,
+            "categoria": "LOS ORIGINALES",
+            "referenciaCruda": "CD 200",
+            "referenciaOriginal": "CD 200",
+            "referenciaSanitizada": "CD-200",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 5,
+            "categoria": "ACCESORIOS",
+            "referenciaCruda": "EF/300",
+            "referenciaOriginal": "EF/300",
+            "referenciaSanitizada": "EF-300",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 6,
+            "categoria": "LUBRICANTES",
+            "referenciaCruda": "GH 400",
+            "referenciaOriginal": "GH 400",
+            "referenciaSanitizada": "GH-400",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 7,
+            "categoria": "GENERICOS",
+            "referenciaCruda": "IJ/500",
+            "referenciaOriginal": "IJ/500",
+            "referenciaSanitizada": "IJ-500",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 8,
+            "categoria": "LINEA DE CUIDADO",
+            "referenciaCruda": "KL 600",
+            "referenciaOriginal": "KL 600",
+            "referenciaSanitizada": "KL-600",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F24",
+      "kind": "disposiciones",
+      "descripcion": "D-5: texto libre, +, =, coma, ?, descripción larga (>64) y categorías CENSAR/PNF/vehículo quedan fuera del saneamiento y conservan su disposición.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "KIT ARRASTRE",
+              "Descripción": "D5 TEXTO LIBRE"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB+120",
+              "Descripción": "D5 SIMBOLO MAS"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LUBRICANTES",
+              "Codigo Producto": "AB=120",
+              "Descripción": "D5 SIMBOLO IGUAL"
+            }
+          },
+          {
+            "fila": 6,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "ACCESORIOS",
+              "Codigo Producto": "AB,120",
+              "Descripción": "D5 SIMBOLO COMA"
+            }
+          },
+          {
+            "fila": 7,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "GENERICOS",
+              "Codigo Producto": "AB?120",
+              "Descripción": "D5 SIMBOLO INTERROGACION"
+            }
+          },
+          {
+            "fila": 8,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB/120",
+              "Descripción": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            }
+          },
+          {
+            "fila": 9,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "Codigo Producto": "CD/120",
+              "Descripción": "D5 PNF FUERA DE ALCANCE"
+            }
+          },
+          {
+            "fila": 10,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "HERRAMIENTAS ESPECIALIZADAS",
+              "Codigo Producto": "EF/120",
+              "Descripción": "D5 HERRAMIENTA FUERA DE ALCANCE"
+            }
+          },
+          {
+            "fila": 11,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "MOTOCICLETAS",
+              "Codigo Producto": "GH/120",
+              "Descripción": "D5 VEHICULO FUERA DE ALCANCE"
+            }
+          },
+          {
+            "fila": 12,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "A1111111111111111111111111111111111111111111111111111111111111111",
+              "Descripción": "D5 REFERENCIA LARGA"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 10,
+        "parsed": 9,
+        "CREATE": 0,
+        "CENSAR": 1,
+        "EXCLUIR": 0,
+        "CUARENTENA": 8,
+        "SKIP_CONFLICTO": 0,
+        "OMITIDA": 1,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 0,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 4,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 4,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "LUBRICANTES": {
+            "categoria": "LUBRICANTES",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "ACCESORIOS": {
+            "categoria": "ACCESORIOS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "GENERICOS": {
+            "categoria": "GENERICOS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "PRODUCTOS NO FABRICADOS POR LA EMPRESA": {
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "HERRAMIENTAS ESPECIALIZADAS": {
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 1,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "MOTOCICLETAS": {
+            "categoria": "MOTOCICLETAS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 1
+          }
+        },
+        "mapeo": {
+          "filas": 0,
+          "conCambios": 0,
+          "sinCambios": 0,
+          "colisiones": 0,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 9,
+            "candidatas": 6,
+            "elegibles": 0,
+            "creadas": 0,
+            "skipConflicto": 0,
+            "textoLibre": 1,
+            "simboloInvalido": 4,
+            "otroDefecto": 1,
+            "fueraDeAlcance": 3,
+            "colisiones": 0
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "KIT ARRASTRE",
+            "referenciaOriginal": "KIT ARRASTRE",
+            "referenciaCruda": "KIT ARRASTRE",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_TEXTO_LIBRE",
+            "mapeo": null
+          },
+          {
+            "fila": 4,
+            "referencia": "AB+120",
+            "referenciaOriginal": "AB+120",
+            "referenciaCruda": "AB+120",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "mapeo": null
+          },
+          {
+            "fila": 5,
+            "referencia": "AB=120",
+            "referenciaOriginal": "AB=120",
+            "referenciaCruda": "AB=120",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "mapeo": null
+          },
+          {
+            "fila": 6,
+            "referencia": "AB,120",
+            "referenciaOriginal": "AB,120",
+            "referenciaCruda": "AB,120",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "mapeo": null
+          },
+          {
+            "fila": 7,
+            "referencia": "AB?120",
+            "referenciaOriginal": "AB?120",
+            "referenciaCruda": "AB?120",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "mapeo": null
+          },
+          {
+            "fila": 8,
+            "referencia": "AB/120",
+            "referenciaOriginal": "AB/120",
+            "referenciaCruda": "AB/120",
+            "disposicion": "CUARENTENA",
+            "motivo": "D5_OTRO_DEFECTO",
+            "mapeo": null
+          },
+          {
+            "fila": 9,
+            "referencia": "CD/120",
+            "referenciaOriginal": "CD/120",
+            "referenciaCruda": "CD/120",
+            "disposicion": "CUARENTENA",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 10,
+            "referencia": "EF/120",
+            "referenciaOriginal": "EF/120",
+            "referenciaCruda": "EF/120",
+            "disposicion": "CENSAR",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 11,
+            "referencia": "GH/120",
+            "referenciaOriginal": "GH/120",
+            "referenciaCruda": "GH/120",
+            "disposicion": "OMITIDA",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 12,
+            "referencia": "A1111111111111111111111111111111111111111111111111111111111111111",
+            "referenciaOriginal": "A1111111111111111111111111111111111111111111111111111111111111111",
+            "referenciaCruda": "A1111111111111111111111111111111111111111111111111111111111111111",
+            "disposicion": "CUARENTENA",
+            "motivo": null,
+            "mapeo": null
+          }
+        ],
+        "filasMapeadas": [],
+        "mapeoCuarentena": [
+          {
+            "fila": 3,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "KIT ARRASTRE",
+            "referenciaOriginal": "KIT ARRASTRE",
+            "referenciaSanitizada": "KIT-ARRASTRE",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_TEXTO_LIBRE",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 4,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB+120",
+            "referenciaOriginal": "AB+120",
+            "referenciaSanitizada": "AB+120",
+            "reglas": [],
+            "cambios": false,
+            "invalida": true,
+            "elegible": false,
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 5,
+            "categoria": "LUBRICANTES",
+            "referenciaCruda": "AB=120",
+            "referenciaOriginal": "AB=120",
+            "referenciaSanitizada": "AB=120",
+            "reglas": [],
+            "cambios": false,
+            "invalida": true,
+            "elegible": false,
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 6,
+            "categoria": "ACCESORIOS",
+            "referenciaCruda": "AB,120",
+            "referenciaOriginal": "AB,120",
+            "referenciaSanitizada": "AB,120",
+            "reglas": [],
+            "cambios": false,
+            "invalida": true,
+            "elegible": false,
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 7,
+            "categoria": "GENERICOS",
+            "referenciaCruda": "AB?120",
+            "referenciaOriginal": "AB?120",
+            "referenciaSanitizada": "AB?120",
+            "reglas": [],
+            "cambios": false,
+            "invalida": true,
+            "elegible": false,
+            "motivo": "D5_SIMBOLO_INVALIDO",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 8,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/120",
+            "referenciaOriginal": "AB/120",
+            "referenciaSanitizada": "AB-120",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_OTRO_DEFECTO",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 9,
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "referenciaCruda": "CD/120",
+            "referenciaOriginal": "CD/120",
+            "referenciaSanitizada": "CD-120",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_CATEGORIA_NO_INGESTA",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          },
+          {
+            "fila": 10,
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "referenciaCruda": "EF/120",
+            "referenciaOriginal": "EF/120",
+            "referenciaSanitizada": "EF-120",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_CATEGORIA_NO_INGESTA",
+            "colisiones": [],
+            "disposicion": "CENSAR"
+          },
+          {
+            "fila": 11,
+            "categoria": "MOTOCICLETAS",
+            "referenciaCruda": "GH/120",
+            "referenciaOriginal": "GH/120",
+            "referenciaSanitizada": "GH-120",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_CATEGORIA_NO_INGESTA",
+            "colisiones": [],
+            "disposicion": "OMITIDA"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F25",
+      "kind": "disposiciones",
+      "descripcion": "D-5: si la referencia saneada colisiona con una referencia de la fuente, la fila queda SKIP_CONFLICTO y se identifica la fila en conflicto; nunca se sobrescribe.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB-100",
+              "Descripción": "D5 BASE"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB/100",
+              "Descripción": "D5 COLISION FUENTE"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 2,
+        "parsed": 2,
+        "CREATE": 1,
+        "CENSAR": 0,
+        "EXCLUIR": 0,
+        "CUARENTENA": 0,
+        "SKIP_CONFLICTO": 1,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 1,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 2,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 1,
+            "OMITIDA": 0
+          }
+        },
+        "mapeo": {
+          "filas": 1,
+          "conCambios": 1,
+          "sinCambios": 0,
+          "colisiones": 1,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 1,
+            "candidatas": 1,
+            "elegibles": 1,
+            "creadas": 0,
+            "skipConflicto": 1,
+            "textoLibre": 0,
+            "simboloInvalido": 0,
+            "otroDefecto": 0,
+            "fueraDeAlcance": 0,
+            "colisiones": 1
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB-100",
+            "referenciaCruda": "AB-100",
+            "disposicion": "CREATE",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 4,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB/100",
+            "referenciaCruda": "AB/100",
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": [
+                {
+                  "fila": 3,
+                  "tipo": "REFERENCIA_FUENTE"
+                }
+              ]
+            }
+          }
+        ],
+        "filasMapeadas": [
+          {
+            "fila": 4,
+            "origen": "D5",
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_FUENTE"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION"
+          }
+        ],
+        "mapeoCuarentena": [
+          {
+            "fila": 4,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_SKIP_CONFLICTO",
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_FUENTE"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F26",
+      "kind": "disposicionesClasificadas",
+      "descripcion": "D-5: guardia post-mapeo REFERENCIA_ALTERNATIVA. La alternativa se inyecta sintéticamente porque en producción solo existen EAN-13 y el saneamiento no puede igualarlos; la colisión se reporta y la fila queda SKIP_CONFLICTO.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "resultado": "INGRESA",
+            "categoria": "REPUESTOS",
+            "referencia": "ZZ-300",
+            "descripcion": "D5 BASE CON ALTERNATIVA SINTETICA",
+            "referenciaBucket": "CLEAN",
+            "referenciasAlternativas": [
+              "AB-100"
+            ]
+          },
+          {
+            "fila": 4,
+            "resultado": "CUARENTENA",
+            "categoria": "REPUESTOS",
+            "referencia": "AB/100",
+            "referenciaCruda": "AB/100",
+            "referenciaBucket": "QUARANTINE",
+            "referenciaMotivo": "REFERENCIA_CHARSET",
+            "motivos": [
+              "REFERENCIA_CHARSET"
+            ],
+            "descripcion": "D5 COLISION ALTERNATIVA"
+          }
+        ]
+      },
+      "esperado": {
+        "total": 2,
+        "parsed": 2,
+        "CREATE": 1,
+        "CENSAR": 0,
+        "EXCLUIR": 0,
+        "CUARENTENA": 0,
+        "SKIP_CONFLICTO": 1,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 1,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 2,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 1,
+            "OMITIDA": 0
+          }
+        },
+        "mapeo": {
+          "filas": 1,
+          "conCambios": 1,
+          "sinCambios": 0,
+          "colisiones": 1,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 1,
+            "candidatas": 1,
+            "elegibles": 1,
+            "creadas": 0,
+            "skipConflicto": 1,
+            "textoLibre": 0,
+            "simboloInvalido": 0,
+            "otroDefecto": 0,
+            "fueraDeAlcance": 0,
+            "colisiones": 1
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "ZZ-300",
+            "referenciaOriginal": "ZZ-300",
+            "referenciaCruda": "ZZ-300",
+            "disposicion": "CREATE",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 4,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB/100",
+            "referenciaCruda": "AB/100",
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": [
+                {
+                  "fila": 3,
+                  "tipo": "REFERENCIA_ALTERNATIVA"
+                }
+              ]
+            }
+          }
+        ],
+        "filasMapeadas": [
+          {
+            "fila": 4,
+            "origen": "D5",
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_ALTERNATIVA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION"
+          }
+        ],
+        "mapeoCuarentena": [
+          {
+            "fila": 4,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_SKIP_CONFLICTO",
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_ALTERNATIVA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F27",
+      "kind": "disposiciones",
+      "descripcion": "D-5: dos filas CUARENTENA sanean a la misma import_key; ambas quedan SKIP_CONFLICTO con la fila opuesta reportada y ninguna sobrescribe a la otra.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB/100",
+              "Descripción": "D5 COLISION MAPEADA A"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "REPUESTOS",
+              "Codigo Producto": "AB 100",
+              "Descripción": "D5 COLISION MAPEADA B"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 2,
+        "parsed": 2,
+        "CREATE": 0,
+        "CENSAR": 0,
+        "EXCLUIR": 0,
+        "CUARENTENA": 0,
+        "SKIP_CONFLICTO": 2,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 2,
+        "porCategoria": {
+          "REPUESTOS": {
+            "categoria": "REPUESTOS",
+            "total": 2,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 2,
+            "OMITIDA": 0
+          }
+        },
+        "mapeo": {
+          "filas": 2,
+          "conCambios": 2,
+          "sinCambios": 0,
+          "colisiones": 2,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 2,
+            "candidatas": 2,
+            "elegibles": 2,
+            "creadas": 0,
+            "skipConflicto": 2,
+            "textoLibre": 0,
+            "simboloInvalido": 0,
+            "otroDefecto": 0,
+            "fueraDeAlcance": 0,
+            "colisiones": 2
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB/100",
+            "referenciaCruda": "AB/100",
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": [
+                {
+                  "fila": 4,
+                  "tipo": "REFERENCIA_MAPEADA"
+                }
+              ]
+            }
+          },
+          {
+            "fila": 4,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB 100",
+            "referenciaCruda": "AB 100",
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                " ->-"
+              ],
+              "cambios": true,
+              "colisiones": [
+                {
+                  "fila": 3,
+                  "tipo": "REFERENCIA_MAPEADA"
+                }
+              ]
+            }
+          }
+        ],
+        "filasMapeadas": [
+          {
+            "fila": 3,
+            "origen": "D5",
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [
+              {
+                "fila": 4,
+                "tipo": "REFERENCIA_MAPEADA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION"
+          },
+          {
+            "fila": 4,
+            "origen": "D5",
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB 100",
+            "referenciaOriginal": "AB 100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_MAPEADA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO",
+            "motivo": "D5_MAPEO_COLISION"
+          }
+        ],
+        "mapeoCuarentena": [
+          {
+            "fila": 3,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_SKIP_CONFLICTO",
+            "colisiones": [
+              {
+                "fila": 4,
+                "tipo": "REFERENCIA_MAPEADA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO"
+          },
+          {
+            "fila": 4,
+            "categoria": "REPUESTOS",
+            "referenciaCruda": "AB 100",
+            "referenciaOriginal": "AB 100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              " ->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_SKIP_CONFLICTO",
+            "colisiones": [
+              {
+                "fila": 3,
+                "tipo": "REFERENCIA_MAPEADA"
+              }
+            ],
+            "disposicion": "SKIP_CONFLICTO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F28",
+      "kind": "disposiciones",
+      "descripcion": "D-5: LOS ORIGINALES saneado pasa a CREATE; HERRAMIENTAS ESPECIALIZADAS sigue CENSAR y PRODUCTOS NO FABRICADOS POR LA EMPRESA sigue CUARENTENA sin rescate.",
+      "input": {
+        "filas": [
+          {
+            "fila": 3,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "LOS ORIGINALES",
+              "Codigo Producto": "AB/100",
+              "Descripción": "D5 ORIGINAL SANEADO"
+            }
+          },
+          {
+            "fila": 4,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "HERRAMIENTAS ESPECIALIZADAS",
+              "Codigo Producto": "CD/100",
+              "Descripción": "D5 HERRAMIENTA INTACTA"
+            }
+          },
+          {
+            "fila": 5,
+            "valores": {
+              "DescGrupoUno": "INVENTARIOS DE PRODUCTOS TERMINADOS",
+              "DescGrupoDos": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+              "Codigo Producto": "EF/100",
+              "Descripción": "D5 PNF INTACTO"
+            }
+          }
+        ]
+      },
+      "esperado": {
+        "total": 3,
+        "parsed": 3,
+        "CREATE": 1,
+        "CENSAR": 1,
+        "EXCLUIR": 0,
+        "CUARENTENA": 1,
+        "SKIP_CONFLICTO": 0,
+        "OMITIDA": 0,
+        "residuo": 0,
+        "reconciliacion": "PASS",
+        "overridesAplicados": 1,
+        "porCategoria": {
+          "LOS ORIGINALES": {
+            "categoria": "LOS ORIGINALES",
+            "total": 1,
+            "CREATE": 1,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "HERRAMIENTAS ESPECIALIZADAS": {
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 1,
+            "EXCLUIR": 0,
+            "CUARENTENA": 0,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          },
+          "PRODUCTOS NO FABRICADOS POR LA EMPRESA": {
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "total": 1,
+            "CREATE": 0,
+            "CENSAR": 0,
+            "EXCLUIR": 0,
+            "CUARENTENA": 1,
+            "SKIP_CONFLICTO": 0,
+            "OMITIDA": 0
+          }
+        },
+        "mapeo": {
+          "filas": 1,
+          "conCambios": 1,
+          "sinCambios": 0,
+          "colisiones": 0,
+          "d1": {
+            "filas": 0,
+            "conCambios": 0,
+            "sinCambios": 0,
+            "colisiones": 0
+          },
+          "d5": {
+            "charsetTotal": 3,
+            "candidatas": 1,
+            "elegibles": 1,
+            "creadas": 1,
+            "skipConflicto": 0,
+            "textoLibre": 0,
+            "simboloInvalido": 0,
+            "otroDefecto": 0,
+            "fueraDeAlcance": 2,
+            "colisiones": 0
+          }
+        },
+        "filas": [
+          {
+            "fila": 3,
+            "referencia": "AB-100",
+            "referenciaOriginal": "AB/100",
+            "referenciaCruda": "AB/100",
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA",
+            "mapeo": {
+              "origen": "D5",
+              "aplicado": true,
+              "reglas": [
+                "/->-"
+              ],
+              "cambios": true,
+              "colisiones": []
+            }
+          },
+          {
+            "fila": 4,
+            "referencia": "CD/100",
+            "referenciaOriginal": "CD/100",
+            "referenciaCruda": "CD/100",
+            "disposicion": "CENSAR",
+            "motivo": null,
+            "mapeo": null
+          },
+          {
+            "fila": 5,
+            "referencia": "EF/100",
+            "referenciaOriginal": "EF/100",
+            "referenciaCruda": "EF/100",
+            "disposicion": "CUARENTENA",
+            "motivo": null,
+            "mapeo": null
+          }
+        ],
+        "filasMapeadas": [
+          {
+            "fila": 3,
+            "origen": "D5",
+            "categoria": "LOS ORIGINALES",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaMapeada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "colisiones": [],
+            "disposicion": "CREATE",
+            "motivo": "D5_CUARENTENA_SANEADA"
+          }
+        ],
+        "mapeoCuarentena": [
+          {
+            "fila": 3,
+            "categoria": "LOS ORIGINALES",
+            "referenciaCruda": "AB/100",
+            "referenciaOriginal": "AB/100",
+            "referenciaSanitizada": "AB-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": true,
+            "motivo": "D5_CREADA",
+            "colisiones": [],
+            "disposicion": "CREATE"
+          },
+          {
+            "fila": 4,
+            "categoria": "HERRAMIENTAS ESPECIALIZADAS",
+            "referenciaCruda": "CD/100",
+            "referenciaOriginal": "CD/100",
+            "referenciaSanitizada": "CD-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_CATEGORIA_NO_INGESTA",
+            "colisiones": [],
+            "disposicion": "CENSAR"
+          },
+          {
+            "fila": 5,
+            "categoria": "PRODUCTOS NO FABRICADOS POR LA EMPRESA",
+            "referenciaCruda": "EF/100",
+            "referenciaOriginal": "EF/100",
+            "referenciaSanitizada": "EF-100",
+            "reglas": [
+              "/->-"
+            ],
+            "cambios": true,
+            "invalida": false,
+            "elegible": false,
+            "motivo": "D5_CATEGORIA_NO_INGESTA",
+            "colisiones": [],
+            "disposicion": "CUARENTENA"
+          }
+        ]
+      }
+    }
+  ]
+}
