@@ -15,10 +15,12 @@ import {
     RefreshCw,
     Save,
     Search,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
+import EliminarRepuestoModal from '@/components/inventario/EliminarRepuestoModal';
 import { listarRepuestos } from './actions/listarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
 import {
@@ -91,10 +93,13 @@ export default function InventarioRepuestosClient() {
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mostrarCrear, setMostrarCrear] = useState(false);
+    const [repuestoAEliminar, setRepuestoAEliminar] =
+        useState<RepuestoInventarioDTO | null>(null);
     const cargaRef = useRef(0);
 
     const puedeCrear = puedeAccion('inventario_repuestos', 'create');
     const puedeEditar = puedeAccion('inventario_repuestos', 'update');
+    const puedeEliminar = puedeAccion('inventario_repuestos', 'delete');
 
     const cargarRepuestos = useCallback(async () => {
         if (!user) {
@@ -323,11 +328,11 @@ export default function InventarioRepuestosClient() {
     }
 
     function renderAcciones(repuesto: RepuestoInventarioDTO) {
-        if (!puedeEditar) return null;
-
         const enEdicion =
             edicion !== null &&
             edicion.documento_id === repuesto.documento_id;
+
+        if (!puedeEditar && !puedeEliminar) return null;
 
         if (enEdicion) {
             return (
@@ -359,16 +364,33 @@ export default function InventarioRepuestosClient() {
         }
 
         return (
-            <button
-                type="button"
-                onClick={() => iniciarEdicion(repuesto)}
-                disabled={guardando}
-                aria-label={`Editar ${repuesto.referencia}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                <Pencil aria-hidden="true" className="h-4 w-4" />
-                Editar
-            </button>
+            <div className="flex flex-wrap gap-2">
+                {puedeEditar ? (
+                    <button
+                        type="button"
+                        onClick={() => iniciarEdicion(repuesto)}
+                        disabled={guardando}
+                        aria-label={`Editar ${repuesto.referencia}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                        Editar
+                    </button>
+                ) : null}
+
+                {puedeEliminar ? (
+                    <button
+                        type="button"
+                        onClick={() => setRepuestoAEliminar(repuesto)}
+                        disabled={guardando || edicion !== null}
+                        aria-label={`Eliminar ${repuesto.referencia}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-900/70 bg-red-950/30 px-3 py-2 text-xs font-semibold text-red-100 transition-colors hover:bg-red-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Trash2 aria-hidden="true" className="h-4 w-4" />
+                        Eliminar
+                    </button>
+                ) : null}
+            </div>
         );
     }
 
@@ -915,6 +937,15 @@ export default function InventarioRepuestosClient() {
                     isOpen={mostrarCrear}
                     onClose={() => setMostrarCrear(false)}
                     onCreado={cargarRepuestos}
+                />
+            ) : null}
+
+            {puedeEliminar ? (
+                <EliminarRepuestoModal
+                    isOpen={repuestoAEliminar !== null}
+                    repuesto={repuestoAEliminar}
+                    onClose={() => setRepuestoAEliminar(null)}
+                    onEliminado={cargarRepuestos}
                 />
             ) : null}
         </div>

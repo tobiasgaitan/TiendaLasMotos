@@ -51,6 +51,22 @@ const SIDEBAR_SOURCE = readFileSync(
     'src/components/AdminSidebar.tsx',
     'utf8'
 );
+const ELIMINAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/eliminarRepuesto.ts',
+    'utf8'
+);
+const ELIMINAR_MODAL_SOURCE = readFileSync(
+    'src/components/inventario/EliminarRepuestoModal.tsx',
+    'utf8'
+);
+const INVENTARIO_TYPES_SOURCE = readFileSync(
+    'src/types/inventario.ts',
+    'utf8'
+);
+const PERMISOS_MERGE_SOURCE = readFileSync(
+    'scripts/merge-permissions-delete-inventario.ts',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -629,10 +645,81 @@ async function run() {
     );
 
     check(
-        'página permite create o update',
+        'página permite create, update o delete',
         PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'create')") &&
             PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'update')") &&
-            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar')
+            PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'delete')") &&
+            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar && !puedeEliminar')
+    );
+
+    check(
+        'eliminarRepuesto usa Faraday Cage y permiso delete',
+        ELIMINAR_SOURCE.startsWith("'use server';") &&
+            ELIMINAR_SOURCE.includes('validarActor(actor)') &&
+            ELIMINAR_SOURCE.includes('requireActorInventario(a.idToken)') &&
+            ELIMINAR_SOURCE.includes('requirePermiso(') &&
+            ELIMINAR_SOURCE.includes("'inventario_repuestos'") &&
+            ELIMINAR_SOURCE.includes("'delete'") &&
+            ELIMINAR_SOURCE.includes("permiso.rol !== 'admin'") &&
+            ELIMINAR_SOURCE.includes("permiso.rol !== 'superadmin'")
+    );
+
+    check(
+        'eliminarRepuesto aplica guardia FK por inventario_documento_id',
+        ELIMINAR_SOURCE.includes('conteos_pendientes_repuestos') &&
+            ELIMINAR_SOURCE.includes("where('inventario_documento_id'") &&
+            ELIMINAR_SOURCE.includes('.limit(1)') &&
+            ELIMINAR_SOURCE.includes('RepuestoConConteosError') &&
+            ELIMINAR_SOURCE.includes('codigo: \'FK_CONTEOS\'')
+    );
+
+    check(
+        'eliminarRepuesto es atómico y escribe ledger DELETE append-only',
+        ELIMINAR_SOURCE.includes('runTransaction') &&
+            ELIMINAR_SOURCE.includes('tx.create(ledgerRef') &&
+            ELIMINAR_SOURCE.includes('tx.delete(repuestoRef)') &&
+            ELIMINAR_SOURCE.includes("operacion: 'DELETE'") &&
+            ELIMINAR_SOURCE.includes('datos_nuevos: null') &&
+            ELIMINAR_SOURCE.includes('campos_modificados: []') &&
+            !ELIMINAR_SOURCE.includes('tx.set(') &&
+            !ELIMINAR_SOURCE.includes('.add(')
+    );
+
+    check(
+        'eliminarRepuesto es idempotente si el documento no existe',
+        ELIMINAR_SOURCE.includes('if (!snap.exists)') &&
+            ELIMINAR_SOURCE.includes('idempotente: true')
+    );
+
+    check(
+        'UI de borrado tiene gating, confirmación y mensaje FK',
+        CLIENT_SOURCE.includes(
+            "puedeAccion('inventario_repuestos', 'delete')"
+        ) &&
+            CLIENT_SOURCE.includes('EliminarRepuestoModal') &&
+            CLIENT_SOURCE.includes('setRepuestoAEliminar') &&
+            ELIMINAR_MODAL_SOURCE.includes('eliminarRepuesto') &&
+            ELIMINAR_MODAL_SOURCE.includes('conteos pendientes') &&
+            ELIMINAR_MODAL_SOURCE.includes('role="alert"') &&
+            ELIMINAR_MODAL_SOURCE.includes('Eliminar definitivamente') &&
+            ELIMINAR_MODAL_SOURCE.includes('no se puede deshacer')
+    );
+
+    check(
+        'tipo de auditoría incluye DELETE y resultado admite FK_CONTEOS',
+        INVENTARIO_TYPES_SOURCE.includes(
+            "operacion: 'CREATE' | 'UPDATE' | 'DELETE'"
+        ) &&
+            INVENTARIO_TYPES_SOURCE.includes("'FK_CONTEOS'")
+    );
+
+    check(
+        'script de matriz viva es dry-run por defecto y usa merge puro',
+        PERMISOS_MERGE_SOURCE.includes('let aplicar = false;') &&
+            PERMISOS_MERGE_SOURCE.includes("clave === 'apply'") &&
+            PERMISOS_MERGE_SOURCE.includes('if (!aplicar)') &&
+            PERMISOS_MERGE_SOURCE.includes('mergeDeleteInventario') &&
+            PERMISOS_MERGE_SOURCE.includes('sys_permissions_matrix')
     );
 
     check(

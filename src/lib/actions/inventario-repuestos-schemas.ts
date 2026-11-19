@@ -104,6 +104,14 @@ export const crearRepuestoSchema = z
 
 export const listarRepuestosSchema = z.object({}).strict();
 
+export const eliminarRepuestoSchema = z
+    .object({
+        documento_id: z.string().trim().min(1).max(200),
+        referencia: referenciaRepuestoEstrictaSchema,
+    })
+    .strict();
+
 export type EditarRepuestoInput = z.infer<typeof editarRepuestoSchema>;
 export type CambiosRepuestoInput = z.infer<typeof cambiosRepuestoSchema>;
 export type CrearRepuestoInput = z.infer<typeof crearRepuestoSchema>;
+export type EliminarRepuestoInput = z.infer<typeof eliminarRepuestoSchema>;

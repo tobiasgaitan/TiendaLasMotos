@@ -4,11 +4,12 @@ const mockState = vi.hoisted(() => {
     const docs = new Map<string, Record<string, unknown>>();
     const writes: Array<{
         path: string;
-        kind: 'set' | 'update' | 'create';
+        kind: 'set' | 'update' | 'create' | 'delete';
         data: Record<string, unknown>;
     }> = [];
     let sequence = 0;
     let fallarSedes = false;
+    let fallarLedger = false;
 
     const makeRef = (collection: string, id?: string) => {
         const ref = {
@@ -121,8 +122,23 @@ const mockState = vi.hoisted(() => {
             });
         },
         create: (ref: { path: string }, data: Record<string, unknown>) => {
+            if (
+                fallarLedger &&
+                ref.path.startsWith('historial_auditoria_inventario/')
+            ) {
+                throw new Error('Fallo simulado creando el asiento de ledger');
+            }
             docs.set(ref.path, { ...data });
             writes.push({ path: ref.path, kind: 'create', data: { ...data } });
+        },
+        delete: (ref: { path: string }) => {
+            const anterior = docs.get(ref.path);
+            docs.delete(ref.path);
+            writes.push({
+                path: ref.path,
+                kind: 'delete',
+                data: anterior ? { ...anterior } : {},
+            });
         },
     };
 
@@ -168,9 +184,13 @@ const mockState = vi.hoisted(() => {
             writes.length = 0;
             sequence = 0;
             fallarSedes = false;
+            fallarLedger = false;
         },
         setFallaSedes(value: boolean) {
             fallarSedes = value;
+        },
+        setFallaLedger(value: boolean) {
+            fallarLedger = value;
         },
     };
 });
@@ -213,6 +233,7 @@ import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
 import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
+import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/eliminarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
 import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
@@ -268,6 +289,17 @@ function seedAsesor() {
     vi.mocked(requirePermiso).mockResolvedValue({
         rol: 'asesor',
         email: 'asesor@test.com',
+    });
+}
+
+function prepararAdmin() {
+    vi.mocked(requireActorInventario).mockResolvedValue({
+        uid: 'uid-admin',
+        email: 'admin@test.com',
+    });
+    vi.mocked(requirePermiso).mockResolvedValue({
+        rol: 'admin',
+        email: 'admin@test.com',
     });
 }
 
@@ -1151,5 +1183,171 @@ describe('MT-07 Server Actions contracts', () => {
 
         expect(resultado.success).toBe(false);
         expect(resultado.message).toContain('múltiples registros');
+    });
+
+    it('eliminarRepuesto bloquea por FK de conteos sin writes', async () => {
+        prepararAdmin();
+        seedInventario();
+        seedConteo();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.codigo).toBe('FK_CONTEOS');
+        expect(resultado.message).toContain('conteos pendientes');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto elimina y crea un único asiento DELETE', async () => {
+        prepararAdmin();
+        seedInventario();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            false
+        );
+
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].kind).toBe('create');
+        expect(ledger[0].data.operacion).toBe('DELETE');
+        expect(ledger[0].data.documento_id).toBe('BRK-001');
+        expect(ledger[0].data.referencia).toBe('BRK-001');
+        expect(ledger[0].data.datos_nuevos).toBeNull();
+        expect(ledger[0].data.campos_modificados).toEqual([]);
+        expect(
+            (ledger[0].data.datos_anteriores as Record<string, unknown>)
+                .referencia
+        ).toBe('BRK-001');
+        expect(ledger[0].data.registrado_por).toBe('uid-admin');
+
+        const deletes = mockState.writes.filter(
+            (write) => write.kind === 'delete'
+        );
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0].path).toBe('inventario_repuestos/BRK-001');
+    });
+
+    it('eliminarRepuesto es atómico si falla el asiento del ledger', async () => {
+        prepararAdmin();
+        seedInventario();
+        mockState.setFallaLedger(true);
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(
+            mockState.writes.filter((write) => write.kind === 'delete')
+        ).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto es idempotente si el documento no existe', async () => {
+        prepararAdmin();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'NO-EXISTE', referencia: 'NO-EXISTE' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto rechaza referencia que no coincide', async () => {
+        prepararAdmin();
+        seedInventario();
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'OTRA-REF' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto rechaza actor o input inválido antes de Firebase', async () => {
+        const sinActor = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            {}
+        );
+        expect(sinActor.success).toBe(false);
+
+        const inputInvalido = await eliminarRepuesto(
+            { documento_id: '', referencia: 'BRK-001' },
+            ACTOR
+        );
+        expect(inputInvalido.success).toBe(false);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto exige permiso delete y rol admin/superadmin', async () => {
+        seedInventario();
+        vi.mocked(requireActorInventario).mockResolvedValue({
+            uid: 'uid-asesor',
+            email: 'asesor@test.com',
+        });
+        vi.mocked(requirePermiso).mockResolvedValue({
+            rol: 'asesor',
+            email: 'asesor@test.com',
+        });
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('Solo un administrador');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarRepuesto propaga el rechazo de requirePermiso', async () => {
+        seedInventario();
+        vi.mocked(requireActorInventario).mockResolvedValue({
+            uid: 'uid-admin',
+            email: 'admin@test.com',
+        });
+        vi.mocked(requirePermiso).mockRejectedValueOnce(
+            new Error('No autorizado: permiso insuficiente.')
+        );
+
+        const resultado = await eliminarRepuesto(
+            { documento_id: 'BRK-001', referencia: 'BRK-001' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('permiso insuficiente');
+        expect(mockState.docs.has('inventario_repuestos/BRK-001')).toBe(
+            true
+        );
+        expect(mockState.writes).toHaveLength(0);
     });
 });
