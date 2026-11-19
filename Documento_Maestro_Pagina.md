@@ -1,6 +1,6 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.16  
-**Última Actualización:** 2026-11-18  
+**Versión del Stack & Hitos:** v8.9.17  
+**Última Actualización:** 2026-11-19  
 **Estado:** promoción v8.9.16 certificada vía PR #4 (WEB-049-P1, WEB-050-P1, WEB-051-P1 + refactors); UAT runtime prod 4/4 CUMPLE; OBS-PROD-DATOS-PRUEBA-RESIDUALES cerrada §31; OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR RE-ABIERTA por push directo ef7a8e7; OBS-REFACTOR-STACK-UNPUSHED-NO-CI cerrada; OBS-AUTH-WHITELIST-DESPARITY abierta; Frente A (catálogo 0/0/0) diferido con riesgo aceptado por Director.
 
 ---
@@ -812,3 +812,80 @@ Evidencia: `Desktop/WEB-INV-INGESTA-001-F1-evidence/run-7/` y `run-7/simulacion/
 Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, cero borrados y cero APIs de escritura en run-7 (`FIRESTORE_WRITES=0`, `STORAGE_WRITES=0`, `DELETIONS=0`, `WRITE_APIS=0`). Sin cambios en `src/`, `functions/`, `firestore.rules`, `firestore.indexes.json`, `bot-tiendalasmotos`, `package.json` ni `package-lock.json`.
 
 **Commit local y push permanecen bloqueados hasta la certificación de este §32 por el Director.**
+
+## 33. WEB-INV-COMPANIONS-ABC-001 + WEB-INV-INGESTA-002-F2 — Companions A/B/C, ingesta real y cierre de F2 (2026-11-19)
+**Estado:** F2 **APLICADO EN BETA**; paquete de código preparado para certificación del diff; commit, push y PR `feature/web-inv-ingesta-002 → beta` pendientes de esa certificación. Companions A/B/C certificados, desplegados en beta y con UAT runtime PASS.
+**Versión:** v8.9.17 (bump documental de cabecera). Las menciones históricas de v8.9.16 en §29–§31 quedan **intactas**.
+**Rama:** `feature/web-inv-ingesta-002` en `d2d5acd` (merge de `feature/web-inv-ingesta-001` sobre `beta` `3f251ac`).
+**Naturaleza:** sección aditiva conforme al precedente §25.A. No reescribe §25 ni §28–§32.
+
+### 33.1 Companions A/B/C — `WEB-INV-COMPANIONS-ABC-001`
+
+| Companion | Alcance certificado | Commit |
+| --- | --- | --- |
+| A | `unidad_medida` aditiva (`unidad` \| `litro`, default `unidad`), DTO, schemas, actions, tabla admin y ledger CREATE/UPDATE | `b64219e` |
+| B | Borrado físico controlado: Faraday Cage, permiso `delete`, guardia FK a `conteos_pendientes_repuestos`, ledger `DELETE` append-only y UI de confirmación | `2ad70a2` |
+| C | Paginación por cursor, `contarRepuestos` con `count()`, filtros server-side, búsqueda acotada, ast guard y `referenciaSchema` byte-intacto | `30098aa` |
+
+- **Integración:** PR #6 `feature/web-inv-companions-abc → beta`, merge `3f251ac`; deploy **#218** success.
+- **UAT runtime A/B/C PASS:** unidad_medida + ledger; borrado con guardia FK; paginación, conteo y filtros server-side.
+- **NAMING LOCK:** solo claves aditivas `{unidad_medida, import_key}`; `import_key` entra en F2. No se renombraron claves existentes.
+
+### 33.2 F2 — `WEB-INV-INGESTA-002-F2`
+
+- **Rama:** `feature/web-inv-ingesta-002`, HEAD `d2d5acd`, con F1 (`1aa21f4`) y Companions (`30098aa`) integrados sobre `beta` `3f251ac`.
+- **Apply real:** **21.256 CREATE** en `inventario_repuestos` + **21.256 asientos CREATE** en `historial_auditoria_inventario`; **213 batches** de 100 documentos (212×100 + 56); **42.512 writes** (2 por documento).
+- **D4-B:** `strict-abort`; `D4B_RECONCILIABLE` y `D4B_AMBIGUO` abortan antes de escribir. En la corrida: `D4B_RECONCILIABLES=0`, `D4B_AMBIGUEDADES=0`.
+- **D8-A:** un asiento `CREATE` por documento, en el mismo batch atómico.
+- **Actor:** UID `t05KiQCGQgUWFARvczn3nuXp9Qz2`.
+- **Evidencia:** `Desktop/WEB-INV-INGESTA-002-F2-evidence/run-001/` con `preflight.json`, `apply-plan.json`, `d4b-report.json`, `collisions.json`, `batch-0001.json…batch-0213.json`, `final-manifest.json`, `counts.json`, `report.md` y `run.log`.
+- **FINAL_MANIFEST_SHA256:** `86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
+- **Rollback:** `scripts/inv-ingesta-rollback.ts` por manifiesto, batches de 100, verificación de `import_key`; **cero borrado de `historial_auditoria_inventario`** (ledger append-only).
+
+### 33.3 UAT de volumen real
+
+- Paginación observada **50 → 100 sobre 21.256** documentos.
+- Filtros server-side: **18.856** en REPUESTOS y **1.507** en LOS ORIGINALES.
+- **224 documentos con referencias alternativas**; alternativas visibles en la ficha del repuesto.
+
+### 33.4 Supersesión append-only única (precedente §28/§31)
+
+- **Purga manual** de **7 asientos de UAT** en `historial_auditoria_inventario` + **conteo de prueba `N5hKkfXcHa0ufOH973GU`**, autorizada por el Director y ejecutada **pre-apply**; ledger verificado en **0** antes de la ingesta.
+- La excepción es única y documental; no reescribe §28/§31 ni autoriza purgas futuras del ledger.
+- **Gap forense declarado:** no existe export write-once de los 7 `docIds`; eran datos de prueba, no movimientos reales. Se registra la ausencia de ese artefacto para auditoría futura.
+
+### 33.5 Observaciones
+
+- `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`: **ABIERTA**, no bloqueante.
+- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **ABIERTA**, no bloqueante.
+- `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001`: **CERRADA por este commit**. Se elimina exclusivamente el bloque compuesto `(referencia ASC, __name__ ASC)` de `inventario_repuestos` en `firestore.indexes.json`, rechazado físicamente por Firestore con HTTP 400; sin reformateo del resto.
+
+### 33.6 Corrección de topología
+
+- **Producción:** `tiendalasmotos.com` + `tiendalasmotos.web.app` (sitio `tiendalasmotos`).
+- **Beta:** `tiendalasmotos-beta.web.app` (sitio `tiendalasmotos-beta`).
+- Verificado vía `.firebaserc`; ambos sitios pertenecen al proyecto `tiendalasmotos`, que comparte Firestore. La ingesta F2 se ejecutó sobre ese Firestore compartido con confirmación explícita.
+
+### 33.7 CHANGELOG obligatorio
+
+**Qué se cambió**
+- Nuevos scripts F2: `inv-ingesta-apply.ts`, `inv-ingesta-rollback.ts`, `inv-ingesta-apply-utils.ts`, fixtures y JSON de fixtures.
+- Cabecera del PSD bump a v8.9.17 y nueva §33 aditiva.
+- `firestore.indexes.json`: eliminación del bloque redundante rechazado.
+- `.planning/STATE.md` y `.planning/ROADMAP.md` sincronizados con F2 aplicado.
+
+**Qué se reparó**
+- Deriva repo/índice: el bloque `(referencia ASC, __name__ ASC)` rechazado por Firestore ya no vive en el repo.
+- Documentación de topología prod/beta y estado de promoción.
+- Guardas F2: D4-B strict-abort, preflight de inventario vacío, batches atómicos y rollback sin tocar ledger.
+
+**Qué se preservó intacto**
+- §25 y §28–§32; menciones históricas v8.9.16 de §29–§31.
+- NAMING LOCK, ledger append-only (salvo la supersesión única §33.4), companions A/B/C y evidencia F1.
+- `src/`, `functions/`, `firestore.rules` y `package.json`/`package-lock.json` sin cambios por F2.
+
+### 33.8 Invariantes y bloqueo
+
+- **Cero push a `main`** hasta la certificación de Fase 2 en beta; el merge `beta → main` irá por **PR estricto** (no se re-manifiesta `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`).
+- **Commit, push y PR** del paquete F2 permanecen bloqueados hasta la certificación del diff por el Director.
+- El apply real ya ocurrió; este §33 documenta el estado, no autoriza una nueva escritura.
