@@ -67,6 +67,7 @@ export async function crearRepuesto(
                 fabricante: data.fabricante ?? '',
                 aplica_a: data.aplica_a ?? [],
                 categoria: data.categoria ?? '',
+                unidad_medida: data.unidad_medida ?? 'unidad',
                 precio: data.precio ?? 0,
                 ubicacion: data.ubicacion ?? '',
                 stock: data.stock ?? 0,

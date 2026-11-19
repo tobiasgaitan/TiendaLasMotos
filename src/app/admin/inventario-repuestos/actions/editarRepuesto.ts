@@ -109,6 +109,17 @@ export async function editarRepuesto(
                 }
             }
 
+            if (cambios.unidad_medida !== undefined) {
+                const actual = texto(antes.unidad_medida)
+                    .trim()
+                    .toLowerCase();
+                const actualNormalizada =
+                    actual === 'litro' ? 'litro' : 'unidad';
+                if (actualNormalizada !== cambios.unidad_medida) {
+                    updates.unidad_medida = cambios.unidad_medida;
+                }
+            }
+
             if (cambios.ubicacion !== undefined) {
                 const actual = texto(antes.ubicacion);
                 if (actual !== cambios.ubicacion) {

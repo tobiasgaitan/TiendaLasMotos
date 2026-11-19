@@ -10,8 +10,10 @@ import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRep
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import {
+    contarRepuestosSchema,
     crearRepuestoSchema,
     editarRepuestoSchema,
+    listarRepuestosSchema,
 } from '@/lib/actions/inventario-repuestos-schemas';
 import {
     construirCambiosRepuesto,
@@ -51,6 +53,30 @@ const SIDEBAR_SOURCE = readFileSync(
     'src/components/AdminSidebar.tsx',
     'utf8'
 );
+const ELIMINAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/eliminarRepuesto.ts',
+    'utf8'
+);
+const ELIMINAR_MODAL_SOURCE = readFileSync(
+    'src/components/inventario/EliminarRepuestoModal.tsx',
+    'utf8'
+);
+const INVENTARIO_TYPES_SOURCE = readFileSync(
+    'src/types/inventario.ts',
+    'utf8'
+);
+const PERMISOS_MERGE_SOURCE = readFileSync(
+    'scripts/merge-permissions-delete-inventario.ts',
+    'utf8'
+);
+const CONTAR_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/actions/contarRepuestos.ts',
+    'utf8'
+);
+const BUSCAR_SOURCE = readFileSync(
+    'src/app/admin/inventory/actions/buscarCandidatosRepuesto.ts',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -86,6 +112,7 @@ const BASE: RepuestoInventarioDTO = {
     fabricante: 'Honda',
     aplica_a: ['Honda CB 190'],
     categoria: 'Frenos',
+    unidad_medida: 'unidad',
     precio: 125000,
     ubicacion: 'A-01-05',
     stock: 8,
@@ -103,6 +130,7 @@ const BORRADOR = {
     stock: String(BASE.stock),
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
+    unidad_medida: BASE.unidad_medida,
     ubicacion: BASE.ubicacion ?? '',
     referencias_alternativas: [...BASE.referencias_alternativas],
 };
@@ -291,6 +319,88 @@ check(
     }).success
 );
 
+const crearUnidadDefault = crearRepuestoSchema.safeParse({
+    referencia: 'BRK-040',
+    descripcion: 'Repuesto sin unidad explícita',
+    sede_id: 'sede-1',
+    ubicacion: 'Pasillo 1',
+});
+check(
+    'crearRepuestoSchema usa unidad como default',
+    crearUnidadDefault.success &&
+        crearUnidadDefault.data.unidad_medida === 'unidad'
+);
+check(
+    'crearRepuestoSchema acepta litro',
+    crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        unidad_medida: 'litro',
+    }).data?.unidad_medida === 'litro'
+);
+check(
+    'crearRepuestoSchema rechaza unidad inválida',
+    !crearRepuestoSchema.safeParse({
+        ...CREAR_BASE,
+        unidad_medida: 'docena',
+    }).success
+);
+check(
+    'cambiosRepuestoSchema acepta unidad_medida aditiva',
+    editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { unidad_medida: 'litro' },
+    }).data?.cambios.unidad_medida === 'litro'
+);
+check(
+    'cambiosRepuestoSchema rechaza unidad inválida',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { unidad_medida: 'gramo' },
+    }).success
+);
+
+const listarDefault = listarRepuestosSchema.parse({});
+check(
+    'listarRepuestosSchema usa PAGE_SIZE=50 y filtros vacíos',
+    listarDefault.limite === 50 &&
+        listarDefault.referencia === '' &&
+        listarDefault.categoria === '' &&
+        listarDefault.fabricante === '' &&
+        listarDefault.cursor === undefined
+);
+check(
+    'listarRepuestosSchema normaliza el prefijo a mayúsculas',
+    listarRepuestosSchema.parse({ referencia: 'brk-0' }).referencia ===
+        'BRK-0'
+);
+check(
+    'listarRepuestosSchema acepta cursor válido',
+    listarRepuestosSchema.safeParse({
+        limite: 25,
+        cursor: { referencia: 'BRK-001', documento_id: 'doc-1' },
+    }).success
+);
+check(
+    'listarRepuestosSchema rechaza cursor incompleto',
+    !listarRepuestosSchema.safeParse({
+        cursor: { referencia: 'BRK-001' },
+    }).success
+);
+check(
+    'listarRepuestosSchema rechaza límite fuera de rango',
+    !listarRepuestosSchema.safeParse({ limite: 201 }).success
+);
+check(
+    'contarRepuestosSchema acepta los mismos filtros sin cursor/límite',
+    contarRepuestosSchema.safeParse({
+        referencia: 'brk',
+        categoria: 'Frenos',
+        fabricante: 'Bosch',
+    }).data?.referencia === 'BRK'
+);
+
 const OTRO: RepuestoInventarioDTO = {
     ...BASE,
     referencia: 'ACE-002',
@@ -347,6 +457,25 @@ check(
             stock: '-2',
         })
     )
+);
+
+const soloUnidad = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    unidad_medida: 'litro',
+});
+check(
+    'construirCambiosRepuesto emite unidad_medida solo si cambia',
+    Object.keys(soloUnidad).length === 1 &&
+        soloUnidad.unidad_medida === 'litro'
+);
+check(
+    'construirCambiosRepuesto no emite unidad_medida sin cambios',
+    Object.keys(
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            unidad_medida: 'unidad',
+        })
+    ).length === 0
 );
 
 const conAlternativas = construirCambiosRepuesto(BASE, {
@@ -440,9 +569,45 @@ async function run() {
     );
 
     check(
-        'listarRepuestos no usa limit ni orderBy',
-        !LISTAR_SOURCE.includes('.limit(') &&
-            !LISTAR_SOURCE.includes('.orderBy(')
+        'listarRepuestos usa cursor, orden estable y límite',
+        LISTAR_SOURCE.includes(".orderBy('referencia')") &&
+            LISTAR_SOURCE.includes('FieldPath.documentId()') &&
+            LISTAR_SOURCE.includes('.startAfter(') &&
+            LISTAR_SOURCE.includes('.limit(filtros.limite + 1)') &&
+            LISTAR_SOURCE.includes('siguienteCursor')
+    );
+
+    check(
+        'listarRepuestos aplica filtros server-side',
+        LISTAR_SOURCE.includes(".where('categoria', '==', filtros.categoria)") &&
+            LISTAR_SOURCE.includes(
+                ".where('fabricante', '==', filtros.fabricante)"
+            ) &&
+            LISTAR_SOURCE.includes(".where('referencia', '>='") &&
+            LISTAR_SOURCE.includes(".where('referencia', '<='")
+    );
+
+    check(
+        'contarRepuestos usa count() y no devuelve documentos',
+        CONTAR_SOURCE.includes('.count().get()') &&
+            CONTAR_SOURCE.includes('snap.data().count') &&
+            CONTAR_SOURCE.includes("where('categoria'") &&
+            CONTAR_SOURCE.includes("where('fabricante'") &&
+            CONTAR_SOURCE.includes("where('referencia', '>='") &&
+            !CONTAR_SOURCE.includes('startAfter') &&
+            !CONTAR_SOURCE.includes('.orderBy(') &&
+            !CONTAR_SOURCE.includes('siguienteCursor')
+    );
+
+    check(
+        'buscarCandidatosRepuesto acota la búsqueda sin scan ilimitado',
+        BUSCAR_SOURCE.includes(".where('referencia', '==', consulta)") &&
+            BUSCAR_SOURCE.includes(".where('referencia', '>='") &&
+            BUSCAR_SOURCE.includes(".where('referencia', '<='") &&
+            BUSCAR_SOURCE.includes('array-contains') &&
+            BUSCAR_SOURCE.includes('.limit(limite)') &&
+            BUSCAR_SOURCE.includes('LIMITE_VENTANA_ETIQUETAS') &&
+            BUSCAR_SOURCE.includes('rankearCandidatos')
     );
 
     check(
@@ -566,10 +731,81 @@ async function run() {
     );
 
     check(
-        'página permite create o update',
+        'página permite create, update o delete',
         PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'create')") &&
             PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'update')") &&
-            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar')
+            PAGE_SOURCE.includes("puedeAccion('inventario_repuestos', 'delete')") &&
+            PAGE_SOURCE.includes('!puedeCrear && !puedeEditar && !puedeEliminar')
+    );
+
+    check(
+        'eliminarRepuesto usa Faraday Cage y permiso delete',
+        ELIMINAR_SOURCE.startsWith("'use server';") &&
+            ELIMINAR_SOURCE.includes('validarActor(actor)') &&
+            ELIMINAR_SOURCE.includes('requireActorInventario(a.idToken)') &&
+            ELIMINAR_SOURCE.includes('requirePermiso(') &&
+            ELIMINAR_SOURCE.includes("'inventario_repuestos'") &&
+            ELIMINAR_SOURCE.includes("'delete'") &&
+            ELIMINAR_SOURCE.includes("permiso.rol !== 'admin'") &&
+            ELIMINAR_SOURCE.includes("permiso.rol !== 'superadmin'")
+    );
+
+    check(
+        'eliminarRepuesto aplica guardia FK por inventario_documento_id',
+        ELIMINAR_SOURCE.includes('conteos_pendientes_repuestos') &&
+            ELIMINAR_SOURCE.includes("where('inventario_documento_id'") &&
+            ELIMINAR_SOURCE.includes('.limit(1)') &&
+            ELIMINAR_SOURCE.includes('RepuestoConConteosError') &&
+            ELIMINAR_SOURCE.includes('codigo: \'FK_CONTEOS\'')
+    );
+
+    check(
+        'eliminarRepuesto es atómico y escribe ledger DELETE append-only',
+        ELIMINAR_SOURCE.includes('runTransaction') &&
+            ELIMINAR_SOURCE.includes('tx.create(ledgerRef') &&
+            ELIMINAR_SOURCE.includes('tx.delete(repuestoRef)') &&
+            ELIMINAR_SOURCE.includes("operacion: 'DELETE'") &&
+            ELIMINAR_SOURCE.includes('datos_nuevos: null') &&
+            ELIMINAR_SOURCE.includes('campos_modificados: []') &&
+            !ELIMINAR_SOURCE.includes('tx.set(') &&
+            !ELIMINAR_SOURCE.includes('.add(')
+    );
+
+    check(
+        'eliminarRepuesto es idempotente si el documento no existe',
+        ELIMINAR_SOURCE.includes('if (!snap.exists)') &&
+            ELIMINAR_SOURCE.includes('idempotente: true')
+    );
+
+    check(
+        'UI de borrado tiene gating, confirmación y mensaje FK',
+        CLIENT_SOURCE.includes(
+            "puedeAccion('inventario_repuestos', 'delete')"
+        ) &&
+            CLIENT_SOURCE.includes('EliminarRepuestoModal') &&
+            CLIENT_SOURCE.includes('setRepuestoAEliminar') &&
+            ELIMINAR_MODAL_SOURCE.includes('eliminarRepuesto') &&
+            ELIMINAR_MODAL_SOURCE.includes('conteos pendientes') &&
+            ELIMINAR_MODAL_SOURCE.includes('role="alert"') &&
+            ELIMINAR_MODAL_SOURCE.includes('Eliminar definitivamente') &&
+            ELIMINAR_MODAL_SOURCE.includes('no se puede deshacer')
+    );
+
+    check(
+        'tipo de auditoría incluye DELETE y resultado admite FK_CONTEOS',
+        INVENTARIO_TYPES_SOURCE.includes(
+            "operacion: 'CREATE' | 'UPDATE' | 'DELETE'"
+        ) &&
+            INVENTARIO_TYPES_SOURCE.includes("'FK_CONTEOS'")
+    );
+
+    check(
+        'script de matriz viva es dry-run por defecto y usa merge puro',
+        PERMISOS_MERGE_SOURCE.includes('let aplicar = false;') &&
+            PERMISOS_MERGE_SOURCE.includes("clave === 'apply'") &&
+            PERMISOS_MERGE_SOURCE.includes('if (!aplicar)') &&
+            PERMISOS_MERGE_SOURCE.includes('mergeDeleteInventario') &&
+            PERMISOS_MERGE_SOURCE.includes('sys_permissions_matrix')
     );
 
     check(
@@ -593,6 +829,7 @@ async function run() {
         'Referencia',
         'Descripción',
         'Categoría',
+        'Unidad',
         'Fabricante',
         'Stock',
         'Stock mínimo',
@@ -600,9 +837,27 @@ async function run() {
         'Precio',
     ];
     check(
-        'tabla expone exactamente las ocho columnas requeridas',
-        (CLIENT_SOURCE.match(/scope="col"/g) ?? []).length === 8 &&
+        'tabla expone exactamente las nueve columnas requeridas',
+        (CLIENT_SOURCE.match(/scope="col"/g) ?? []).length === 9 &&
             columnas.every((columna) => CLIENT_SOURCE.includes(columna))
+    );
+    check(
+        'cliente edita unidad_medida con dominio unidad|litro',
+        CLIENT_SOURCE.includes('unidad_medida') &&
+            CLIENT_SOURCE.includes('UNIDADES_MEDIDA') &&
+            CLIENT_SOURCE.includes('actualizarUnidadMedida')
+    );
+    check(
+        'acciones persisten unidad_medida y el ledger la incluye',
+        CREAR_SOURCE.includes('unidad_medida') &&
+            EDITAR_SOURCE.includes('unidad_medida') &&
+            LISTAR_SOURCE.includes('unidad_medida')
+    );
+    check(
+        'modal de alta permite elegir unidad de medida',
+        MODAL_SOURCE.includes('unidad_medida') &&
+            MODAL_SOURCE.includes('UNIDADES_MEDIDA') &&
+            MODAL_SOURCE.includes('Unidad de medida')
     );
 
     check(

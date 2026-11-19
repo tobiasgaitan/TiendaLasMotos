@@ -1,4 +1,4 @@
-import type { InventarioRepuesto } from './inventario';
+import type { InventarioRepuesto, UnidadMedida } from './inventario';
 
 /**
  * WEB-038 — DTO de lectura para la ruta administrativa de repuestos.
@@ -30,6 +30,7 @@ export interface BorradorRepuesto {
     stock: string;
     stock_minimo: string;
     precio: string;
+    unidad_medida: UnidadMedida;
     ubicacion: string;
     referencias_alternativas: string[];
 }
@@ -39,12 +40,25 @@ export interface CambiosRepuesto {
     stock?: number;
     stock_minimo?: number;
     precio?: number;
+    unidad_medida?: UnidadMedida;
     ubicacion?: string;
     referencias_alternativas?: string[];
+}
+
+export interface CursorRepuestos {
+    referencia: string;
+    documento_id: string;
 }
 
 export interface ListarRepuestosResult {
     success: boolean;
     message?: string;
     repuestos: RepuestoInventarioDTO[];
+    siguienteCursor: CursorRepuestos | null;
+}
+
+export interface ContarRepuestosResult {
+    success: boolean;
+    message?: string;
+    total: number;
 }

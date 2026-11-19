@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.16
+**Versión Canónica Vigente:** v8.9.17
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -132,3 +132,9 @@
 - [x] **Cierre OBS-SSOT-CI-PLACEHOLDER-XXX + OBS-SSOT-C4B-STALE-POST-PROMOCION (v8.9.13, 2026-11-14):** §18 sustituye `CI beta run #XXX` por CI beta run #190 (`42755251313`) success en `d9f4b03`; §28 añade la nota de supersesión C4/B; L347 conservada byte-idéntica; sin cambios de código.
 - [x] **PSD v8.9.16 — Cierre P6/ledgers/PR #689 + Ruta 1 (2026-11-16):** P6 17+5; ledgers 32 + §28; revocación OBS-P6-CRE-2026-0001-INEXISTENTE; nuevas OBS de lookup/copy UX/log offline; backport `be81542` con C4 beta `8/8` 200 y `0/0/0`; 8º commit documental; Ruta 1 push beta→CI→ff main→push main→paridad. Sin cambios de código; NAMING LOCK intacto.
 - [x] **Corrección v8.9.16 — Secuenciación PR #689 (2026-11-16):** `prepareFunctionsUpload` ignora `node_modules`; Cloud Build instalaba 0.11.8. Hook tarball `vendor/firebase-frameworks-0.11.8-pr689.tgz` + `file:` dependency + marcador runtime; commit `faeb3c9`; C4 beta cold/idle `8/8` 200 y `0/0/0`; producción pendiente Ruta 1. Sin cambios de código de app; NAMING LOCK intacto.
+
+## Cierre Inventario F1/F2 (v8.9.17, 2026-11-19)
+- [x] **Companions A/B/C — WEB-INV-COMPANIONS-ABC-001 (2026-11-19):** commits `b64219e`/`2ad70a2`/`30098aa`; PR #6 → beta `3f251ac`; deploy #218; UAT runtime A/B/C PASS (`unidad_medida` + ledger, borrado con guardia FK, paginación/conteo/filtros).
+- [x] **WEB-INV-INGESTA-001-F1 (2026-11-18):** run-7 read-only PASS; 21.256 CREATE / 374 CENSAR / 94 CUARENTENA / 3.531 OMITIDA; §32 aditivo; scripts F1 y evidencia run-7.
+- [x] **WEB-INV-INGESTA-002-F2 (2026-11-19):** apply real en beta; 21.256 CREATE + 21.256 asientos ledger; 213 batches; 42.512 writes; D4-B strict-abort; rollback por manifiesto sin tocar ledger; `FINAL_MANIFEST_SHA256=86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
+- [ ] **Promoción F2 beta→main (PR estricto):** pendiente de certificación del diff y del PR `feature/web-inv-ingesta-002 → beta`; sin push directo a main.

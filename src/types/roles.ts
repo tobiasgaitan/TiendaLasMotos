@@ -94,7 +94,9 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['create', 'read', 'update', 'delete'] },
-        inventario_repuestos: { acciones: ['create', 'read', 'update'] },
+        inventario_repuestos: {
+            acciones: ['create', 'read', 'update', 'delete'],
+        },
         conteos_pendientes_repuestos: { acciones: ['create', 'read', 'update'] },
         fotos_inventario: { acciones: ['create', 'read', 'update'] },
         historial_auditoria_inventario: { acciones: ['read'] },
@@ -108,7 +110,9 @@ export const DEFAULT_MATRIZ: MatrizRol = {
         historial_auditoria: { acciones: ['read'] },
         anomalias: { acciones: ['create', 'read', 'update', 'delete'] },
         sys_admin_users: { acciones: ['read'] },
-        inventario_repuestos: { acciones: ['create', 'read', 'update'] },
+        inventario_repuestos: {
+            acciones: ['create', 'read', 'update', 'delete'],
+        },
         conteos_pendientes_repuestos: { acciones: ['create', 'read', 'update'] },
         fotos_inventario: { acciones: ['create', 'read', 'update'] },
         historial_auditoria_inventario: { acciones: ['read'] },

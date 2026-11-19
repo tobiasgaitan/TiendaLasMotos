@@ -22,6 +22,13 @@ const buscarCandidatosSchema = z.object({
     limite: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+const LIMITE_VENTANA_ETIQUETAS = 200;
+
+interface SnapDoc {
+    id: string;
+    data: () => Record<string, unknown>;
+}
+
 function texto(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
@@ -35,12 +42,25 @@ function numero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function agregarDocs(
+    destino: Record<string, SnapDoc>,
+    snap: { docs: SnapDoc[] }
+): void {
+    for (const doc of snap.docs) {
+        if (!destino[doc.id]) destino[doc.id] = doc;
+    }
+}
+
 /**
  * WEB-043 — Busca candidatos existentes en inventario_repuestos.
  *
  * Faraday Cage: la acción solo responde tras verifyIdToken + requirePermiso.
- * La referencia de cada candidato es el campo comercial `data.referencia`;
- * el docId ya no es la identidad de la referencia.
+ * La búsqueda es acotada y server-side:
+ * - consulta: igualdad y prefijo en `referencia`; igualdad exacta en
+ *   `referencias_alternativas`.
+ * - sin consulta: ventana acotada por referencia (o por límite si es catálogo).
+ * Cero scans ilimitados: todas las lecturas de documentos llevan limit().
+ * El rankeo final se hace sobre el conjunto acotado.
  */
 export async function buscarCandidatosRepuesto(
     input: unknown,
@@ -69,11 +89,61 @@ export async function buscarCandidatosRepuesto(
         await requirePermiso(me, 'inventario_repuestos', 'read');
 
         const adminDb = getDb();
-        const snap = await adminDb.collection('inventario_repuestos').get();
+        const coleccion = adminDb.collection('inventario_repuestos');
+        const consulta = parsed.data.consulta.trim().toUpperCase();
+        const limite = parsed.data.limite;
+        const docsUnicos: SnapDoc[] = [];
+        let total = 0;
+
+        if (consulta) {
+            const [exacta, prefijo, alternativa] = await Promise.all([
+                coleccion
+                    .where('referencia', '==', consulta)
+                    .limit(limite)
+                    .get(),
+                coleccion
+                    .where('referencia', '>=', consulta)
+                    .where('referencia', '<=', `${consulta}\uf8ff`)
+                    .limit(limite)
+                    .get(),
+                coleccion
+                    .where(
+                        'referencias_alternativas',
+                        'array-contains',
+                        consulta
+                    )
+                    .limit(limite)
+                    .get(),
+            ]);
+
+            const mapa: Record<string, SnapDoc> = {};
+            agregarDocs(mapa, exacta);
+            agregarDocs(mapa, prefijo);
+            agregarDocs(mapa, alternativa);
+            docsUnicos.push(...Object.values(mapa));
+            total = docsUnicos.length;
+        } else {
+            const ventana =
+                parsed.data.etiquetas.length > 0
+                    ? LIMITE_VENTANA_ETIQUETAS
+                    : limite;
+            const snap = await coleccion
+                .orderBy('referencia')
+                .limit(ventana)
+                .get();
+            docsUnicos.push(...snap.docs);
+
+            if (parsed.data.etiquetas.length === 0) {
+                const countSnap = await coleccion.count().get();
+                total = countSnap.data().count;
+            } else {
+                total = docsUnicos.length;
+            }
+        }
 
         const fuentes: CandidatoFuente[] = [];
 
-        for (const doc of snap.docs) {
+        for (const doc of docsUnicos) {
             const data = doc.data() as Record<string, unknown>;
             const referencia = texto(data.referencia).trim();
 
@@ -106,8 +176,8 @@ export async function buscarCandidatosRepuesto(
 
         return {
             success: true,
-            candidatos: rankeados.slice(0, parsed.data.limite),
-            total: rankeados.length,
+            candidatos: rankeados.slice(0, limite),
+            total,
         };
     } catch (error) {
         console.error(
