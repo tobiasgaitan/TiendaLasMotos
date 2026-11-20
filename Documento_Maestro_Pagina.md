@@ -993,3 +993,28 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 - **Residuo conocido:** 3 Chrome Issues de accesibilidad/autofill; no bloqueantes, sin ticket nuevo en este cierre.
 - **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
 - **Cierre:** `WEB-INV-CASE-NORMALIZATION-001` cerrado end-to-end (implementación, beta, promoción y producción); sin cambios de código en este addendum.
+
+34.11 Promoción de T-01 + T-02 — Filtro por referencia alternativa y fix de UX (2026-11-20)
+Estado:  CERTIFICADO EN PRODUCCIÓN.
+Versión:  se mantiene  v8.9.18  sin bump, conforme al precedente §28.
+
+A. T-01 —  WEB-INV-FILTRO-ADMIN-ALTERNATIVAS-001
+1.  PR #14:  merge  cfe7af1  ( feature/web-inv-filtro-referencia-alternativa-001 → main ) con desviación de gobernanza (feature→main directo, sin fase beta). Se registra  OBS-PROMOTE-PR14-SKIP-BETA-001 .
+2.  Alcance:  9 archivos,  +279 / -4 . Schema  referencia_alternativa  en  filtrosRepuestosShape ;  array-contains  en  listarRepuestos  y  contarRepuestos ; cuarto input en UI; helper  filtrarRepuestos  actualizado; 4 índices compuestos aditivos en  firestore.indexes.json .
+3.  Smoke test real:  5/5 variantes PASSED sobre Firestore (21.256 docs, 224 con alternativas, 0 lowercase).
+4.  UAT producción:  alternativa  7707008733697  → 1 resultado (doc  01P192 , LOS ORIGINALES).
+
+B. T-02 —  WEB-INV-FILTRO-ALTERNATIVA-UX-001
+1.  PR #15:  merge  1a8cf7d  ( feature/web-inv-filtro-alternativa-ux-001 → beta ); CI beta run  #222  success.
+2.  PR #16:  merge  edd9985  ( beta → main ); CI producción run  #80  success.
+3.  Alcance:  1 archivo ( InventarioRepuestosClient.tsx ),  +17 / -17 . Reordenamiento del grid a REFERENCIA → REFERENCIA ALTERNATIVA → CATEGORÍA → FABRICANTE; label visible  "Alternativa" → "Referencia Alternativa" . Cero impacto en contratos, schemas, Server Actions, Firestore ni tests.
+4.  UAT producción:  grid con orden correcto, label  "REFERENCIA ALTERNATIVA"  visible, filtro  7707008733697  devuelve 1/1 con paridad lista/conteo.
+
+C. Gobernanza restaurada
+1.  El ciclo T-02 (PR #15 → PR #16) restaura el pipeline canónico  feature → beta → main .
+2.  OBS-PROMOTE-PR14-SKIP-BETA-001  queda registrada como desviación única no re-manifestada.
+
+D. Invariantes
+1.  NAMING LOCK intacto; claves  referencias_alternativas  (Firestore) y  referencia_alternativa  (TS) sin renombre.
+2.  Cero cambios en  bot-tiendalasmotos ,  functions/ ,  firestore.rules ,  package.json ,  package-lock.json .
+3.  §25–§34.10 permanecen byte-idénticas; §34.11 es aditiva conforme al precedente §25.A.
