@@ -18,6 +18,12 @@ import {
 const stockSchema = z.number().int().min(0).max(1_000_000);
 const precioSchema = z.number().finite().min(0);
 
+const textoCatalogoSchema = z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(100);
+
 export const unidadMedidaSchema = z.enum(UNIDADES_MEDIDA);
 
 export const cambiosRepuestoSchema = z
@@ -63,12 +69,12 @@ export const crearRepuestoSchema = z
         referencia: referenciaRepuestoEstrictaSchema,
         descripcion: z.string().trim().min(1).max(500),
         sede_id: z.string().trim().max(200).optional(),
-        fabricante: z.string().trim().max(100).optional(),
+        fabricante: textoCatalogoSchema.optional(),
         aplica_a: z
             .array(z.string().trim().min(1).max(100))
             .max(50)
             .optional(),
-        categoria: z.string().trim().max(100).optional(),
+        categoria: textoCatalogoSchema.optional(),
         unidad_medida: unidadMedidaSchema.default('unidad'),
         precio: z.coerce.number().finite().min(0).optional(),
         ubicacion: ubicacionSchema.optional(),
@@ -121,8 +127,8 @@ const referenciaPrefijoSchema = z
 
 const filtrosRepuestosShape = {
     referencia: referenciaPrefijoSchema.default(''),
-    categoria: z.string().trim().max(100).default(''),
-    fabricante: z.string().trim().max(100).default(''),
+    categoria: textoCatalogoSchema.default(''),
+    fabricante: textoCatalogoSchema.default(''),
 };
 
 export const listarRepuestosSchema = z
