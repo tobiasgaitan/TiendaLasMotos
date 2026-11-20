@@ -543,6 +543,24 @@ export default function InventarioRepuestosClient() {
                 </label>
 
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Referencia Alternativa
+                    <input
+                        type="search"
+                        value={filtros.referencia_alternativa}
+                        maxLength={64}
+                        onChange={(event) =>
+                            setFiltros((actual) => ({
+                                ...actual,
+                                referencia_alternativa: event.target.value,
+                            }))
+                        }
+                        aria-label="Filtrar por referencia alternativa"
+                        placeholder="Alternativa exacta…"
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
+                    />
+                </label>
+
+                <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Categoría
                     <input
                         type="search"
@@ -574,24 +592,6 @@ export default function InventarioRepuestosClient() {
                         }
                         aria-label="Filtrar por fabricante"
                         placeholder="Fabricante exacto…"
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
-                    />
-                </label>
-
-                <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    Alternativa
-                    <input
-                        type="search"
-                        value={filtros.referencia_alternativa}
-                        maxLength={64}
-                        onChange={(event) =>
-                            setFiltros((actual) => ({
-                                ...actual,
-                                referencia_alternativa: event.target.value,
-                            }))
-                        }
-                        aria-label="Filtrar por referencia alternativa"
-                        placeholder="Alternativa exacta…"
                         className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
                     />
                 </label>
