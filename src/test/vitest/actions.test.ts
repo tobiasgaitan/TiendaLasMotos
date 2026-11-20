@@ -392,7 +392,7 @@ function seedInventario(alternativas: string[] = []) {
         referencia: 'BRK-001',
         sede_id: 'sede-1',
         descripcion: 'Disco de freno',
-        fabricante: 'Bosch',
+        fabricante: 'BOSCH',
         categoria: 'FRENOS',
         aplica_a: ['Moto 125'],
         unidad_medida: 'unidad',
@@ -415,7 +415,7 @@ function seedRepuesto(
         referencia,
         sede_id: 'sede-1',
         descripcion: `Repuesto ${id}`,
-        fabricante: 'Bosch',
+        fabricante: 'BOSCH',
         categoria: 'FRENOS',
         aplica_a: [],
         unidad_medida: 'unidad',
@@ -626,6 +626,8 @@ describe('MT-07 Server Actions contracts', () => {
         expect(creados[0].documentoId).not.toBe('BRK-010');
         expect(creados[0].data.imagen_url).toBe('');
         expect(creados[0].data.sede_id).toBe('sede-1');
+        expect(creados[0].data.fabricante).toBe('BOSCH');
+        expect(creados[0].data.categoria).toBe('FRENOS');
         const ledger = ledgerWrites();
         expect(ledger).toHaveLength(1);
         expect(ledger[0].kind).toBe('create');
@@ -633,6 +635,12 @@ describe('MT-07 Server Actions contracts', () => {
         expect(ledger[0].data.datos_anteriores).toBeNull();
         expect(ledger[0].data.documento_id).toBe(creados[0].documentoId);
         expect(ledger[0].data.registrado_por).toBe('uid-admin');
+        const datosNuevos = ledger[0].data.datos_nuevos as Record<
+            string,
+            unknown
+        >;
+        expect(datosNuevos.fabricante).toBe('BOSCH');
+        expect(datosNuevos.categoria).toBe('FRENOS');
     });
 
     it('crearRepuesto persiste imagen_url vacía para null, vacío u omitido', async () => {
@@ -1561,15 +1569,15 @@ describe('MT-07 Server Actions contracts', () => {
         prepararAdmin();
         seedRepuesto('a', 'A-001', {
             categoria: 'FRENOS',
-            fabricante: 'Bosch',
+            fabricante: 'BOSCH',
         });
         seedRepuesto('b', 'A-002', {
             categoria: 'FRENOS',
-            fabricante: 'Honda',
+            fabricante: 'HONDA',
         });
         seedRepuesto('c', 'A-003', {
             categoria: 'LUBRICANTES',
-            fabricante: 'Motul',
+            fabricante: 'MOTUL',
         });
 
         const porCategoria = await listarRepuestos(
@@ -1588,6 +1596,30 @@ describe('MT-07 Server Actions contracts', () => {
             'b',
         ]);
 
+        const porCategoriaMinusculas = await listarRepuestos(
+            { categoria: 'frenos', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porCategoriaMinusculas.repuestos.map((r) => r.documento_id)
+        ).toEqual(['a', 'b']);
+
+        const porFabricanteMinusculas = await listarRepuestos(
+            { fabricante: 'honda', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porFabricanteMinusculas.repuestos.map((r) => r.documento_id)
+        ).toEqual(['b']);
+
+        const porFiltrosMinusculas = await listarRepuestos(
+            { categoria: 'frenos', fabricante: 'bosch', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porFiltrosMinusculas.repuestos.map((r) => r.documento_id)
+        ).toEqual(['a']);
+
         const porPrefijo = await listarRepuestos(
             { referencia: 'A-00', limite: 50 },
             ACTOR
@@ -1599,15 +1631,15 @@ describe('MT-07 Server Actions contracts', () => {
         prepararAdmin();
         seedRepuesto('a', 'A-001', {
             categoria: 'FRENOS',
-            fabricante: 'Bosch',
+            fabricante: 'BOSCH',
         });
         seedRepuesto('b', 'A-002', {
             categoria: 'FRENOS',
-            fabricante: 'Honda',
+            fabricante: 'HONDA',
         });
         seedRepuesto('c', 'A-003', {
             categoria: 'LUBRICANTES',
-            fabricante: 'Motul',
+            fabricante: 'MOTUL',
         });
 
         const total = await contarRepuestos({}, ACTOR);
@@ -1615,13 +1647,13 @@ describe('MT-07 Server Actions contracts', () => {
         expect(total.total).toBe(3);
 
         const frenos = await contarRepuestos(
-            { categoria: 'FRENOS' },
+            { categoria: 'frenos' },
             ACTOR
         );
         expect(frenos.total).toBe(2);
 
         const bosch = await contarRepuestos(
-            { fabricante: 'Bosch' },
+            { fabricante: 'bosch' },
             ACTOR
         );
         expect(bosch.total).toBe(1);
