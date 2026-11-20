@@ -18,6 +18,7 @@ import {
 import {
     construirCambiosRepuesto,
     filtrarRepuestos,
+    hayFiltrosActivos,
 } from '@/lib/inventario/repuestos';
 import type { RepuestoInventarioDTO } from '@/types/inventario-repuestos';
 
@@ -499,6 +500,54 @@ check(
             fabricante: '',
             referencia_alternativa: 'ALT-2',
         }).length === 0
+);
+
+check(
+    'hayFiltrosActivos devuelve false con todos los filtros vacíos',
+    !hayFiltrosActivos({
+        referencia: '',
+        categoria: '',
+        fabricante: '',
+        referencia_alternativa: '',
+    })
+);
+
+check(
+    'hayFiltrosActivos ignora filtros con solo espacios',
+    !hayFiltrosActivos({
+        referencia: '   ',
+        categoria: '  ',
+        fabricante: '\t',
+        referencia_alternativa: ' ',
+    })
+);
+
+check(
+    'hayFiltrosActivos detecta cada campo individual',
+    hayFiltrosActivos({
+        referencia: 'BRK',
+        categoria: '',
+        fabricante: '',
+        referencia_alternativa: '',
+    }) &&
+        hayFiltrosActivos({
+            referencia: '',
+            categoria: 'FRENOS',
+            fabricante: '',
+            referencia_alternativa: '',
+        }) &&
+        hayFiltrosActivos({
+            referencia: '',
+            categoria: '',
+            fabricante: 'BOSCH',
+            referencia_alternativa: '',
+        }) &&
+        hayFiltrosActivos({
+            referencia: '',
+            categoria: '',
+            fabricante: '',
+            referencia_alternativa: 'ALT-1',
+        })
 );
 
 check(
