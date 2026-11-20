@@ -137,4 +137,4 @@
 - [x] **Companions A/B/C — WEB-INV-COMPANIONS-ABC-001 (2026-11-19):** commits `b64219e`/`2ad70a2`/`30098aa`; PR #6 → beta `3f251ac`; deploy #218; UAT runtime A/B/C PASS (`unidad_medida` + ledger, borrado con guardia FK, paginación/conteo/filtros).
 - [x] **WEB-INV-INGESTA-001-F1 (2026-11-18):** run-7 read-only PASS; 21.256 CREATE / 374 CENSAR / 94 CUARENTENA / 3.531 OMITIDA; §32 aditivo; scripts F1 y evidencia run-7.
 - [x] **WEB-INV-INGESTA-002-F2 (2026-11-19):** apply real en beta; 21.256 CREATE + 21.256 asientos ledger; 213 batches; 42.512 writes; D4-B strict-abort; rollback por manifiesto sin tocar ledger; `FINAL_MANIFEST_SHA256=86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
-- [ ] **Promoción F2 beta→main (PR estricto):** pendiente de certificación del diff y del PR `feature/web-inv-ingesta-002 → beta`; sin push directo a main.
+- [x] **Promoción F2 beta→main (PR estricto):** PR #8 mergeado a main (`0a62a4d`); CI prod #75 Success; UAT runtime producción 50→100/21256, filtros 18.856, búsqueda maestra OK, alternativas visibles. Paridad beta↔prod confirmada.
