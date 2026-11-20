@@ -1,8 +1,8 @@
 # STATE.md - Tienda Las Motos
 **Versión Actual:** v8.9.18
-**Fecha:** 2026-11-19
-**Rama Activa:** feature/web-inv-case-normalization-001 (WEB-INV-CASE-NORMALIZATION-001 certificado en beta; promoción a main pendiente por PR)
-**Última actividad:** 2026-11-19 — `WEB-INV-CASE-NORMALIZATION-001` certificado en beta: commit `7f635f3`, deploy beta y UAT read-only con paridad lowercase/uppercase y cuadre 21.256; promoción a main pendiente por PR estricto.
+**Fecha:** 2026-11-20
+**Rama Activa:** docs/psd-v8.9.18-promotion (addendum documental; promoción v8.9.18 a producción completa)
+**Última actividad:** 2026-11-20 — `WEB-INV-CASE-NORMALIZATION-001` promovido a producción y cerrado end-to-end: PR #11 `5947d69` + CI beta `44674219295`; PR #12 `a07dc36` (bypass admin); CI prod `44676885590` (#77) success; `PARITY=PASS`; UAT producción 7/7.
 
 ## Estado de Módulos
 - **WEB-038 (Inventario Repuestos):** COMPLETADO. 
@@ -140,3 +140,13 @@
 - **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` **CERRADA** (porción case-normalization); nuevas no bloqueantes `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING` y `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`; `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` sigue abierta/fuera de alcance.
 - **Desviaciones:** D1 UAT de fabricante sin escritura (corpus F2 vacío, cobertura por tests); D2 espacios internos no colapsados (residuo declarado fuera de alcance).
 - **Invariantes:** §25–§33 byte-idénticas; NAMING LOCK y ledger append-only intactos; sin backfill/migración; sin cambios de código en este commit documental.
+
+## Promoción WEB-INV-CASE-NORMALIZATION-001 a producción (v8.9.18, 2026-11-20)
+- **Estado:** **CERTIFICADO EN PRODUCCIÓN — CERRADO END-TO-END.**
+- **PR #11:** merge `5947d69` (`feature/web-inv-case-normalization-001 → beta`); CI beta run `44674219295` success.
+- **PR #12:** merge `a07dc36` (`beta → main`) vía bypass de admin; nueva observación no bloqueante `OBS-MAIN-REVIEW-REQUIREMENT-ADMIN-BYPASS`.
+- **CI producción:** run `44676885590` (#77) success, headSha `a07dc36`.
+- **Paridad:** `PARITY=PASS` entre `origin/main` y `origin/beta`.
+- **UAT producción 7/7:** 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; `bosch`/`BOSCH` 0/0 mismo vacío.
+- **Residuo conocido:** 3 Chrome Issues de accesibilidad/autofill, no bloqueantes.
+- **Versión:** v8.9.18 sin bump (precedente §28); sin cambios de código en este addendum documental.

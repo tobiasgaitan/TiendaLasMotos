@@ -144,5 +144,13 @@
 - [x] **Gates:** diff de exactamente 3 archivos; `tsc`/`lint`/`diff --check` EXIT 0; utils ALL PASSED; `actions.test.ts` 52/52; naming-lock + matching-ast 52/52 con SHA exigido; `test:ci` EXIT 0.
 - [x] **Deploy beta + UAT read-only:** `tiendalasmotos-beta.web.app` HTTP 200; 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; paridad conteo/listado; suma por categoría 21.256; `fabricante bosch`/`BOSCH` 0/0; cero errores de índice y `FIRESTORE_WRITES=0`.
 - [x] **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` cerrada en su porción case-normalization; nuevas no bloqueantes `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING` y `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`.
-- [ ] **Promoción `beta → main`:** pendiente de PR estricto; sin push directo a `main` en este ticket.
+- [x] **Promoción `beta → main`:** COMPLETA (2026-11-20); ver sección de promoción a producción. Sin push directo a `main`.
 - **Invariantes:** §25–§33 byte-idénticas; NAMING LOCK y ledger append-only intactos; sin backfill/migración; sin cambios de código en este commit documental.
+
+## Promoción a producción WEB-INV-CASE-NORMALIZATION-001 (v8.9.18, 2026-11-20)
+- [x] **PR #11:** merge `5947d69` (`feature/web-inv-case-normalization-001 → beta`); CI beta run `44674219295` success.
+- [x] **PR #12:** merge `a07dc36` (`beta → main`) vía bypass de admin; observación no bloqueante `OBS-MAIN-REVIEW-REQUIREMENT-ADMIN-BYPASS`.
+- [x] **CI producción:** run `44676885590` (#77) success, headSha `a07dc36`.
+- [x] **Paridad:** `PARITY=PASS` entre `origin/main` y `origin/beta`.
+- [x] **UAT producción 7/7:** 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; `bosch`/`BOSCH` 0/0 mismo vacío.
+- [x] **Cierre:** ticket cerrado end-to-end; versión v8.9.18 sin bump (precedente §28); residuo de 3 Chrome Issues no bloqueante.
