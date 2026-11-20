@@ -67,6 +67,13 @@ export async function contarRepuestos(
                 .where('referencia', '>=', data.referencia)
                 .where('referencia', '<=', `${data.referencia}\uf8ff`);
         }
+        if (data.referencia_alternativa) {
+            query = query.where(
+                'referencias_alternativas',
+                'array-contains',
+                data.referencia_alternativa
+            );
+        }
 
         const snap = await query.count().get();
         return { success: true, total: snap.data().count };

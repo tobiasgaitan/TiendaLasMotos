@@ -77,6 +77,7 @@ const BUSCAR_SOURCE = readFileSync(
     'src/app/admin/inventory/actions/buscarCandidatosRepuesto.ts',
     'utf8'
 );
+const INDEXES_SOURCE = readFileSync('firestore.indexes.json', 'utf8');
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -368,12 +369,31 @@ check(
         listarDefault.referencia === '' &&
         listarDefault.categoria === '' &&
         listarDefault.fabricante === '' &&
+        listarDefault.referencia_alternativa === '' &&
         listarDefault.cursor === undefined
 );
 check(
     'listarRepuestosSchema normaliza el prefijo a mayúsculas',
     listarRepuestosSchema.parse({ referencia: 'brk-0' }).referencia ===
         'BRK-0'
+);
+check(
+    'listarRepuestosSchema normaliza la referencia alternativa a mayúsculas',
+    listarRepuestosSchema.parse({
+        referencia_alternativa: '  alt-001  ',
+    }).referencia_alternativa === 'ALT-001'
+);
+check(
+    'listarRepuestosSchema rechaza referencia alternativa inválida',
+    !listarRepuestosSchema.safeParse({
+        referencia_alternativa: 'ALT 001',
+    }).success
+);
+check(
+    'listarRepuestosSchema rechaza referencia alternativa mayor a 64',
+    !listarRepuestosSchema.safeParse({
+        referencia_alternativa: 'A'.repeat(65),
+    }).success
 );
 const listarNormalizado = listarRepuestosSchema.parse({
     categoria: '  frenos  ',
@@ -405,13 +425,15 @@ const contarNormalizado = contarRepuestosSchema.safeParse({
     referencia: 'brk',
     categoria: '  Frenos  ',
     fabricante: '  Bosch  ',
+    referencia_alternativa: '  alt-002  ',
 });
 check(
-    'contarRepuestosSchema normaliza referencia, categoría y fabricante',
+    'contarRepuestosSchema normaliza referencia, categoría, fabricante y alternativa',
     contarNormalizado.success &&
         contarNormalizado.data.referencia === 'BRK' &&
         contarNormalizado.data.categoria === 'FRENOS' &&
-        contarNormalizado.data.fabricante === 'BOSCH'
+        contarNormalizado.data.fabricante === 'BOSCH' &&
+        contarNormalizado.data.referencia_alternativa === 'ALT-002'
 );
 
 const OTRO: RepuestoInventarioDTO = {
@@ -422,6 +444,7 @@ const OTRO: RepuestoInventarioDTO = {
     categoria: 'Lubricantes',
     precio: 45000,
     stock: 20,
+    referencias_alternativas: ['ACE-ALT-2'],
 };
 
 check(
@@ -430,6 +453,7 @@ check(
         referencia: 'brk',
         categoria: '',
         fabricante: '',
+        referencia_alternativa: '',
     }).length === 1
 );
 
@@ -439,11 +463,41 @@ check(
         referencia: '',
         categoria: 'Lubricantes',
         fabricante: 'Motul',
+        referencia_alternativa: '',
     }).length === 1 &&
         filtrarRepuestos([BASE, OTRO], {
             referencia: '',
             categoria: 'Lubricantes',
             fabricante: 'Honda',
+            referencia_alternativa: '',
+        }).length === 0
+);
+
+check(
+    'filtrarRepuestos aplica coincidencia exacta case-insensitive en alternativas',
+    filtrarRepuestos([BASE, OTRO], {
+        referencia: '',
+        categoria: '',
+        fabricante: '',
+        referencia_alternativa: 'brk-alt-1',
+    }).length === 1 &&
+        filtrarRepuestos([BASE, OTRO], {
+            referencia: '',
+            categoria: '',
+            fabricante: '',
+            referencia_alternativa: 'BRK-ALT',
+        }).length === 0 &&
+        filtrarRepuestos([BASE, OTRO], {
+            referencia: '',
+            categoria: '',
+            fabricante: '',
+            referencia_alternativa: 'ace-alt-2',
+        }).length === 1 &&
+        filtrarRepuestos([BASE, OTRO], {
+            referencia: '',
+            categoria: '',
+            fabricante: '',
+            referencia_alternativa: 'ALT-2',
         }).length === 0
 );
 
@@ -597,7 +651,9 @@ async function run() {
                 ".where('fabricante', '==', filtros.fabricante)"
             ) &&
             LISTAR_SOURCE.includes(".where('referencia', '>='") &&
-            LISTAR_SOURCE.includes(".where('referencia', '<='")
+            LISTAR_SOURCE.includes(".where('referencia', '<='") &&
+            LISTAR_SOURCE.includes("'referencias_alternativas'") &&
+            LISTAR_SOURCE.includes("'array-contains'")
     );
 
     check(
@@ -607,9 +663,41 @@ async function run() {
             CONTAR_SOURCE.includes("where('categoria'") &&
             CONTAR_SOURCE.includes("where('fabricante'") &&
             CONTAR_SOURCE.includes("where('referencia', '>='") &&
+            CONTAR_SOURCE.includes("'referencias_alternativas'") &&
+            CONTAR_SOURCE.includes("'array-contains'") &&
             !CONTAR_SOURCE.includes('startAfter') &&
             !CONTAR_SOURCE.includes('.orderBy(') &&
             !CONTAR_SOURCE.includes('siguienteCursor')
+    );
+
+    const indexes = (
+        JSON.parse(INDEXES_SOURCE) as {
+            indexes: Array<{
+                collectionGroup: string;
+                fields: Array<{ fieldPath: string; arrayConfig?: string }>;
+            }>;
+        }
+    ).indexes;
+    const indicesAlternativas = indexes.filter(
+        (index) =>
+            index.collectionGroup === 'inventario_repuestos' &&
+            index.fields.some(
+                (field) =>
+                    field.fieldPath === 'referencias_alternativas' &&
+                    field.arrayConfig === 'CONTAINS'
+            )
+    );
+
+    check(
+        'firestore.indexes.json declara los 4 índices de alternativas con CONTAINS',
+        indicesAlternativas.length === 4 &&
+            indicesAlternativas.every(
+                (index) =>
+                    index.fields[index.fields.length - 2]?.fieldPath ===
+                        'referencia' &&
+                    index.fields[index.fields.length - 1]?.fieldPath ===
+                        '__name__'
+            )
     );
 
     check(

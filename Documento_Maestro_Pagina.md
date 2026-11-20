@@ -971,3 +971,25 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 - Sin backfill, migración, purga ni edición del ledger `historial_auditoria_inventario`.
 - Sin cambios en `bot-tiendalasmotos`, `functions/`, `firestore.rules`, `firestore.indexes.json`, `package.json`, `package-lock.json` ni `src/app/maintenance/page.tsx`.
 - §25–§33 permanecen byte-idénticas; el diff del PSD se limita a la línea de cabecera y a esta §34 agregada al final.
+
+### 34.10 Promoción a producción (2026-11-20)
+
+- **PR #11:** merge `5947d69` (`feature/web-inv-case-normalization-001 → beta`); CI beta run `44674219295` **success**.
+- **PR #12:** merge `a07dc36` (`beta → main`) vía **bypass de admin**; se registra `OBS-MAIN-REVIEW-REQUIREMENT-ADMIN-BYPASS` como observación no bloqueante.
+- **CI producción:** run `44676885590` (#77) **success**, headSha `a07dc36`.
+- **Paridad:** `PARITY=PASS` entre `origin/main` y `origin/beta`.
+- **UAT producción 7/7:**
+
+| # | Verificación | Resultado |
+| --- | --- | --- |
+| 1 | Total sin filtro | 21.256 ✔ |
+| 2 | `repuestos` | 18.856 ✔ |
+| 3 | `REPUESTOS` | 18.856 ✔ |
+| 4 | `los originales` | 1.507 ✔ |
+| 5 | `LOS ORIGINALES` | 1.507 ✔ |
+| 6 | `bosch` | 0 (mismo vacío) ✔ |
+| 7 | `BOSCH` | 0 (mismo vacío) ✔ |
+
+- **Residuo conocido:** 3 Chrome Issues de accesibilidad/autofill; no bloqueantes, sin ticket nuevo en este cierre.
+- **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
+- **Cierre:** `WEB-INV-CASE-NORMALIZATION-001` cerrado end-to-end (implementación, beta, promoción y producción); sin cambios de código en este addendum.

@@ -233,6 +233,46 @@
       ]
     },
     {
+      "collectionGroup": "inventario_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "referencias_alternativas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "referencia", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inventario_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "referencias_alternativas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "referencia", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inventario_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fabricante", "order": "ASCENDING" },
+        { "fieldPath": "referencias_alternativas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "referencia", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inventario_repuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "fabricante", "order": "ASCENDING" },
+        { "fieldPath": "referencias_alternativas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "referencia", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "fotos_inventario",
       "queryScope": "COLLECTION",
       "fields": [

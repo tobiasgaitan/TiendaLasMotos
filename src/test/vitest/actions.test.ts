@@ -1627,6 +1627,106 @@ describe('MT-07 Server Actions contracts', () => {
         expect(porPrefijo.repuestos).toHaveLength(3);
     });
 
+    it('listarRepuestos filtra por referencia alternativa exacta', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'BOSCH',
+            referencias_alternativas: ['ALT-001'],
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'HONDA',
+            referencias_alternativas: ['ALT-002', 'ALT-003'],
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'MOTUL',
+        });
+
+        const porAlternativa = await listarRepuestos(
+            { referencia_alternativa: 'alt-001', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porAlternativa.repuestos.map((r) => r.documento_id)
+        ).toEqual(['a']);
+
+        const porSegundaAlternativa = await listarRepuestos(
+            { referencia_alternativa: 'ALT-003', limite: 50 },
+            ACTOR
+        );
+        expect(
+            porSegundaAlternativa.repuestos.map((r) => r.documento_id)
+        ).toEqual(['b']);
+
+        const combinado = await listarRepuestos(
+            {
+                referencia_alternativa: 'alt-002',
+                categoria: 'frenos',
+                fabricante: 'honda',
+                limite: 50,
+            },
+            ACTOR
+        );
+        expect(combinado.repuestos.map((r) => r.documento_id)).toEqual([
+            'b',
+        ]);
+
+        const inexistente = await listarRepuestos(
+            { referencia_alternativa: 'ALT-999', limite: 50 },
+            ACTOR
+        );
+        expect(inexistente.repuestos).toHaveLength(0);
+
+        const prefijo = await listarRepuestos(
+            { referencia_alternativa: 'ALT', limite: 50 },
+            ACTOR
+        );
+        expect(prefijo.repuestos).toHaveLength(0);
+    });
+
+    it('contarRepuestos cuenta por referencia alternativa exacta', async () => {
+        prepararAdmin();
+        seedRepuesto('a', 'A-001', {
+            categoria: 'FRENOS',
+            fabricante: 'BOSCH',
+            referencias_alternativas: ['ALT-001'],
+        });
+        seedRepuesto('b', 'A-002', {
+            categoria: 'FRENOS',
+            fabricante: 'HONDA',
+            referencias_alternativas: ['ALT-002'],
+        });
+        seedRepuesto('c', 'A-003', {
+            categoria: 'LUBRICANTES',
+            fabricante: 'MOTUL',
+        });
+
+        const porAlternativa = await contarRepuestos(
+            { referencia_alternativa: 'alt-001' },
+            ACTOR
+        );
+        expect(porAlternativa.total).toBe(1);
+
+        const combinado = await contarRepuestos(
+            {
+                referencia_alternativa: 'ALT-002',
+                categoria: 'frenos',
+                fabricante: 'honda',
+            },
+            ACTOR
+        );
+        expect(combinado.total).toBe(1);
+
+        const inexistente = await contarRepuestos(
+            { referencia_alternativa: 'ALT-999' },
+            ACTOR
+        );
+        expect(inexistente.total).toBe(0);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
     it('contarRepuestos usa count() con filtros y no devuelve documentos', async () => {
         prepararAdmin();
         seedRepuesto('a', 'A-001', {
