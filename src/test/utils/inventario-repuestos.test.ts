@@ -235,14 +235,14 @@ const CREAR_BASE = {
 
 const crearOk = crearRepuestoSchema.safeParse(CREAR_BASE);
 check(
-    'crearRepuestoSchema normaliza referencia, sede y ubicación libre',
+    'crearRepuestoSchema normaliza referencia, sede, texto de catálogo y ubicación libre',
     crearOk.success &&
         crearOk.data.referencia === 'BRK-010' &&
         crearOk.data.sede_id === 'sede-1' &&
         crearOk.data.ubicacion === 'Área Norte' &&
         crearOk.data.descripcion === 'Pastillas de freno' &&
-        crearOk.data.fabricante === 'Bosch' &&
-        crearOk.data.categoria === 'Frenos' &&
+        crearOk.data.fabricante === 'BOSCH' &&
+        crearOk.data.categoria === 'FRENOS' &&
         crearOk.data.referencias_alternativas.length === 1 &&
         crearOk.data.referencias_alternativas[0] === 'BRK-011'
 );
@@ -375,6 +375,15 @@ check(
     listarRepuestosSchema.parse({ referencia: 'brk-0' }).referencia ===
         'BRK-0'
 );
+const listarNormalizado = listarRepuestosSchema.parse({
+    categoria: '  frenos  ',
+    fabricante: '  bosch  ',
+});
+check(
+    'listarRepuestosSchema normaliza categoría y fabricante a mayúsculas',
+    listarNormalizado.categoria === 'FRENOS' &&
+        listarNormalizado.fabricante === 'BOSCH'
+);
 check(
     'listarRepuestosSchema acepta cursor válido',
     listarRepuestosSchema.safeParse({
@@ -392,13 +401,17 @@ check(
     'listarRepuestosSchema rechaza límite fuera de rango',
     !listarRepuestosSchema.safeParse({ limite: 201 }).success
 );
+const contarNormalizado = contarRepuestosSchema.safeParse({
+    referencia: 'brk',
+    categoria: '  Frenos  ',
+    fabricante: '  Bosch  ',
+});
 check(
-    'contarRepuestosSchema acepta los mismos filtros sin cursor/límite',
-    contarRepuestosSchema.safeParse({
-        referencia: 'brk',
-        categoria: 'Frenos',
-        fabricante: 'Bosch',
-    }).data?.referencia === 'BRK'
+    'contarRepuestosSchema normaliza referencia, categoría y fabricante',
+    contarNormalizado.success &&
+        contarNormalizado.data.referencia === 'BRK' &&
+        contarNormalizado.data.categoria === 'FRENOS' &&
+        contarNormalizado.data.fabricante === 'BOSCH'
 );
 
 const OTRO: RepuestoInventarioDTO = {
