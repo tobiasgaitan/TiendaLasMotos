@@ -1,6 +1,6 @@
 # ROADMAP: Centralización de Captura de Leads (Contrato v8.3.2)
 
-**Versión Canónica Vigente:** v8.9.17
+**Versión Canónica Vigente:** v8.9.18
 
 ## Fase 1: Migración de Calculadoras y Verificación Final [COMPLETADO]
 - **Objetivo**: Eliminar la persistencia descentralizada en `QuoteGenerator.tsx` y centralizar todo el tráfico en la Server Action `submitLead`.
@@ -138,3 +138,11 @@
 - [x] **WEB-INV-INGESTA-001-F1 (2026-11-18):** run-7 read-only PASS; 21.256 CREATE / 374 CENSAR / 94 CUARENTENA / 3.531 OMITIDA; §32 aditivo; scripts F1 y evidencia run-7.
 - [x] **WEB-INV-INGESTA-002-F2 (2026-11-19):** apply real en beta; 21.256 CREATE + 21.256 asientos ledger; 213 batches; 42.512 writes; D4-B strict-abort; rollback por manifiesto sin tocar ledger; `FINAL_MANIFEST_SHA256=86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
 - [x] **Promoción F2 beta→main (PR estricto):** PR #8 mergeado a main (`0a62a4d`); CI prod #75 Success; UAT runtime producción 50→100/21256, filtros 18.856, búsqueda maestra OK, alternativas visibles. Paridad beta↔prod confirmada.
+
+## Cierre WEB-INV-CASE-NORMALIZATION-001 (v8.9.18, 2026-11-19)
+- [x] **WEB-INV-CASE-NORMALIZATION-001 certificado en beta:** commit único `7f635f3` en `feature/web-inv-case-normalization-001`; schema compartido `textoCatalogoSchema` (`trim` → mayúsculas → max 100 canónico) aplicado a alta y filtros de `categoria`/`fabricante`; cubre `listarRepuestosSchema` y `contarRepuestosSchema`.
+- [x] **Gates:** diff de exactamente 3 archivos; `tsc`/`lint`/`diff --check` EXIT 0; utils ALL PASSED; `actions.test.ts` 52/52; naming-lock + matching-ast 52/52 con SHA exigido; `test:ci` EXIT 0.
+- [x] **Deploy beta + UAT read-only:** `tiendalasmotos-beta.web.app` HTTP 200; 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; paridad conteo/listado; suma por categoría 21.256; `fabricante bosch`/`BOSCH` 0/0; cero errores de índice y `FIRESTORE_WRITES=0`.
+- [x] **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` cerrada en su porción case-normalization; nuevas no bloqueantes `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING` y `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`.
+- [ ] **Promoción `beta → main`:** pendiente de PR estricto; sin push directo a `main` en este ticket.
+- **Invariantes:** §25–§33 byte-idénticas; NAMING LOCK y ledger append-only intactos; sin backfill/migración; sin cambios de código en este commit documental.

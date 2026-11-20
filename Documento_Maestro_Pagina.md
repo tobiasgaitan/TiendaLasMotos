@@ -1,5 +1,5 @@
 # Documento Maestro de la Página (Tienda Las Motos)
-**Versión del Stack & Hitos:** v8.9.17  
+**Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-19  
 **Estado:** promoción v8.9.16 certificada vía PR #4 (WEB-049-P1, WEB-050-P1, WEB-051-P1 + refactors); UAT runtime prod 4/4 CUMPLE; OBS-PROD-DATOS-PRUEBA-RESIDUALES cerrada §31; OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR RE-ABIERTA por push directo ef7a8e7; OBS-REFACTOR-STACK-UNPUSHED-NO-CI cerrada; OBS-AUTH-WHITELIST-DESPARITY abierta; Frente A (catálogo 0/0/0) diferido con riesgo aceptado por Director.
 
@@ -889,3 +889,85 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 - **Cero push a `main`** hasta la certificación de Fase 2 en beta; el merge `beta → main` irá por **PR estricto** (no se re-manifiesta `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`).
 - **Commit, push y PR** del paquete F2 permanecen bloqueados hasta la certificación del diff por el Director.
 - El apply real ya ocurrió; este §33 documenta el estado, no autoriza una nueva escritura.
+
+## 34. WEB-INV-CASE-NORMALIZATION-001 — Normalización de categoría y fabricante en alta y filtros (2026-11-19)
+**Estado:** **CERTIFICADO EN BETA** (deploy hosting beta exitoso y UAT read-only PASS). Promoción `beta → main` pendiente de PR estricto.
+**Versión:** v8.9.18 (bump documental de cabecera). Las menciones históricas de v8.9.16 y v8.9.17 en §29–§33 quedan **intactas**.
+**Rama:** `feature/web-inv-case-normalization-001` en `7f635f3` (base `origin/feature/web-inv-ingesta-002` @ `147286e`).
+**Ticket:** `WEB-INV-CASE-NORMALIZATION-001`, derivado de `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`.
+**Naturaleza:** sección aditiva conforme al precedente §25.A. No reescribe §25 ni §28–§33.
+
+### 34.1 Causa raíz
+
+- Los documentos de `inventario_repuestos` escritos por F2 tienen `categoria` en mayúsculas (`REPUESTOS`, `LOS ORIGINALES`, etc.).
+- `filtrosRepuestosShape` y `crearRepuestoSchema` solo aplicaban `trim()` y `max(100)`, sin canonicalización de mayúsculas.
+- Firestore compara igualdad de forma case-sensitive: un filtro `categoria=repuestos` o `fabricante=bosch` no encontraba documentos persistidos como `REPUESTOS`/`BOSCH`, produciendo listados y conteos vacíos aunque el dato existiera.
+- La alta administrativa heredaba el casing del formulario, generando documentos nuevos incompatibles con los filtros canónicos.
+
+### 34.2 Solución
+
+- Schema compartido único `textoCatalogoSchema = z.string().trim().toUpperCase().max(100)`, insertado en `src/lib/actions/inventario-repuestos-schemas.ts` después de `precioSchema`; la longitud máxima se evalúa sobre el valor canónico.
+- `crearRepuestoSchema`: `fabricante` y `categoria` usan `textoCatalogoSchema.optional()`.
+- `filtrosRepuestosShape`: `categoria` y `fabricante` usan `textoCatalogoSchema.default('')`; cubre automáticamente `listarRepuestosSchema` y `contarRepuestosSchema`.
+- Sin cambios en `referenciaPrefijoSchema`, `referenciaSchema`, `editarRepuestoSchema`, `eliminarRepuestoSchema` ni `cambiosRepuestoSchema`. Sin backfill ni migración: los valores F2 ya son mayúsculas y `fabricante` está vacío por diseño.
+
+### 34.3 Matriz UAT runtime beta (read-only)
+
+| Filtro | Entrada lowercase | Entrada uppercase | Conteo | Listado | Paridad |
+| --- | --- | --- | --- | --- | --- |
+| `categoria` | `repuestos` | `REPUESTOS` | 18.856 / 18.856 | 18.856 / 18.856 | ✔ |
+| `categoria` | `los originales` | `LOS ORIGINALES` | 1.507 / 1.507 | 1.507 / 1.507 | ✔ |
+| `fabricante` | `bosch` | `BOSCH` | 0 / 0 | 0 / 0 | ✔ (corpus F2 con `fabricante: ''` por diseño) |
+
+- Total sin filtro: **21.256** documentos; suma de conteos por categoría: **21.256** (`REPUESTOS` 18.856, `LOS ORIGINALES` 1.507, `ACCESORIOS` 812, `LUBRICANTES` 49, `GENERICOS` 18, `LINEA DE CUIDADO` 14).
+- Cero errores de índice en consola; cero `FIRESTORE_WRITES`; 61.986 lecturas read-only (`count()` + `get()`).
+- Deploy beta: `tiendalasmotos-beta.web.app`, hook PR-689 `PREPARED`, HTTP 200.
+
+### 34.4 Gates certificados
+
+- Diff exacto de 3 archivos: `inventario-repuestos-schemas.ts`, `inventario-repuestos.test.ts`, `actions.test.ts`.
+- `npx tsc --noEmit` EXIT 0 sin salida; `npm run lint` EXIT 0; `git diff --check` limpio.
+- `npx tsx src/test/utils/inventario-repuestos.test.ts` ALL PASSED; `actions.test.ts` 52/52; `naming-lock` + `inventario-matching-ast` 52/52 con `REFERENCIA_SCHEMA_SHA256=1be94dea1ccee09e6f72f80be8f413333a6025e8588002547a70e092073ef7f5`; `npm run test:ci` EXIT 0 (smoke + 152 unit + 10 render).
+- Commit único `7f635f3`; push a `origin/feature/web-inv-case-normalization-001`; sin push a `main`.
+
+### 34.5 CHANGELOG obligatorio
+
+**Qué se cambió**
+- `src/lib/actions/inventario-repuestos-schemas.ts`: nuevo `textoCatalogoSchema` compartido y su aplicación en alta y filtros.
+- `src/test/utils/inventario-repuestos.test.ts`: expectativas uppercase en alta, caso de normalización de `listarRepuestosSchema` y check normalizado de `contarRepuestosSchema`.
+- `src/test/vitest/actions.test.ts`: semillas canónicas, aserciones uppercase de documento y ledger, casos lowercase de listado y conteo.
+- Cabecera del PSD bump a v8.9.18 y nueva §34 aditiva; `.planning/STATE.md` y `.planning/ROADMAP.md` sincronizados.
+
+**Qué se reparó**
+- Filtros `categoria`/`fabricante` de la admin ya no dependen del casing del input.
+- Altas administrativas escriben valores canónicos compatibles con el corpus F2 y con los filtros.
+- Paridad conteo/listado y cuadre de totales por categoría certificados en beta.
+
+**Qué se preservó intacto**
+- §25–§33 byte-idénticas; menciones históricas v8.9.16/v8.9.17 en §29–§33.
+- NAMING LOCK, `referenciaSchema`, `referenciaPrefijoSchema`, edición/eliminación/cambios, ledger append-only y datos históricos.
+- Cero cambios en `src/` fuera de los 3 archivos, `functions/`, bot, reglas, índices y `package.json`/`package-lock.json`.
+
+### 34.6 Desviaciones registradas
+
+- **D1 — UAT de fabricante sin escritura:** el corpus F2 tiene `fabricante: ''` por diseño; no se ejecutó demo CREATE+DELETE ni UAT de volumen. La cobertura lowercase/uppercase de fabricante queda certificada por tests de schema y de acción, y por la paridad `bosch`/`BOSCH` (ambos 0) en runtime.
+- **D2 — Espacios internos:** la forma canónica administrativa aplica `trim` + mayúsculas, sin colapsar espacios internos múltiples. Borde residual declarado y fuera de alcance; candidato a observación futura, sin ticket en este cierre.
+
+### 34.7 Observaciones
+
+- `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`: **CERRADA** por este ticket en su porción de normalización de caso; la búsqueda parcial/contains sigue fuera de alcance y no se reabre aquí.
+- `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING`: **nueva**, no bloqueante.
+- `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`: **nueva**, no bloqueante (aviso de versión de `firebase-functions` durante el deploy; sin impacto en este ticket).
+- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **ABIERTA**, fuera de alcance.
+- Residuo de accesibilidad `§9.C.6`: se mantiene registrado en su ubicación original; esta sección no lo duplica ni lo reabre.
+
+### 34.8 Coherence Score
+
+**Coherence Score: 0.98.** Gates estáticos y de tests en verde, diff de exactamente 3 archivos, commit único, deploy beta y UAT read-only con paridad lowercase/uppercase y cuadre exacto de totales. La certificación de runtime beta habilita la Fase 3 documental; la promoción a `main` queda pendiente por PR estricto.
+
+### 34.9 Invariantes y bloqueo
+
+- **Cero push a `main`** en este ticket; el merge `beta → main` irá por PR estricto.
+- Sin backfill, migración, purga ni edición del ledger `historial_auditoria_inventario`.
+- Sin cambios en `bot-tiendalasmotos`, `functions/`, `firestore.rules`, `firestore.indexes.json`, `package.json`, `package-lock.json` ni `src/app/maintenance/page.tsx`.
+- §25–§33 permanecen byte-idénticas; el diff del PSD se limita a la línea de cabecera y a esta §34 agregada al final.
