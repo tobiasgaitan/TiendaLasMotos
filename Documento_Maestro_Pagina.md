@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
-**Última Actualización:** 2026-11-19  
-**Estado:** promoción v8.9.16 certificada vía PR #4 (WEB-049-P1, WEB-050-P1, WEB-051-P1 + refactors); UAT runtime prod 4/4 CUMPLE; OBS-PROD-DATOS-PRUEBA-RESIDUALES cerrada §31; OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR RE-ABIERTA por push directo ef7a8e7; OBS-REFACTOR-STACK-UNPUSHED-NO-CI cerrada; OBS-AUTH-WHITELIST-DESPARITY abierta; Frente A (catálogo 0/0/0) diferido con riesgo aceptado por Director.
+**Última Actualización:** 2026-11-20 
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); addendum §34.11 registrado (commit 0c32acb); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-INV-ADMIN-EMPTY-COPY-MISLEADING ABIERTA; OBS-PROD-DATOS-PRUEBA-RESIDUALES ABIERTA; pipeline canónico feature→beta→main restaurado.
 
 ---
 
