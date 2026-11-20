@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
-**Última Actualización:** 2026-11-19  
-**Estado:** promoción v8.9.16 certificada vía PR #4 (WEB-049-P1, WEB-050-P1, WEB-051-P1 + refactors); UAT runtime prod 4/4 CUMPLE; OBS-PROD-DATOS-PRUEBA-RESIDUALES cerrada §31; OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR RE-ABIERTA por push directo ef7a8e7; OBS-REFACTOR-STACK-UNPUSHED-NO-CI cerrada; OBS-AUTH-WHITELIST-DESPARITY abierta; Frente A (catálogo 0/0/0) diferido con riesgo aceptado por Director.
+**Última Actualización:** 2026-11-20 
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); addendum §34.11 registrado (commit 0c32acb); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-INV-ADMIN-EMPTY-COPY-MISLEADING ABIERTA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -993,3 +993,37 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 - **Residuo conocido:** 3 Chrome Issues de accesibilidad/autofill; no bloqueantes, sin ticket nuevo en este cierre.
 - **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
 - **Cierre:** `WEB-INV-CASE-NORMALIZATION-001` cerrado end-to-end (implementación, beta, promoción y producción); sin cambios de código en este addendum.
+
+34.11 Promoción de T-01 + T-02 — Filtro por referencia alternativa y fix de UX (2026-11-20)
+Estado:  CERTIFICADO EN PRODUCCIÓN.
+Versión:  se mantiene  v8.9.18  sin bump, conforme al precedente §28.
+
+A. T-01 —  WEB-INV-FILTRO-ADMIN-ALTERNATIVAS-001
+1.  PR #14:  merge  cfe7af1  ( feature/web-inv-filtro-referencia-alternativa-001 → main ) con desviación de gobernanza (feature→main directo, sin fase beta). Se registra  OBS-PROMOTE-PR14-SKIP-BETA-001 .
+2.  Alcance:  9 archivos,  +279 / -4 . Schema  referencia_alternativa  en  filtrosRepuestosShape ;  array-contains  en  listarRepuestos  y  contarRepuestos ; cuarto input en UI; helper  filtrarRepuestos  actualizado; 4 índices compuestos aditivos en  firestore.indexes.json .
+3.  Smoke test real:  5/5 variantes PASSED sobre Firestore (21.256 docs, 224 con alternativas, 0 lowercase).
+4.  UAT producción:  alternativa  7707008733697  → 1 resultado (doc  01P192 , LOS ORIGINALES).
+
+B. T-02 —  WEB-INV-FILTRO-ALTERNATIVA-UX-001
+1.  PR #15:  merge  1a8cf7d  ( feature/web-inv-filtro-alternativa-ux-001 → beta ); CI beta run  #222  success.
+2.  PR #16:  merge  edd9985  ( beta → main ); CI producción run  #80  success.
+3.  Alcance:  1 archivo ( InventarioRepuestosClient.tsx ),  +17 / -17 . Reordenamiento del grid a REFERENCIA → REFERENCIA ALTERNATIVA → CATEGORÍA → FABRICANTE; label visible  "Alternativa" → "Referencia Alternativa" . Cero impacto en contratos, schemas, Server Actions, Firestore ni tests.
+4.  UAT producción:  grid con orden correcto, label  "REFERENCIA ALTERNATIVA"  visible, filtro  7707008733697  devuelve 1/1 con paridad lista/conteo.
+
+C. Gobernanza restaurada
+1.  El ciclo T-02 (PR #15 → PR #16) restaura el pipeline canónico  feature → beta → main .
+2.  OBS-PROMOTE-PR14-SKIP-BETA-001  queda registrada como desviación única no re-manifestada.
+
+D. Invariantes
+1.  NAMING LOCK intacto; claves  referencias_alternativas  (Firestore) y  referencia_alternativa  (TS) sin renombre.
+2.  Cero cambios en  bot-tiendalasmotos ,  functions/ ,  firestore.rules ,  package.json ,  package-lock.json .
+3.  §25–§34.10 permanecen byte-idénticas; §34.11 es aditiva conforme al precedente §25.A.
+
+### 34.12 Cierre de OBS-PROD-DATOS-PRUEBA-RESIDUALES (2026-11-20)
+
+- **Observación:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` queda **CERRADA**.
+- **Antecedente:** `WEB-051-P1` saneó el clúster de simulación con `PARITY=PASS` (§31).
+- **Verificación forense:** el escaneo read-only actual retornó **0 residuos** en las colecciones críticas auditadas (`prospectos`, `creditos`, `clientes_credito`, `sys_admin_users`).
+- **Header:** el campo `Estado:` marca ahora `OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA`; el resto del header permanece intacto.
+- **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
+- **Invariantes:** §25–§34.11 permanecen byte-idénticas; NAMING LOCK y ledger append-only intactos; sin cambios de código, infraestructura, reglas, índices ni datos; sin scripts de purga ni lecturas/escrituras adicionales en Firestore.
