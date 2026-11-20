@@ -138,6 +138,13 @@ export async function listarRepuestos(
                 .where('referencia', '>=', filtros.referencia)
                 .where('referencia', '<=', `${filtros.referencia}\uf8ff`);
         }
+        if (filtros.referencia_alternativa) {
+            query = query.where(
+                'referencias_alternativas',
+                'array-contains',
+                filtros.referencia_alternativa
+            );
+        }
 
         query = query
             .orderBy('referencia')

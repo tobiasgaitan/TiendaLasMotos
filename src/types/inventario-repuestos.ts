@@ -23,6 +23,7 @@ export interface FiltrosRepuesto {
     referencia: string;
     categoria: string;
     fabricante: string;
+    referencia_alternativa: string;
 }
 
 export interface BorradorRepuesto {
