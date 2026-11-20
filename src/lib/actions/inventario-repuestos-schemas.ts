@@ -129,6 +129,7 @@ const filtrosRepuestosShape = {
     referencia: referenciaPrefijoSchema.default(''),
     categoria: textoCatalogoSchema.default(''),
     fabricante: textoCatalogoSchema.default(''),
+    referencia_alternativa: referenciaPrefijoSchema.default(''),
 };
 
 export const listarRepuestosSchema = z

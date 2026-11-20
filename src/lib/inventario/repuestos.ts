@@ -26,6 +26,7 @@ export function filtrarRepuestos(
     const referencia = normalizar(filtros.referencia);
     const categoria = normalizar(filtros.categoria);
     const fabricante = normalizar(filtros.fabricante);
+    const alternativa = normalizar(filtros.referencia_alternativa);
 
     return repuestos.filter((repuesto) => {
         if (
@@ -38,6 +39,15 @@ export function filtrarRepuestos(
             return false;
         }
         if (fabricante && normalizar(repuesto.fabricante) !== fabricante) {
+            return false;
+        }
+        if (
+            alternativa &&
+            !(repuesto.referencias_alternativas ?? []).some(
+                (referenciaAlternativa) =>
+                    normalizar(referenciaAlternativa) === alternativa
+            )
+        ) {
             return false;
         }
         return true;
