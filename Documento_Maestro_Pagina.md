@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-20 
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); addendum §34.11 registrado (commit 0c32acb); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-INV-ADMIN-EMPTY-COPY-MISLEADING ABIERTA; OBS-PROD-DATOS-PRUEBA-RESIDUALES ABIERTA; pipeline canónico feature→beta→main restaurado.
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); addendum §34.11 registrado (commit 0c32acb); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-INV-ADMIN-EMPTY-COPY-MISLEADING ABIERTA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1018,3 +1018,12 @@ D. Invariantes
 1.  NAMING LOCK intacto; claves  referencias_alternativas  (Firestore) y  referencia_alternativa  (TS) sin renombre.
 2.  Cero cambios en  bot-tiendalasmotos ,  functions/ ,  firestore.rules ,  package.json ,  package-lock.json .
 3.  §25–§34.10 permanecen byte-idénticas; §34.11 es aditiva conforme al precedente §25.A.
+
+### 34.12 Cierre de OBS-PROD-DATOS-PRUEBA-RESIDUALES (2026-11-20)
+
+- **Observación:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES` queda **CERRADA**.
+- **Antecedente:** `WEB-051-P1` saneó el clúster de simulación con `PARITY=PASS` (§31).
+- **Verificación forense:** el escaneo read-only actual retornó **0 residuos** en las colecciones críticas auditadas (`prospectos`, `creditos`, `clientes_credito`, `sys_admin_users`).
+- **Header:** el campo `Estado:` marca ahora `OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA`; el resto del header permanece intacto.
+- **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
+- **Invariantes:** §25–§34.11 permanecen byte-idénticas; NAMING LOCK y ledger append-only intactos; sin cambios de código, infraestructura, reglas, índices ni datos; sin scripts de purga ni lecturas/escrituras adicionales en Firestore.
