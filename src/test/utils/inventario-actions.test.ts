@@ -138,6 +138,21 @@ async function run() {
             CREAR_SOURCE.includes('La referencia no coincide')
     );
     check(
+        'acciones de conteos revalidan Aprobaciones, no Motos',
+        !CREAR_SOURCE.includes("revalidatePath('/admin/inventory')") &&
+            !APROBAR_SOURCE.includes("revalidatePath('/admin/inventory')") &&
+            !RECHAZAR_SOURCE.includes("revalidatePath('/admin/inventory')") &&
+            CREAR_SOURCE.includes(
+                "revalidatePath('/admin/inventario-aprobaciones')"
+            ) &&
+            APROBAR_SOURCE.includes(
+                "revalidatePath('/admin/inventario-aprobaciones')"
+            ) &&
+            RECHAZAR_SOURCE.includes(
+                "revalidatePath('/admin/inventario-aprobaciones')"
+            )
+    );
+    check(
         'aprobarConteo y rechazarConteo usan Transaction tipado',
         APROBAR_SOURCE.includes('tx: Transaction') &&
             RECHAZAR_SOURCE.includes('tx: Transaction') &&
