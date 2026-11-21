@@ -191,7 +191,7 @@ check(
 
 // --- Faraday / contrato estático de la action ---
 const actionSource = readFileSync(
-    'src/app/admin/inventory/actions/buscarCandidatosRepuesto.ts',
+    'src/app/admin/inventario-asesor/actions/buscarCandidatosRepuesto.ts',
     'utf8'
 );
 check("action declara 'use server'", actionSource.startsWith("'use server';"));

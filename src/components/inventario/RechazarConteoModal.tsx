@@ -6,7 +6,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
 import { useAuth } from '@/context/AuthContext';
-import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
+import { rechazarConteo } from '@/app/admin/inventario-aprobaciones/actions/rechazarConteo';
 import { validarMotivoRechazo } from '@/lib/inventario/ui-helpers';
 import type { PendienteDTO } from '@/types/inventario';
 

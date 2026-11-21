@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
-**Última Actualización:** 2026-11-20 
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); addendum §34.11 registrado (commit 0c32acb); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-INV-ADMIN-EMPTY-COPY-MISLEADING ABIERTA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; pipeline canónico feature→beta→main restaurado.
+**Última Actualización:** 2026-11-21 
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5) y §34.13 registrados; OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1027,3 +1027,23 @@ D. Invariantes
 - **Header:** el campo `Estado:` marca ahora `OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA`; el resto del header permanece intacto.
 - **Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §28.
 - **Invariantes:** §25–§34.11 permanecen byte-idénticas; NAMING LOCK y ledger append-only intactos; sin cambios de código, infraestructura, reglas, índices ni datos; sin scripts de purga ni lecturas/escrituras adicionales en Firestore.
+
+34.13 Cierre de OBS-INV-ADMIN-EMPTY-COPY-MISLEADING — T-04 (2026-11-21)
+Estado:  CERRADA EN PRODUCCIÓN.
+Versión:  se mantiene  v8.9.18  sin bump, conforme al precedente §28.
+
+A. T-04 —  WEB-INV-ADMIN-EMPTY-COPY-001
+1.  PR #18:  merge  3e8fd32  ( feature/web-inv-empty-state-filtros-001 → beta ); deploy beta run  #223  success.
+2.  PR #19:  merge  88a778e  ( beta → main ); deploy producción run  #84  success.
+3.  Alcance:  3 archivos,  +88 / -13 : helper puro  hayFiltrosActivos  en  src/lib/inventario/repuestos.ts ; bifurcación de copy en el empty state de  InventarioRepuestosClient.tsx  según filtros activos; eliminación del dead code inalcanzable (copy de filtros anidado dentro de  repuestos.length > 0 ); 3 checks unitarios del predicado.
+4.  Causa raíz cerrada:  el copy  "No hay repuestos que coincidan con los filtros."  era inalcanzable por anidamiento en condición mutuamente excluyente; con filtros activos y 0 coincidencias solo se mostraba  "No hay repuestos registrados." .
+
+B. UAT producción (read-only)
+1.  Sin filtros:  tabla  50 / 21.256  repuestos.
+2.  REFERENCIA ALTERNATIVA =  ZZZ-SIN-MATCH : copy nuevo  "No hay repuestos que coincidan con los filtros."  +  "Ajusta o limpia los filtros para ver otros resultados." , sin tabla y sin error.
+3.  REFERENCIA ALTERNATIVA =  7707008733697 :  1 de 1  (doc  01P192 , LOS ORIGINALES), paridad lista/conteo.
+4.  Consola:  sin mensajes de error; contador de Issues de Chrome en 4 (familia autofill/accesibilidad §9.C.6); el delta 3→4 se autopsiará en la Fase 0 de  WEB-A11Y-FILTER-INPUTS-IDS-001 , sin causa asumida.
+
+C. Invariantes
+1.  NAMING LOCK intacto; cero cambios en schemas, Server Actions, types, Firestore,  firestore.indexes.json ,  package.json ,  package-lock.json , bot y  functions/ .
+2.  §1–§34.12 permanecen byte-idénticas; §34.13 es aditiva conforme al precedente §25.A.

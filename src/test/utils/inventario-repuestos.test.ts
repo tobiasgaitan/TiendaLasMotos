@@ -75,7 +75,7 @@ const CONTAR_SOURCE = readFileSync(
     'utf8'
 );
 const BUSCAR_SOURCE = readFileSync(
-    'src/app/admin/inventory/actions/buscarCandidatosRepuesto.ts',
+    'src/app/admin/inventario-asesor/actions/buscarCandidatosRepuesto.ts',
     'utf8'
 );
 const INDEXES_SOURCE = readFileSync('firestore.indexes.json', 'utf8');

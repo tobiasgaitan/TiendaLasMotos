@@ -31,8 +31,8 @@ import {
     conTimeout,
     TIMEOUT_ANALISIS_MS,
 } from "@/lib/inventario/timeout";
-import { analizarImagenRepuesto } from "@/app/admin/inventory/actions/analizarImagenRepuesto";
-import { crearConteoPendiente } from "@/app/admin/inventory/actions/crearConteoPendiente";
+import { analizarImagenRepuesto } from "@/app/admin/inventario-asesor/actions/analizarImagenRepuesto";
+import { crearConteoPendiente } from "@/app/admin/inventario-asesor/actions/crearConteoPendiente";
 import { listarSedes } from "@/app/admin/inventario-repuestos/actions/listarSedes";
 import type {
     RepuestoCandidato,
