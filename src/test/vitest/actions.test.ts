@@ -351,9 +351,9 @@ vi.mock('next/cache', () => ({
 }));
 
 import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
-import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
+import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
 import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
-import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
+import { buscarCandidatosRepuesto } from '@/app/admin/inventario-asesor/actions/buscarCandidatosRepuesto';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/eliminarRepuesto';

@@ -9,7 +9,7 @@ import {
     WifiOff,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
+import { buscarCandidatosRepuesto } from '@/app/admin/inventario-asesor/actions/buscarCandidatosRepuesto';
 import { rankearCandidatos } from '@/lib/inventario/matching';
 import type { RepuestoCandidato } from '@/types/inventario';
 

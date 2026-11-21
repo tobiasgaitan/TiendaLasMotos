@@ -6,7 +6,7 @@
  * Ejecutar con: npx tsx src/test/utils/inventario-actions.test.ts
  */
 import { readFileSync } from 'node:fs';
-import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
+import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
 import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
 import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
 import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
@@ -28,7 +28,7 @@ const RECHAZAR_SOURCE = readFileSync(
     'utf8'
 );
 const CREAR_SOURCE = readFileSync(
-    'src/app/admin/inventory/actions/crearConteoPendiente.ts',
+    'src/app/admin/inventario-asesor/actions/crearConteoPendiente.ts',
     'utf8'
 );
 const APROBAR_MODAL_SOURCE = readFileSync(

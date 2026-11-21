@@ -1,6 +1,6 @@
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
-import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
+import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
 import type {
     ActorInput,
     CrearConteoInput,
