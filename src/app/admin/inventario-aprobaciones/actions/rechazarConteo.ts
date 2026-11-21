@@ -126,7 +126,7 @@ export async function rechazarConteo(
             return { idempotente: false };
         });
 
-        revalidatePath('/admin/inventory');
+        revalidatePath('/admin/inventario-aprobaciones');
 
         return {
             success: true,
