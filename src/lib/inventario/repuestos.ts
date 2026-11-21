@@ -19,6 +19,19 @@ function normalizar(valor: string): string {
     return valor.trim().toLowerCase();
 }
 
+/**
+ * Indica si hay al menos un filtro con contenido efectivo.
+ * Replica la semántica `.trim()` usada al construir `filtrosInput`.
+ */
+export function hayFiltrosActivos(filtros: FiltrosRepuesto): boolean {
+    return Boolean(
+        filtros.referencia.trim() ||
+            filtros.categoria.trim() ||
+            filtros.fabricante.trim() ||
+            filtros.referencia_alternativa.trim()
+    );
+}
+
 export function filtrarRepuestos(
     repuestos: RepuestoInventarioDTO[],
     filtros: FiltrosRepuesto

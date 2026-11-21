@@ -18,7 +18,10 @@ import EliminarRepuestoModal from '@/components/inventario/EliminarRepuestoModal
 import { listarRepuestos } from './actions/listarRepuestos';
 import { contarRepuestos } from './actions/contarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
-import { construirCambiosRepuesto } from '@/lib/inventario/repuestos';
+import {
+    construirCambiosRepuesto,
+    hayFiltrosActivos,
+} from '@/lib/inventario/repuestos';
 import { LIMITE_REPUESTOS_POR_PAGINA } from '@/lib/actions/inventario-repuestos-schemas';
 import {
     UNIDADES_MEDIDA,
@@ -432,6 +435,8 @@ export default function InventarioRepuestosClient() {
         );
     }
 
+    const filtrosActivos = hayFiltrosActivos(filtros);
+
     return (
         <div className="mx-auto w-full max-w-7xl space-y-5 pb-12">
             <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -612,12 +617,26 @@ export default function InventarioRepuestosClient() {
 
             {!loading && !error && repuestos.length === 0 ? (
                 <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-10 text-center">
-                    <p className="text-sm font-semibold text-gray-200">
-                        No hay repuestos registrados.
-                    </p>
-                    <p className="mt-2 text-xs text-gray-500">
-                        Los repuestos aprobados aparecerán aquí.
-                    </p>
+                    {filtrosActivos ? (
+                        <>
+                            <p className="text-sm font-semibold text-gray-200">
+                                No hay repuestos que coincidan con los filtros.
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500">
+                                Ajusta o limpia los filtros para ver otros
+                                resultados.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-sm font-semibold text-gray-200">
+                                No hay repuestos registrados.
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500">
+                                Los repuestos aprobados aparecerán aquí.
+                            </p>
+                        </>
+                    )}
                 </div>
             ) : null}
 
@@ -972,12 +991,6 @@ export default function InventarioRepuestosClient() {
                             })}
                         </tbody>
                     </table>
-
-                    {repuestos.length === 0 ? (
-                        <div className="border-t border-gray-800 p-8 text-center text-sm text-gray-400">
-                            No hay repuestos que coincidan con los filtros.
-                        </div>
-                    ) : null}
 
                     {siguienteCursor ? (
                         <div className="flex justify-center border-t border-gray-800 p-4">
