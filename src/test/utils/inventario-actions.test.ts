@@ -7,9 +7,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
-import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
-import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
-import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
+import { aprobarConteo } from '@/app/admin/inventario-aprobaciones/actions/aprobarConteo';
+import { rechazarConteo } from '@/app/admin/inventario-aprobaciones/actions/rechazarConteo';
+import { listarPendientes } from '@/app/admin/inventario-aprobaciones/actions/listarPendientes';
 import {
     datosNuevosAprobacion,
     reconciliarDatosNuevosLegado,
@@ -20,11 +20,11 @@ import {
 } from '@/lib/actions/inventario-schemas';
 
 const APROBAR_SOURCE = readFileSync(
-    'src/app/admin/inventory/actions/aprobarConteo.ts',
+    'src/app/admin/inventario-aprobaciones/actions/aprobarConteo.ts',
     'utf8'
 );
 const RECHAZAR_SOURCE = readFileSync(
-    'src/app/admin/inventory/actions/rechazarConteo.ts',
+    'src/app/admin/inventario-aprobaciones/actions/rechazarConteo.ts',
     'utf8'
 );
 const CREAR_SOURCE = readFileSync(
@@ -44,7 +44,7 @@ const APROBACIONES_SOURCE = readFileSync(
     'utf8'
 );
 const LISTAR_PENDIENTES_SOURCE = readFileSync(
-    'src/app/admin/inventory/actions/listarPendientes.ts',
+    'src/app/admin/inventario-aprobaciones/actions/listarPendientes.ts',
     'utf8'
 );
 const INVENTARIO_SOURCE = readFileSync(

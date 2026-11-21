@@ -6,7 +6,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ModalWrapper from '@/components/admin/ModalWrapper';
 import { useAuth } from '@/context/AuthContext';
-import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
+import { aprobarConteo } from '@/app/admin/inventario-aprobaciones/actions/aprobarConteo';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import {
     datosMaestroSchema,

@@ -14,9 +14,9 @@ const fuentes = [
     'src/lib/offline/outbox-utils.ts',
     'src/lib/actions/inventario-schemas.ts',
     'src/app/admin/inventario-asesor/actions/crearConteoPendiente.ts',
-    'src/app/admin/inventory/actions/aprobarConteo.ts',
-    'src/app/admin/inventory/actions/rechazarConteo.ts',
-    'src/app/admin/inventory/actions/listarPendientes.ts',
+    'src/app/admin/inventario-aprobaciones/actions/aprobarConteo.ts',
+    'src/app/admin/inventario-aprobaciones/actions/rechazarConteo.ts',
+    'src/app/admin/inventario-aprobaciones/actions/listarPendientes.ts',
     'src/app/admin/inventario-repuestos/actions/crearRepuesto.ts',
     'src/app/admin/inventario-repuestos/actions/editarRepuesto.ts',
 ]
