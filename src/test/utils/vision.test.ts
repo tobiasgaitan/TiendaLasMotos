@@ -3,7 +3,7 @@
  * Ejecutar con: npx tsx src/test/utils/vision.test.ts
  */
 import { readFileSync } from 'node:fs';
-import { analizarImagenRepuesto } from '@/app/admin/inventory/actions/analizarImagenRepuesto';
+import { analizarImagenRepuesto } from '@/app/admin/inventario-asesor/actions/analizarImagenRepuesto';
 import { analizarImagenSchema } from '@/lib/actions/inventario-schemas';
 import {
     categoriaDesdeEtiqueta,
@@ -139,7 +139,7 @@ async function run() {
 
     // --- Garantía estática: la acción no escribe Firestore ---
     const source = readFileSync(
-        'src/app/admin/inventory/actions/analizarImagenRepuesto.ts',
+        'src/app/admin/inventario-asesor/actions/analizarImagenRepuesto.ts',
         'utf8'
     );
     check("acción declara 'use server'", source.startsWith("'use server';"));

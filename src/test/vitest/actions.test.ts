@@ -350,17 +350,17 @@ vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
 
-import { aprobarConteo } from '@/app/admin/inventory/actions/aprobarConteo';
-import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
-import { rechazarConteo } from '@/app/admin/inventory/actions/rechazarConteo';
-import { buscarCandidatosRepuesto } from '@/app/admin/inventory/actions/buscarCandidatosRepuesto';
+import { aprobarConteo } from '@/app/admin/inventario-aprobaciones/actions/aprobarConteo';
+import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
+import { rechazarConteo } from '@/app/admin/inventario-aprobaciones/actions/rechazarConteo';
+import { buscarCandidatosRepuesto } from '@/app/admin/inventario-asesor/actions/buscarCandidatosRepuesto';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { editarRepuesto } from '@/app/admin/inventario-repuestos/actions/editarRepuesto';
 import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/eliminarRepuesto';
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import { contarRepuestos } from '@/app/admin/inventario-repuestos/actions/contarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
-import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
+import { listarPendientes } from '@/app/admin/inventario-aprobaciones/actions/listarPendientes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import { requireActorInventario } from '@/lib/actions/inventario-actor';
 import { requirePermiso } from '@/lib/auth/require-permiso';

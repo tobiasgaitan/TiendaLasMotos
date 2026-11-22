@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-21 
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5) y §34.13 registrados; OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13 y §34.14 registrados; OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1047,3 +1047,120 @@ B. UAT producción (read-only)
 C. Invariantes
 1.  NAMING LOCK intacto; cero cambios en schemas, Server Actions, types, Firestore,  firestore.indexes.json ,  package.json ,  package-lock.json , bot y  functions/ .
 2.  §1–§34.12 permanecen byte-idénticas; §34.13 es aditiva conforme al precedente §25.A.
+
+### 34.14 Cierre de OBS-INVENTORY-NAMESPACE-LEGACY — T-03 (C5) (2026-11-21)
+
+**Estado:** `OBS-INVENTORY-NAMESPACE-LEGACY` **CERRADA**. B3 desplegado en beta y promovido a main. Residuales permanentes declarados en `OBS-PROD-UAT-T03-RESIDUALES`.
+**Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §34.12/§34.13.
+
+#### A. Objeto C5 y ejecución
+
+1.  **Objeto C5:** las 6 Server Actions de conteos/repuestos vivían en el namespace inglés `src/app/admin/inventory/actions/`, mientras el 100 % de sus consumidores de producción vive en rutas/componentes/offline en español. La ruta `/admin/inventory` es el dashboard vivo de **Motos** y no se movió.
+2.  **Base:** `origin/main @ 63c0a2bbbc4dc338bbe9dd25a4126c4f16c8044b`, con gate de igualdad de SHA. Rama creada desde ese SHA exacto; no desde `main` local `1d74d90`, `beta` local `60b2948` ni HEAD `b75653a`.
+3.  **PR A (#21):** B1 `788682c` + B2 `5aaccd1` → merge beta `89e7618`; deploy beta run `44854864757` **success**.
+4.  **PR B (#22):** B3 `1fde7f1` → merge beta `e085a1c`; deploy beta run `44871257032` **success** (05:36:11Z).
+5.  **Diff:** 6 renames `R100` (byte-idénticos) + 13 archivos con solo rutas de import; `src/app/admin/inventory/actions/` eliminado; `inventory/page.tsx` intacto; `AprobacionesClient.tsx` no se tocó en B3.
+6.  **Gates:** `src` 30 → 0; `.planning` 9 invariable; `test:smoke` 4/4; `test:unit` 154; `test:render` 10; naming-lock + AST 52/52; `tsx` vision e inventario-repuestos ALL PASSED; `tsc`, lint y build EXIT 0; `PWA_INTACT`; `PERIMETER_INTACT`; `referenciaSchema` SHA-256 `1be94dea…` intacto.
+
+#### B. Firestore compartido beta/producción — evidencia física
+
+1.  `.firebaserc` declara **un solo proyecto**: `projects.default = tiendalasmotos`; los hosting targets `tiendalasmotos` (producción) y `beta` (`tiendalasmotos-beta`) cuelgan del **mismo** project ID.
+2.  `deploy-beta.yml` despliega con `npx firebase deploy --only hosting:beta --project tiendalasmotos`.
+3.  `deploy-prod.yml` despliega con `npx firebase deploy --only hosting:tiendalasmotos --project tiendalasmotos`.
+4.  Baseline y cierre reportan `projectId = tiendalasmotos`; la misma muestra de `inventario_repuestos` (`00Em4FssFKt9UMqcdGCv`, referencia `10007286`) es visible sin distinción beta/producción; conteos idénticos en ambos momentos.
+5.  **Conclusión:** Firestore y Storage son únicos. La UAT escribió datos visibles en producción; por eso el baseline y el export write-once son obligatorios.
+
+#### C. Autorización del Director (opción A)
+
+1.  Autorización registrada en el ticket `T-03-WEB-INV-NAMESPACE-LEGACY-001`, **opción A**: UAT de escritura acotada sobre el Firestore compartido con presupuesto R10 cerrado.
+2.  La autorización cubre exclusivamente: 2 conteos, 2 fotos, 2 asientos de ledger, 2 blobs, cero `inventario_repuestos`, cero `sys_admin_users` y cero usuarios Auth nuevos.
+3.  Sin esa autorización no se habría ejecutado la fase de escritura.
+
+#### D. Whitelist cerrada y operación real
+
+| Rol | Cuenta | UID | Escrituras |
+|---|---|---|---|
+| Asesor | `conexion@tiendalasmotos.com` | `CwrnxDaVXvVgNRcGjrZ3tU210Ho1` | 2 borradores → 2 conteos |
+| Admin | `janer.mendoza146@gmail.com` | `RgImWqiR2pasLZxQhnDNZvFROXC3` | **ninguna** |
+| Superadmin | `tobiasgaitan@gmail.com` | `t05KiQCGQgUWFARvczn3nuXp9Qz2` | aprobación y rechazo |
+
+1.  **Cero usuarios creados:** Auth pasa de 5 a 5; las 3 cuentas UAT conviven con 2 cuentas preexistentes (`lasmotosauteco@gmail.com`, `liseth.padilla@tiendalasmotos.com`).
+2.  **Desviación de rol declarada:** la aprobación/rechazo la ejecutó el superadmin, no el admin. Ambas cuentas están en la whitelist y tienen permiso; no es un stop de identidad, pero el flujo “admin aprueba/rechaza” no fue ejercido por la cuenta admin. Se registra sin remediar.
+3.  `sys_admin_users` permanece en 4; no se alteró ningún rol.
+
+#### E. R10 — presupuesto autorizado vs medición
+
+| Recurso | Baseline | Autorizado | Cierre | Delta medido | Estado |
+|---|---:|---:|---:|---:|---|
+| `conteos_pendientes_repuestos` | 0 | +2 | 2 | +2 | OK |
+| `fotos_inventario` | 0 | +2 | 2 | +2 | OK |
+| `historial_auditoria_inventario` | 21.256 | +2 | 21.258 | +2 | OK |
+| Storage blobs | 3 | +2 | **6** | **+3** | **DESVIACIÓN +1** |
+| `inventario_repuestos` | 21.256 | 0 | 21.256 | 0 | OK |
+| `sys_admin_users` | 4 | 0 | 4 | 0 | OK |
+| Auth users | 5 | 0 | 5 | 0 | OK |
+
+**DocIds creados**
+
+- Conteo A: `d29af48f-20c9-419a-b245-f437a78bd749` — **rechazado**, `Estante A1`, cantidad 3, creado `03:44:02.421Z`, revisado `04:44:56.717Z`.
+- Conteo B: `f01eb5c8-b594-4efa-8e31-a06e720ca516` — **aprobado**, `Estante B2`, cantidad 5, creado `03:44:04.054Z`, revisado `04:44:43.699Z`.
+- Fotos: los mismos dos IDs; `storage_path = inventario_repuestos/conexion@tiendalasmotos.com/<conteo_id>.png`, `image/png`, 136 B cada una.
+- Ledger: `zSU4morH3XMHjchMhXDn` (aprobación de B) y `phlilrbb1FlfGtehi5uX` (rechazo de A), ambos `UPDATE` sobre `conteos_pendientes_repuestos`, `registrado_por = t05KiQ…`.
+- Blob huérfano: `ae4b9d81-fe11-4817-93e7-8f0daa494b82.png`, 136 B, `02:52:21.693Z`, sin documento en `fotos_inventario`.
+
+**Desviación:** el +1 blob excede R10. No se purga ni se borra; se registra en `OBS-PROD-UAT-T03-RESIDUALES` conforme a R5/R10.
+
+#### F. Baseline y export write-once
+
+1.  Baseline: `baseline-20261121T021636Z.json`, write-once, SHA-256 **`bcef1fc84180aadf825878a9442155bb60fd103d82a38eaed9a0d32a01579486`**.
+2.  Export de cierre: payload emitido en la verificación, SHA-256 **`4f14dc922957a26747daa352ef4abd213626efd328a0b4b833d9edd6c5f1d250`**. Debe persistirse write-once como `post-<ts>.json` conservando exactamente ese payload; si se regenera, el hash cambia y debe declararse el nuevo.
+3.  No se repite el gap forense de §33.4: docIds, storage_paths y SHA-256 quedan declarados.
+
+#### G. OBS-PROD-UAT-T03-RESIDUALES (nueva)
+
+- **Estado:** ABIERTA / residual permanente. **No se purga.**
+- **Contenido:** 2 conteos (`d29af48f…`, `f01eb5c8…`), 2 fotos, 2 asientos de ledger (`zSU4morH…`, `phlilrbb…`) y **3 blobs** (2 referenciados + 1 huérfano `ae4b9d81…`).
+- **Desviación R10:** +1 blob sobre el presupuesto autorizado.
+- **Certificación B3:** no emitida (ver H).
+- **Alcance:** no reabre §34.12; son colecciones distintas (`prospectos`, `creditos`, `clientes_credito`, `sys_admin_users` vs. `conteos_pendientes_repuestos`, `fotos_inventario`, `historial_auditoria_inventario`, Storage).
+- **Ledger:** append-only; los 2 asientos permanecen; prohibido update/delete.
+
+#### H. Resultado UAT y estado de B3
+
+**Cronología física**
+
+| Hora UTC | Evento | Build |
+|---|---|---|
+| 02:52:21 | Blob huérfano `ae4b9d81…` | B1/B2 |
+| 03:43:56–03:44:04 | Upload de fotos A/B + creación de los 2 conteos en una sola pasada | B1/B2 |
+| 04:44:43 / 04:44:56 | Aprobación de B / rechazo de A | B1/B2 |
+| 05:31:13 / 05:36:11 | Merge y deploy de B3 | — |
+
+1.  **Variante A (pre-deploy + recarga dura + sync):** **no certificada como variante controlada.** Los dos borradores se sincronizaron en una sola pasada (`creado_en` 03:44:02.421 y 03:44:04.054) antes del deploy de B3: **sync accidental**, no el flujo A/B diseñado.
+2.  **Variante B adversarial:** **no ejecutada.** No hubo borrador disponible tras el sync accidental.
+3.  **`listarPendientes`:** **conteo de invocaciones no medido.** No se declara doble fetch ni ausencia de doble fetch; no hay evidencia runtime.
+4.  **Modal, scroll, tabla/cards:** **no medidos.**
+5.  **B3:** desplegado en beta y promovido a main. La certificación runtime de las variantes A/B y el conteo de invocaciones de `listarPendientes` no se emitieron debido al agotamiento del presupuesto R10 por el sync accidental previo al deploy. Se acepta el residual de UX (posible doble fetch no destructivo, mitigado por guards de `loading`/`accionEnCurso` en `AprobacionesClient.tsx`). La corrección semántica de `revalidatePath` prevalece sobre la falta de métrica de refresco.
+6.  **Lo sí certificado en runtime (build B1/B2):** `crearConteoPendiente` sincronizó los 2 borradores; `aprobarConteo` y `rechazarConteo` ejecutaron con ledger append-only; `listarPendientes` alimentó la pantalla de aprobaciones (sin conteo de invocaciones). `analizarImagenRepuesto` y `buscarCandidatosRepuesto` quedan cubiertos por `tsx` explícito, sin escrituras runtime.
+
+#### I. Colocation organizativa y Faraday Cage
+
+1.  La ruta del archivo es **organizativa**, no un control de seguridad. Mover una Server Action de carpeta no otorga ni quita acceso.
+2.  La **Faraday Cage** (`verifyIdToken` + `requirePermiso` + `requireActorInventario`) sigue siendo la **única barrera**; no se modificó.
+3.  Cero cambios en schemas, claves Firestore, índices, reglas, `functions/`, `bot-*`, `package*.json`; NAMING LOCK intacto.
+
+#### J. Observaciones registradas, no remediadas
+
+1.  **Usuario activo sin rol:** `zlorenamartinez1608@gmail.com` (`rol = null`, `activo = true`).
+2.  **Heterogeneidad de esquema `sys_admin_users`:** conviven `name` vs `nombre` y `createdAt` vs `created_at`.
+3.  **`loading` booleano en `AprobacionesClient`:** líneas 129, 144, 185, 268; sin contador de peticiones, no distingue carga inicial de refetch.
+4.  **JSDoc de backoff desviado un intento:** `outbox-utils.ts:147-154`; call sites `queue.ts:135,246,289`; `calcularBackoffMs(0)` también devuelve 2 s por el clamp.
+5.  **12 tests de `src/test/utils/` huérfanos de CI:** `vitest` solo incluye `src/test/vitest/**/*.test.ts`; `test:smoke` ejecuta 4 de 16.
+
+#### K. Invariantes y cierre administrativo
+
+1.  NAMING LOCK, ledger append-only, hash de `referenciaSchema` (`1be94dea…`, 52/52), allowlist PWA (`/admin/inventario-asesor`) y cero migraciones/backfills/purgas.
+2.  `.planning` exactamente **9**; `src` **0**. La línea histórica de `.planning/STATE.md:75` se preserva y el cierre no repite el literal viejo.
+3.  Header `Estado:` actualizado para mencionar §34.14 y `OBS-PROD-UAT-T03-RESIDUALES`; el resto permanece intacto.
+4.  §1–§34.13 permanecen byte-idénticas; §34.14 es aditiva conforme al precedente §25.A.
+5.  Sin bump de versión.

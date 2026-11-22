@@ -164,7 +164,7 @@ export async function crearConteoPendiente(
             return { idempotente: false };
         });
 
-        revalidatePath('/admin/inventory');
+        revalidatePath('/admin/inventario-aprobaciones');
 
         return {
             success: true,

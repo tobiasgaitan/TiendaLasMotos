@@ -221,7 +221,7 @@ export async function aprobarConteo(
             };
         });
 
-        revalidatePath('/admin/inventory');
+        revalidatePath('/admin/inventario-aprobaciones');
 
         return {
             success: true,

@@ -12,7 +12,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { listarPendientes } from '@/app/admin/inventory/actions/listarPendientes';
+import { listarPendientes } from '@/app/admin/inventario-aprobaciones/actions/listarPendientes';
 import { formatearFecha } from '@/lib/inventario/ui-helpers';
 import type { PendienteDTO } from '@/types/inventario';
 import AprobarConteoModal from '@/components/inventario/AprobarConteoModal';

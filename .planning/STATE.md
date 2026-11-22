@@ -72,7 +72,7 @@
 - **Deudas:** OBS-APROBACIONES-COPY-STOCK-FALSO → RESUELTA → §27; OBS-DOCTRINA-NO-VERSIONADA permanece abierta; OBS-SSOT-CI-PLACEHOLDER-XXX → RESUELTA → §18.
 
 ## Observaciones no bloqueantes (2026-11-12)
-- **OBS-INVENTORY-NAMESPACE-LEGACY:** `listarPendientes` vive en `src/app/admin/inventory/actions/` (legacy) mientras la UI vive en `src/app/admin/inventario-aprobaciones/`; refactor de namespace fuera del perímetro de este ticket.
+- **OBS-INVENTORY-NAMESPACE-LEGACY:** `listarPendientes` vive en `src/app/admin/inventory/actions/` (legacy) mientras la UI vive en `src/app/admin/inventario-aprobaciones/`; refactor de namespace fuera del perímetro de este ticket. **CERRADA (2026-11-21, §34.14):** B1/B2 movieron las 6 acciones a `src/app/admin/inventario-asesor/actions/` y `src/app/admin/inventario-aprobaciones/actions/`; B3 desplegado (PR #22); certificación runtime y residual declarados en §34.14 / `OBS-PROD-UAT-T03-RESIDUALES`.
 
 ## Cierre OBS-APROBACIONES-SEDE-NO-VISIBLE + OBS-APROBACIONES-COPY-STOCK-FALSO (2026-11-12)
 - **CERTIFICADO:** commit `d25bda4`; CI #208 (43364257700) success. `sede_nombre` derivado en `PendienteDTO`, no persistido; `sede_id` e `inventario_documento_id` intactos.

@@ -15,11 +15,11 @@ vi.mock('firebase/storage', () => ({
     ),
 }));
 
-vi.mock('@/app/admin/inventory/actions/crearConteoPendiente', () => ({
+vi.mock('@/app/admin/inventario-asesor/actions/crearConteoPendiente', () => ({
     crearConteoPendiente: vi.fn(),
 }));
 
-import { crearConteoPendiente } from '@/app/admin/inventory/actions/crearConteoPendiente';
+import { crearConteoPendiente } from '@/app/admin/inventario-asesor/actions/crearConteoPendiente';
 import {
     encolarConteo,
     limpiarOutbox,
