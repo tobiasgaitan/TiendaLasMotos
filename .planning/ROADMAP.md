@@ -162,3 +162,11 @@
 - [x] **Documentación:** §34.16 aditivo al SSOT; `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`, `OBS-USERS-DUAL-WRITE-TIMESTAMPS`, `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN`.
 - [x] **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; diff solo `Documento_Maestro_Pagina.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`.
 - [x] **Promoción:** `feature → beta → main`; deploy beta y producción success; paridad `origin/main` ↔ `origin/beta`; v8.9.18 sin bump.
+
+## Cierre WEB-TEST-CI-COVERAGE-001 (v8.9.18, 2026-11-22)
+- [x] **test:utils (11/11):** `package.json` añade el script aditivo con 11 tests huérfanos de `src/test/utils/`; `inventario-schemas` queda excluido por fixture obsoleto; `test:smoke` permanece 4/4.
+- [x] **OBS:** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`: fixture `BASE` de WEB-038 (`c119864`) sin `inventario_documento_id` ni `sede_id`; schema vigente (L127–L133) exige ambos.
+- [x] **test:ci actualizado:** `test:smoke && test:utils && test:unit && test:render`; unit 154 y render 10 intactos; `tsc`/`lint`/`build` EXIT 0.
+- [x] **Invariantes:** `vitest.config.mts` y `vitest.render.config.mts` byte-idénticos; `package-lock.json` intacto; cero cambios en `src/`, `functions/`, `bot-*` y `firestore.rules`.
+- [x] **Documentación:** §34.17 aditivo al SSOT; header L4 actualizado; v8.9.18 sin bump.
+- [x] **Promoción:** `feature → beta → main`; deploy beta y producción success; paridad `origin/main` ↔ `origin/beta`.
