@@ -175,3 +175,9 @@
 - [x] **Remediación:** `id` y `name` añadidos a inputs de referencia, alternativa, categoría y fabricante.
 - [x] **UAT:** 0 Chrome Issues en beta.
 - [x] **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; promoción `feature → beta → main` exitosa.
+
+## Cierre WEB-USERS-TIMESTAMP-DUAL-WRITE-001 (v8.9.18, 2026-11-22)
+- [x] **Normalización:** `createdAt` eliminado del payload de `createUser`; `created_at` consolidado como estándar.
+- [x] **Tolerancia UI:** Tipo `AdminUser` actualizado para soportar documentos legacy sin romper el render.
+- [x] **Gates:** `tsc`, `lint`, `build` EXIT 0; diff limitado a 2 archivos de código.
+- [x] **Documentación:** §34.19 aditiva al SSOT; sync de STATE y ROADMAP.

@@ -1,7 +1,8 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-22
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17 y §34.18 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización);
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1362,4 +1363,30 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 #### D. Invariantes
 1. NAMING LOCK intacto; cero cambios en schemas, Server Actions u otros componentes.
 2. §1–§34.17 permanecen byte-idénticas; §34.18 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.
+
+### 34.19 Cierre de WEB-USERS-TIMESTAMP-DUAL-WRITE-001 — normalización de timestamps en sys_admin_users (2026-11-22)
+
+**Estado:** `WEB-USERS-TIMESTAMP-DUAL-WRITE-001` **CERRADO SIN CÓDIGO (normalización)**. La deuda de doble escritura de timestamps fue erradicada en el contrato de creación.
+**Versión:** se mantiene **v8.9.18** sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.18 permanecen byte-idénticas.
+
+#### A. Objeto y decisión
+1. **Origen:** `OBS-USERS-DUAL-WRITE-TIMESTAMPS` (§34.16.F.2): `createUser` escribía simultáneamente `createdAt` (string ISO) y `created_at` (Date/Timestamp), generando heterogeneidad en el corpus.
+2. **Decisión:** Eliminar la escritura redundante de `createdAt` en `createUser`, consolidando `created_at` y `updated_at` como el estándar canónico de la aplicación.
+3. **Alcance negativo:** cero migración, cero backfill, cero purga de claves legacy en documentos existentes. Forward-only: los docs Gen-0/Gen-1 conservan su `createdAt`; la UI lo tolera como opcional.
+
+#### B. Cambios físicos certificados
+1. **Escritura (`src/app/admin/users/actions.ts`):** Eliminada la línea `createdAt: new Date().toISOString()` del payload de `createUser`. `created_at` y `updated_at` se conservan como estándar.
+2. **Lectura (`src/app/admin/users/page.tsx`):** Tipo `AdminUser` actualizado para tolerar ambas claves (`createdAt?: string;`, `created_at?: unknown;`), garantizando compatibilidad con documentos legacy sin afectar el render (el campo no se muestra en la tabla).
+3. **Tests:** `grep` en `src/test` confirmó cero dependencias de tests sobre `createdAt` en el payload de creación. Cero regresión en CI.
+
+#### C. Gates y UAT
+1. `git diff --numstat`: `0 1` en `actions.ts`, `2 1` en `page.tsx`.
+2. `npx tsc --noEmit`, `npm run lint`, `npm run build`: EXIT 0.
+3. **UAT runtime:** La UI de `/admin/users` renderiza correctamente los 4 documentos, tolerando la heterogeneidad histórica sin errores de tipado ni fallos de hidratación.
+
+#### D. Invariantes
+1. NAMING LOCK intacto (`createdAt` y `created_at` no están en la lista de claves inmutables de `sys_admin_users`).
+2. §1–§34.18 permanecen byte-idénticas; §34.19 es aditiva conforme al precedente §25.A.
 3. Sin bump de versión.
