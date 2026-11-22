@@ -167,3 +167,10 @@
 - **OBS:** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`: fixture `BASE` de WEB-038 (`c119864`) sin `inventario_documento_id` ni `sede_id`; schema vigente (L127–L133) exige ambos; test huérfano derivó y queda fuera de `test:utils` hasta ticket de corrección.
 - **Invariantes:** `vitest.config.mts` y `vitest.render.config.mts` byte-idénticos; `package-lock.json` intacto; cero cambios en `src/`, `functions/`, `bot-*` y `firestore.rules`; NAMING LOCK intacto; v8.9.18 sin bump.
 - **Documentación:** §34.17 aditivo al SSOT; header L4 actualizado; §1–§34.16 byte-idénticas.
+
+## Cierre WEB-A11Y-FILTER-INPUTS-IDS-001 (2026-11-22)
+- **Estado:** **CERRADO CON CÓDIGO (a11y)**.
+- **Cambios:** Atributos `id` y `name` añadidos a 4 inputs de filtros en `InventarioRepuestosClient.tsx`.
+- **UAT:** 4 Chrome Issues → 0 Chrome Issues en DevTools.
+- **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; diff limitado a 4 archivos.
+- **Invariantes:** cero cambios en lógica, schemas, actions; v8.9.18 sin bump.
