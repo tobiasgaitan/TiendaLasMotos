@@ -154,3 +154,11 @@
 - [x] **Paridad:** `PARITY=PASS` entre `origin/main` y `origin/beta`.
 - [x] **UAT producción 7/7:** 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; `bosch`/`BOSCH` 0/0 mismo vacío.
 - [x] **Cierre:** ticket cerrado end-to-end; versión v8.9.18 sin bump (precedente §28); residuo de 3 Chrome Issues no bloqueante.
+
+## Cierre WEB-AUTH-SCHEMA-HOMOGENIZATION-001 (v8.9.18, 2026-11-22)
+- [x] **A-1 — Lorena:** `zlorenamartinez1608@gmail.com` con `rol: "admin"` y `name: "Lorena Martinez"` vía `/admin/users` (`updateUser`); `createdAt` legacy preservado; sin `created_at` ni `role`; runtime beta verificado.
+- [x] **A-2 — esquema forward-only:** `tobiasgaitan@gmail.com` recibe `name: "Tobias Gaitan"`; `nombre: "Tobias"` preservado como legado; cero renombres, borrados o backfill; `created_at` solo en Gen-2.
+- [x] **Ledger 3/3:** `historial_auditoria` append-only (`t6qyl…`, `uIr3D…`, `90FAP…`); `registrado_por: t05Ki…`; cero update/delete.
+- [x] **Documentación:** §34.16 aditivo al SSOT; `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`, `OBS-USERS-DUAL-WRITE-TIMESTAMPS`, `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN`.
+- [x] **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; diff solo `Documento_Maestro_Pagina.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`.
+- [x] **Promoción:** `feature → beta → main`; deploy beta y producción success; paridad `origin/main` ↔ `origin/beta`; v8.9.18 sin bump.

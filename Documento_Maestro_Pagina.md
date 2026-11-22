@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
-**Última Actualización:** 2026-11-21 
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14 y §34.15 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+**Última Actualización:** 2026-11-22
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15 y §34.16 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1224,3 +1224,86 @@ Se registran aquí, sin remediar:
 4.  Header `Estado:` actualizado para mencionar §34.15 y `WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO`; el resto permanece intacto.
 5.  §1–§34.14 permanecen byte-idénticas; §34.15 es aditiva conforme al precedente §25.A.
 6.  Sin bump de versión.
+
+### 34.16 Cierre de WEB-AUTH-SCHEMA-HOMOGENIZATION-001 — datos auditados (2026-11-22)
+
+**Estado:** `WEB-AUTH-SCHEMA-HOMOGENIZATION-001` **CERRADO SIN CÓDIGO (datos auditados)**. A-1 y A-2 cerrados en datos y runtime por certificación del Auditor.
+**Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §34.12–§34.15.
+**Inserción:** aditiva al final del documento; §1–§34.15 permanecen byte-idénticas.
+
+#### A. Objeto y decisiones del Director
+
+1.  **Origen:** §34.14.J.1 (D-1) y §34.14.J.2 (D-2): usuario activo sin rol y heterogeneidad de esquema en `sys_admin_users`.
+2.  **Split atómico:** A-1 = dato/Auth de `zlorenamartinez1608@gmail.com`; A-2 = esquema de `sys_admin_users`. No compartieron plan ni commit; ambas cerraron en datos y runtime.
+3.  **Decisiones literales del Director (2026-11-22):** (1) «Acabo de darle el rol de Admin a Lorena»; (2) «Confirmar el cierre forward-only de A-2 sin migración»; (3) «Acabo de agregar el nombre al perfil de tobiasgaitan@gmail.com».
+4.  **Naturaleza del cierre:** **cero código**. Las operaciones se ejecutaron por el Director (superadmin) vía la UI auditada `/admin/users` (Server Action `updateUser`) sobre el deploy beta y el Firestore compartido con producción (§34.14.B). Este addendum solo documenta.
+5.  **Alcance negativo:** cero cambios en `src/`, tests, `firestore.indexes.json`, `firestore.rules`, `functions/`, `bot-*` y `package*.json`; cero purgas, renombres o backfills.
+
+#### B. Estado físico pre-operación (matriz de 4 documentos)
+
+Colección completa `sys_admin_users` (4 docs), proyecto `tiendalasmotos`, base `(default)`, `nam5`:
+
+| Clave | `active` | `email` | `rol` | `role` | `name` | `nombre` | `createdAt` (string ISO) | `created_at` (Timestamp) | `updated_at` | `actualizado_por` | `registrado_por` / `_email` |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `zlorenamartinez1608@gmail.com` | `true` | ✔ | **AUSENTE** | ausente | **AUSENTE** | ausente | `2026-02-05T20:32:06.423Z` | ausente | ausente | ausente | ausente |
+| `conexion@tiendalasmotos.com` | `true` | ✔ | `asesor` | ausente | `conexion` | ausente | `2026-01-08T16:48:54.937Z` | ausente | ✔ (2026-11-17 23:44:59 UTC−5) | ✔ `t05Ki…` | ausente |
+| `janer.mendoza146@gmail.com` | `true` | ✔ | `admin` | ausente | `Janer Mendoza` | ausente | `2026-09-29T21:52:32.296Z` | ✔ | ✔ | ausente | ✔ `t05Ki…` / `tobiasgaitan@gmail.com` |
+| `tobiasgaitan@gmail.com` | `true` | ✔ | `superadmin` | ausente | **AUSENTE** | `Tobias` | `2026-01-09T03:22:26.068Z` | ausente | ausente | ausente | ausente |
+
+**Generaciones identificadas**
+
+1.  **Gen-0 pre-WEB-029:** `tobiasgaitan` con `nombre` y sin `name`; `zlorenamartinez` mínima, sin nombre y sin rol.
+2.  **Gen-1 contrato intermedio:** `conexion` con `name` + `createdAt`, luego actualizada por el CRUD vigente.
+3.  **Gen-2 contrato vigente:** `janer` coincide exactamente con el payload de `createUser` (`src/app/admin/users/actions.ts` L49–L59).
+
+#### C. Operaciones ejecutadas (2026-11-22)
+
+1.  **A-1 — `zlorenamartinez1608@gmail.com`:** `rol: "admin"`, `name: "Lorena Martinez"`, `active: true`, `updated_at` 2026-11-22 12:28:33 UTC−5, `actualizado_por: t05KiQCGQgUWFARvczn3nuXp9Qz2`. Se preserva `createdAt` legacy; no se crea `created_at` ni `role`.
+2.  **A-2 — `tobiasgaitan@gmail.com`:** se añade `name: "Tobias Gaitan"`; se preserva `nombre: "Tobias"` como legado; `rol: "superadmin"` y `active: true` intactos; `updated_at` 2026-11-22 12:35:23 UTC−5; `actualizado_por: t05Ki…`.
+3.  **Contrato de código que ejecutó las operaciones (sin cambios):** `updateUser` es batch atómico, escribe `updated_at` + `name`/`rol`/`active` y `actualizado_por`, limpia `role` con `FieldValue.delete()` si existe, y registra un asiento `UPDATE` en el ledger.
+4.  **Runtime UI beta (`/admin/users`):** 4/4 filas con nombre visible (`conexion`, `Janer Mendoza`, `Tobias Gaitan`, `Lorena Martinez`); el defecto «Sin Nombre» del superadmin quedó resuelto.
+
+#### D. Ledger `historial_auditoria` — contabilidad 3/3
+
+Append-only intacto: **3 `add()`, 0 `update`, 0 `delete`**.
+
+| docId | `created_at` | `documento_id` | `operacion` | `campos_modificados` | Nota |
+|---|---|---|---|---|---|
+| `t6qylAqk6oVG7Boz2uO8` | 2026-11-17 23:44:59 UTC−5 (= 2026-11-18 04:44:59 UTC, posterior al apply WEB-051 03:23:45 UTC) | `conexion@tiendalasmotos.com` | `UPDATE` | `[updated_at, rol]` | `datos_anteriores.rol = "admin_creditos"` → `datos_nuevos.rol = "asesor"`. Operación histórica auditada, sin ticket ni sección PSD: se registra como OBS. |
+| `uIr3DJjtvLVxL7FoVMPh` | 2026-11-22 12:28:34 UTC−5 | `zlorenamartinez1608@gmail.com` | `UPDATE` | `[updated_at, name, rol, actualizado_por]` | `version: 1`; `datos_anteriores` = doc legacy de 3 campos; `registrado_por: t05Ki…`; `registrado_por_email: tobiasgaitan@gmail.com`. |
+| `90FAPW2bgPBanOfiVOx4` | 2026-11-22 12:35:23 UTC−5 | `tobiasgaitan@gmail.com` | `UPDATE` | `[updated_at, name, actualizado_por]` | `datos_anteriores` incluye `nombre: "Tobias"` y `rol: "superadmin"`; `datos_nuevos` añade `name` y preserva `nombre`. |
+
+Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrado_por: t05KiQCGQgUWFARvczn3nuXp9Qz2`; esto prueba que ambas ediciones pasaron por la Server Action auditada y no por consola.
+
+#### E. Matriz post-operación y legado preservado
+
+| Clave | `rol` | `name` | `nombre` | `created_at` | `updated_at` | `actualizado_por` | Estado |
+|---|---|---|---|---|---|---|---|
+| `zlorenamartinez1608@gmail.com` | `admin` | `Lorena Martinez` | ausente | ausente | 2026-11-22 12:28:33 UTC−5 | `t05Ki…` | editado A-1 |
+| `conexion@tiendalasmotos.com` | `asesor` | `conexion` | ausente | ausente | 2026-11-17 23:44:59 UTC−5 | `t05Ki…` | sin cambios |
+| `janer.mendoza146@gmail.com` | `admin` | `Janer Mendoza` | ausente | ✔ | ✔ | ausente | sin cambios |
+| `tobiasgaitan@gmail.com` | `superadmin` | `Tobias Gaitan` | `Tobias` | ausente | 2026-11-22 12:35:23 UTC−5 | `t05Ki…` | editado A-2 |
+
+1.  **`active`:** los 4 documentos permanecen en `true`; `createdAt` es universal y se preserva en los 4.
+2.  **Legado no purgado (forward-only):** `nombre` solo existe en `tobiasgaitan`; `created_at` solo existe en `janer`; `createdAt` es universal. No se renombró, migró ni borró ningún campo.
+3.  **Efecto runtime:** `resolverRol(doc) = doc.rol ?? doc.role`; un rol ausente resolvía `guest` (fail-closed). Lorena pasa de `guest` a `admin` explícito.
+
+#### F. Observaciones abiertas (no bloqueantes)
+
+1.  `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`: el asiento `t6qyl` (2026-11-17/18) cambió `conexion` de `admin_creditos` a `asesor` con auditoría completa, pero sin ticket ni sección PSD.
+2.  `OBS-USERS-DUAL-WRITE-TIMESTAMPS`: `createUser` escribe `createdAt` (string ISO) y `created_at` (Timestamp); nada lee `created_at`; `AdminUser` solo proyecta `createdAt`. Deuda de diseño, candidata a ticket propio de normalización de escritura; fuera de A por atomicidad.
+3.  `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN`: `openModal` pre-selecciona `admin` cuando el rol resuelto es `guest`; el rol final debe ser siempre decisión explícita del operador.
+
+#### G. Invariantes y cierre administrativo
+
+1.  NAMING LOCK intacto; cero cambios en `src/`, tests, `firestore.indexes.json`, `firestore.rules`, `functions/`, `bot-*` y `package*.json`.
+2.  Ledger append-only intacto (3 `add()`, 0 `update`, 0 `delete`); cero escrituras Firestore en este ticket documental; cero purgas, renombres o backfills.
+3.  §1–§34.15 permanecen byte-idénticas; §34.16 es aditiva conforme al precedente §25.A.
+4.  Header `Estado:` actualizado para mencionar §34.16 y `WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados)`; el resto permanece intacto.
+5.  Sin bump de versión.
+
+#### H. Tickets diferidos
+
+1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI.
+2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro.
+3.  Normalización de la doble escritura de timestamps (derivada de `OBS-USERS-DUAL-WRITE-TIMESTAMPS`): ticket propio, fuera de este cierre.
