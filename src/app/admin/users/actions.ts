@@ -51,7 +51,6 @@ const createUserImpl = withAuthAndAudit<
             email: data.email,
             rol: data.rol,
             active: data.active,
-            createdAt: new Date().toISOString(),
             registrado_por: me.uid,
             registrado_por_email: me.email ?? null,
             created_at: new Date(),

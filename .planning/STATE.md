@@ -174,3 +174,9 @@
 - **UAT:** 4 Chrome Issues → 0 Chrome Issues en DevTools.
 - **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; diff limitado a 4 archivos.
 - **Invariantes:** cero cambios en lógica, schemas, actions; v8.9.18 sin bump.
+
+## Cierre WEB-USERS-TIMESTAMP-DUAL-WRITE-001 (2026-11-22)
+- **Estado:** **CERRADO SIN CÓDIGO (normalización)**.
+- **Cambios:** Eliminada escritura redundante de `createdAt` en `createUser`; tipo `AdminUser` actualizado para tolerar legacy.
+- **Gates:** `tsc`, `lint`, `build` EXIT 0; `git diff --numstat` = `0 1` (actions) + `2 1` (page); cero regresión en tests.
+- **Invariantes:** forward-only sin migración; NAMING LOCK intacto; v8.9.18 sin bump.
