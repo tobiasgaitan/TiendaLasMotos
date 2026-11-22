@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-21 
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13 y §34.14 registrados; OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14 y §34.15 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1165,3 +1165,62 @@ C. Invariantes
 3.  Header `Estado:` actualizado para mencionar §34.14 y `OBS-PROD-UAT-T03-RESIDUALES`; el resto permanece intacto.
 4.  §1–§34.13 permanecen byte-idénticas; §34.14 es aditiva conforme al precedente §25.A.
 5.  Sin bump de versión.
+
+### 34.15 Cierre de WEB-INV-SEARCH-PARTIAL-001 — búsqueda parcial/contains (2026-11-21)
+
+**Estado:** `WEB-INV-SEARCH-PARTIAL-001` **CERRADO_SIN_CODIGO**. No se modifica código, tests, índices, schemas ni datos.
+**Versión:** se mantiene **v8.9.18** sin bump, conforme al precedente §34.12–§34.14.
+**Inserción:** aditiva al final del documento; §1–§34.14 permanecen byte-idénticas.
+
+#### A. Objeto y decisión
+
+1.  **Objeto:** evaluar la incorporación de búsqueda parcial/`contains` sobre `inventario_repuestos`, más allá del prefijo (Companion C) y de las alternativas exactas (T-01/T-04).
+2.  **Decisión:** cerrar el ticket **sin código**. El diseño vigente —Companion C + T-01 + T-04— forma un sistema cerrado y certificado; la búsqueda parcial no tiene justificación física que compense el coste de migración sobre un Firestore compartido con producción.
+3.  **Alcance negativo:** cero cambios en `src/`, tests, `firestore.indexes.json`, schemas, `firestore.rules`, `functions/`, `bot-tiendalasmotos` y `package*.json`.
+
+#### B. Estado físico certificado (base)
+
+1.  **Base:** `origin/main @ ab4995a31fdca977db428e75b68a3b3828528429`, árbol `15f17b9296343e99cbfb94795a5ffb2d0c9d131e`.
+2.  **Paridad:** `origin/main`, `origin/beta` y `HEAD` son idénticos en contenido (`git diff` vacío).
+3.  **SSOT:** `Documento_Maestro_Pagina.md` en la raíz, **1167 líneas**, `SIN_DOCS=PASS`; no existía §34.15.
+4.  **NAMING LOCK:** `referenciaSchema` SHA-256 `1be94dea1ccee09e6f72f80be8f413333a6025e8588002547a70e092073ef7f5`, extraído con `declaracion.initializer.getText(sf)`; 49 tests de naming-lock + 3 AST = **52/52**.
+5.  **Matriz de índices:** 7/7 en `inventario_repuestos`, mínima y sin redundantes: 3 de prefijo (`categoria`, `fabricante`, `categoria+fabricante` con cola `referencia` + `__name__`) y 4 de alternativas (`referencias_alternativas` `CONTAINS` con cola `referencia` + `__name__`, en sus variantes simple y combinada). `fieldOverrides: []`.
+6.  **Superficie de mutación:** `referenciaSchema` es inmutable (span sellado); `referenciaPrefijoSchema` es la única entrada mutable de búsqueda.
+
+#### C. Evidencia física del diseño vigente
+
+1.  **Linaje mínimo certificado:** `ec6daf9` (2026-11-07, scan completo sin filtros) → `30098aa` (2026-11-18, Companion C: prefijo + cursor + `limit+1` + AST guard) → `56ce317` (2026-11-20, T-01: filtro exacto por `referencia_alternativa` + 4 índices compuestos).
+2.  **Placeholder autoral:** `src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx:544` declara `placeholder="Prefijo de referencia…"`, lo que confirma que la intención de producto es prefijo, no `contains`.
+3.  **Red de tests:** suite runtime mockeada en CI (`src/test/vitest/actions.test.ts`) + 49 tests de naming-lock + 3 AST; el guard estático de `inventario_repuestos.test.ts` sigue **huérfano de CI**.
+
+#### D. Razones del rechazo de la migración
+
+1.  **Backfill obligatorio:** 21.256 documentos sobre Firestore compartido con producción.
+2.  **Degradación de Companion C:** un rango acoplado a `orderBy` rompe el cursor dual estable.
+3.  **Sacrificio de T-01:** `array-contains` ya está consumido por `referencias_alternativas`; no admite una segunda semántica.
+4.  **Red de tests insuficiente:** el guard estático no corre en CI; migrar sin cerrar esa red eleva el riesgo.
+5.  **Coste de índices no acotado:** con `fieldOverrides` vacío, cada combinación amplifica la matriz.
+6.  **Restricciones de plataforma:** R1 (acoplamiento rango-`orderBy`), R2 (`array-contains` ocupado), R3 (`fieldOverrides` vacío), R4 (backfill sobre Firestore compartido).
+
+#### E. Observaciones abiertas (no bloqueantes)
+
+Se registran aquí, sin remediar:
+
+1.  `OBS-PSD-L243-SEMANTICA-AMBIGUA`: la viñeta **Búsqueda y referencias** (L243) describe la búsqueda sin distinguir prefijo de coincidencia exacta.
+2.  `OBS-PSD-CIERRE-SIN-TRAZA-FILTRO-ALTERNATIVAS`: contradicción interna entre el header (L4, `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA`) y §33.5/§34.7 (L860 y L961, **ABIERTA**).
+3.  `OBS-INV-CORPUS-NORMALIZACION-NO-VERIFICADA`: no está certificado que los 21.256 documentos hayan atravesado los schemas vigentes.
+
+#### F. Tickets diferidos
+
+1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI.
+2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro.
+3.  `WEB-AUTH-SCHEMA-HOMOGENIZATION-001`: D-1 y D-2.
+
+#### G. Invariantes y cierre administrativo
+
+1.  NAMING LOCK intacto (`1be94dea…`, 52/52); Companion C intacto (prefijo + cursor dual + `limit+1`); T-01 intacto (`array-contains` exacto + 4 índices).
+2.  `test:smoke` 4/4, `test:unit` 154, `test:render` 10, `tsc`/lint/build EXIT 0.
+3.  Cero migraciones, backfills, purgas o escrituras en Firestore; cero contacto con `bot-tiendalasmotos`, `functions/` y `package*.json`.
+4.  Header `Estado:` actualizado para mencionar §34.15 y `WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO`; el resto permanece intacto.
+5.  §1–§34.14 permanecen byte-idénticas; §34.15 es aditiva conforme al precedente §25.A.
+6.  Sin bump de versión.
