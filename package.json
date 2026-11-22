@@ -12,9 +12,10 @@
     "lint": "eslint",
     "test": "npm run test:ci",
     "test:smoke": "tsx src/test/utils/offline-isolation.test.ts && tsx src/test/utils/pwa.test.ts && tsx src/test/utils/inventario-actions.test.ts && tsx src/test/utils/inventario-matching.test.ts",
+    "test:utils": "tsx src/test/utils/creditos-calc.test.ts && tsx src/test/utils/creditos-cliente-validation.test.ts && tsx src/test/utils/inventario-repuestos.test.ts && tsx src/test/utils/inventario-ui.test.ts && tsx src/test/utils/landing.test.ts && tsx src/test/utils/post-login.test.ts && tsx src/test/utils/reverseCalculator.test.ts && tsx src/test/utils/roles.test.ts && tsx src/test/utils/sidebar-visibility.test.ts && tsx src/test/utils/users-actions.test.ts && tsx src/test/utils/vision.test.ts",
     "test:unit": "vitest run",
     "test:render": "vitest run --config vitest.render.config.mts",
-    "test:ci": "npm run test:smoke && npm run test:unit && npm run test:render",
+    "test:ci": "npm run test:smoke && npm run test:utils && npm run test:unit && npm run test:render",
     "agent-eval": "PATH=\"$(pwd)/.agent/scripts:$PATH\" npx @tobiasgaitan/agent-cli eval"
   },
   "dependencies": {
