@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
-**Última Actualización:** 2026-11-22
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización);
+**Última Actualización:** 2026-11-23
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder);
 WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
@@ -1389,4 +1389,20 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 #### D. Invariantes
 1. NAMING LOCK intacto (`createdAt` y `created_at` no están en la lista de claves inmutables de `sys_admin_users`).
 2. §1–§34.18 permanecen byte-idénticas; §34.19 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.
+
+### 34.20 Cierre de OBS-AUDIT-LEDGERS-UNIFICATION-001 — unificación de ledgers de auditoría (2026-11-23)
+
+**Estado:** `OBS-AUDIT-LEDGERS-UNIFICATION-001` **CERRADA (no proceder)**.
+**Versión:** se mantiene **v8.9.18** sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.19 permanecen byte-idénticas.
+
+#### A. Objeto y decisión
+1. **Origen:** Evaluación de viabilidad para unificar las colecciones Firestore `historial_auditoria` y `historial_auditoria_inventario`.
+2. **Autopsia física certificada:** Divergencia de esquemas confirmada. `historial_auditoria` usa `created_at` (Timestamp); `historial_auditoria_inventario` usa `creado_en` (Timestamp) + campos específicos (`conteo_id`, `referencia`). Mecanismos de escritura divergentes (`add()` vs `tx.create()`).
+3. **Decisión:** **NO PROCEDER**. La unificación física es un anti-patrón que forzaría backfill masivo, inflación de esquema con nulos o refactor de arquitectura de escritura. Se mantiene la separación de dominios.
+
+#### B. Invariantes y cierre administrativo
+1. Cero cambios en código, esquemas de Firestore, reglas o índices.
+2. §1–§34.19 permanecen byte-idénticas; §34.20 es aditiva conforme al precedente §25.A.
 3. Sin bump de versión.
