@@ -531,6 +531,8 @@ export default function InventarioRepuestosClient() {
                             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
                         />
                         <input
+                            id="filtro-referencia"
+                            name="referencia"
                             type="search"
                             value={filtros.referencia}
                             maxLength={64}
@@ -550,6 +552,8 @@ export default function InventarioRepuestosClient() {
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Referencia Alternativa
                     <input
+                        id="filtro-referencia-alternativa"
+                        name="referencia_alternativa"
                         type="search"
                         value={filtros.referencia_alternativa}
                         maxLength={64}
@@ -568,6 +572,8 @@ export default function InventarioRepuestosClient() {
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Categoría
                     <input
+                        id="filtro-categoria"
+                        name="categoria"
                         type="search"
                         value={filtros.categoria}
                         maxLength={100}
@@ -586,6 +592,8 @@ export default function InventarioRepuestosClient() {
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Fabricante
                     <input
+                        id="filtro-fabricante"
+                        name="fabricante"
                         type="search"
                         value={filtros.fabricante}
                         maxLength={100}

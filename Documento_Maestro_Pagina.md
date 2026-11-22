@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-22
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16 y §34.17 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17 y §34.18 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1338,3 +1338,28 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 3. §1–§34.16 permanecen byte-idénticas; §34.17 es aditiva conforme al precedente §25.A.
 4. Header `Estado:` actualizado para mencionar §34.17 y `WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config)`; el resto permanece intacto.
 5. Sin bump de versión.
+
+### 34.18 Cierre de WEB-A11Y-FILTER-INPUTS-IDS-001 — remediación de accesibilidad en filtros (2026-11-22)
+
+**Estado:** `WEB-A11Y-FILTER-INPUTS-IDS-001` **CERRADO CON CÓDIGO (a11y)**. Los 4 Chrome Issues de accesibilidad/autofill fueron remediados.
+**Versión:** se mantiene **v8.9.18** sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.17 permanecen byte-idénticas.
+
+#### A. Objeto y decisión
+1. **Origen:** D-7 (§34.14.J.7): residuo de 4 Chrome Issues de accesibilidad/autofill en formularios del catálogo admin.
+2. **Causa raíz certificada:** Los 4 inputs de filtros nunca tuvieron atributos `id` ni `name`. El delta 3→4 ocurrió en T-01 (`56ce317`) al añadir el cuarto input sin estos atributos.
+3. **Decisión:** Añadir `id` y `name` a los 4 inputs con estrategia `id=filtro-{campo}`, `name={campo}`.
+
+#### B. Cambios físicos
+1. **Código:** `src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx` — añadidos `id` y `name` a 4 inputs de filtros.
+2. **Atributos preservados:** `aria-label`, `label` envolvente, `type=search`, `maxLength`, `onChange`, `placeholder`, `className`.
+
+#### C. Gates de CI y UAT
+1. `test:ci`: EXIT 0 (smoke 4/4, utils 11/11, unit 154, render 10).
+2. `tsc` / `lint` / `build`: EXIT 0.
+3. **UAT runtime beta:** 4 Chrome Issues → 0 Chrome Issues (verificado en DevTools).
+
+#### D. Invariantes
+1. NAMING LOCK intacto; cero cambios en schemas, Server Actions u otros componentes.
+2. §1–§34.17 permanecen byte-idénticas; §34.18 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.

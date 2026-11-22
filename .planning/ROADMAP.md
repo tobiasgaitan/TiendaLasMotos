@@ -170,3 +170,8 @@
 - [x] **Invariantes:** `vitest.config.mts` y `vitest.render.config.mts` byte-idénticos; `package-lock.json` intacto; cero cambios en `src/`, `functions/`, `bot-*` y `firestore.rules`.
 - [x] **Documentación:** §34.17 aditivo al SSOT; header L4 actualizado; v8.9.18 sin bump.
 - [x] **Promoción:** `feature → beta → main`; deploy beta y producción success; paridad `origin/main` ↔ `origin/beta`.
+
+## Cierre WEB-A11Y-FILTER-INPUTS-IDS-001 (v8.9.18, 2026-11-22)
+- [x] **Remediación:** `id` y `name` añadidos a inputs de referencia, alternativa, categoría y fabricante.
+- [x] **UAT:** 0 Chrome Issues en beta.
+- [x] **Gates:** `test:ci`, `tsc`, `lint`, `build` EXIT 0; promoción `feature → beta → main` exitosa.
