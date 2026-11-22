@@ -181,3 +181,8 @@
 - [x] **Tolerancia UI:** Tipo `AdminUser` actualizado para soportar documentos legacy sin romper el render.
 - [x] **Gates:** `tsc`, `lint`, `build` EXIT 0; diff limitado a 2 archivos de código.
 - [x] **Documentación:** §34.19 aditiva al SSOT; sync de STATE y ROADMAP.
+
+## Cierre OBS-AUDIT-LEDGERS-UNIFICATION-001 (v8.9.18, 2026-11-23)
+- [x] **Decisión:** Unificación física de ledgers rechazada como anti-patrón.
+- [x] **Documentación:** §34.20 aditiva al SSOT; sync de STATE y ROADMAP.
+- [x] **Gates:** diff limitado a 3 archivos de documentación.
