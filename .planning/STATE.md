@@ -150,3 +150,12 @@
 - **UAT producción 7/7:** 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; `bosch`/`BOSCH` 0/0 mismo vacío.
 - **Residuo conocido:** 3 Chrome Issues de accesibilidad/autofill, no bloqueantes.
 - **Versión:** v8.9.18 sin bump (precedente §28); sin cambios de código en este addendum documental.
+
+## Cierre WEB-AUTH-SCHEMA-HOMOGENIZATION-001 (2026-11-22)
+- **Estado:** **CERRADO SIN CÓDIGO (datos auditados)**; A-1 y A-2 cerrados en datos y runtime por certificación del Auditor.
+- **A-1:** `zlorenamartinez1608@gmail.com` pasa de rol ausente (`guest`) a `rol: "admin"` + `name: "Lorena Martinez"` vía `/admin/users` (`updateUser`); `createdAt` legacy preservado; sin `created_at`; sin `role`.
+- **A-2:** `tobiasgaitan@gmail.com` recibe `name: "Tobias Gaitan"`; `nombre: "Tobias"` se preserva como legado; `rol: "superadmin"` y `active` intactos. Cierre forward-only sin migración: cero renombres, borrados o backfill.
+- **Ledger:** `historial_auditoria` 3/3 append-only (3 `add()`, 0 update/delete): `t6qylAqk6oVG7Boz2uO8` (conexion, histórico), `uIr3DJjtvLVxL7FoVMPh` (Lorena), `90FAPW2bgPBanOfiVOx4` (tobias); `registrado_por: t05Ki…`.
+- **Runtime beta:** 4/4 filas con nombre visible; «Sin Nombre» del superadmin resuelto.
+- **OBS nuevas:** `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`, `OBS-USERS-DUAL-WRITE-TIMESTAMPS`, `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN` (abiertas, no bloqueantes).
+- **Invariantes:** cero cambios en `src/`, tests, índices, reglas, `functions/`, bot y `package*.json`; NAMING LOCK intacto; sin purgas/backfills; §34.16 aditiva; v8.9.18 sin bump.
