@@ -17,7 +17,8 @@ interface AdminUser {
     rol?: Rol | string;
     role?: string;
     active: boolean;
-    createdAt: string;
+    createdAt?: string;
+    created_at?: unknown;
 }
 
 /** Rol efectivo para display (resiliente rol ?? role, legacy vendedor→cobrador). */
