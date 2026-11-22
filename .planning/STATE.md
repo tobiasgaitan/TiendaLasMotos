@@ -180,3 +180,8 @@
 - **Cambios:** Eliminada escritura redundante de `createdAt` en `createUser`; tipo `AdminUser` actualizado para tolerar legacy.
 - **Gates:** `tsc`, `lint`, `build` EXIT 0; `git diff --numstat` = `0 1` (actions) + `2 1` (page); cero regresión en tests.
 - **Invariantes:** forward-only sin migración; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Cierre OBS-AUDIT-LEDGERS-UNIFICATION-001 (2026-11-23)
+- **Estado:** **CERRADA (no proceder)**.
+- **Decisión:** Unificación física de `historial_auditoria` y `historial_auditoria_inventario` rechazada por divergencia de esquemas (`created_at` vs `creado_en`), campos específicos y mecanismos de escritura distintos.
+- **Invariantes:** cero cambios en código o Firestore; v8.9.18 sin bump.
