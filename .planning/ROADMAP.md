@@ -186,3 +186,10 @@
 - [x] **Decisión:** Unificación física de ledgers rechazada como anti-patrón.
 - [x] **Documentación:** §34.20 aditiva al SSOT; sync de STATE y ROADMAP.
 - [x] **Gates:** diff limitado a 3 archivos de documentación.
+
+## Cierre OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT (v8.9.18, 2026-11-23)
+- [x] **Causa raíz:** `readCredit` en `scripts/forense-p6-test-data.ts` buscaba `CRE-2026-0001` como docId (`.doc(...)`), pero el valor canónico vive en el campo `numero_credito`.
+- [x] **Fix:** commit `3dd11d5`; lookup `.where('numero_credito', '==', CREDIT_NUMERO).limit(1)` con guard `snap.empty`; `BaselineSnapshot`, firma y llamadores intactos; whitelist declara la query; warning corregido.
+- [x] **Integración:** PR #46 fusionado a beta en `a317294`; CI run #237 verde (`45231957019`, headSha `a317294`).
+- [x] **Documentación:** cierre en §29.D.1 del SSOT; sync de `Documento_Maestro_Pagina.md`, `.planning/STATE.md` y `.planning/ROADMAP.md`.
+- [x] **Invariantes:** diff de 1 archivo de código (`scripts/forense-p6-test-data.ts`, 11+/8-); cero cambios en `src/`, `package.json`, `package-lock.json`, `firestore.indexes.json` ni `firestore.rules`; sin ejecución live; NAMING LOCK intacto; v8.9.18 sin bump.

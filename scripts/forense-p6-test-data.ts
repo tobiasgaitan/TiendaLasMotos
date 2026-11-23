@@ -50,7 +50,8 @@ const COLLECTION_COUNTS = 'conteos_pendientes_repuestos';
 const COLLECTION_PHOTOS = 'fotos_inventario';
 const COLLECTION_LEDGER = 'historial_auditoria_inventario';
 const COLLECTION_SEDES = 'configuracion/general/sedes';
-const CREDIT_PATH = 'creditos/CRE-2026-0001';
+const COLLECTION_CREDITS = 'creditos';
+const CREDIT_NUMERO = 'CRE-2026-0001';
 
 type Classification =
     | 'TEST_CANDIDATE'
@@ -1067,7 +1068,8 @@ function buildWhitelist(result: P6Result) {
                 COLLECTION_PHOTOS,
                 COLLECTION_LEDGER,
             ],
-            documents: [CREDIT_PATH, COLLECTION_SEDES],
+            documents: [COLLECTION_SEDES],
+            queries: [`${COLLECTION_CREDITS} where numero_credito == ${CREDIT_NUMERO}`],
             ledger: 'count + hash + entry IDs read-only',
             external_baseline: 'CRE-2026-0001 + Santa Marta, read-only',
             writes: 'none',
@@ -1489,14 +1491,15 @@ async function readLedger(
 async function readCredit(
     db: ReturnType<typeof getFirestore>
 ): Promise<BaselineSnapshot> {
-    const doc = await db
-        .collection('creditos')
-        .doc('CRE-2026-0001')
+    const snap = await db
+        .collection(COLLECTION_CREDITS)
+        .where('numero_credito', '==', CREDIT_NUMERO)
+        .limit(1)
         .get();
-    if (!doc.exists) {
+    if (snap.empty) {
         return { exists: false, hash: null, snapshot: null };
     }
-    const data = doc.data() as Record<string, unknown>;
+    const data = snap.docs[0].data() as Record<string, unknown>;
     return {
         exists: true,
         hash: sha256(stableStringify(data)),
@@ -1639,7 +1642,7 @@ async function ejecutarForenseP6(options: { outDir: string }): Promise<void> {
     const credit = await readCredit(db);
     if (!credit.exists) {
         result.warnings.push(
-            'CREDIT_NOT_FOUND: creditos/CRE-2026-0001 no existe'
+            `CREDIT_NOT_FOUND: creditos con numero_credito=${CREDIT_NUMERO} no existe`
         );
     }
     const sedes = await readSedes(db);

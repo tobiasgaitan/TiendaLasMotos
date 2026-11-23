@@ -624,7 +624,7 @@ Supersesión documental: §11.E.2 (L347) conserva su redacción histórica y que
 **C. Revocación de `OBS-P6-CRE-2026-0001-INEXISTENTE`.** El contrato existe como auto-ID `ltezdKf6P3nG4tBZRTx3`, con campo `numero_credito: "CRE-2026-0001"`. El forense P6 buscó el número como docId, no como campo `numero_credito`; fue un defecto de lookup, no ausencia de contrato. El docId no estuvo en la whitelist de 32 y no fue eliminado; la purga de ledgers eliminó 2 asientos de auditoría que lo referenciaban, declarados simulación en §28. La observación queda **REVOCADA**.
 
 **D. Nuevas observaciones registradas.** Todas abiertas y no bloqueantes:
-- `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`: corrección diferida del forense para buscar `numero_credito` como campo, no como docId; ticket forense propio.
+- `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`: corrección diferida del forense para buscar `numero_credito` como campo, no como docId; ticket forense propio. **CERRADA (2026-11-23):** fix `3dd11d5` (rama `fix/forense-p6-credit-lookup-001`); PR #46 fusionado a beta en `a317294`; CI run #237 verde (`45231957019`, workflow “Deploy to Firebase Hosting (BETA)”); `readCredit` usa `.where('numero_credito', '==', CREDIT_NUMERO).limit(1)` con guard `snap.empty`.
 - `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`: el selector atribuye el vacío a “No hay referencias que coincidan con la búsqueda” cuando el catálogo maestro está vacío; deuda de copy UX.
 - `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`: log duplicado en la migración offline v1→v2; sin impacto funcional; deuda de higiene.
 
