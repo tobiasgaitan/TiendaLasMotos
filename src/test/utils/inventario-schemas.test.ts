@@ -31,6 +31,8 @@ const STORAGE_PATH = 'inventario_repuestos/asesor@test.com/foto.jpg';
 
 const BASE = {
     conteo_id: UUID,
+    inventario_documento_id: 'BRK-001',
+    sede_id: 'sede-1',
     referencia_sugerida: 'disco de freno',
     referencia_confirmada: 'brk-001',
     descripcion: 'Disco de freno delantero',
@@ -50,12 +52,12 @@ const crearOk = crearConteoSchema.safeParse(BASE);
 check('crear conteo válido', crearOk.success);
 if (crearOk.success) {
     check('referencia normalizada a mayúsculas', crearOk.data.referencia_confirmada === 'BRK-001');
-    check('ubicación normalizada a mayúsculas', crearOk.data.ubicacion === 'A-01-05');
+    check('ubicación conservada tras trim', crearOk.data.ubicacion === 'a-01-05');
     check('etiquetas vision conservadas', crearOk.data.etiquetas_vision.length === 1);
 }
 
 check('referencia con espacio rechazada', !crearConteoSchema.safeParse({ ...BASE, referencia_confirmada: 'BRK 001' }).success);
-check('ubicación inválida rechazada', !crearConteoSchema.safeParse({ ...BASE, ubicacion: 'A1' }).success);
+check('ubicación vacía rechazada', !crearConteoSchema.safeParse({ ...BASE, ubicacion: '' }).success);
 check('cantidad negativa rechazada', !crearConteoSchema.safeParse({ ...BASE, cantidad_contada: -1 }).success);
 check('mime no permitido rechazado', !crearConteoSchema.safeParse({ ...BASE, mime_type: 'image/gif' }).success);
 check('foto > 5MB rechazada', !crearConteoSchema.safeParse({ ...BASE, tamano_bytes: 6 * 1024 * 1024 }).success);

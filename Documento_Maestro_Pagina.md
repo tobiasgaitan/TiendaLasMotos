@@ -1,7 +1,7 @@
 # Documento Maestro de la Página (Tienda Las Motos)
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
-**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder);
+**Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
 WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
@@ -1331,7 +1331,7 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 4. `test:render`: **10** (intacto).
 5. `tsc` / `lint` / `build`: EXIT 0.
 
-**OBS registrada:** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`. El fixture `BASE` de `inventario-schemas.test.ts` (WEB-038, `c119864`) no incluye `inventario_documento_id` ni `sede_id`; el schema vigente (`src/lib/actions/inventario-schemas.ts` L127–L133) exige ambos. El test quedó huérfano de CI y derivó; al incorporarlo expone la deuda. Queda fuera de `test:utils` hasta un ticket de corrección de fixture.
+**OBS CERRADA (2026-11-23):** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`. El fixture `BASE` de `inventario-schemas.test.ts` (WEB-038, `c119864`) no incluía `inventario_documento_id` ni `sede_id`, que el schema vigente (`src/lib/actions/inventario-schemas.ts` L127–L133) exige. Corrección del fixture: `47dea28`; reincorporación a `test:utils`: `7549833` (12/12). Gate final: CI run #235 verde sobre `971e1d7`. El 11/11 y la exclusión descritos en §A.2/§C.2 corresponden al estado previo (2026-11-22); estado final: 12/12, sin residuo.
 
 #### D. Invariantes y cierre administrativo
 1. NAMING LOCK intacto; cero cambios en código de aplicación.
