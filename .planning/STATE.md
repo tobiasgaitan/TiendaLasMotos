@@ -164,7 +164,7 @@
 - **Estado:** **CERRADO SIN CÓDIGO (CI/Config)**; 11 de los 12 scripts huérfanos de `src/test/utils/` quedan incorporados a la pipeline de CI; `inventario-schemas` queda excluido con OBS.
 - **Cambio:** `package.json` solo en `scripts.test:utils` (11 scripts con `tsx`) y `scripts.test:ci` (`test:smoke && test:utils && test:unit && test:render`).
 - **Gates:** `test:smoke` 4/4 intacto; `test:utils` 11/11; `test:unit` 154; `test:render` 10; `tsc`/`lint`/`build` EXIT 0.
-- **OBS:** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`: fixture `BASE` de WEB-038 (`c119864`) sin `inventario_documento_id` ni `sede_id`; schema vigente (L127–L133) exige ambos; test huérfano derivó y queda fuera de `test:utils` hasta ticket de corrección.
+- **OBS CERRADA (2026-11-23):** `OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001`: fixture `BASE` de WEB-038 (`c119864`) corregido en `47dea28` (`inventario_documento_id` + `sede_id`); reincorporado a `test:utils` en `7549833` (12/12); CI run #235 verde sobre `971e1d7`.
 - **Invariantes:** `vitest.config.mts` y `vitest.render.config.mts` byte-idénticos; `package-lock.json` intacto; cero cambios en `src/`, `functions/`, `bot-*` y `firestore.rules`; NAMING LOCK intacto; v8.9.18 sin bump.
 - **Documentación:** §34.17 aditivo al SSOT; header L4 actualizado; §1–§34.16 byte-idénticas.
 
