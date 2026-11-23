@@ -104,7 +104,7 @@
 - **P6:** 17 docIds + 5 blobs; commit `2efb9a6`; `0/0/0`; ledger `14 / a83fcb61…`; sedes `e449e9af…`.
 - **Ledgers:** 32 asientos (14+18); commit `f38a080`; `0/0`; hash `e3b0c442…`; §28 vigente.
 - **Revocación:** `OBS-P6-CRE-2026-0001-INEXISTENTE` → REVOCADA; contrato `ltezdKf6P3nG4tBZRTx3` con `numero_credito: "CRE-2026-0001"`; el forense P6 buscó por docId, no por campo; no fue eliminado.
-- **Nuevas OBS:** `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO` (abiertas, no bloqueantes).
+- **Nuevas OBS:** `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO` (abiertas, no bloqueantes). **CERRADA (2026-11-23):** `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`; fix `3dd11d5` (PR #46); merge a beta `a317294`; CI run #237 verde (`45231957019`).
 - **Auth race:** backport `be81542`; hook `hosting.predeploy`; C4 beta cold/idle `8/8` 200, `0/0/0`; cerrada en beta; producción pendiente Ruta 1.
 - **Stack:** 7 commits + este 8º; Ruta 1 push beta → CI → ff main → push main → paridad; `OBS-LOCAL-COMMITS-UNPUSHED-STACK` se cierra con la paridad.
 - **Versión:** v8.9.16; NAMING LOCK intacto; sin cambios de código; SSOT en raíz.
@@ -116,7 +116,7 @@
 - **Evidencia beta:** commit `faeb3c9`; hook `FIREBASE_FRAMEWORKS_TARBALL_PREPARED`; tarball SHA `b5aca54…`; `firebase-aware.js` SHA `973a…`; marcador runtime presente; C4 cold/idle `8/8` 200, `0/0/0`; usuario Auth temporal eliminado.
 - **Observaciones:** `OBS-PROD-ASESOR-AUTH-RACE-CONDITION` reabierta respecto de v8.9.16 y cerrada en beta v8.9.16; producción pendiente Ruta 1. Nuevas `OBS-PR689-PATCH-NOT-UPLOADED` y `OBS-PR689-C4-WITHOUT-ARTIFACT-MARKER`, cerradas en beta y pendientes de producción.
 - **Versión:** v8.9.16; NAMING LOCK intacto; sin cambios de código de app; SSOT en raíz.
-- **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, `OBS-P6-FORENSE-CREDIT-LOOKUP-DEFECT`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`.
+- **Abiertas:** `OBS-PROD-DATOS-PRUEBA-RESIDUALES`, `OBS-PROMOTE-DIRECT-PUSH-BYPASS-PR`, `OBS-INVENTORY-NAMESPACE-LEGACY`, `OBS-DOCTRINA-NO-VERSIONADA`, `OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION`, `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO`.
 
 ## Cierre WEB-INV-COMPANIONS-ABC-001 + WEB-INV-INGESTA-002-F2 (2026-11-19)
 - **Versión:** v8.9.17 (bump documental de cabecera; §29–§31 conservan v8.9.16 histórico).
