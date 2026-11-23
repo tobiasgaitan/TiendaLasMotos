@@ -193,3 +193,9 @@
 - [x] **Integración:** PR #46 fusionado a beta en `a317294`; CI run #237 verde (`45231957019`, headSha `a317294`).
 - [x] **Documentación:** cierre en §29.D.1 del SSOT; sync de `Documento_Maestro_Pagina.md`, `.planning/STATE.md` y `.planning/ROADMAP.md`.
 - [x] **Invariantes:** diff de 1 archivo de código (`scripts/forense-p6-test-data.ts`, 11+/8-); cero cambios en `src/`, `package.json`, `package-lock.json`, `firestore.indexes.json` ni `firestore.rules`; sin ejecución live; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Cierre OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 (v8.9.18, 2026-11-23)
+- [x] **Causa raíz:** el filtro admin del catálogo no exponía `referencia_alternativa`; el corpus F2 tenía 224 documentos con alternativas.
+- [x] **Fix:** T-01 (PR #14, `cfe7af1`): `referencia_alternativa` en `filtrosRepuestosShape`, `array-contains` en `listarRepuestos`/`contarRepuestos`, cuarto input UI y 4 índices; cubierto además en búsqueda de asesor y verificación por referencia.
+- [x] **Documentación:** §33.5/§34.7/§34.15.E.2 y header reconciliados a CERRADA; §34.11.A histórico intacto.
+- [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
