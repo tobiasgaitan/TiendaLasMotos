@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA; OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -858,7 +858,7 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 ### 33.5 Observaciones
 
 - `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`: **ABIERTA**, no bloqueante.
-- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **ABIERTA**, no bloqueante.
+- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **CERRADA (2026-11-23)**; cubierta por T-01 (PR #14, `cfe7af1`): `referencia_alternativa` en `filtrosRepuestosShape`, `array-contains` en `listarRepuestos`/`contarRepuestos`, cuarto input UI y 4 índices; verificado en AST/tests.
 - `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001`: **CERRADA por este commit**. Se elimina exclusivamente el bloque compuesto `(referencia ASC, __name__ ASC)` de `inventario_repuestos` en `firestore.indexes.json`, rechazado físicamente por Firestore con HTTP 400; sin reformateo del resto.
 
 ### 33.6 Corrección de topología
@@ -959,7 +959,7 @@ Cero reescritura de §25 y §28–§31. Cero escrituras en Firestore/Storage, ce
 - `OBS-INV-BUSQUEDA-CASE-PARTIAL-001`: **CERRADA** por este ticket en su porción de normalización de caso; la búsqueda parcial/contains sigue fuera de alcance y no se reabre aquí.
 - `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING`: **nueva**, no bloqueante.
 - `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`: **nueva**, no bloqueante (aviso de versión de `firebase-functions` durante el deploy; sin impacto en este ticket).
-- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **ABIERTA**, fuera de alcance.
+- `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001`: **CERRADA (2026-11-23)**; cubierta por T-01 (PR #14, `cfe7af1`); fuera del alcance original de §34.7, reconciliada aquí.
 - Residuo de accesibilidad `§9.C.6`: se mantiene registrado en su ubicación original; esta sección no lo duplica ni lo reabre.
 
 ### 34.8 Coherence Score
@@ -1208,7 +1208,7 @@ C. Invariantes
 Se registran aquí, sin remediar:
 
 1.  `OBS-PSD-L243-SEMANTICA-AMBIGUA`: la viñeta **Búsqueda y referencias** (L243) describe la búsqueda sin distinguir prefijo de coincidencia exacta.
-2.  `OBS-PSD-CIERRE-SIN-TRAZA-FILTRO-ALTERNATIVAS`: contradicción interna entre el header (L4, `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA`) y §33.5/§34.7 (L860 y L961, **ABIERTA**).
+2.  `OBS-PSD-CIERRE-SIN-TRAZA-FILTRO-ALTERNATIVAS`: **CERRADA (2026-11-23)**. Contradicción resuelta: header L5, §33.5 L861 y §34.7 L962 actualizados a CERRADA con T-01 (PR #14, `cfe7af1`).
 3.  `OBS-INV-CORPUS-NORMALIZACION-NO-VERIFICADA`: no está certificado que los 21.256 documentos hayan atravesado los schemas vigentes.
 
 #### F. Tickets diferidos

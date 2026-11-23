@@ -125,7 +125,7 @@
 - **Evidencia:** `Desktop/WEB-INV-INGESTA-002-F2-evidence/run-001/`; `FINAL_MANIFEST_SHA256=86e788ecf1e6079db66b5df1985f64a9837999ca8bd6f54bc48650f55fe8a916`.
 - **Rollback:** por manifiesto, batches de 100, verificación de `import_key`; sin borrado del ledger append-only.
 - **Supersesión única:** purga manual pre-apply de 7 asientos UAT + conteo `N5hKkfXcHa0ufOH973GU`, autorizada por Dirección; gap forense declarado (sin export write-once de los 7 docIds).
-- **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` y `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` abiertas/no bloqueantes; `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001` cerrada por este commit.
+- **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` abierta/no bloqueante; `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` **CERRADA (2026-11-23; T-01 `cfe7af1`)**; `OBS-INV-INDEX-REDUNDANTE-REPO-DRIFT-001` cerrada por este commit.
 - **Topología:** prod `tiendalasmotos.com` + `tiendalasmotos.web.app` (sitio `tiendalasmotos`); beta `tiendalasmotos-beta.web.app` (sitio `tiendalasmotos-beta`); Firestore compartido en proyecto `tiendalasmotos`.
 - **Posición:** F2 aplicado en beta; commit/push/PR `feature/web-inv-ingesta-002 → beta` pendientes de certificación del diff; merge `beta → main` por PR estricto. Sin push directo a main.
 
@@ -137,7 +137,7 @@
 - **Solución:** `textoCatalogoSchema` compartido (`trim` → mayúsculas → max 100 sobre valor canónico) aplicado con `.optional()` en alta y `.default('')` en filtros; cubre `listarRepuestosSchema` y `contarRepuestosSchema`.
 - **Gates:** `tsc`/`lint`/`diff --check` EXIT 0; utils ALL PASSED; `actions.test.ts` 52/52; naming-lock + matching-ast 52/52 con SHA exigido; `test:ci` EXIT 0.
 - **UAT beta read-only:** 21.256 sin filtro; 18.856 `repuestos`/`REPUESTOS`; 1.507 `los originales`/`LOS ORIGINALES`; paridad conteo/listado en los 4 casos; suma por categoría 21.256; `fabricante bosch`/`BOSCH` 0/0 idénticos; cero errores de índice y `FIRESTORE_WRITES=0`.
-- **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` **CERRADA** (porción case-normalization); nuevas no bloqueantes `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING` y `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`; `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` sigue abierta/fuera de alcance.
+- **OBS:** `OBS-INV-BUSQUEDA-CASE-PARTIAL-001` **CERRADA** (porción case-normalization); nuevas no bloqueantes `OBS-INV-ADMIN-EMPTY-COPY-MISLEADING` y `OBS-FRAMEWORKS-FUNCTIONS-VERSION-ADVISORY`; `OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001` **CERRADA (2026-11-23; T-01 `cfe7af1`)**.
 - **Desviaciones:** D1 UAT de fabricante sin escritura (corpus F2 vacío, cobertura por tests); D2 espacios internos no colapsados (residuo declarado fuera de alcance).
 - **Invariantes:** §25–§33 byte-idénticas; NAMING LOCK y ledger append-only intactos; sin backfill/migración; sin cambios de código en este commit documental.
 
