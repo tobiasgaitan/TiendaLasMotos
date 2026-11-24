@@ -199,3 +199,8 @@
 - [x] **Fix:** T-01 (PR #14, `cfe7af1`): `referencia_alternativa` en `filtrosRepuestosShape`, `array-contains` en `listarRepuestos`/`contarRepuestos`, cuarto input UI y 4 índices; cubierto además en búsqueda de asesor y verificación por referencia.
 - [x] **Documentación:** §33.5/§34.7/§34.15.E.2 y header reconciliados a CERRADA; §34.11.A histórico intacto.
 - [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
+
+## Registro de Gobernanza y Residuales Operativos (v8.9.18, 2026-11-23)
+- [x] **SSOT:** §34.21 aditiva; header L5 con 6 OBS nuevas; §1–§34.20 (cuerpo) byte-idénticas.
+- [x] **OBS registradas:** `OBS-PROMOTE-PR45-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR48-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR50-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001`, `OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001`, `OBS-PSD-HEADER-A11Y-DUPLICADO-001`.
+- [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
