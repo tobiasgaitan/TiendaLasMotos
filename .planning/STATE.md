@@ -185,3 +185,8 @@
 - **Estado:** **CERRADA (no proceder)**.
 - **Decisión:** Unificación física de `historial_auditoria` y `historial_auditoria_inventario` rechazada por divergencia de esquemas (`created_at` vs `creado_en`), campos específicos y mecanismos de escritura distintos.
 - **Invariantes:** cero cambios en código o Firestore; v8.9.18 sin bump.
+
+## Registro de Gobernanza y Residuales Operativos (2026-11-23)
+- **OBS registradas:** `OBS-PROMOTE-PR45-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR48-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR50-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001`, `OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001`, `OBS-PSD-HEADER-A11Y-DUPLICADO-001` (5 abiertas/no bloqueantes + 1 cierre de PRs huérfanos).
+- **SSOT:** §34.21 aditiva; header L5 con los 6 tokens; §1–§34.20 (cuerpo) byte-idénticas.
+- **Invariantes:** cero cambios en código, reglas, índices, `package*.json` ni God Nodes; NAMING LOCK intacto; v8.9.18 sin bump.
