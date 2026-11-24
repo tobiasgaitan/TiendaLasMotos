@@ -162,6 +162,8 @@ export default function SelectorReferenciaRepuesto({
     >(null);
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const catalogoVacio = cacheActualizadoEn !== null && cacheTotal === 0;
+    const filtroActivo = consulta.trim().length > 0 || etiquetas.length > 0;
 
     const secuenciaRef = useRef(0);
     const onSugerenciaRef = useRef(onSugerencia);
@@ -435,9 +437,11 @@ export default function SelectorReferenciaRepuesto({
                 </div>
             ) : null}
 
-            {!cargando && !error && candidatos.length === 0 ? (
+            {!cargando && !error && candidatos.length === 0 && (catalogoVacio || filtroActivo) ? (
                 <p className="text-xs text-gray-500">
-                    No hay referencias que coincidan con la búsqueda.
+                    {catalogoVacio
+                        ? 'El catálogo maestro de repuestos está vacío. Contacta al administrador para cargar el inventario.'
+                        : 'No hay referencias que coincidan con la búsqueda.'}
                 </p>
             ) : null}
 
