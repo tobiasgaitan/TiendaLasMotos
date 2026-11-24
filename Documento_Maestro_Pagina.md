@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1495,3 +1495,25 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
 2. NAMING LOCK intacto.
 3. §1–§34.23 (cuerpo) byte-idénticas; §34.24 es aditiva conforme al precedente §25.A.
+
+### 34.25 Cierre OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (2026-11-23)
+
+**Estado:** CERRADA; residual documental, sin defecto de código.
+**Versión:** v8.9.18 sin bump.
+**Inserción:** aditiva al final del documento; el cuerpo §1–§34.24 permanece byte-idéntico. §18 L493 y §20 L513 conservan su redacción histórica; este cierre supersede solo el estado de `OBS-WEB046-REDIRECT-ASESOR-SIMULADOR`.
+
+#### A. Evidencia física
+1. `src/lib/firebase.ts` declara `CLAVE_FLAG_ASESOR = 'tlm_offline_asesor'` (L15), lee el flag al inicializar el módulo con `leerFlagOffline()` (L21–L29) y, si vale `'1'`, ejecuta `initializeFirestore` con `persistentLocalCache` + `persistentMultipleTabManager` (L67–L74); en caso contrario usa `getFirestore` (L84–L87).
+2. `src/app/admin/login/LoginForm.tsx` espera `role !== null` (L49), escribe `CLAVE_FLAG_ASESOR = '1'` para asesor o la elimina para otros roles (L52–L55) y solo después ejecuta `window.location.href` (L76); si la escritura falla, aborta la navegación con error (L57–L69).
+3. `src/context/AuthContext.tsx` resuelve el rol tras `persistenciaOfflineLista` (L143–L189) y consolida el mismo flag sin `window.location.reload()` (L236–L260); `src/lib/auth/post-login.ts` canonicaliza el callback (L36–L69); `src/lib/auth/landing.ts` fija `/admin/inventario-asesor` para asesor (L9–L14); `RoleBasedRedirect` aplica `router.replace(landing)` con `defaultLanding=1` (L37–L45).
+4. `git log --oneline 2e4e20b..b7d9187 -- src/lib/firebase.ts src/context/AuthContext.tsx src/app/admin/login/LoginForm.tsx src/lib/auth/post-login.ts src/lib/auth/landing.ts` no devuelve commits: WEB-048 (`2e4e20b`) es el último cambio de la cadena y su diff eliminó `window.location.reload()` y añadió la escritura del flag antes de navegar.
+
+#### B. Cierre
+1. `OBS-WEB046-REDIRECT-ASESOR-SIMULADOR` queda **CERRADA (2026-11-23)**.
+2. §18 L493 (“Deudas derivadas”) y §20 L513 (contrato WEB-048) conservan su redacción histórica. §34.25 es un addendum posterior que supersede solo el estado de esta OBS.
+3. El header L5 incorpora el token de cierre y STATE/ROADMAP registran el cierre.
+
+#### C. Invariantes
+1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
+2. NAMING LOCK intacto; `CLAVE_FLAG_ASESOR` / `tlm_offline_asesor` sin renombre.
+3. El cuerpo §1–§34.24 permanece byte-idéntico; §34.25 es aditiva conforme al precedente §34.24.

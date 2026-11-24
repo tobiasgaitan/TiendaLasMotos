@@ -240,3 +240,10 @@
 - [x] **Residual:** ninguno; `bf3ed41` preservó la clasificación en `src/lib/offline/outbox/db.ts`.
 - [x] **Cierre:** `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO` CERRADA (2026-11-23); sin cambio de código.
 - [x] **Invariantes:** NAMING LOCK; sin cambios de código ni `package*.json`; v8.9.18 sin bump.
+
+## Cierre OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (v8.9.18, 2026-11-23)
+- [x] **Diagnóstico:** residual documental; WEB-048 ya consolidó el flag antes de navegar y `firebase.ts` lo lee en la carga destino.
+- [x] **Flujo:** `LoginForm` espera `role !== null`, escribe `CLAVE_FLAG_ASESOR` y navega; el destino inicializa la caché persistente.
+- [x] **Destino:** `landingPorRol('asesor')` → `/admin/inventario-asesor`; `RoleBasedRedirect` usa `router.replace` con `defaultLanding=1`.
+- [x] **Cierre:** `OBS-WEB046-REDIRECT-ASESOR-SIMULADOR` CERRADA; sin cambio de código.
+- [x] **Invariantes:** NAMING LOCK; sin cambios de código ni `package*.json`; v8.9.18 sin bump.
