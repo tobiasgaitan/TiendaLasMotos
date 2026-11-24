@@ -233,3 +233,10 @@
 - [x] **Evidencia:** ausente en `origin/main`, `origin/beta` e historial antes del cierre (`git ls-tree` vacío en ambos refs).
 - [x] **Cierre:** `OBS-DOCTRINA-NO-VERSIONADA` CERRADA (2026-11-23); §29.H conserva su redacción histórica.
 - [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
+
+## Cierre OBS-OFFLINE-MIGRATION-LOG-DUPLICADO (v8.9.18, 2026-11-23)
+- [x] **Diagnóstico:** no hay log duplicado; era mala clasificación (`console.error` para descarte/finalización esperados).
+- [x] **Fix previo:** `9c87392` (WEB-LOG-HIGIENE-001) reclasificó a `console.debug`/`console.info`; `console.error` queda solo para fallos reales.
+- [x] **Residual:** ninguno; `bf3ed41` preservó la clasificación en `src/lib/offline/outbox/db.ts`.
+- [x] **Cierre:** `OBS-OFFLINE-MIGRATION-LOG-DUPLICADO` CERRADA (2026-11-23); sin cambio de código.
+- [x] **Invariantes:** NAMING LOCK; sin cambios de código ni `package*.json`; v8.9.18 sin bump.

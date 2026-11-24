@@ -217,3 +217,10 @@
 - **Evidencia:** 104 líneas / 14 909 bytes; SHA-256 `bf3520da92de598c120edc3f86bd739c313603e392db239a6e9e27d6d3bcb392`; EOF `0a`; copia local `~/qwen-prompts/DOCTRINA_QWEN_WEB.md`; ausente en `origin/main`, `origin/beta` e historial antes del cierre.
 - **SSOT:** §34.24 aditiva; header L5 con token de cierre; §29.H y §29.D byte-idénticas.
 - **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Cierre OBS-OFFLINE-MIGRATION-LOG-DUPLICADO (2026-11-23)
+- **Estado:** **CERRADA**; residual documental, sin defecto de código.
+- **Diagnóstico:** no hay log duplicado; el comportamiento previo a `9c87392` usaba `console.error` para el descarte y la finalización esperados. `9c87392` los reclasificó a `console.debug`/`console.info`; `console.error` queda solo para fallos reales.
+- **Evidencia:** `src/lib/offline/outbox/db.ts` L30–L123; `console.debug` L98, `console.info` L119, `console.error` L36 y L110; `bf3ed41` preservó la clasificación tras dividir `outbox.ts`.
+- **SSOT:** §29.D.3 L629 con cierre en línea; header L5 con token; §29.H L637 intacta.
+- **Invariantes:** sin cambios de código, `package*.json`, God Nodes, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
