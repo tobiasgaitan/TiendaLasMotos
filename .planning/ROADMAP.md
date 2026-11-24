@@ -204,3 +204,10 @@
 - [x] **SSOT:** §34.21 aditiva; header L5 con 6 OBS nuevas; §1–§34.20 (cuerpo) byte-idénticas.
 - [x] **OBS registradas:** `OBS-PROMOTE-PR45-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR48-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR50-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001`, `OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001`, `OBS-PSD-HEADER-A11Y-DUPLICADO-001`.
 - [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
+
+## Cierre OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION (v8.9.18, 2026-11-23)
+- [x] **Causa raíz:** el selector atribuía todo vacío a “No hay referencias que coincidan con la búsqueda”, sin distinguir catálogo maestro vacío de búsqueda sin resultados.
+- [x] **Fix:** `1407b9b`; `SelectorReferenciaRepuesto.tsx` añade `catalogoVacio` (`cacheActualizadoEn !== null && cacheTotal === 0`) y `filtroActivo`; copy diferenciado.
+- [x] **Integración:** PR #53 a beta `6170fc9`; PR #54 a main `46cbd52`; deploy run #100 verde (`45304182877`).
+- [x] **Documentación:** §29.D.2 CERRADA; header L5 con token; sync STATE/ROADMAP.
+- [x] **Invariantes:** sin cambios de código en este ticket; NAMING LOCK; v8.9.18 sin bump.
