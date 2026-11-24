@@ -203,3 +203,11 @@
 - **Evidencia:** PR #54 `REVIEW_REQUIRED`, 0 revisiones, merge `46cbd52`, run #100 verde (`45304182877`); PR #56 `REVIEW_REQUIRED`, 0 revisiones, merge `81e0e03`, run #101 verde (`45308522748`).
 - **SSOT:** §34.22 aditiva; header L5 con los 2 tokens; §1–§34.21 (cuerpo) byte-idénticas.
 - **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Convergencia de Gobernanza — Bypass Admin Mono-usuario (2026-11-23)
+- **OBS genérica:** `OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO` **ACEPTADA (DISEÑO)**.
+- **OBS absorbidas:** `OBS-PROMOTE-PR45-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR48-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR50-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR54-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR56-ADMIN-BYPASS-001`; PR #58 sin token individual.
+- **Evidencia:** PR #45 `62d1ce3`, PR #48 `109fe26`, PR #50 `1d4ff47`, PR #54 `46cbd52` (run #100, `45304182877`), PR #56 `81e0e03` (run #101, `45308522748`), PR #58 `35f2524` (run #102, `45313381173`); todos `REVIEW_REQUIRED`, 0 revisiones.
+- **Regla:** futuras promociones `beta → main` con `--admin` se registran solo contra la OBS genérica; no se crean OBS individuales, incluida la promoción de este ticket.
+- **SSOT:** §34.23 aditiva; header L5 con 1 token genérico; §1–§34.22 (cuerpo) byte-idénticas.
+- **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
