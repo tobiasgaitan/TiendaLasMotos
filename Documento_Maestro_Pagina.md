@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -241,7 +241,10 @@ Para evitar fallas silenciosas en producción, se implementan de forma obligator
 *   **`conteos_pendientes_repuestos`:** Claves inmutables `conteo_id` (UUID v4, docId), `referencia_confirmada`, `referencia_sugerida`, `inventario_documento_id`, `sede_id`, `descripcion`, `cantidad_contada`, `ubicacion` (texto libre 1–100), `anotaciones`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `asesor_email`, `asesor_uid`, `creado_en`, `revisado_por`, `revisado_en`, `motivo_rechazo`. El conteo referencia el documento exacto del catálogo mediante `inventario_documento_id`.
 *   **`fotos_inventario`:** Registro espejo de la foto con `conteo_id`, `asesor_email`, `asesor_uid`, `foto_url`, `storage_path`, `nombre_archivo`, `mime_type`, `tamano_bytes`, `etiquetas_vision`, `creado_en`.
 *   **`inventario_repuestos`:** Catálogo maestro con docId auto-ID y `documento_id` como identidad de edición solo en DTO (NO se persiste). `referencia` es la referencia maestra comercial, repetible, no el docId. Campos: `referencia`, `referencias_alternativas` (array normalizado, sin duplicados ni referencia maestra), `descripcion`, `fabricante`, `aplica_a`, `categoria`, `precio`, `stock`, `stock_minimo`, `imagen_url`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`. `sede_id` y `ubicacion` permanecen como campos legacy opcionales; el alta Admin no los exige. `stock` y `stock_minimo` son globales del catálogo. Los campos no críticos se persisten con defaults (`''`, `[]`, `0`) cuando el alta los omite. `precio` conserva su nombre (NAMING LOCK).
-*   **Búsqueda y referencias:** La búsqueda por referencia consulta `referencia == valor` y `referencias_alternativas array-contains valor`; una coincidencia con cualquiera devuelve el mismo documento. Referencia maestra y alternativas son visibles en la ficha.
+*   **Búsqueda y referencias:** La búsqueda opera con dos semánticas distintas según el campo:
+    *   **Referencia maestra (`referencia`):** búsqueda por **prefijo** (Companion C, `referenciaPrefijoSchema`). El input del usuario se compara contra el inicio de la referencia canónica; no requiere coincidencia exacta.
+    *   **Referencias alternativas (`referencias_alternativas`):** coincidencia **exacta** (T-01, `referencia_alternativa`). El valor debe coincidir íntegramente con uno de los elementos del array (operador `array-contains` de Firestore).
+    Una coincidencia en cualquiera de los dos campos devuelve el mismo documento. Referencia maestra y alternativas son visibles en la ficha.
 *   **Aprobación de conteos:** `crearConteoPendiente` persiste `inventario_documento_id` y `sede_id`; `aprobarConteo` resuelve por `inventario_documento_id` y **NO actualiza stock del catálogo** (arqueo independiente). Para conteos legacy sin `inventario_documento_id`, mantiene el fallback por referencia y falla explícitamente si hay ambigüedad.
 *   **`historial_auditoria_inventario`:** Ledger append-only vía `tx.create()` (prohibido `tx.set()`/`tx.update()`/`tx.delete()` sobre el ledger). Campo `registrado_por` = uid verificado vía `verifyIdToken()`. Clave canónica `estado` (NO `estado_conteo`, que queda como evidencia histórica reconciliable vía `reconciliarDatosNuevosLegado`).
 
@@ -1120,7 +1123,7 @@ C. Invariantes
 
 #### G. OBS-PROD-UAT-T03-RESIDUALES (nueva)
 
-- **Estado:** ABIERTA / residual permanente. **No se purga.**
+- **Estado:** **CERRADA (2026-11-24)**; aceptación formal como artefacto histórico no purgable. Residual permanente; **no se purga.**
 - **Contenido:** 2 conteos (`d29af48f…`, `f01eb5c8…`), 2 fotos, 2 asientos de ledger (`zSU4morH…`, `phlilrbb…`) y **3 blobs** (2 referenciados + 1 huérfano `ae4b9d81…`).
 - **Desviación R10:** +1 blob sobre el presupuesto autorizado.
 - **Certificación B3:** no emitida (ver H).
@@ -1153,11 +1156,11 @@ C. Invariantes
 
 #### J. Observaciones registradas, no remediadas
 
-1.  **Usuario activo sin rol:** `zlorenamartinez1608@gmail.com` (`rol = null`, `activo = true`).
-2.  **Heterogeneidad de esquema `sys_admin_users`:** conviven `name` vs `nombre` y `createdAt` vs `created_at`.
+1.  **Usuario activo sin rol:** `zlorenamartinez1608@gmail.com` (`rol = null`, `activo = true`). **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.16).
+2.  **Heterogeneidad de esquema `sys_admin_users`:** conviven `name` vs `nombre` y `createdAt` vs `created_at`. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.16/§34.19).
 3.  **`loading` booleano en `AprobacionesClient`:** líneas 129, 144, 185, 268; sin contador de peticiones, no distingue carga inicial de refetch.
 4.  **JSDoc de backoff desviado un intento:** `outbox-utils.ts:147-154`; call sites `queue.ts:135,246,289`; `calcularBackoffMs(0)` también devuelve 2 s por el clamp.
-5.  **12 tests de `src/test/utils/` huérfanos de CI:** `vitest` solo incluye `src/test/vitest/**/*.test.ts`; `test:smoke` ejecuta 4 de 16.
+5.  **12 tests de `src/test/utils/` huérfanos de CI:** `vitest` solo incluye `src/test/vitest/**/*.test.ts`; `test:smoke` ejecuta 4 de 16. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.17).
 
 #### K. Invariantes y cierre administrativo
 
@@ -1209,13 +1212,13 @@ Se registran aquí, sin remediar:
 
 1.  `OBS-PSD-L243-SEMANTICA-AMBIGUA`: la viñeta **Búsqueda y referencias** (L243) describe la búsqueda sin distinguir prefijo de coincidencia exacta.
 2.  `OBS-PSD-CIERRE-SIN-TRAZA-FILTRO-ALTERNATIVAS`: **CERRADA (2026-11-23)**. Contradicción resuelta: header L5, §33.5 L861 y §34.7 L962 actualizados a CERRADA con T-01 (PR #14, `cfe7af1`).
-3.  `OBS-INV-CORPUS-NORMALIZACION-NO-VERIFICADA`: no está certificado que los 21.256 documentos hayan atravesado los schemas vigentes.
+3.  `OBS-INV-CORPUS-NORMALIZACION-NO-VERIFICADA`: no está certificado que los 21.256 documentos hayan atravesado los schemas vigentes. **CERRADA (2026-11-24):** validación read-only certificada: 21.256/21.256 válidos.
 
 #### F. Tickets diferidos
 
-1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI.
-2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro.
-3.  `WEB-AUTH-SCHEMA-HOMOGENIZATION-001`: D-1 y D-2.
+1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.17).
+2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.18).
+3.  `WEB-AUTH-SCHEMA-HOMOGENIZATION-001`: D-1 y D-2. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.16).
 
 #### G. Invariantes y cierre administrativo
 
@@ -1291,9 +1294,9 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 
 #### F. Observaciones abiertas (no bloqueantes)
 
-1.  `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`: el asiento `t6qyl` (2026-11-17/18) cambió `conexion` de `admin_creditos` a `asesor` con auditoría completa, pero sin ticket ni sección PSD.
-2.  `OBS-USERS-DUAL-WRITE-TIMESTAMPS`: `createUser` escribe `createdAt` (string ISO) y `created_at` (Timestamp); nada lee `created_at`; `AdminUser` solo proyecta `createdAt`. Deuda de diseño, candidata a ticket propio de normalización de escritura; fuera de A por atomicidad.
-3.  `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN`: `openModal` pre-selecciona `admin` cuando el rol resuelto es `guest`; el rol final debe ser siempre decisión explícita del operador.
+1.  `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`: el asiento `t6qyl` (2026-11-17/18) cambió `conexion` de `admin_creditos` a `asesor` con auditoría completa, pero sin ticket ni sección PSD. **CERRADA (2026-11-24):** addendum §34.26 anexado al SSOT.
+2.  `OBS-USERS-DUAL-WRITE-TIMESTAMPS`: `createUser` escribe `createdAt` (string ISO) y `created_at` (Timestamp); nada lee `created_at`; `AdminUser` solo proyecta `createdAt`. Deuda de diseño, candidata a ticket propio de normalización de escritura; fuera de A por atomicidad. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.19).
+3.  `OBS-USERS-MODAL-DEFAULT-ROL-ADMIN`: `openModal` pre-selecciona `admin` cuando el rol resuelto es `guest`; el rol final debe ser siempre decisión explícita del operador. **CERRADA (2026-11-24):** corrección de UX certificada: decisión explícita del operador.
 
 #### G. Invariantes y cierre administrativo
 
@@ -1305,9 +1308,9 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 
 #### H. Tickets diferidos
 
-1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI.
-2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro.
-3.  Normalización de la doble escritura de timestamps (derivada de `OBS-USERS-DUAL-WRITE-TIMESTAMPS`): ticket propio, fuera de este cierre.
+1.  `WEB-TEST-CI-COVERAGE-001`: incorporar `inventario-repuestos.test.ts` a CI. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.17).
+2.  `WEB-A11Y-FILTER-INPUTS-IDS-001`: 4 Chrome Issues residuales en inputs de filtro. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.18).
+3.  Normalización de la doble escritura de timestamps (derivada de `OBS-USERS-DUAL-WRITE-TIMESTAMPS`): ticket propio, fuera de este cierre. **CERRADO (2026-11-24):** Estado actualizado por sincronización documental; ver sección de cierre correspondiente (§34.19).
 
 ### 34.17 Cierre de WEB-TEST-CI-COVERAGE-001 — cobertura de tests huérfanos en CI (2026-11-22)
 
@@ -1517,3 +1520,25 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
 2. NAMING LOCK intacto; `CLAVE_FLAG_ASESOR` / `tlm_offline_asesor` sin renombre.
 3. El cuerpo §1–§34.24 permanece byte-idéntico; §34.25 es aditiva conforme al precedente §34.24.
+
+### 34.26 Addendum histórico — OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL (2026-11-24)
+
+**Estado:** CERRADA; addendum documental; sin cambios de código ni datos.
+**Versión:** v8.9.18 sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.25 permanecen byte-idénticas. §34.16.F.1 conserva su redacción histórica; este addendum la supersede solo en el estado de `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL`.
+
+#### A. Evidencia física
+1. El asiento `historial_auditoria/t6qylAqk6oVG7Boz2uO8` registra un `UPDATE` sobre `sys_admin_users/conexion@tiendalasmotos.com`, con `campos_modificados: [updated_at, rol]`, `datos_anteriores.rol: "admin_creditos"` y `datos_nuevos.rol: "asesor"`; `registrado_por: t05KiQCGQgUWFARvczn3nuXp9Qz2`.
+2. El asiento está fechado 2026-11-17 23:44:59 UTC−5 (2026-11-18 04:44:59 UTC) y fue ejecutado por la Server Action auditada, no por consola; el ledger permanece append-only.
+3. §34.16.E (L1273) y §34.16.F.1 (L1294) ya documentan el evento y la ausencia de ticket/sección PSD; la OBS era documental, no un defecto de datos ni de código.
+4. No se modifica el ledger, `sys_admin_users`, `src/`, reglas, índices ni `package*.json`; este addendum solo registra la trazabilidad faltante.
+
+#### B. Cierre
+1. `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL` queda **CERRADA (2026-11-24)**.
+2. §34.16.F.1 conserva su redacción histórica. §34.26 es un addendum posterior que supersede solo el estado de esta OBS.
+3. El evento histórico se preserva sin mutación: `conexion@tiendalasmotos.com` permanece con `rol: "asesor"` y el asiento `t6qyl…` sigue siendo la fuente de verdad del cambio.
+
+#### C. Invariantes
+1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json`, `src/` ni datos.
+2. NAMING LOCK intacto; `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL` sin renombre.
+3. §1–§34.25 permanecen byte-idénticas; §34.26 es aditiva conforme a los precedentes §34.24/§34.25.
