@@ -211,3 +211,9 @@
 - **Regla:** futuras promociones `beta → main` con `--admin` se registran solo contra la OBS genérica; no se crean OBS individuales, incluida la promoción de este ticket.
 - **SSOT:** §34.23 aditiva; header L5 con 1 token genérico; §1–§34.22 (cuerpo) byte-idénticas.
 - **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Cierre OBS-DOCTRINA-NO-VERSIONADA (2026-11-23)
+- **Estado:** **CERRADA**; `DOCTRINA_QWEN_WEB.md` versionado en raíz.
+- **Evidencia:** 104 líneas / 14 909 bytes; SHA-256 `bf3520da92de598c120edc3f86bd739c313603e392db239a6e9e27d6d3bcb392`; EOF `0a`; copia local `~/qwen-prompts/DOCTRINA_QWEN_WEB.md`; ausente en `origin/main`, `origin/beta` e historial antes del cierre.
+- **SSOT:** §34.24 aditiva; header L5 con token de cierre; §29.H y §29.D byte-idénticas.
+- **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.

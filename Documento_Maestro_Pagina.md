@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1474,3 +1474,24 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
 2. NAMING LOCK intacto.
 3. §1–§34.22 (cuerpo) byte-idénticas; §34.23 es aditiva conforme al precedente §25.A.
+
+### 34.24 Cierre OBS-DOCTRINA-NO-VERSIONADA (2026-11-23)
+
+**Estado:** CERRADA; doctrina versionada en raíz.
+**Versión:** v8.9.18 sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.23 (cuerpo) permanecen byte-idénticas. §29.H conserva su redacción histórica; este cierre la supersede solo en el estado de `OBS-DOCTRINA-NO-VERSIONADA`.
+
+#### A. Evidencia física
+1. `DOCTRINA_QWEN_WEB.md` no existía en `origin/main` ni `origin/beta` ni en el historial (`git ls-tree -r` y `git log --all` vacíos); la copia canónica local estaba en `~/qwen-prompts/DOCTRINA_QWEN_WEB.md` (104 líneas, 14 909 bytes, SHA-256 `bf3520da92de598c120edc3f86bd739c313603e392db239a6e9e27d6d3bcb392`, EOF `0a`).
+2. El SSOT ya registraba la ausencia en §17 (L483: `DOCTRINA_QWEN_WEB.md MISSING`); esa línea histórica no se altera.
+3. El archivo se versiona en la raíz del repositorio, byte-idéntico a la copia local; sin `docs/` ni nombres legacy, conforme al invariante de §17.
+
+#### B. Cierre
+1. `OBS-DOCTRINA-NO-VERSIONADA` queda **CERRADA (2026-11-23)**.
+2. §29.H no se reescribe: su lista histórica de observaciones abiertas permanece byte-idéntica. La frase «No se cierran ni se reescriben en este PSD» corresponde al alcance histórico de §29 (PSD v8.9.16); §34.24 es un addendum posterior que supersede solo el estado de esta OBS. §29.D no se toca.
+3. El header L5 incorpora `OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…);` y STATE/ROADMAP registran el cierre.
+
+#### C. Invariantes
+1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
+2. NAMING LOCK intacto.
+3. §1–§34.23 (cuerpo) byte-idénticas; §34.24 es aditiva conforme al precedente §25.A.
