@@ -225,3 +225,11 @@
 - [x] **Evidencia:** PR #45 `62d1ce3`, PR #48 `109fe26`, PR #50 `1d4ff47`, PR #54 `46cbd52`/run #100 (`45304182877`), PR #56 `81e0e03`/run #101 (`45308522748`), PR #58 `35f2524`/run #102 (`45313381173`); todos `REVIEW_REQUIRED`, 0 revisiones.
 - [x] **Regla:** no se generan OBS individuales por futuras promociones `--admin`, incluida la de este ticket.
 - [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
+
+## Cierre OBS-DOCTRINA-NO-VERSIONADA (v8.9.18, 2026-11-23)
+- [x] **SSOT:** §34.24 aditiva; header L5 con token de cierre; §29.H y §29.D byte-idénticas.
+- [x] **Archivo:** `DOCTRINA_QWEN_WEB.md` versionado en raíz, byte-idéntico a `~/qwen-prompts/DOCTRINA_QWEN_WEB.md`.
+- [x] **Integridad:** 104 líneas / 14 909 bytes; SHA-256 `bf3520da92de598c120edc3f86bd739c313603e392db239a6e9e27d6d3bcb392`; EOF `0a`.
+- [x] **Evidencia:** ausente en `origin/main`, `origin/beta` e historial antes del cierre (`git ls-tree` vacío en ambos refs).
+- [x] **Cierre:** `OBS-DOCTRINA-NO-VERSIONADA` CERRADA (2026-11-23); §29.H conserva su redacción histórica.
+- [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
