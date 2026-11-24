@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-23
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-PR45-ADMIN-BYPASS-001 registrada (no bloqueante); OBS-PROMOTE-PR48-ADMIN-BYPASS-001 registrada (no bloqueante); OBS-PROMOTE-PR50-ADMIN-BYPASS-001 registrada (no bloqueante); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-PROMOTE-PR54-ADMIN-BYPASS-001 registrada (no bloqueante); OBS-PROMOTE-PR56-ADMIN-BYPASS-001 registrada (no bloqueante); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES registrada (abierta); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); pipeline canónico feature→beta→main restaurado.
 
 ---
 
@@ -1444,3 +1444,33 @@ Los tres asientos comparten `coleccion_afectada: "sys_admin_users"` y `registrad
 1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
 2. NAMING LOCK intacto.
 3. §1–§34.21 (cuerpo) byte-idénticas; §34.22 es aditiva conforme al precedente §25.A.
+
+### 34.23 Convergencia de Gobernanza de Bypass (2026-11-23)
+
+**Estado:** CONVERGENCIA REGISTRADA; 1 OBS genérica aceptada (diseño); 5 OBS individuales absorbidas; PR #58 absorbido sin token individual.
+**Versión:** v8.9.18 sin bump.
+**Inserción:** aditiva al final del documento; §1–§34.22 (cuerpo) permanecen byte-idénticas.
+
+#### A. OBS genérica aceptada
+1. `OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO`: el uso de `gh pr merge --admin` en promociones `beta → main` se acepta por diseño en repositorios mono-usuario, donde el autor no puede aprobar su propio PR y el ruleset exige 1 aprobación. Cubre también la promoción del propio ticket de convergencia.
+
+#### B. Instancias históricas absorbidas
+1. PR #45 (`62d1ce3`, 2026-11-23) — `OBS-PROMOTE-PR45-ADMIN-BYPASS-001`; run #96 (`45222123561`).
+2. PR #48 (`109fe26`, 2026-11-23) — `OBS-PROMOTE-PR48-ADMIN-BYPASS-001`; run #97 (`45241531098`).
+3. PR #50 (`1d4ff47`, 2026-11-23) — `OBS-PROMOTE-PR50-ADMIN-BYPASS-001`; run #98 (`45276272467`).
+4. PR #54 (`46cbd52`, 2026-11-23) — `OBS-PROMOTE-PR54-ADMIN-BYPASS-001`; run #100 (`45304182877`).
+5. PR #56 (`81e0e03`, 2026-11-23) — `OBS-PROMOTE-PR56-ADMIN-BYPASS-001`; run #101 (`45308522748`).
+6. PR #58 (`35f2524`, 2026-11-23) — sin token individual; run #102 (`45313381173`).
+
+Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinco OBS individuales quedan **ABSORBIDAS/CERRADAS** por `OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO`; no se eliminan de §34.21.A y §34.22.A. No se crea retroactivamente una OBS individual para PR #58.
+
+#### C. Regla de convergencia
+1. Las promociones futuras `beta → main` con `--admin` en este repositorio mono-usuario se registran únicamente contra `OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO`.
+2. No se crearán OBS individuales por PR para este mismo mecanismo.
+3. La trazabilidad histórica permanece en §34.21.A, §34.22.A y esta sección.
+4. La promoción del propio ticket de convergencia queda cubierta por la OBS genérica; no se abre una OBS de seguimiento.
+
+#### D. Invariantes
+1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json` ni God Nodes.
+2. NAMING LOCK intacto.
+3. §1–§34.22 (cuerpo) byte-idénticas; §34.23 es aditiva conforme al precedente §25.A.
