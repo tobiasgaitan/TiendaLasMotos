@@ -197,3 +197,9 @@
 - **Integración:** PR #53 fusionado a beta en `6170fc9`; PR #54 fusionado a main en `46cbd52`; deploy run #100 verde (`45304182877`).
 - **Documentación:** §29.D.2, header L5, STATE y ROADMAP reconciliados a CERRADA.
 - **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Registro de Gobernanza — Bypass de Promoción PR #54/#56 (2026-11-23)
+- **OBS registradas:** `OBS-PROMOTE-PR54-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR56-ADMIN-BYPASS-001` (abiertas/no bloqueantes).
+- **Evidencia:** PR #54 `REVIEW_REQUIRED`, 0 revisiones, merge `46cbd52`, run #100 verde (`45304182877`); PR #56 `REVIEW_REQUIRED`, 0 revisiones, merge `81e0e03`, run #101 verde (`45308522748`).
+- **SSOT:** §34.22 aditiva; header L5 con los 2 tokens; §1–§34.21 (cuerpo) byte-idénticas.
+- **Invariantes:** solo documentación; cero cambios en código, God Nodes, `package*.json`, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
