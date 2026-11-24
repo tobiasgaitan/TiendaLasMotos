@@ -217,3 +217,11 @@
 - [x] **OBS registradas:** `OBS-PROMOTE-PR54-ADMIN-BYPASS-001`, `OBS-PROMOTE-PR56-ADMIN-BYPASS-001`.
 - [x] **Evidencia:** PR #54 `REVIEW_REQUIRED`, 0 revisiones, merge `46cbd52`, run #100 verde (`45304182877`); PR #56 `REVIEW_REQUIRED`, 0 revisiones, merge `81e0e03`, run #101 verde (`45308522748`).
 - [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
+
+## Convergencia de Gobernanza — Bypass Admin Mono-usuario (v8.9.18, 2026-11-23)
+- [x] **SSOT:** §34.23 aditiva; header L5 con 1 token genérico; §1–§34.22 (cuerpo) byte-idénticas.
+- [x] **OBS genérica:** `OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO` aceptada por diseño.
+- [x] **OBS absorbidas:** PR #45/#48/#50/#54/#56 (tokens individuales) + PR #58 (sin token individual).
+- [x] **Evidencia:** PR #45 `62d1ce3`, PR #48 `109fe26`, PR #50 `1d4ff47`, PR #54 `46cbd52`/run #100 (`45304182877`), PR #56 `81e0e03`/run #101 (`45308522748`), PR #58 `35f2524`/run #102 (`45313381173`); todos `REVIEW_REQUIRED`, 0 revisiones.
+- [x] **Regla:** no se generan OBS individuales por futuras promociones `--admin`, incluida la de este ticket.
+- [x] **Invariantes:** sin cambios de código; NAMING LOCK; v8.9.18 sin bump.
