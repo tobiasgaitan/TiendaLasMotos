@@ -224,3 +224,10 @@
 - **Evidencia:** `src/lib/offline/outbox/db.ts` L30–L123; `console.debug` L98, `console.info` L119, `console.error` L36 y L110; `bf3ed41` preservó la clasificación tras dividir `outbox.ts`.
 - **SSOT:** §29.D.3 L629 con cierre en línea; header L5 con token; §29.H L637 intacta.
 - **Invariantes:** sin cambios de código, `package*.json`, God Nodes, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+
+## Cierre OBS-WEB046-REDIRECT-ASESOR-SIMULADOR (2026-11-23)
+- **Estado:** **CERRADA**; residual documental, sin defecto de código.
+- **Diagnóstico:** WEB-048 (`2e4e20b`) consolida `CLAVE_FLAG_ASESOR` antes de `window.location.href`; `firebase.ts` lee el flag al inicializar el módulo en la carga destino y activa `initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`.
+- **Evidencia:** `LoginForm.tsx` L38–L82; `AuthContext.tsx` L143–L189 y L236–L260; `firebase.ts` L15, L21–L29 y L67–L87; `post-login.ts` L36–L69; `landing.ts` L9–L14; `RoleBasedRedirect.tsx` L37–L45.
+- **SSOT:** §34.25 aditiva; header L5 con token; §18 L493 y §20 L513 intactas.
+- **Invariantes:** sin cambios de código, `package*.json`, God Nodes, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
