@@ -148,6 +148,8 @@ export async function crearConteoPendiente(
                 revisado_en: null,
             });
 
+            // NAMING LOCK: estos campos viven solo en fotos_inventario.
+            // cantidad_contada sigue siendo la decisión humana.
             tx.create(fotoRef, {
                 conteo_id: data.conteo_id,
                 asesor_email: me.email,
@@ -158,6 +160,10 @@ export async function crearConteoPendiente(
                 mime_type: data.mime_type,
                 tamano_bytes: data.tamano_bytes,
                 etiquetas_vision: data.etiquetas_vision,
+                cantidad_sugerida_multimodal:
+                    data.cantidad_sugerida_multimodal,
+                justificacion_multimodal: data.justificacion_multimodal,
+                confidence_multimodal: data.confidence_multimodal,
                 creado_en: ahora,
             });
 

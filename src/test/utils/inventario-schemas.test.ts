@@ -54,7 +54,87 @@ if (crearOk.success) {
     check('referencia normalizada a mayúsculas', crearOk.data.referencia_confirmada === 'BRK-001');
     check('ubicación conservada tras trim', crearOk.data.ubicacion === 'a-01-05');
     check('etiquetas vision conservadas', crearOk.data.etiquetas_vision.length === 1);
+    check(
+        'multimodal omitido se normaliza a null',
+        crearOk.data.cantidad_sugerida_multimodal === null &&
+            crearOk.data.justificacion_multimodal === null &&
+            crearOk.data.confidence_multimodal === null
+    );
 }
+
+const multimodalOk = crearConteoSchema.safeParse({
+    ...BASE,
+    cantidad_sugerida_multimodal: 0,
+    justificacion_multimodal: '  Sin unidades visibles.  ',
+    confidence_multimodal: 0,
+});
+check('multimodal acepta 0 y justificación', multimodalOk.success);
+if (multimodalOk.success) {
+    check(
+        'multimodal conserva cantidad 0',
+        multimodalOk.data.cantidad_sugerida_multimodal === 0
+    );
+    check(
+        'multimodal conserva confidence 0',
+        multimodalOk.data.confidence_multimodal === 0
+    );
+    check(
+        'justificación multimodal se recorta',
+        multimodalOk.data.justificacion_multimodal === 'Sin unidades visibles.'
+    );
+    check(
+        'multimodal no altera cantidad_contada',
+        multimodalOk.data.cantidad_contada === 4
+    );
+}
+
+const multimodalNull = crearConteoSchema.safeParse({
+    ...BASE,
+    cantidad_sugerida_multimodal: null,
+    justificacion_multimodal: '',
+    confidence_multimodal: null,
+});
+check('multimodal acepta null y justificación vacía', multimodalNull.success);
+if (multimodalNull.success) {
+    check(
+        'justificación vacía se normaliza a null',
+        multimodalNull.data.justificacion_multimodal === null
+    );
+    check(
+        'null no se convierte en 0',
+        multimodalNull.data.cantidad_sugerida_multimodal === null &&
+            multimodalNull.data.confidence_multimodal === null
+    );
+}
+
+check(
+    'cantidad multimodal negativa rechazada',
+    !crearConteoSchema.safeParse({
+        ...BASE,
+        cantidad_sugerida_multimodal: -1,
+    }).success
+);
+check(
+    'cantidad multimodal decimal rechazada',
+    !crearConteoSchema.safeParse({
+        ...BASE,
+        cantidad_sugerida_multimodal: 1.5,
+    }).success
+);
+check(
+    'confidence multimodal > 1 rechazada',
+    !crearConteoSchema.safeParse({
+        ...BASE,
+        confidence_multimodal: 1.01,
+    }).success
+);
+check(
+    'justificación multimodal > 500 rechazada',
+    !crearConteoSchema.safeParse({
+        ...BASE,
+        justificacion_multimodal: 'a'.repeat(501),
+    }).success
+);
 
 check('referencia con espacio rechazada', !crearConteoSchema.safeParse({ ...BASE, referencia_confirmada: 'BRK 001' }).success);
 check('ubicación vacía rechazada', !crearConteoSchema.safeParse({ ...BASE, ubicacion: '' }).success);

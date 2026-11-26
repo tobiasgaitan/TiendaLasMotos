@@ -126,6 +126,11 @@ export async function encolarConteo(
             tamano_bytes: tamanoBytes,
             etiquetas_vision: etiquetasVision,
             precio_etiqueta_fisica: entrada.precio_etiqueta_fisica ?? null,
+            cantidad_sugerida_multimodal:
+                entrada.cantidad_sugerida_multimodal ?? null,
+            justificacion_multimodal:
+                entrada.justificacion_multimodal ?? null,
+            confidence_multimodal: entrada.confidence_multimodal ?? null,
         };
 
         const borrador: BorradorConteoOutbox = {

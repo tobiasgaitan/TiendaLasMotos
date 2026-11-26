@@ -1233,6 +1233,112 @@ describe('MT-07 Server Actions contracts', () => {
         ).toBeNull();
     });
 
+    it('crearConteoPendiente persiste multimodales solo en fotos_inventario', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                cantidad_sugerida_multimodal: 7,
+                justificacion_multimodal: 'Siete unidades visibles.',
+                confidence_multimodal: 0.82,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+
+        expect(foto?.cantidad_sugerida_multimodal).toBe(7);
+        expect(foto?.justificacion_multimodal).toBe(
+            'Siete unidades visibles.'
+        );
+        expect(foto?.confidence_multimodal).toBe(0.82);
+        expect(conteo?.cantidad_contada).toBe(4);
+        expect(conteo).not.toHaveProperty('cantidad_sugerida_multimodal');
+        expect(conteo).not.toHaveProperty('justificacion_multimodal');
+        expect(conteo).not.toHaveProperty('confidence_multimodal');
+    });
+
+    it('crearConteoPendiente conserva 0 multimodal y no altera cantidad_contada', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                cantidad_contada: 9,
+                cantidad_sugerida_multimodal: 0,
+                justificacion_multimodal: 'No se observan unidades.',
+                confidence_multimodal: 0,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        expect(foto?.cantidad_sugerida_multimodal).toBe(0);
+        expect(foto?.confidence_multimodal).toBe(0);
+        expect(conteo?.cantidad_contada).toBe(9);
+    });
+
+    it('crearConteoPendiente persiste null multimodal cuando se omite', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            inputCrearConteo(),
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        expect(foto?.cantidad_sugerida_multimodal).toBeNull();
+        expect(foto?.justificacion_multimodal).toBeNull();
+        expect(foto?.confidence_multimodal).toBeNull();
+    });
+
+    it.each([
+        ['cantidad negativa', { cantidad_sugerida_multimodal: -1 }],
+        ['cantidad decimal', { cantidad_sugerida_multimodal: 1.5 }],
+        ['cantidad string', { cantidad_sugerida_multimodal: '7' }],
+        ['confidence fuera de rango', { confidence_multimodal: 1.01 }],
+        [
+            'justificación demasiado larga',
+            { justificacion_multimodal: 'a'.repeat(501) },
+        ],
+    ])(
+        'crearConteoPendiente rechaza multimodal inválido: %s',
+        async (_nombre, extra) => {
+            seedInventario();
+
+            const resultado = await crearConteoPendiente(
+                {
+                    ...inputCrearConteo(),
+                    ...extra,
+                },
+                ACTOR
+            );
+
+            expect(resultado.success).toBe(false);
+            expect(
+                mockState.docs.get(
+                    `conteos_pendientes_repuestos/${UUID}`
+                )
+            ).toBeUndefined();
+            expect(
+                mockState.docs.get(`fotos_inventario/${UUID}`)
+            ).toBeUndefined();
+        }
+    );
+
     it.each([
         ['negativo', -1],
         ['cadena numérica', '1500'],

@@ -80,6 +80,9 @@ export interface FotoInventario {
     mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
     tamano_bytes: number;
     etiquetas_vision: string[];
+    cantidad_sugerida_multimodal?: number | null;
+    justificacion_multimodal?: string | null;
+    confidence_multimodal?: number | null;
     creado_en: Timestamp;
 }
 
@@ -157,6 +160,35 @@ export type VisionResult =
           etiquetas: string[];
           sugerencias: VisionSugerencia[];
           unidades: VisionUnidad[];
+      }
+    | {
+          success: false;
+          message: string;
+      };
+
+export type VisionConteoMotivo =
+    | 'imagen_saturada'
+    | 'unidades_superpuestas'
+    | 'iluminacion_deficiente'
+    | 'angulo_no_adecuado'
+    | 'imagen_borrosa'
+    | 'objeto_no_visible'
+    | 'confianza_baja'
+    | 'otro';
+
+export interface VisionConteoData {
+    cantidad_sugerida_multimodal: number | null;
+    justificacion_multimodal: string | null;
+    confidence_multimodal: number | null;
+    puede_contar: boolean;
+    motivo_no_conteo: VisionConteoMotivo | null;
+    saturada: boolean;
+}
+
+export type VisionConteoResult =
+    | {
+          success: true;
+          conteo: VisionConteoData;
       }
     | {
           success: false;
