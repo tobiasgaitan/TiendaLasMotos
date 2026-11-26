@@ -1,0 +1,218 @@
+[
+  {
+    "id": "V01",
+    "archivo": "Referencia 0331308 -8unidades-desordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "0331308 | fondo_desordenado"
+  },
+  {
+    "id": "V02",
+    "archivo": "Referencia 0331308 -8unidades-ordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "0331308 | control"
+  },
+  {
+    "id": "V03",
+    "archivo": "Referencia 0331308 -oscuro-nocontable.jpeg",
+    "esperado": null,
+    "edge_case": "iluminacion_baja",
+    "no_contable": true,
+    "notas": "0331308 | iluminacion_baja | no_contable"
+  },
+  {
+    "id": "V04",
+    "archivo": "Referencia 1181160 -8unidades-desordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "1181160 | fondo_desordenado"
+  },
+  {
+    "id": "V05",
+    "archivo": "Referencia 1181160 -8unidades-oblicuo.jpeg",
+    "esperado": 8,
+    "edge_case": "angulo_oblicuo",
+    "no_contable": false,
+    "notas": "1181160 | angulo_oblicuo"
+  },
+  {
+    "id": "V06",
+    "archivo": "Referencia 1181160 -8unidades-ordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "1181160 | control"
+  },
+  {
+    "id": "V07",
+    "archivo": "Referencia 1193084957-3unidades-desordenado.jpeg",
+    "esperado": 3,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "1193084957-3unidades-desordenado | fondo_desordenado"
+  },
+  {
+    "id": "V08",
+    "archivo": "Referencia 1193084957-3unidades-ordenado.jpeg",
+    "esperado": 3,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "1193084957-3unidades-ordenado | control"
+  },
+  {
+    "id": "V09",
+    "archivo": "Referencia 201051 -10unidades-desordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "201051 | fondo_desordenado"
+  },
+  {
+    "id": "V10",
+    "archivo": "Referencia 201051 -10unidades-ordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "201051 | control"
+  },
+  {
+    "id": "V11",
+    "archivo": "Referencia 201283 -10unidades-desordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "201283 | fondo_desordenado"
+  },
+  {
+    "id": "V12",
+    "archivo": "Referencia 201283 -10unidades-ordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "201283 | control"
+  },
+  {
+    "id": "V13",
+    "archivo": "Referencia 201571 -10unidades-desordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "201571 | fondo_desordenado"
+  },
+  {
+    "id": "V14",
+    "archivo": "Referencia 201571 -10unidades-ordenado.jpeg",
+    "esperado": 10,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "201571 | control"
+  },
+  {
+    "id": "V15",
+    "archivo": "Referencia 202353 -7unidades-desordenado.jpeg",
+    "esperado": 7,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "202353 | fondo_desordenado"
+  },
+  {
+    "id": "V16",
+    "archivo": "Referencia 202353 -7unidades-ordenado.jpeg",
+    "esperado": 7,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "202353 | control"
+  },
+  {
+    "id": "V17",
+    "archivo": "Referencia 3073076 -6unidades-desordenado.jpeg",
+    "esperado": 6,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "3073076 | fondo_desordenado"
+  },
+  {
+    "id": "V18",
+    "archivo": "Referencia 3073076 -6unidades-ordenado.jpeg",
+    "esperado": 6,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "3073076 | control"
+  },
+  {
+    "id": "V19",
+    "archivo": "Referencia 3073076 -6unidades-saturado.jpeg",
+    "esperado": 6,
+    "edge_case": "imagen_saturada",
+    "no_contable": false,
+    "notas": "3073076 | imagen_saturada"
+  },
+  {
+    "id": "V20",
+    "archivo": "Referencia 3073076 -desenfocada-nocontable.jpeg",
+    "esperado": null,
+    "edge_case": "imagen_borrosa",
+    "no_contable": true,
+    "notas": "3073076 | imagen_borrosa | no_contable"
+  },
+  {
+    "id": "V21",
+    "archivo": "Referencia 36DU1901 -5unidades-desordenado.jpeg",
+    "esperado": 5,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "36DU1901 | fondo_desordenado"
+  },
+  {
+    "id": "V22",
+    "archivo": "Referencia 36DU1901 -5unidades-ordenado.jpeg",
+    "esperado": 5,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "36DU1901 | control"
+  },
+  {
+    "id": "V23",
+    "archivo": "Referencia 39098215 -12unidades-desordenado.jpeg",
+    "esperado": 12,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "39098215 | fondo_desordenado"
+  },
+  {
+    "id": "V24",
+    "archivo": "Referencia 39098215 -12unidades-ordenado.jpeg",
+    "esperado": 12,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "39098215 | control"
+  },
+  {
+    "id": "V25",
+    "archivo": "Referencia 39098215 -superpuesto-nocontable.jpeg",
+    "esperado": null,
+    "edge_case": "unidades_superpuestas",
+    "no_contable": true,
+    "notas": "39098215 | unidades_superpuestas | no_contable"
+  },
+  {
+    "id": "V26",
+    "archivo": "Referencia R1180060-8unidades-desordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "fondo_desordenado",
+    "no_contable": false,
+    "notas": "R1180060-8unidades-desordenado | fondo_desordenado"
+  },
+  {
+    "id": "V27",
+    "archivo": "Referencia R1180060-8unidades-ordenado.jpeg",
+    "esperado": 8,
+    "edge_case": "control",
+    "no_contable": false,
+    "notas": "R1180060-8unidades-ordenado | control"
+  }
+]
