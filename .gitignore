@@ -59,3 +59,4 @@ __pycache__/
 # vision multimodal validation (fotos reales y reportes)
 scripts/fixtures/vision-multimodal/fotos/
 scripts/fixtures/vision-multimodal/reporte.md
+scripts/fixtures/vision-multimodal/reporte*.md
