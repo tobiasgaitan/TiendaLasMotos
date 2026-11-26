@@ -247,3 +247,9 @@
 - [x] **Destino:** `landingPorRol('asesor')` → `/admin/inventario-asesor`; `RoleBasedRedirect` usa `router.replace` con `defaultLanding=1`.
 - [x] **Cierre:** `OBS-WEB046-REDIRECT-ASESOR-SIMULADOR` CERRADA; sin cambio de código.
 - [x] **Invariantes:** NAMING LOCK; sin cambios de código ni `package*.json`; v8.9.18 sin bump.
+
+## Cierre WEB-INV-044 — Conteo multimodal con OpenRouter (v8.9.18, 2026-11-26)
+- [x] **SSOT:** §10.G aditiva en `Documento_Maestro_Pagina.md` con `OBS-WEB-INV-044-EXACTITUD-LIMITADA-001`.
+- [x] **Alcance:** Cliente OpenRouter, Server Action stateless, persistencia aditiva en `fotos_inventario`, UI paralela.
+- [x] **Gates:** 0 autocompletados inseguros, 88% dentro de ±1, latencia mediana 1.47s.
+- [x] **Invariantes:** NAMING LOCK intacto; `conteos_pendientes_repuestos` sin cambios; `cantidad_contada` humana.
