@@ -10,9 +10,75 @@ import {
 } from 'lucide-react';
 import type {
     VisionConteoData,
+    VisionConteoMotivo,
     VisionSugerencia,
     VisionUnidad,
 } from '@/types/inventario';
+
+interface GuiaMotivo {
+    causa: string;
+    accion: string;
+    recuperable: boolean;
+}
+
+/**
+ * Copy contextual por motivo normalizado. El tipo Record garantiza
+ * exhaustividad: agregar un motivo nuevo rompe la compilación hasta
+ * definir su guía.
+ */
+const GUIA_MOTIVO: Readonly<Record<VisionConteoMotivo, GuiaMotivo>> =
+    Object.freeze({
+        imagen_saturada: {
+            causa: 'La imagen está saturada o sobreexpuesta.',
+            accion: 'Toma otra foto evitando luz directa sobre el repuesto.',
+            recuperable: true,
+        },
+        unidades_superpuestas: {
+            causa: 'Hay varias unidades superpuestas que no se distinguen.',
+            accion: 'Separa las unidades y toma otra foto.',
+            recuperable: true,
+        },
+        iluminacion_deficiente: {
+            causa: 'La iluminación de la foto es insuficiente.',
+            accion: 'Toma otra foto con mejor iluminación.',
+            recuperable: true,
+        },
+        angulo_no_adecuado: {
+            causa: 'El ángulo de la foto no permite ver todas las unidades.',
+            accion: 'Toma otra foto desde un ángulo más cenital.',
+            recuperable: true,
+        },
+        imagen_borrosa: {
+            causa: 'La imagen está borrosa.',
+            accion: 'Toma otra foto enfocando mejor el repuesto.',
+            recuperable: true,
+        },
+        objeto_no_visible: {
+            causa: 'El repuesto principal no se ve con claridad.',
+            accion: 'Asegúrate de que el repuesto sea visible en la foto.',
+            recuperable: true,
+        },
+        confianza_baja: {
+            causa: 'El modelo no pudo contar con confianza suficiente.',
+            accion: 'Cuenta manualmente o toma otra foto más clara.',
+            recuperable: true,
+        },
+        otro: {
+            causa: 'El modelo no pudo contar las unidades con confianza suficiente.',
+            accion: 'Cuenta manualmente.',
+            recuperable: false,
+        },
+    });
+
+const TEXTO_AUTOCOMPLETADO_DESHABILITADO =
+    'El autocompletado está deshabilitado; cuenta manualmente.';
+
+function obtenerGuiaMotivo(conteo: VisionConteoData): GuiaMotivo {
+    if (conteo.saturada) {
+        return GUIA_MOTIVO.imagen_saturada;
+    }
+    return GUIA_MOTIVO[conteo.motivo_no_conteo ?? 'otro'];
+}
 
 interface SugerenciasVisionProps {
     sugerencias: VisionSugerencia[];
@@ -54,6 +120,20 @@ export default function SugerenciasVision({
         conteoMultimodal.puede_contar &&
         cantidadMultimodal !== null &&
         !analizandoMultimodal;
+    const mostrarAlertaMultimodal =
+        conteoMultimodal !== null &&
+        (conteoMultimodal.saturada || !conteoMultimodal.puede_contar);
+    const guiaMotivo =
+        conteoMultimodal !== null && mostrarAlertaMultimodal
+            ? obtenerGuiaMotivo(conteoMultimodal)
+            : null;
+    const mostrarPoliticaAutocompletado =
+        guiaMotivo !== null &&
+        !guiaMotivo.accion.toLowerCase().includes('cuenta manualmente');
+    const justificacionMultimodal =
+        conteoMultimodal === null
+            ? null
+            : conteoMultimodal.justificacion_multimodal;
 
     return (
         <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4 shadow-lg">
@@ -252,32 +332,43 @@ export default function SugerenciasVision({
                         aria-live="polite"
                         className="mt-3 space-y-3 rounded-xl border border-sky-900/40 bg-sky-950/10 p-3"
                     >
-                        {conteoMultimodal.saturada ? (
-                            <p
+                        {mostrarAlertaMultimodal && guiaMotivo !== null ? (
+                            <div
                                 role="alert"
-                                className="flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs leading-relaxed text-red-100"
+                                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed ${
+                                    conteoMultimodal.saturada
+                                        ? 'border-red-900/60 bg-red-950/30 text-red-100'
+                                        : 'border-amber-900/60 bg-amber-950/30 text-amber-100'
+                                }`}
                             >
                                 <AlertTriangle
                                     aria-hidden="true"
-                                    className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+                                    className={`mt-0.5 h-4 w-4 shrink-0 ${
+                                        conteoMultimodal.saturada
+                                            ? 'text-red-400'
+                                            : 'text-amber-400'
+                                    }`}
                                 />
-                                La imagen está saturada o sobreexpuesta. El
-                                autocompletado está deshabilitado; cuenta
-                                manualmente.
-                            </p>
-                        ) : !conteoMultimodal.puede_contar ? (
-                            <p
-                                role="alert"
-                                className="flex items-start gap-2 rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs leading-relaxed text-amber-100"
-                            >
-                                <AlertTriangle
-                                    aria-hidden="true"
-                                    className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
-                                />
-                                El modelo no pudo contar con confianza
-                                suficiente. El autocompletado está
-                                deshabilitado; cuenta manualmente.
-                            </p>
+                                <div className="space-y-1">
+                                    <p className="font-semibold">
+                                        {guiaMotivo.causa}
+                                    </p>
+                                    <p>{guiaMotivo.accion}</p>
+                                    {mostrarPoliticaAutocompletado ? (
+                                        <p className="text-[11px] opacity-80">
+                                            {
+                                                TEXTO_AUTOCOMPLETADO_DESHABILITADO
+                                            }
+                                        </p>
+                                    ) : null}
+                                    {guiaMotivo.recuperable ? (
+                                        <p className="text-[11px] opacity-80">
+                                            Puedes usar «Repetir foto» en el
+                                            paso 1.
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </div>
                         ) : null}
 
                         {cantidadMultimodal !== null ? (
@@ -300,9 +391,22 @@ export default function SugerenciasVision({
                             </div>
                         ) : null}
 
-                        {conteoMultimodal.justificacion_multimodal ? (
+                        {mostrarAlertaMultimodal &&
+                        justificacionMultimodal ? (
+                            <details className="rounded-lg border border-gray-800 bg-gray-950/40 px-3 py-2">
+                                <summary className="cursor-pointer text-xs font-semibold text-gray-300">
+                                    Ver detalle del modelo
+                                </summary>
+                                <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                                    {justificacionMultimodal}
+                                </p>
+                            </details>
+                        ) : null}
+
+                        {!mostrarAlertaMultimodal &&
+                        justificacionMultimodal ? (
                             <p className="text-xs leading-relaxed text-gray-300">
-                                {conteoMultimodal.justificacion_multimodal}
+                                {justificacionMultimodal}
                             </p>
                         ) : null}
 
