@@ -260,8 +260,3 @@
 ## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
 - [x] **WEB-INV-048 CERRADO CON CÓDIGO (UI):** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. 8 motivos con causa, acción y recuperabilidad. Justificación colapsable en `<details>`. 33 tests de render (13 previos + 20 nuevos). CI beta run `45851163015` success. Observación `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada (UAT runtime bloqueada por falta de configuración de OpenRouter en beta; mitigada por tests de render).
 
-## Cierre WEB-INV-047 — Evaluación de modelos alternativos (v8.9.18, 2026-11-26)
-- [x] **WEB-INV-047 CERRADO SIN CÓDIGO (no viable):** Benchmark de 4 modelos de visión en OpenRouter. Los 3 alternativos (`deepseek-v4.1-flash`, `qwen2.5-vl-72b`, `hy4-flash`) fallan por timeouts/rate limiting. Se mantiene baseline `glm-5.3-flash` con 54% exactitud. Observación `OBS-WEB-INV-047-MODELO-ALTERNATIVO-NO-VIABLE-001` registrada.
-
-## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
-- [x] **WEB-INV-048 CERRADO CON CÓDIGO (UI):** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. 8 motivos con causa, acción y recuperabilidad. Justificación colapsable en `<details>`. 33 tests de render (13 previos + 20 nuevos). CI beta run `45851163015` success. Observación `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada (UAT runtime bloqueada por falta de configuración de OpenRouter en beta; mitigada por tests de render).

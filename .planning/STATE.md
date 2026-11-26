@@ -252,16 +252,3 @@
 - **Observación:** `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada en §10.G del Documento Maestro. UAT runtime no ejecutada por falta de configuración de OpenRouter en beta; mitigada por 20 tests de render nuevos.
 - **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
 
-## Cierre WEB-INV-047 — Evaluación de modelos alternativos para conteo multimodal (v8.9.18, 2026-11-26)
-- **Estado:** CERRADO SIN CÓDIGO (no viable).
-- **Alcance:** Benchmark de 4 modelos de visión en OpenRouter sobre el manifiesto de 27 fotos.
-- **Resultado:** Los 3 modelos alternativos (`deepseek-v4.1-flash`, `qwen2.5-vl-72b`, `hy4-flash`) presentan problemas de infraestructura (timeouts/rate limiting) que los hacen inviables. Se mantiene el baseline `glm-5.3-flash` con 54% de exactitud.
-- **Observación:** `OBS-WEB-INV-047-MODELO-ALTERNATIVO-NO-VIABLE-001` registrada en §10.G del Documento Maestro.
-- **Invariantes:** NAMING LOCK intacto; cero cambios en código, reglas, índices ni datos.
-
-## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
-- **Estado:** CERRADO CON CÓDIGO (UI).
-- **Alcance:** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. Tabla tipada `GUIA_MOTIVO` con 8 motivos, causa, acción y recuperabilidad. Justificación colapsable en `<details>`.
-- **Gates:** `test:ci` EXIT 0 (33 render), `build` EXIT 0, `git diff --name-only` = 2 archivos, CI beta run `45851163015` success.
-- **Observación:** `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada en §10.G del Documento Maestro. UAT runtime no ejecutada por falta de configuración de OpenRouter en beta; mitigada por 20 tests de render nuevos.
-- **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
