@@ -1553,3 +1553,20 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 1. Cero cambios en código, reglas, índices, `package.json`, `package-lock.json`, `src/` ni datos.
 2. NAMING LOCK intacto; `OBS-CONEXION-ROL-CHANGE-SIN-TRAZA-DOCUMENTAL` sin renombre.
 3. §1–§34.25 permanecen byte-idénticas; §34.26 es aditiva conforme a los precedentes §34.24/§34.25.
+### OBS-WEB-INV-047-MODELO-ALTERNATIVO-NO-VIABLE-001 (2026-11-26)
+**Estado:** CERRADA (no viable con modelos disponibles).
+**Causa:** Evaluación de 4 modelos de visión en OpenRouter (noviembre 2026):
+- `z-ai/glm-5.3-flash` (baseline): 54% exactitud, 88% ±1, 0 autocompletados inseguros, 1.47s latencia.
+- `deepseek/deepseek-v4.1-flash-1017`: 9/27 timeouts, descartado.
+- `qwen/qwen2.5-vl-72b-instruct`: 7/27 errores 429 (rate limiting), 1 autocompletado inseguro, descartado.
+- `tencent/hy4-flash`: 14/27 timeouts (52%), descartado.
+**Decisión:** La vía de mejora de exactitud mediante cambio de modelo o consenso de dos pasadas (WEB-INV-047) queda **AGOTADA**. Se mantiene el baseline `glm-5.3-flash` con la limitación documentada en OBS-WEB-INV-044-EXACTITUD-LIMITADA-001 (54% exactitud).
+**Recomendación:** Reevaluar cuando OpenRouter ofrezca modelos de visión con mejor conteo exacto y sin problemas de infraestructura (timeouts/rate limiting).
+**Invariantes:** NAMING LOCK intacto; cero cambios en código, reglas, índices ni datos.
+
+### OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001 (2026-11-26)
+**Estado:** CERRADA (mitigada por tests de render).
+**Causa:** La UAT runtime en beta no pudo verificar el comportamiento de la alerta personalizada de WEB-INV-048 porque el servicio multimodal (OpenRouter) no está configurado en el entorno de Cloud Run beta. El componente muestra el fallback genérico "La visión multimodal no está configurada".
+**Mitigación:** Los 20 tests de render nuevos (total 33 tests de render) cubren exhaustivamente los 8 motivos, la recuperabilidad, el fallback, la precedencia de saturación y el comportamiento del `<details>`. La cobertura determinista de los tests sustituye la UAT runtime para este ticket.
+**Recomendación:** Configurar `OPENROUTER_API_KEY` y `VISION_MODEL_SLUG` en el entorno de Cloud Run beta para habilitar la UAT runtime de conteo multimodal en futuros tickets.
+**Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
