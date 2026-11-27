@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-26
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado; WEB-INV-049 CERRADO CON CÓDIGO (2026-11-27); OBS-WEB-INV-049-BLOBS-HUERFANOS-001 y OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 registradas.
 
 ---
 
@@ -1570,3 +1570,33 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 **Mitigación:** Los 20 tests de render nuevos (total 33 tests de render) cubren exhaustivamente los 8 motivos, la recuperabilidad, el fallback, la precedencia de saturación y el comportamiento del `<details>`. La cobertura determinista de los tests sustituye la UAT runtime para este ticket.
 **Recomendación:** Configurar `OPENROUTER_API_KEY` y `VISION_MODEL_SLUG` en el entorno de Cloud Run beta para habilitar la UAT runtime de conteo multimodal en futuros tickets.
 **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
+
+### OBS-WEB-INV-049-BLOBS-HUERFANOS-001 (2026-11-27)
+**Causa:** La UI de edición permite quitar URLs del array `imagenes_referencia`, pero las reglas de `storage.rules` (`allow delete: if false`) impiden el borrado automático del blob en Firebase Storage.
+**Impacto:** Los blobs quedan huérfanos si se quita la referencia. Requiere limpieza manual o ticket posterior.
+**Decisión:** Aceptado como limitación conocida de la Fase 1; no se modifican `storage.rules` en este ticket.
+
+### OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 (2026-11-27)
+**Causa:** Las reglas de Firestore actuales permiten lectura del documento completo de `inventario_repuestos` a roles con permiso `read` (incluido asesor).
+**Impacto:** El campo `imagenes_referencia` es legible por el asesor a nivel de base de datos, aunque la UI de `/admin/inventario-asesor` no lo renderiza.
+**Decisión:** Aceptado; la restricción es de UI. Restringirlo a nivel de reglas exigiría subcolección o reglas complejas, prohibido en este ticket.
+
+34.27 Cierre WEB-INV-049 — Campo aditivo e imágenes de referencia (2026-11-27)
+Estado: CERRADO CON CÓDIGO (UI + Schema + Actions).
+Versión: se mantiene v8.9.18 sin bump.
+Inserción: aditiva al final del documento; §1–§34.26 permanecen byte-idénticas.
+A. Objeto y decisión
+1. Origen: Plan de Matching Visual Progresivo (Arquitectura Final de 3 fases confirmada 2026-11-27). Fase 1: permitir al Administrador curar imágenes de referencia por ficha.
+2. Decisión: Añadir campo aditivo `imagenes_referencia: string[]` opcional a `inventario_repuestos`. UI de gestión en `/admin/inventario-repuestos` (admin-only). Crear y luego editar (D2 confirmada).
+B. Cambios físicos certificados
+1. Schema: `imagenesReferenciaSchema` (máx 5, HTTPS, host `firebasestorage.googleapis.com`, sin duplicados).
+2. Actions: `crearRepuesto` y `editarRepuesto` persisten el campo; ledger append-only registra `campos_modificados`.
+3. UI: `ImagenesReferenciaModal` con preview, subida a Storage (reglas intactas), lista y eliminación.
+4. Tests: 186 unit, 38 render, smoke/utils ALL PASSED. CI beta run `46048541754` success.
+C. Observaciones registradas
+1. `OBS-WEB-INV-049-BLOBS-HUERFANOS-001`: Quitar una imagen del array no borra el objeto de Storage.
+2. `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001`: El campo es legible por el asesor a nivel Firestore (restricción solo de UI).
+D. Invariantes
+1. NAMING LOCK intacto (`imagen_url` sin tocar). Flujo del Asesor intacto.
+2. §1–§34.26 permanecen byte-idénticas; §34.27 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.

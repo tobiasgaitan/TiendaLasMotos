@@ -252,3 +252,10 @@
 - **Observación:** `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada en §10.G del Documento Maestro. UAT runtime no ejecutada por falta de configuración de OpenRouter en beta; mitigada por 20 tests de render nuevos.
 - **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
 
+
+## Cierre WEB-INV-049 — Campo aditivo e imágenes de referencia (2026-11-27)
+- **Estado:** CERRADO CON CÓDIGO.
+- **Alcance:** Campo aditivo `imagenes_referencia: string[]` en `inventario_repuestos`, UI de curaduría admin-only (`ImagenesReferenciaModal`), persistencia en ledger append-only.
+- **Gates:** `test:ci` EXIT 0 (186 unit, 38 render), `tsc`/`lint`/`build` EXIT 0, CI beta run `46048541754` success.
+- **Observaciones:** `OBS-WEB-INV-049-BLOBS-HUERFANOS-001` y `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001` registradas.
+- **Invariantes:** NAMING LOCK intacto (`imagen_url` sin tocar); flujo del Asesor intacto; sin reglas/índices/dependencias nuevas.
