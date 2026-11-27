@@ -260,3 +260,10 @@
 ## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
 - [x] **WEB-INV-048 CERRADO CON CÓDIGO (UI):** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. 8 motivos con causa, acción y recuperabilidad. Justificación colapsable en `<details>`. 33 tests de render (13 previos + 20 nuevos). CI beta run `45851163015` success. Observación `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada (UAT runtime bloqueada por falta de configuración de OpenRouter en beta; mitigada por tests de render).
 
+## Fase 049 — WEB-INV-049: imágenes de referencia por repuesto (EN EJECUCIÓN, 2026-11-27)
+- [ ] **Campo aditivo:** `imagenes_referencia: string[]` opcional en `inventario_repuestos`, máximo 5 URLs HTTPS canónicas de Firebase Storage.
+- [ ] **UI admin-only:** modal de curaduría con preview, lista y eliminación en `/admin/inventario-repuestos`.
+- [ ] **Ledger:** asiento UPDATE con `campos_modificados` incluyendo `imagenes_referencia`.
+- [ ] **Invariantes:** `imagen_url` intacto; flujo del Asesor sin cambios; sin reglas/índices/dependencias nuevas.
+- [ ] **Artefactos GSD:** `.planning/phases/049-web-inv-049-imagenes-referencia/`.
+
