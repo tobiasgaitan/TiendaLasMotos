@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-26
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado; WEB-INV-049 CERRADO CON CÓDIGO (2026-11-27); OBS-WEB-INV-049-BLOBS-HUERFANOS-001 y OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 registradas.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado; WEB-INV-049 CERRADO END-TO-END (2026-11-27); OBS-INFRA-PROD-SETSECRETS-CLOBBER-001 y OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 registradas. WEB-INV-049 CERRADO CON CÓDIGO (2026-11-27); OBS-WEB-INV-049-BLOBS-HUERFANOS-001 y OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 registradas; OBS-INFRA-PROD-SETSECRETS-CLOBBER-001, OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 y OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001 registradas.
 
 ---
 
@@ -1571,6 +1571,17 @@ Las seis instancias se fusionaron con `REVIEW_REQUIRED` y 0 revisiones. Las cinc
 **Recomendación:** Configurar `OPENROUTER_API_KEY` y `VISION_MODEL_SLUG` en el entorno de Cloud Run beta para habilitar la UAT runtime de conteo multimodal en futuros tickets.
 **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
 
+### OBS-INFRA-PROD-SETSECRETS-CLOBBER-001 (2026-11-27)
+**Causa:** El comando `gcloud run services update` con `--set-secrets` (reemplazante) eliminó los secretos preexistentes `GOOGLE_VISION_API_KEY` y `CRON_SECRET_TOKEN` de producción al inyectar `OPENROUTER_API_KEY`. El flag correcto es `--update-secrets` (aditivo por clave).
+**Impacto:** Google Vision y cron jobs quedaron inoperativos en producción desde las 19:22:22 UTC hasta la aplicación del fix (~19:30 UTC). Duración: ~8 minutos.
+**Mitigación:** Restauración con `--update-secrets` aditivo, especificando los 3 secretos (GOOGLE `:2`, CRON `:latest`, OPENROUTER `:latest`).
+
+### OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 (2026-11-27)
+**Causa:** El adaptador `firebase-frameworks` regenera el spec del contenedor en cada deploy de producción, preservando los `secretKeyRef` pero descartando cualquier `value` directo custom que no esté declarado en `firebase.json`. `VISION_MODEL_SLUG` fue inyectada por CLI y no vive en ningún archivo del repo → el deploy la borró.
+**Impacto:** `VISION_MODEL_SLUG` requiere re-inyección manual tras cada deploy de producción, o declaración permanente en `firebase.json`.
+**Mitigación aplicada:** Re-inyección manual con `--update-env-vars="VISION_MODEL_SLUG=z-ai/glm-5.3-flash"`.
+**Solución permanente pendiente:** Ticket `WEB-INFRA-FRAMEWORKS-CUSTOM-ENV-001` para declarar `VISION_MODEL_SLUG` en `firebase.json`.
+
 ### OBS-WEB-INV-049-BLOBS-HUERFANOS-001 (2026-11-27)
 **Causa:** La UI de edición permite quitar URLs del array `imagenes_referencia`, pero las reglas de `storage.rules` (`allow delete: if false`) impiden el borrado automático del blob en Firebase Storage.
 **Impacto:** Los blobs quedan huérfanos si se quita la referencia. Requiere limpieza manual o ticket posterior.
@@ -1599,4 +1610,43 @@ C. Observaciones registradas
 D. Invariantes
 1. NAMING LOCK intacto (`imagen_url` sin tocar). Flujo del Asesor intacto.
 2. §1–§34.26 permanecen byte-idénticas; §34.27 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.
+
+34.28 Cierre WEB-INV-049 — Campo aditivo e imágenes de referencia (2026-11-27)
+Estado: CERRADO END-TO-END (beta + producción).
+Versión: se mantiene v8.9.18 sin bump.
+Inserción: aditiva al final del documento; §1–§34.27 permanecen byte-idénticas.
+A. Objeto y decisión
+1. Origen: Plan de Matching Visual Progresivo (Arquitectura Final de 3 fases confirmada 2026-11-27). Fase 1: permitir al Administrador curar imágenes de referencia por ficha.
+2. Decisión: Añadir campo aditivo `imagenes_referencia: string[]` opcional a `inventario_repuestos`. UI de gestión en `/admin/inventario-repuestos` (admin-only). Crear y luego editar (D2 confirmada).
+B. Cambios físicos certificados
+1. Schema: `imagenesReferenciaSchema` (máx 5, HTTPS, host `firebasestorage.googleapis.com`, sin duplicados).
+2. Actions: `crearRepuesto` y `editarRepuesto` persisten el campo; ledger append-only registra `campos_modificados`.
+3. UI: `ImagenesReferenciaModal` con preview, subida a Storage (reglas intactas), lista y eliminación.
+4. Tests: 186 unit, 38 render, smoke/utils ALL PASSED. CI beta run `46048541754` success.
+5. Promoción: PR #67 mergeado a main (`cdf5447`), CI producción run #110 success.
+C. Observaciones registradas
+1. `OBS-WEB-INV-049-BLOBS-HUERFANOS-001`: Quitar una imagen del array no borra el objeto de Storage.
+2. `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001`: El campo es legible por el asesor a nivel Firestore (restricción solo de UI).
+3. `OBS-INFRA-PROD-SETSECRETS-CLOBBER-001`: Incidente de clobber de secretos en producción durante inyección de IA.
+4. `OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001`: El adaptador firebase-frameworks elimina `value` custom no declarados en `firebase.json`.
+D. Invariantes
+1. NAMING LOCK intacto (`imagen_url` sin tocar). Flujo del Asesor intacto.
+2. §1–§34.27 permanecen byte-idénticas; §34.28 es aditiva conforme al precedente §25.A.
+3. Sin bump de versión.
+
+34.29 Registro de Gobernanza — Linealidad de promoción y OBS de infraestructura (2026-11-27)
+Estado: REGISTRADO; 1 OBS nueva de gobernanza; 2 OBS de infraestructura consolidadas en header.
+Versión: se mantiene v8.9.18 sin bump.
+Inserción: aditiva al final del documento; §1–§34.28 permanecen byte-idénticas.
+A. OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001
+1. Causa: el squash en promociones beta→main (PR #67 → cdf5447) crea un commit sintético en main que NO es ancestro de beta. Cualquier promoción documental subsiguiente (PR #68) encuentra la misma línea tocada desde dos commits divergentes y GitHub rechaza el merge ("not mergeable: the merge commit cannot be cleanly created").
+2. Evidencia: PR #68 falló por esta causa; PR #69 lo resolvió con merge + resolución de conflictos, pero por error de orientación de --theirs (debió ser --ours con rama base = beta) dejó en main el contenido documental de main (PSD parcial), no el de beta (PSD final §34.28). La divergencia residual certificada: 43 inserciones / 2 eliminaciones en los 3 documentales.
+3. Mitigación aplicada: sincronización de contenido por `git checkout origin/beta -- <3 docs>` (sin merge, sin conflicto), no por resolución de merge.
+4. Regla futura: promociones incrementales beta→main con merge commit normal (--merge), no --squash; o, si se usa squash, realinear beta a main (git merge origin/main en beta) tras cada promoción para restaurar la linealidad.
+B. Consolidación de header
+1. OBS-INFRA-PROD-SETSECRETS-CLOBBER-001, OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 y OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001 quedan referenciadas en el header L5.
+C. Invariantes
+1. Cero cambios en código, reglas, índices, package*.json ni God Nodes; NAMING LOCK intacto.
+2. §1–§34.28 byte-idénticas; §34.29 aditiva conforme al precedente §25.A.
 3. Sin bump de versión.
