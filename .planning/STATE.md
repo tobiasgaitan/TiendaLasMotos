@@ -277,5 +277,6 @@
 - **WEB-INV-050:** módulo puro `matching-visual.ts`, Server Action `verificarMatchingVisual.ts`, UI on-demand no vinculante, timeout 2.8 s/3.5 s.
 - **WEB-INV-051:** `auditoria_matching_visual` admin-only read; script `auditoria-matching-semanal.ts` read-only.
 - **Gates locales:** `test:ci` EXIT 0 (198 unit, 43 render), `tsc`/`lint`/`build`/`git diff --check` EXIT 0; script EXIT 0 con 0 registros.
-- **Pendiente:** UAT beta (10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros) y verificación de `VISION_MODEL_SLUG` post-deploy.
+- **Pendiente:** UAT beta (10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros) y verificación de `VISION_MODEL_SLUG` en producción tras promoción.
+- **Beta:** CI run `46072218462` success; `VISION_MODEL_SLUG` presente en `ssrtiendalasmotosbeta`; reglas de Firestore desplegadas.
 - **Invariantes:** vision-client, matching.ts, package*.json, firebase.json y bot intactos; NAMING LOCK intacto.

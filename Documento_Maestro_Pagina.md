@@ -1658,7 +1658,7 @@ Inserción: aditiva al final del documento; §1–§34.29 permanecen byte-idént
 A. WEB-INFRA-FRAMEWORKS-CUSTOM-ENV-001 (D-2)
 1. Decisión: la variable `VISION_MODEL_SLUG` se versiona en `.env.tiendalasmotos` con valor `z-ai/glm-5.3-flash`.
 2. Evidencia local: `node_modules/firebase-tools/schema/firebase-config.json` demuestra que `FrameworksBackendOptions` no admite `env` ni `environmentVariables`; `node_modules/firebase-tools/lib/functions/env.js` carga `.env.<projectId>` y `.env.<alias>`. Por eso `firebase.json` NO se modifica.
-3. Verificación pendiente: `gcloud run services describe` debe mostrar `VISION_MODEL_SLUG` en beta y producción tras el deploy.
+3. Verificación beta (2026-11-27): `ssrtiendalasmotosbeta` muestra `VISION_MODEL_SLUG` tras el deploy CI run `46072218462`; producción queda pendiente de la promoción a `main`. `firestore.rules` se desplegó al proyecto compartido y compiló correctamente.
 B. WEB-INV-050 — Matching visual on-demand
 1. Nuevo módulo puro `src/lib/inventario/matching-visual.ts`: prompt contractual, payload de dos imágenes por URL, normalización, selección del mejor par y agregación semanal.
 2. Nueva Server Action `verificarMatchingVisual.ts`: Faraday Cage completo (actor, ID token, permiso de fotos, rol asesor, URL del asesor, env vars), máximo 3 candidatos, timeout de 2.8 s por par y presupuesto total ≤3 s.

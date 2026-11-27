@@ -271,6 +271,6 @@
 ## Fase 050/051 — Matching visual on-demand + auditoría + D-2 (IMPLEMENTADO, UAT PENDIENTE, 2026-11-27)
 - [x] **WEB-INV-050:** matching visual on-demand foto-vs-referencia con `glm-5.3-flash`, máximo 3 candidatos, timeout 2.8 s, UI no vinculante.
 - [x] **WEB-INV-051:** colección `auditoria_matching_visual` admin-only read y script semanal read-only.
-- [x] **D-2:** `VISION_MODEL_SLUG` versionada en `.env.tiendalasmotos`; `firebase.json` intacto.
+- [x] **D-2:** `VISION_MODEL_SLUG` versionada en `.env.tiendalasmotos`; `firebase.json` intacto. Beta verificada (run `46072218462`).
 - [ ] **UAT beta:** 10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros.
-- [ ] **Verificación post-deploy:** `VISION_MODEL_SLUG` presente en env de beta y producción.
+- [ ] **Verificación post-deploy:** `VISION_MODEL_SLUG` presente en env de producción tras promoción.
