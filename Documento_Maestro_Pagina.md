@@ -1650,3 +1650,30 @@ C. Invariantes
 1. Cero cambios en código, reglas, índices, package*.json ni God Nodes; NAMING LOCK intacto.
 2. §1–§34.28 byte-idénticas; §34.29 aditiva conforme al precedente §25.A.
 3. Sin bump de versión.
+
+34.30 Cierre WEB-INV-050/051 y Deuda D-2 — Matching visual y auditoría (2026-11-27)
+Estado: IMPLEMENTADO EN BETA, UAT RUNTIME PENDIENTE (opción 3: Director).
+Versión: se mantiene v8.9.18 sin bump.
+Inserción: aditiva al final del documento; §1–§34.29 permanecen byte-idénticas.
+A. WEB-INFRA-FRAMEWORKS-CUSTOM-ENV-001 (D-2)
+1. Decisión: la variable `VISION_MODEL_SLUG` se versiona en `.env.tiendalasmotos` con valor `z-ai/glm-5.3-flash`.
+2. Evidencia local: `node_modules/firebase-tools/schema/firebase-config.json` demuestra que `FrameworksBackendOptions` no admite `env` ni `environmentVariables`; `node_modules/firebase-tools/lib/functions/env.js` carga `.env.<projectId>` y `.env.<alias>`. Por eso `firebase.json` NO se modifica.
+3. Verificación pendiente: `gcloud run services describe` debe mostrar `VISION_MODEL_SLUG` en beta y producción tras el deploy.
+B. WEB-INV-050 — Matching visual on-demand
+1. Nuevo módulo puro `src/lib/inventario/matching-visual.ts`: prompt contractual, payload de dos imágenes por URL, normalización, selección del mejor par y agregación semanal.
+2. Nueva Server Action `verificarMatchingVisual.ts`: Faraday Cage completo (actor, ID token, permiso de fotos, rol asesor, URL del asesor, env vars), máximo 3 candidatos, timeout de 2.8 s por par y presupuesto total ≤3 s.
+3. UI: `SelectorReferenciaRepuesto` emite candidatos; `ConteoAsesorForm` dispara el matching solo por clic humano; `SugerenciasVision` muestra sugerencia, confianza y estado no bloqueante. Cero autoselección y cero autocompletado de cantidad.
+4. Auditoría: cada par se escribe best-effort en `auditoria_matching_visual`; un fallo de auditoría no rompe la sugerencia. Nunca se guarda base64.
+C. WEB-INV-051 — Auditoría y script read-only
+1. `firestore.rules`: `auditoria_matching_visual` con lectura solo `admin`/`superadmin`; create/update/delete de cliente en false (escritura por Admin SDK).
+2. `scripts/auditoria-matching-semanal.ts`: lectura agregada de los últimos 7 días, sin escrituras en Firestore/Storage/repo; salida por stdout.
+D. Evidencia local
+1. `npm run test:ci` EXIT 0: 198 unit, 43 render, smoke/utils ALL PASSED.
+2. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `git diff --check` EXIT 0.
+3. `npx tsx scripts/auditoria-matching-semanal.ts` EXIT 0, 0 registros en ventana, cero writes.
+4. UAT beta: pendiente de ejecución del Director; gates: ≥70% Precision@1 en 10 fotos vs 3 fichas, mediana de matching ≤3 s, 0 autocompletados inseguros.
+E. Invariantes
+1. `src/lib/vision-client.ts`, `src/lib/inventario/matching.ts`, `package.json`, `package-lock.json`, `firebase.json` y `bot-tiendalasmotos/**` intactos.
+2. Conteo multimodal intacto; matching es acción independiente.
+3. NAMING LOCK intacto; sin dependencias nuevas.
+4. §1–§34.29 byte-idénticas; §34.30 aditiva conforme al precedente §25.A.

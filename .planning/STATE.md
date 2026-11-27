@@ -270,3 +270,12 @@
 ## Registro de Gobernanza — Linealidad de promoción (2026-11-27)
 - **OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001:** el squash en promociones beta→main rompe la linealidad (commit sintético no ancestro de beta) y genera conflictos en promociones documentales subsiguientes (PR #68). Regla futura: --merge o realinear beta a main tras squash.
 - **Sincronización de contenido:** PR docs/sync-049-final toma el contenido exacto de los 3 documentales desde beta (sin merge, sin conflicto) para alinear el SSOT con el PSD final §34.28 + §34.29.
+
+## Implementación WEB-INV-050/051 + D-2 — Matching visual y auditoría (2026-11-27)
+- **Estado:** IMPLEMENTADO EN BETA; UAT runtime pendiente (opción 3, Director).
+- **D-2:** `VISION_MODEL_SLUG` versionada en `.env.tiendalasmotos`; `firebase.json` intacto por ausencia de soporte de env plano en `FrameworksBackendOptions`.
+- **WEB-INV-050:** módulo puro `matching-visual.ts`, Server Action `verificarMatchingVisual.ts`, UI on-demand no vinculante, timeout 2.8 s/3.5 s.
+- **WEB-INV-051:** `auditoria_matching_visual` admin-only read; script `auditoria-matching-semanal.ts` read-only.
+- **Gates locales:** `test:ci` EXIT 0 (198 unit, 43 render), `tsc`/`lint`/`build`/`git diff --check` EXIT 0; script EXIT 0 con 0 registros.
+- **Pendiente:** UAT beta (10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros) y verificación de `VISION_MODEL_SLUG` post-deploy.
+- **Invariantes:** vision-client, matching.ts, package*.json, firebase.json y bot intactos; NAMING LOCK intacto.
