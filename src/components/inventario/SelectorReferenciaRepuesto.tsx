@@ -18,6 +18,7 @@ interface SelectorReferenciaRepuestoProps {
     referenciaSeleccionada: string;
     onSeleccion: (candidato: RepuestoCandidato | null) => void;
     onSugerencia: (referencia: string) => void;
+    onCandidatos?: (candidatos: RepuestoCandidato[]) => void;
     online: boolean;
     disabled?: boolean;
 }
@@ -146,6 +147,7 @@ export default function SelectorReferenciaRepuesto({
     referenciaSeleccionada,
     onSeleccion,
     onSugerencia,
+    onCandidatos,
     online,
     disabled = false,
 }: SelectorReferenciaRepuestoProps) {
@@ -167,11 +169,22 @@ export default function SelectorReferenciaRepuesto({
 
     const secuenciaRef = useRef(0);
     const onSugerenciaRef = useRef(onSugerencia);
+    const onCandidatosRef = useRef(onCandidatos);
     const usuario = user;
 
     useEffect(() => {
         onSugerenciaRef.current = onSugerencia;
     }, [onSugerencia]);
+
+    useEffect(() => {
+        onCandidatosRef.current = onCandidatos;
+    }, [onCandidatos]);
+
+    useEffect(() => {
+        if (onCandidatosRef.current) {
+            onCandidatosRef.current(candidatos);
+        }
+    }, [candidatos]);
 
     useEffect(() => {
         if (!usuario) {

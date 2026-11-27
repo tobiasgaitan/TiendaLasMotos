@@ -197,6 +197,37 @@ export type VisionConteoResult =
           message: string;
       };
 
+/**
+ * WEB-INV-050 — Matching visual on-demand foto-vs-referencia.
+ * Aditivo: no modifica VisionConteoData ni el conteo.
+ */
+export type MatchingVisualEstado =
+    | 'coincide'
+    | 'no_coincide'
+    | 'sin_referencia'
+    | 'timeout'
+    | 'error';
+
+export interface MatchingVisualPar {
+    documento_id: string;
+    referencia: string;
+    estado: MatchingVisualEstado;
+    coincide: boolean;
+    confianza: number;
+    justificacion: string;
+    latencia_ms: number;
+}
+
+export interface MatchingVisualResult {
+    success: boolean;
+    disponible: boolean;
+    modelo: string | null;
+    mejor: MatchingVisualPar | null;
+    pares: MatchingVisualPar[];
+    message?: string;
+    latencia_ms: number;
+}
+
 export interface BuscarCandidatosResult {
     success: boolean;
     message?: string;

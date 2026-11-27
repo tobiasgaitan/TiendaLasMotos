@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import SugerenciasVision from '@/components/inventario/SugerenciasVision';
 import type {
+    MatchingVisualResult,
     VisionConteoData,
     VisionConteoMotivo,
 } from '@/types/inventario';
@@ -300,6 +301,145 @@ describe('SugerenciasVision — conteo multimodal', () => {
         expect(
             screen.queryByText(/Puedes usar «Repetir foto»/)
         ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: /Usar cantidad sugerida/i })
+        ).toBeEnabled();
+    });
+});
+
+describe('SugerenciasVision — matching visual', () => {
+    function matching(
+        overrides: Partial<MatchingVisualResult> = {}
+    ): MatchingVisualResult {
+        const mejor = {
+            documento_id: 'BRK-001',
+            referencia: 'BRK-001',
+            estado: 'coincide' as const,
+            coincide: true,
+            confianza: 0.87,
+            justificacion: 'Misma carcasa.',
+            latencia_ms: 120,
+        };
+        return {
+            success: true,
+            disponible: true,
+            modelo: 'z-ai/glm-5.3-flash',
+            mejor,
+            pares: [mejor],
+            latencia_ms: 120,
+            ...overrides,
+        };
+    }
+
+    it('dispara el matching solo por clic humano', () => {
+        const onVerificarMatching = vi.fn();
+        render(
+            <SugerenciasVision
+                {...PROPS_BASE}
+                conteoMultimodal={conteo()}
+                onUsarCantidadMultimodal={vi.fn()}
+                puedeVerificarMatching
+                onVerificarMatching={onVerificarMatching}
+            />
+        );
+
+        expect(onVerificarMatching).not.toHaveBeenCalled();
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: /Verificar coincidencia visual/i,
+            })
+        );
+        expect(onVerificarMatching).toHaveBeenCalledTimes(1);
+    });
+
+    it('muestra la mejor coincidencia sin autoseleccionar', () => {
+        const onUsarCantidadMultimodal = vi.fn();
+        render(
+            <SugerenciasVision
+                {...PROPS_BASE}
+                conteoMultimodal={conteo()}
+                onUsarCantidadMultimodal={onUsarCantidadMultimodal}
+                puedeVerificarMatching
+                onVerificarMatching={vi.fn()}
+                matchingVisual={matching()}
+            />
+        );
+
+        expect(
+            screen.getByText(/La IA sugiere BRK-001 \(87%\)/i)
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(/Sugerencia no vinculante/i)
+        ).toBeInTheDocument();
+        expect(onUsarCantidadMultimodal).not.toHaveBeenCalled();
+    });
+
+    it('advierte confianza baja sin bloquear', () => {
+        render(
+            <SugerenciasVision
+                {...PROPS_BASE}
+                conteoMultimodal={conteo()}
+                onUsarCantidadMultimodal={vi.fn()}
+                puedeVerificarMatching
+                onVerificarMatching={vi.fn()}
+                matchingVisual={matching({
+                    mejor: {
+                        documento_id: 'BRK-001',
+                        referencia: 'BRK-001',
+                        estado: 'coincide',
+                        coincide: true,
+                        confianza: 0.45,
+                        justificacion: '',
+                        latencia_ms: 100,
+                    },
+                })}
+            />
+        );
+
+        expect(
+            screen.getByText(/Confianza baja/i)
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: /Usar cantidad sugerida/i })
+        ).toBeEnabled();
+    });
+
+    it('muestra fallback cuando no hay coincidencia', () => {
+        render(
+            <SugerenciasVision
+                {...PROPS_BASE}
+                conteoMultimodal={conteo()}
+                onUsarCantidadMultimodal={vi.fn()}
+                puedeVerificarMatching
+                onVerificarMatching={vi.fn()}
+                matchingVisual={matching({
+                    disponible: false,
+                    mejor: null,
+                    pares: [],
+                })}
+            />
+        );
+
+        expect(
+            screen.getByText(/Ninguna de las fichas candidatas coincide/i)
+        ).toBeInTheDocument();
+    });
+
+    it('muestra error de matching sin romper el conteo', () => {
+        render(
+            <SugerenciasVision
+                {...PROPS_BASE}
+                conteoMultimodal={conteo()}
+                onUsarCantidadMultimodal={vi.fn()}
+                puedeVerificarMatching
+                onVerificarMatching={vi.fn()}
+                errorMatching="Matching visual no disponible."
+            />
+        );
+
+        expect(
+            screen.getByText('Matching visual no disponible.')
+        ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: /Usar cantidad sugerida/i })
         ).toBeEnabled();

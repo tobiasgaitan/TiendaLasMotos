@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => {
     const docs = new Map<string, Record<string, unknown>>();
@@ -255,6 +255,16 @@ const mockState = vi.hoisted(() => {
             return {
                 ...base,
                 doc: (id?: string) => makeRef(nombre, id),
+                add: async (data: Record<string, unknown>) => {
+                    const ref = makeRef(nombre);
+                    docs.set(ref.path, { ...data });
+                    writes.push({
+                        path: ref.path,
+                        kind: 'create',
+                        data: { ...data },
+                    });
+                    return ref;
+                },
                 get: async () => {
                     if (
                         nombre === 'configuracion/general/sedes' &&
@@ -320,6 +330,12 @@ vi.mock('@/lib/firebase-admin', () => ({
     getFieldPath: () => ({
         documentId: () => '__name__',
     }),
+    getAdminAuth: () => ({
+        verifyIdToken: async () => ({
+            uid: 'uid-asesor',
+            email: 'asesor@test.com',
+        }),
+    }),
 }));
 
 vi.mock('@/lib/actions/inventario-actor', () => ({
@@ -360,6 +376,7 @@ import { eliminarRepuesto } from '@/app/admin/inventario-repuestos/actions/elimi
 import { listarRepuestos } from '@/app/admin/inventario-repuestos/actions/listarRepuestos';
 import { contarRepuestos } from '@/app/admin/inventario-repuestos/actions/contarRepuestos';
 import { listarSedes } from '@/app/admin/inventario-repuestos/actions/listarSedes';
+import { verificarMatchingVisual } from '@/app/admin/inventario-asesor/actions/verificarMatchingVisual';
 import { listarPendientes } from '@/app/admin/inventario-aprobaciones/actions/listarPendientes';
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import { requireActorInventario } from '@/lib/actions/inventario-actor';
@@ -372,6 +389,8 @@ const IMAGEN_REF_1 =
     'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-1.jpg?alt=media&token=img1';
 const IMAGEN_REF_2 =
     'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-2.jpg?alt=media&token=img2';
+const FOTO_ASESOR_MATCHING =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fasesor%40test.com%2Ffoto-matching.jpg?alt=media&token=match';
 
 const ACTOR = { uid: 'uid-cliente', idToken: 'token' };
 
@@ -2099,5 +2118,150 @@ describe('MT-07 Server Actions contracts', () => {
         );
         expect(alternativa.candidatos[0]?.documento_id).toBe('brk-1');
         expect(mockState.writes).toHaveLength(0);
+    });
+});
+
+describe('WEB-INV-050 matching visual', () => {
+    const candidato = {
+        documento_id: 'BRK-MATCH',
+        referencia: 'BRK-MATCH',
+    };
+
+    function respuestaMatching(): Response {
+        return new Response(
+            JSON.stringify({
+                choices: [
+                    {
+                        message: {
+                            content: JSON.stringify({
+                                coincide: true,
+                                confianza: 0.87,
+                                justificacion: 'Misma carcasa.',
+                            }),
+                        },
+                        finish_reason: 'stop',
+                    },
+                ],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+    }
+
+    beforeEach(() => {
+        vi.stubEnv('OPENROUTER_API_KEY', 'test-key');
+        vi.stubEnv('VISION_MODEL_SLUG', 'z-ai/glm-5.3-flash');
+        mockState.docs.set('inventario_repuestos/BRK-MATCH', {
+            referencia: 'BRK-MATCH',
+            imagenes_referencia: [IMAGEN_REF_1],
+        });
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
+    });
+
+    it('rechaza actor o input inválido antes de Firebase', async () => {
+        const sinActor = await verificarMatchingVisual({}, {});
+        expect(sinActor.success).toBe(false);
+
+        const demasiados = await verificarMatchingVisual(
+            {
+                foto_url: FOTO_ASESOR_MATCHING,
+                candidatos: [1, 2, 3, 4].map((indice) => ({
+                    documento_id: `BRK-${indice}`,
+                    referencia: `BRK-${indice}`,
+                })),
+            },
+            ACTOR
+        );
+        expect(demasiados.success).toBe(false);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('compara hasta 3 candidatos y devuelve el mejor con auditoría', async () => {
+        seedAsesor();
+        const fetchMock = vi.fn(async () => respuestaMatching());
+        vi.stubGlobal('fetch', fetchMock);
+
+        const resultado = await verificarMatchingVisual(
+            {
+                foto_url: FOTO_ASESOR_MATCHING,
+                candidatos: [candidato],
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.disponible).toBe(true);
+        expect(resultado.mejor?.documento_id).toBe('BRK-MATCH');
+        expect(resultado.mejor?.estado).toBe('coincide');
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        const auditoria = mockState.writes.filter((write) =>
+            write.path.startsWith('auditoria_matching_visual/')
+        );
+        expect(auditoria).toHaveLength(1);
+        expect(auditoria[0].data.estado).toBe('coincide');
+        expect(auditoria[0].data.foto_storage_path).toContain(
+            'inventario_repuestos/asesor@test.com/'
+        );
+    });
+
+    it('no llama al modelo si la ficha no tiene imágenes de referencia', async () => {
+        seedAsesor();
+        mockState.docs.set('inventario_repuestos/BRK-MATCH', {
+            referencia: 'BRK-MATCH',
+            imagenes_referencia: [],
+        });
+        const fetchMock = vi.fn(async () => respuestaMatching());
+        vi.stubGlobal('fetch', fetchMock);
+
+        const resultado = await verificarMatchingVisual(
+            {
+                foto_url: FOTO_ASESOR_MATCHING,
+                candidatos: [candidato],
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.disponible).toBe(false);
+        expect(resultado.mejor).toBeNull();
+        expect(resultado.pares[0]?.estado).toBe('sin_referencia');
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(
+            mockState.writes.filter((write) =>
+                write.path.startsWith('auditoria_matching_visual/')
+            )
+        ).toHaveLength(1);
+    });
+
+    it('un timeout no rompe la acción y queda auditado', async () => {
+        seedAsesor();
+        const errorTimeout = new Error('timeout');
+        errorTimeout.name = 'TimeoutError';
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => {
+                throw errorTimeout;
+            })
+        );
+
+        const resultado = await verificarMatchingVisual(
+            {
+                foto_url: FOTO_ASESOR_MATCHING,
+                candidatos: [candidato],
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.disponible).toBe(false);
+        expect(resultado.pares[0]?.estado).toBe('timeout');
+        const auditoria = mockState.writes.find((write) =>
+            write.path.startsWith('auditoria_matching_visual/')
+        );
+        expect(auditoria?.data.estado).toBe('timeout');
     });
 });

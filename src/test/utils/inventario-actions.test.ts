@@ -231,6 +231,21 @@ async function run() {
             FORM_ASESOR_SOURCE.includes('setCantidadOrigen')
     );
     check(
+        'formulario asesor integra matching visual on-demand sin autoselección',
+        FORM_ASESOR_SOURCE.includes('verificarMatchingVisual') &&
+            FORM_ASESOR_SOURCE.includes('onCandidatos') &&
+            FORM_ASESOR_SOURCE.includes('ejecutarVerificacionMatching') &&
+            FORM_ASESOR_SOURCE.includes('matchingVisual') &&
+            FORM_ASESOR_SOURCE.includes('SugerenciasVision')
+    );
+    check(
+        'SugerenciasVision muestra matching visual sin bloquear el conteo',
+        SUGERENCIAS_SOURCE.includes('Coincidencia visual (IA)') &&
+            SUGERENCIAS_SOURCE.includes('Verificar coincidencia visual') &&
+            SUGERENCIAS_SOURCE.includes('Sugerencia no vinculante') &&
+            SUGERENCIAS_SOURCE.includes('Confianza baja')
+    );
+    check(
         'UI multimodal muestra estimación, botón explícito y alertas',
         (() => {
             const texto = SUGERENCIAS_SOURCE.replace(/\s+/g, ' ');

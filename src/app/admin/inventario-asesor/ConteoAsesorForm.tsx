@@ -33,9 +33,11 @@ import {
 } from "@/lib/inventario/timeout";
 import { analizarImagenRepuesto } from "@/app/admin/inventario-asesor/actions/analizarImagenRepuesto";
 import { analizarImagenConVision } from "@/app/admin/inventario-asesor/actions/analizarImagenConVision";
+import { verificarMatchingVisual } from "@/app/admin/inventario-asesor/actions/verificarMatchingVisual";
 import { crearConteoPendiente } from "@/app/admin/inventario-asesor/actions/crearConteoPendiente";
 import { listarSedes } from "@/app/admin/inventario-repuestos/actions/listarSedes";
 import type {
+    MatchingVisualResult,
     RepuestoCandidato,
     SedeOpcion,
     VisionConteoData,
@@ -159,6 +161,13 @@ export default function ConteoAsesorForm() {
         useState<VisionConteoData | null>(null);
     const [analizandoMultimodal, setAnalizandoMultimodal] = useState(false);
     const [errorMultimodal, setErrorMultimodal] = useState<string | null>(null);
+    const [candidatosMatching, setCandidatosMatching] = useState<
+        RepuestoCandidato[]
+    >([]);
+    const [matchingVisual, setMatchingVisual] =
+        useState<MatchingVisualResult | null>(null);
+    const [analizandoMatching, setAnalizandoMatching] = useState(false);
+    const [errorMatching, setErrorMatching] = useState<string | null>(null);
     const [cantidadOrigen, setCantidadOrigen] = useState<
         "manual" | "multimodal"
     >("manual");
@@ -276,6 +285,10 @@ export default function ConteoAsesorForm() {
         setConteoMultimodal(null);
         setAnalizandoMultimodal(false);
         setErrorMultimodal(null);
+        setCandidatosMatching([]);
+        setMatchingVisual(null);
+        setAnalizandoMatching(false);
+        setErrorMatching(null);
         setCantidadOrigen("manual");
         setPuedeReintentar(false);
         setAnalizando(false);
@@ -347,6 +360,72 @@ export default function ConteoAsesorForm() {
                 setAnalizandoMultimodal(false);
             }
         }
+    }
+
+    async function ejecutarVerificacionMatching(): Promise<void> {
+        if (!usuario || !fotoSubida || candidatosMatching.length === 0) return;
+        if (analizandoMatching) return;
+
+        setAnalizandoMatching(true);
+        setErrorMatching(null);
+
+        try {
+            const idToken = await usuario.getIdToken();
+            const candidatos = candidatosMatching
+                .slice(0, 3)
+                .map((candidato) => ({
+                    documento_id: candidato.documento_id,
+                    referencia: candidato.referencia,
+                }));
+
+            const resultado = await conTimeout(
+                verificarMatchingVisual(
+                    {
+                        foto_url: fotoSubida.foto_url,
+                        candidatos,
+                    },
+                    { uid: usuario.uid, idToken }
+                ),
+                3_500,
+                "El matching visual tardó demasiado. El conteo manual sigue disponible."
+            );
+
+            if (resultado.success && resultado.disponible) {
+                setMatchingVisual(resultado);
+                setErrorMatching(null);
+            } else {
+                setMatchingVisual(null);
+                setErrorMatching(
+                    resultado.message
+                        ? resultado.message
+                        : "Matching visual no disponible. El conteo manual sigue disponible."
+                );
+            }
+        } catch (errorMatchingVisual) {
+            console.error(
+                "[inventario-ui] No se pudo verificar el matching visual:",
+                errorMatchingVisual
+            );
+            setMatchingVisual(null);
+            setErrorMatching(
+                esErrorTimeout(errorMatchingVisual)
+                    ? "El matching visual tardó demasiado. El conteo manual sigue disponible."
+                    : mensajeDeError(
+                          errorMatchingVisual,
+                          "Matching visual no disponible. El conteo manual sigue disponible."
+                      )
+            );
+        } finally {
+            setAnalizandoMatching(false);
+        }
+    }
+
+    function actualizarCandidatosMatching(
+        candidatos: RepuestoCandidato[]
+    ): void {
+        setCandidatosMatching(candidatos.slice(0, 3));
+        setMatchingVisual(null);
+        setErrorMatching(null);
     }
 
     async function analizarFoto(
@@ -504,6 +583,10 @@ export default function ConteoAsesorForm() {
         setConteoMultimodal(null);
         setAnalizandoMultimodal(false);
         setErrorMultimodal(null);
+        setCandidatosMatching([]);
+        setMatchingVisual(null);
+        setAnalizandoMatching(false);
+        setErrorMatching(null);
         if (cantidadOrigen === "multimodal") {
             setCantidadContada("");
         }
@@ -559,6 +642,10 @@ export default function ConteoAsesorForm() {
         setConteoMultimodal(null);
         setAnalizandoMultimodal(false);
         setErrorMultimodal(null);
+        setCandidatosMatching([]);
+        setMatchingVisual(null);
+        setAnalizandoMatching(false);
+        setErrorMatching(null);
         if (cantidadOrigen === "multimodal") {
             setCantidadContada("");
         }
@@ -933,6 +1020,15 @@ export default function ConteoAsesorForm() {
                     }}
                     onUsarCantidadMultimodal={handleUsarCantidadMultimodal}
                     onReintentarMultimodal={handleReintentarMultimodal}
+                    matchingVisual={matchingVisual}
+                    analizandoMatching={analizandoMatching}
+                    errorMatching={errorMatching}
+                    puedeVerificarMatching={
+                        Boolean(fotoSubida) &&
+                        candidatosMatching.length > 0 &&
+                        !analizandoMatching
+                    }
+                    onVerificarMatching={ejecutarVerificacionMatching}
                 />
 
                 <section className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/60 p-4 shadow-lg">
@@ -951,6 +1047,7 @@ export default function ConteoAsesorForm() {
                         referenciaSeleccionada={referenciaConfirmada}
                         online={online}
                         disabled={guardando}
+                        onCandidatos={actualizarCandidatosMatching}
                         onSugerencia={(referencia) =>
                             setReferenciaSugerida(referencia.slice(0, 64))
                         }

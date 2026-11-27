@@ -9,6 +9,7 @@ import {
     Tag,
 } from 'lucide-react';
 import type {
+    MatchingVisualResult,
     VisionConteoData,
     VisionConteoMotivo,
     VisionSugerencia,
@@ -93,6 +94,11 @@ interface SugerenciasVisionProps {
     onReintentar: () => void;
     onUsarCantidadMultimodal: (cantidad: number) => void;
     onReintentarMultimodal: () => void;
+    matchingVisual?: MatchingVisualResult | null;
+    analizandoMatching?: boolean;
+    errorMatching?: string | null;
+    puedeVerificarMatching?: boolean;
+    onVerificarMatching?: () => void;
 }
 
 export default function SugerenciasVision({
@@ -108,6 +114,11 @@ export default function SugerenciasVision({
     onReintentar,
     onUsarCantidadMultimodal,
     onReintentarMultimodal,
+    matchingVisual = null,
+    analizandoMatching = false,
+    errorMatching = null,
+    puedeVerificarMatching = false,
+    onVerificarMatching,
 }: SugerenciasVisionProps) {
     const cantidadMultimodal =
         conteoMultimodal === null
@@ -432,6 +443,139 @@ export default function SugerenciasVision({
                     </div>
                 ) : null}
             </div>
+
+            {onVerificarMatching ? (
+                <div className="mt-4 border-t border-gray-800 pt-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                                <Tag
+                                    aria-hidden="true"
+                                    className="h-4 w-4 text-emerald-400"
+                                />
+                                Coincidencia visual (IA)
+                            </h3>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Compara tu foto con las imágenes de referencia
+                                de las fichas candidatas. Es una ayuda, no una
+                                decisión.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onVerificarMatching}
+                            disabled={
+                                !puedeVerificarMatching || analizandoMatching
+                            }
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-800/70 bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <RefreshCw
+                                aria-hidden="true"
+                                className={`h-4 w-4 ${
+                                    analizandoMatching ? 'animate-spin' : ''
+                                }`}
+                            />
+                            Verificar coincidencia visual
+                        </button>
+                    </div>
+
+                    {analizandoMatching ? (
+                        <div
+                            role="status"
+                            className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-900/50 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-100"
+                        >
+                            <Loader2
+                                aria-hidden="true"
+                                className="h-4 w-4 animate-spin"
+                            />
+                            Comparando con las fichas candidatas…
+                        </div>
+                    ) : null}
+
+                    {errorMatching ? (
+                        <p
+                            role="status"
+                            className="mt-3 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2 text-xs leading-relaxed text-gray-400"
+                        >
+                            {errorMatching}
+                        </p>
+                    ) : null}
+
+                    {matchingVisual !== null && !analizandoMatching ? (
+                        <div
+                            aria-live="polite"
+                            className="mt-3 space-y-2 rounded-xl border border-emerald-900/40 bg-emerald-950/10 p-3"
+                        >
+                            {matchingVisual.mejor !== null ? (
+                                <div>
+                                    <p className="text-sm font-semibold text-white">
+                                        La IA sugiere{' '}
+                                        {matchingVisual.mejor.referencia} (
+                                        {Math.round(
+                                            matchingVisual.mejor.confianza * 100
+                                        )}
+                                        %)
+                                    </p>
+                                    {matchingVisual.mejor.confianza < 0.6 ? (
+                                        <p className="mt-1 text-xs leading-relaxed text-amber-200">
+                                            Confianza baja: verifica la
+                                            referencia manualmente antes de
+                                            guardar.
+                                        </p>
+                                    ) : null}
+                                    {matchingVisual.mejor.justificacion ? (
+                                        <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                                            {matchingVisual.mejor.justificacion}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <p className="text-xs leading-relaxed text-amber-100">
+                                    Ninguna de las fichas candidatas coincide
+                                    con la foto. Elige la referencia
+                                    manualmente.
+                                </p>
+                            )}
+
+                            {matchingVisual.pares.length > 0 ? (
+                                <ul className="space-y-1 border-t border-emerald-900/40 pt-2">
+                                    {matchingVisual.pares.map((par) => (
+                                        <li
+                                            key={par.documento_id}
+                                            className="flex items-center justify-between gap-2 text-[11px] text-gray-400"
+                                        >
+                                            <span className="font-mono">
+                                                {par.referencia}
+                                            </span>
+                                            <span>
+                                                {par.estado === 'coincide'
+                                                    ? `Coincide ${Math.round(
+                                                          par.confianza * 100
+                                                      )}%`
+                                                    : par.estado ===
+                                                        'no_coincide'
+                                                      ? 'No coincide'
+                                                      : par.estado ===
+                                                          'sin_referencia'
+                                                        ? 'Sin imagen de referencia'
+                                                        : par.estado ===
+                                                            'timeout'
+                                                          ? 'Timeout'
+                                                          : 'Error'}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+
+                            <p className="text-[11px] leading-relaxed text-gray-500">
+                                Sugerencia no vinculante. La selección de la
+                                referencia sigue siendo tuya.
+                            </p>
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
         </section>
     );
 }

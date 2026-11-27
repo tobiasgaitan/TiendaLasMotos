@@ -105,6 +105,15 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // WEB-INV-051 — Auditoría de matching visual (append-only vía Admin SDK).
+    // Lectura solo administradores; escritura de cliente denegada.
+    match /auditoria_matching_visual/{registro} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && rolActual() in ['superadmin', 'admin'];
+      allow create, update, delete: if false;
+    }
+
     // Regla de seguridad por defecto
     match /{document=**} {
       allow read, write: if false;
