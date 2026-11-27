@@ -50,6 +50,7 @@ const clavesFirestore = [
     'cantidad_sugerida_multimodal',
     'justificacion_multimodal',
     'confidence_multimodal',
+    'imagenes_referencia',
     'estado',
     'motivo_rechazo',
     'asesor_email',
@@ -111,5 +112,11 @@ describe('NAMING LOCK', () => {
         expect(fuentes).not.toContain('cantidad_multimodal');
         expect(fuentes).not.toContain('justificacion_vision');
         expect(fuentes).not.toContain('confianza_multimodal');
+    });
+
+    it('declara imagenes_referencia y prohíbe alias', () => {
+        expect(fuentes).toContain('imagenes_referencia');
+        expect(fuentes).not.toContain('imagenes_referencia_url');
+        expect(fuentes).not.toContain('imagenes_ref_url');
     });
 });
