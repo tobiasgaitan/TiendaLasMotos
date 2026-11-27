@@ -32,11 +32,13 @@ import {
     TIMEOUT_ANALISIS_MS,
 } from "@/lib/inventario/timeout";
 import { analizarImagenRepuesto } from "@/app/admin/inventario-asesor/actions/analizarImagenRepuesto";
+import { analizarImagenConVision } from "@/app/admin/inventario-asesor/actions/analizarImagenConVision";
 import { crearConteoPendiente } from "@/app/admin/inventario-asesor/actions/crearConteoPendiente";
 import { listarSedes } from "@/app/admin/inventario-repuestos/actions/listarSedes";
 import type {
     RepuestoCandidato,
     SedeOpcion,
+    VisionConteoData,
     VisionSugerencia,
     VisionUnidad,
 } from "@/types/inventario";
@@ -78,6 +80,17 @@ function mensajeDeError(error: unknown, fallback: string): string {
     }
     return fallback;
 }
+
+function esErrorTimeout(error: unknown): boolean {
+    return (
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        error.name === 'TimeoutError'
+    );
+}
+
+const TIMEOUT_MULTIMODAL_MS = 25_000;
 
 const PRECIO_ETIQUETA_FISICA_ERROR =
     "El precio de la etiqueta debe ser un número mayor o igual a 0. Ejemplo: 12500.";
@@ -142,6 +155,13 @@ export default function ConteoAsesorForm() {
     const [ubicacion, setUbicacion] = useState("");
     const [anotaciones, setAnotaciones] = useState("");
     const [analizando, setAnalizando] = useState(false);
+    const [conteoMultimodal, setConteoMultimodal] =
+        useState<VisionConteoData | null>(null);
+    const [analizandoMultimodal, setAnalizandoMultimodal] = useState(false);
+    const [errorMultimodal, setErrorMultimodal] = useState<string | null>(null);
+    const [cantidadOrigen, setCantidadOrigen] = useState<
+        "manual" | "multimodal"
+    >("manual");
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [fotoError, setFotoError] = useState<string | null>(null);
@@ -253,6 +273,10 @@ export default function ConteoAsesorForm() {
         setError(null);
         setFotoError(null);
         setVisionError(null);
+        setConteoMultimodal(null);
+        setAnalizandoMultimodal(false);
+        setErrorMultimodal(null);
+        setCantidadOrigen("manual");
         setPuedeReintentar(false);
         setAnalizando(false);
 
@@ -269,6 +293,62 @@ export default function ConteoAsesorForm() {
         }
     }
 
+    async function ejecutarAnalisisMultimodal(
+        fotoUrl: string,
+        secuencia: number
+    ): Promise<void> {
+        setAnalizandoMultimodal(true);
+        setErrorMultimodal(null);
+
+        try {
+            const idToken = await usuario.getIdToken();
+            if (analisisSeqRef.current !== secuencia) {
+                return;
+            }
+
+            const resultado = await conTimeout(
+                analizarImagenConVision(
+                    { foto_url: fotoUrl },
+                    { uid: usuario.uid, idToken }
+                ),
+                TIMEOUT_MULTIMODAL_MS,
+                "El conteo multimodal tardó demasiado. Cuenta manualmente."
+            );
+            if (analisisSeqRef.current !== secuencia) {
+                return;
+            }
+
+            if (resultado.success) {
+                setConteoMultimodal(resultado.conteo);
+                setErrorMultimodal(null);
+            } else {
+                setConteoMultimodal(null);
+                setErrorMultimodal(resultado.message);
+            }
+        } catch (errorMultimodal) {
+            if (analisisSeqRef.current !== secuencia) {
+                return;
+            }
+            console.error(
+                "[inventario-ui] No se pudo obtener el conteo multimodal:",
+                errorMultimodal
+            );
+            setConteoMultimodal(null);
+            setErrorMultimodal(
+                esErrorTimeout(errorMultimodal)
+                    ? "El conteo multimodal tardó demasiado. Cuenta manualmente."
+                    : mensajeDeError(
+                          errorMultimodal,
+                          "No se pudo obtener la sugerencia multimodal. Cuenta manualmente."
+                      )
+            );
+        } finally {
+            if (analisisSeqRef.current === secuencia) {
+                setAnalizandoMultimodal(false);
+            }
+        }
+    }
+
     async function analizarFoto(
         fotoParaAnalizar: File,
         idConteo: string
@@ -276,9 +356,12 @@ export default function ConteoAsesorForm() {
         const secuencia = analisisSeqRef.current + 1;
         analisisSeqRef.current = secuencia;
         setAnalizando(true);
+        setAnalizandoMultimodal(false);
         setVisionError(null);
+        setErrorMultimodal(null);
+        setConteoMultimodal(null);
 
-        const ejecutarAnalisis = async (): Promise<void> => {
+        try {
             const subida = await prepararYSubirFoto(
                 fotoParaAnalizar,
                 asesorEmail,
@@ -293,48 +376,67 @@ export default function ConteoAsesorForm() {
             if (analisisSeqRef.current !== secuencia) {
                 return;
             }
-            const resultado = await analizarImagenRepuesto(
-                { foto_url: subida.foto_url },
-                { uid: usuario.uid, idToken }
-            );
-            if (analisisSeqRef.current !== secuencia) {
-                return;
-            }
 
-            if (resultado.success) {
-                setSugerencias(resultado.sugerencias);
-                setEtiquetas(resultado.etiquetas.slice(0, 10));
-                setUnidades(resultado.unidades);
-                setReferenciaSugerida("");
-            } else {
-                setSugerencias([]);
-                setEtiquetas([]);
-                setUnidades([]);
-                setVisionError(resultado.message);
-            }
-        };
-
-        try {
-            await conTimeout(
-                ejecutarAnalisis(),
+            const analisisGoogle = conTimeout(
+                analizarImagenRepuesto(
+                    { foto_url: subida.foto_url },
+                    { uid: usuario.uid, idToken }
+                ),
                 TIMEOUT_ANALISIS_MS,
                 "El análisis tardó demasiado. Puedes guardar el conteo o reintentar."
+            )
+                .then((resultado) => {
+                    if (analisisSeqRef.current !== secuencia) return;
+                    if (resultado.success) {
+                        setSugerencias(resultado.sugerencias);
+                        setEtiquetas(resultado.etiquetas.slice(0, 10));
+                        setUnidades(resultado.unidades);
+                        setReferenciaSugerida("");
+                    } else {
+                        setSugerencias([]);
+                        setEtiquetas([]);
+                        setUnidades([]);
+                        setVisionError(resultado.message);
+                    }
+                })
+                .catch((errorAnalisis) => {
+                    if (analisisSeqRef.current !== secuencia) return;
+                    console.error(
+                        "[inventario-ui] No se pudo analizar la foto:",
+                        errorAnalisis
+                    );
+                    setSugerencias([]);
+                    setEtiquetas([]);
+                    setUnidades([]);
+                    setVisionError(
+                        esErrorTimeout(errorAnalisis)
+                            ? "El análisis tardó demasiado. Puedes guardar el conteo o reintentar."
+                            : mensajeDeError(
+                                  errorAnalisis,
+                                  "No se pudo subir o analizar la foto. Puedes guardar sin conexión."
+                              )
+                    );
+                })
+                .finally(() => {
+                    if (analisisSeqRef.current === secuencia) {
+                        setAnalizando(false);
+                    }
+                });
+
+            const analisisMultimodal = ejecutarAnalisisMultimodal(
+                subida.foto_url,
+                secuencia
             );
+
+            await Promise.allSettled([analisisGoogle, analisisMultimodal]);
         } catch (errorAnalisis) {
             console.error(
-                "[inventario-ui] No se pudo analizar la foto:",
+                "[inventario-ui] No se pudo preparar el análisis de la foto:",
                 errorAnalisis
             );
             if (analisisSeqRef.current === secuencia) {
-                if (
-                    typeof errorAnalisis === 'object' &&
-                    errorAnalisis !== null &&
-                    'name' in errorAnalisis &&
-                    errorAnalisis.name === 'TimeoutError'
-                ) {
-                    analisisSeqRef.current += 1;
-                    setAnalizando(false);
-                }
+                setAnalizando(false);
+                setAnalizandoMultimodal(false);
                 setSugerencias([]);
                 setEtiquetas([]);
                 setUnidades([]);
@@ -344,10 +446,9 @@ export default function ConteoAsesorForm() {
                         "No se pudo subir o analizar la foto. Puedes guardar sin conexión."
                     )
                 );
-            }
-        } finally {
-            if (analisisSeqRef.current === secuencia) {
-                setAnalizando(false);
+                setErrorMultimodal(
+                    "No se pudo subir la foto para el conteo multimodal. Cuenta manualmente."
+                );
             }
         }
     }
@@ -400,6 +501,13 @@ export default function ConteoAsesorForm() {
         setPrecioEtiquetaFisica("");
         setPrecioEtiquetaError(null);
         setVisionError(null);
+        setConteoMultimodal(null);
+        setAnalizandoMultimodal(false);
+        setErrorMultimodal(null);
+        if (cantidadOrigen === "multimodal") {
+            setCantidadContada("");
+        }
+        setCantidadOrigen("manual");
         setError(null);
         setPuedeReintentar(false);
         setFotoError(null);
@@ -423,6 +531,9 @@ export default function ConteoAsesorForm() {
             setVisionError(
                 "Sin conexión: la foto y el conteo se guardarán localmente con el mismo conteo_id."
             );
+            setErrorMultimodal(
+                "Sin conexión: el conteo multimodal no está disponible. Cuenta manualmente."
+            );
         }
     }
 
@@ -445,6 +556,13 @@ export default function ConteoAsesorForm() {
         setPrecioEtiquetaFisica("");
         setPrecioEtiquetaError(null);
         setVisionError(null);
+        setConteoMultimodal(null);
+        setAnalizandoMultimodal(false);
+        setErrorMultimodal(null);
+        if (cantidadOrigen === "multimodal") {
+            setCantidadContada("");
+        }
+        setCantidadOrigen("manual");
         setFotoError(null);
         setError(null);
         setPuedeReintentar(false);
@@ -534,6 +652,18 @@ export default function ConteoAsesorForm() {
             ubicacion: ubicacionValidada.data,
             anotaciones: anotacionesLimpias,
             etiquetas_vision: etiquetas.slice(0, 10),
+            cantidad_sugerida_multimodal:
+                conteoMultimodal === null
+                    ? null
+                    : conteoMultimodal.cantidad_sugerida_multimodal,
+            justificacion_multimodal:
+                conteoMultimodal === null
+                    ? null
+                    : conteoMultimodal.justificacion_multimodal,
+            confidence_multimodal:
+                conteoMultimodal === null
+                    ? null
+                    : conteoMultimodal.confidence_multimodal,
         };
     }
 
@@ -559,6 +689,25 @@ export default function ConteoAsesorForm() {
         );
         limpiarFormulario();
         await refrescarPendientes();
+    }
+
+    function handleUsarCantidadMultimodal(cantidad: number): void {
+        setCantidadContada(String(cantidad));
+        setCantidadOrigen("multimodal");
+        toast.info("Cantidad sugerida aplicada. Verifícala antes de guardar.");
+    }
+
+    function handleReintentarMultimodal(): void {
+        if (!fotoSubida) {
+            setErrorMultimodal(
+                "La foto aún no está lista. Espera la subida o vuelve a intentarlo."
+            );
+            return;
+        }
+        void ejecutarAnalisisMultimodal(
+            fotoSubida.foto_url,
+            analisisSeqRef.current
+        );
     }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -770,14 +919,20 @@ export default function ConteoAsesorForm() {
                     unidades={unidades}
                     analizando={analizando}
                     error={visionError}
-                    onUsarCantidad={(cantidad) =>
-                        setCantidadContada(String(cantidad))
-                    }
+                    conteoMultimodal={conteoMultimodal}
+                    analizandoMultimodal={analizandoMultimodal}
+                    errorMultimodal={errorMultimodal}
+                    onUsarCantidad={(cantidad) => {
+                        setCantidadContada(String(cantidad));
+                        setCantidadOrigen("manual");
+                    }}
                     onReintentar={() => {
                         if (foto) {
                             void analizarFoto(foto, conteoId);
                         }
                     }}
+                    onUsarCantidadMultimodal={handleUsarCantidadMultimodal}
+                    onReintentarMultimodal={handleReintentarMultimodal}
                 />
 
                 <section className="space-y-4 rounded-2xl border border-gray-800 bg-gray-900/60 p-4 shadow-lg">
@@ -952,9 +1107,10 @@ export default function ConteoAsesorForm() {
                                 step={1}
                                 inputMode="numeric"
                                 value={cantidadContada}
-                                onChange={(event) =>
-                                    setCantidadContada(event.target.value)
-                                }
+                                onChange={(event) => {
+                                    setCantidadContada(event.target.value);
+                                    setCantidadOrigen("manual");
+                                }}
                                 className="mt-2 w-full rounded-xl border border-gray-700 bg-gray-950/80 px-3 py-3 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                                 placeholder="0"
                             />

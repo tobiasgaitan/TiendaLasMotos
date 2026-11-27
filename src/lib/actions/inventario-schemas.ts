@@ -124,6 +124,20 @@ export function esFotoUrlDeAsesor(
     return esStoragePathDeAsesor(path, asesorEmail);
 }
 
+/**
+ * NAMING LOCK — aditivos de conteo multimodal.
+ * Persisten SOLO en fotos_inventario. `cantidad_contada` sigue siendo la
+ * decisión humana y nunca se deriva de estos campos.
+ */
+const justificacionMultimodalSchema = z.preprocess(
+    (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'string' && value.trim() === '') return null;
+        return value;
+    },
+    z.string().trim().max(500).nullable()
+);
+
 export const crearConteoSchema = z
     .object({
         conteo_id: z.string().uuid(),
@@ -160,6 +174,21 @@ export const crearConteoSchema = z
             .array(z.string().trim().max(80))
             .max(10)
             .default([]),
+        // NAMING LOCK: solo se persisten en fotos_inventario.
+        cantidad_sugerida_multimodal: z
+            .number()
+            .int()
+            .min(0)
+            .max(1_000_000)
+            .nullable()
+            .default(null),
+        justificacion_multimodal: justificacionMultimodalSchema.default(null),
+        confidence_multimodal: z
+            .number()
+            .min(0)
+            .max(1)
+            .nullable()
+            .default(null),
     })
     .superRefine((data, ctx) => {
         const path = extraerStoragePath(data.foto_url);

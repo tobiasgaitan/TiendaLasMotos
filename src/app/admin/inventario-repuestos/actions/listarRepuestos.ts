@@ -220,6 +220,9 @@ export async function listarRepuestos(
                     data.referencias_alternativas
                 ),
                 imagen_url: texto(data.imagen_url),
+                imagenes_referencia: arregloTexto(
+                    data.imagenes_referencia
+                ),
                 creado_por: texto(data.creado_por),
                 creado_en: creadoEn,
                 actualizado_por: texto(data.actualizado_por),

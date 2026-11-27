@@ -1,7 +1,84 @@
 'use client';
 
-import { Hash, Loader2, RefreshCw, Sparkles, Tag } from 'lucide-react';
-import type { VisionSugerencia, VisionUnidad } from '@/types/inventario';
+import {
+    AlertTriangle,
+    Hash,
+    Loader2,
+    RefreshCw,
+    Sparkles,
+    Tag,
+} from 'lucide-react';
+import type {
+    VisionConteoData,
+    VisionConteoMotivo,
+    VisionSugerencia,
+    VisionUnidad,
+} from '@/types/inventario';
+
+interface GuiaMotivo {
+    causa: string;
+    accion: string;
+    recuperable: boolean;
+}
+
+/**
+ * Copy contextual por motivo normalizado. El tipo Record garantiza
+ * exhaustividad: agregar un motivo nuevo rompe la compilación hasta
+ * definir su guía.
+ */
+const GUIA_MOTIVO: Readonly<Record<VisionConteoMotivo, GuiaMotivo>> =
+    Object.freeze({
+        imagen_saturada: {
+            causa: 'La imagen está saturada o sobreexpuesta.',
+            accion: 'Toma otra foto evitando luz directa sobre el repuesto.',
+            recuperable: true,
+        },
+        unidades_superpuestas: {
+            causa: 'Hay varias unidades superpuestas que no se distinguen.',
+            accion: 'Separa las unidades y toma otra foto.',
+            recuperable: true,
+        },
+        iluminacion_deficiente: {
+            causa: 'La iluminación de la foto es insuficiente.',
+            accion: 'Toma otra foto con mejor iluminación.',
+            recuperable: true,
+        },
+        angulo_no_adecuado: {
+            causa: 'El ángulo de la foto no permite ver todas las unidades.',
+            accion: 'Toma otra foto desde un ángulo más cenital.',
+            recuperable: true,
+        },
+        imagen_borrosa: {
+            causa: 'La imagen está borrosa.',
+            accion: 'Toma otra foto enfocando mejor el repuesto.',
+            recuperable: true,
+        },
+        objeto_no_visible: {
+            causa: 'El repuesto principal no se ve con claridad.',
+            accion: 'Asegúrate de que el repuesto sea visible en la foto.',
+            recuperable: true,
+        },
+        confianza_baja: {
+            causa: 'El modelo no pudo contar con confianza suficiente.',
+            accion: 'Cuenta manualmente o toma otra foto más clara.',
+            recuperable: true,
+        },
+        otro: {
+            causa: 'El modelo no pudo contar las unidades con confianza suficiente.',
+            accion: 'Cuenta manualmente.',
+            recuperable: false,
+        },
+    });
+
+const TEXTO_AUTOCOMPLETADO_DESHABILITADO =
+    'El autocompletado está deshabilitado; cuenta manualmente.';
+
+function obtenerGuiaMotivo(conteo: VisionConteoData): GuiaMotivo {
+    if (conteo.saturada) {
+        return GUIA_MOTIVO.imagen_saturada;
+    }
+    return GUIA_MOTIVO[conteo.motivo_no_conteo ?? 'otro'];
+}
 
 interface SugerenciasVisionProps {
     sugerencias: VisionSugerencia[];
@@ -9,8 +86,13 @@ interface SugerenciasVisionProps {
     unidades: VisionUnidad[];
     analizando: boolean;
     error: string | null;
+    conteoMultimodal: VisionConteoData | null;
+    analizandoMultimodal: boolean;
+    errorMultimodal: string | null;
     onUsarCantidad: (cantidad: number) => void;
     onReintentar: () => void;
+    onUsarCantidadMultimodal: (cantidad: number) => void;
+    onReintentarMultimodal: () => void;
 }
 
 export default function SugerenciasVision({
@@ -19,9 +101,40 @@ export default function SugerenciasVision({
     unidades,
     analizando,
     error,
+    conteoMultimodal,
+    analizandoMultimodal,
+    errorMultimodal,
     onUsarCantidad,
     onReintentar,
+    onUsarCantidadMultimodal,
+    onReintentarMultimodal,
 }: SugerenciasVisionProps) {
+    const cantidadMultimodal =
+        conteoMultimodal === null
+            ? null
+            : conteoMultimodal.cantidad_sugerida_multimodal;
+    const confidenceMultimodal =
+        conteoMultimodal === null ? null : conteoMultimodal.confidence_multimodal;
+    const puedeUsarMultimodal =
+        conteoMultimodal !== null &&
+        conteoMultimodal.puede_contar &&
+        cantidadMultimodal !== null &&
+        !analizandoMultimodal;
+    const mostrarAlertaMultimodal =
+        conteoMultimodal !== null &&
+        (conteoMultimodal.saturada || !conteoMultimodal.puede_contar);
+    const guiaMotivo =
+        conteoMultimodal !== null && mostrarAlertaMultimodal
+            ? obtenerGuiaMotivo(conteoMultimodal)
+            : null;
+    const mostrarPoliticaAutocompletado =
+        guiaMotivo !== null &&
+        !guiaMotivo.accion.toLowerCase().includes('cuenta manualmente');
+    const justificacionMultimodal =
+        conteoMultimodal === null
+            ? null
+            : conteoMultimodal.justificacion_multimodal;
+
     return (
         <section className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4 shadow-lg">
             <div className="flex items-start justify-between gap-3">
@@ -160,6 +273,165 @@ export default function SugerenciasVision({
                     </div>
                 </div>
             ) : null}
+
+            <div className="mt-4 border-t border-gray-800 pt-4">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-300">
+                            <Sparkles
+                                aria-hidden="true"
+                                className="h-4 w-4 text-sky-400"
+                            />
+                            Conteo multimodal (IA)
+                        </h3>
+                        <p className="mt-1 text-xs text-gray-500">
+                            Sugerencia automática de unidades. No reemplaza tu
+                            conteo.
+                        </p>
+                    </div>
+                    {errorMultimodal ? (
+                        <button
+                            type="button"
+                            onClick={onReintentarMultimodal}
+                            disabled={analizandoMultimodal}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-200 transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <RefreshCw
+                                aria-hidden="true"
+                                className="h-4 w-4"
+                            />
+                            Reintentar
+                        </button>
+                    ) : null}
+                </div>
+
+                {analizandoMultimodal ? (
+                    <div
+                        role="status"
+                        className="mt-3 flex items-center gap-3 rounded-xl border border-sky-900/50 bg-sky-950/20 px-3 py-3 text-sm text-sky-100"
+                    >
+                        <Loader2
+                            aria-hidden="true"
+                            className="h-5 w-5 animate-spin"
+                        />
+                        Analizando unidades con IA…
+                    </div>
+                ) : null}
+
+                {errorMultimodal ? (
+                    <p
+                        role="alert"
+                        className="mt-3 rounded-xl border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs leading-relaxed text-amber-100"
+                    >
+                        {errorMultimodal}
+                    </p>
+                ) : null}
+
+                {conteoMultimodal !== null && !analizandoMultimodal ? (
+                    <div
+                        aria-live="polite"
+                        className="mt-3 space-y-3 rounded-xl border border-sky-900/40 bg-sky-950/10 p-3"
+                    >
+                        {mostrarAlertaMultimodal && guiaMotivo !== null ? (
+                            <div
+                                role="alert"
+                                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed ${
+                                    conteoMultimodal.saturada
+                                        ? 'border-red-900/60 bg-red-950/30 text-red-100'
+                                        : 'border-amber-900/60 bg-amber-950/30 text-amber-100'
+                                }`}
+                            >
+                                <AlertTriangle
+                                    aria-hidden="true"
+                                    className={`mt-0.5 h-4 w-4 shrink-0 ${
+                                        conteoMultimodal.saturada
+                                            ? 'text-red-400'
+                                            : 'text-amber-400'
+                                    }`}
+                                />
+                                <div className="space-y-1">
+                                    <p className="font-semibold">
+                                        {guiaMotivo.causa}
+                                    </p>
+                                    <p>{guiaMotivo.accion}</p>
+                                    {mostrarPoliticaAutocompletado ? (
+                                        <p className="text-[11px] opacity-80">
+                                            {
+                                                TEXTO_AUTOCOMPLETADO_DESHABILITADO
+                                            }
+                                        </p>
+                                    ) : null}
+                                    {guiaMotivo.recuperable ? (
+                                        <p className="text-[11px] opacity-80">
+                                            Puedes usar «Repetir foto» en el
+                                            paso 1.
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </div>
+                        ) : null}
+
+                        {cantidadMultimodal !== null ? (
+                            <div>
+                                <p className="text-2xl font-bold text-white">
+                                    {cantidadMultimodal} unidades{' '}
+                                    <span className="text-sm font-medium text-gray-400">
+                                        (estimación)
+                                    </span>
+                                </p>
+                                {confidenceMultimodal !== null ? (
+                                    <p className="mt-1 text-xs font-semibold text-sky-200">
+                                        Confianza del modelo:{' '}
+                                        {Math.round(
+                                            confidenceMultimodal * 100
+                                        )}
+                                        %
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {mostrarAlertaMultimodal &&
+                        justificacionMultimodal ? (
+                            <details className="rounded-lg border border-gray-800 bg-gray-950/40 px-3 py-2">
+                                <summary className="cursor-pointer text-xs font-semibold text-gray-300">
+                                    Ver detalle del modelo
+                                </summary>
+                                <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                                    {justificacionMultimodal}
+                                </p>
+                            </details>
+                        ) : null}
+
+                        {!mostrarAlertaMultimodal &&
+                        justificacionMultimodal ? (
+                            <p className="text-xs leading-relaxed text-gray-300">
+                                {justificacionMultimodal}
+                            </p>
+                        ) : null}
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (cantidadMultimodal !== null) {
+                                    onUsarCantidadMultimodal(
+                                        cantidadMultimodal
+                                    );
+                                }
+                            }}
+                            disabled={!puedeUsarMultimodal}
+                            className="inline-flex items-center gap-2 rounded-lg border border-sky-700/70 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Hash aria-hidden="true" className="h-4 w-4" />
+                            Usar cantidad sugerida
+                        </button>
+                        <p className="text-[11px] leading-relaxed text-gray-500">
+                            Es una estimación. Verifica y ajusta el valor antes
+                            de guardar.
+                        </p>
+                    </div>
+                ) : null}
+            </div>
         </section>
     );
 }

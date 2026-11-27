@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
 import EliminarRepuestoModal from '@/components/inventario/EliminarRepuestoModal';
+import ImagenesReferenciaModal from './components/ImagenesReferenciaModal';
 import { listarRepuestos } from './actions/listarRepuestos';
 import { contarRepuestos } from './actions/contarRepuestos';
 import { editarRepuesto } from './actions/editarRepuesto';
@@ -36,7 +37,7 @@ import type {
 
 type CampoBorrador = Exclude<
     keyof BorradorRepuesto,
-    'referencias_alternativas' | 'unidad_medida'
+    'referencias_alternativas' | 'unidad_medida' | 'imagenes_referencia'
 >;
 
 interface EdicionRepuesto {
@@ -83,7 +84,7 @@ function mensajeDeError(error: unknown, fallback: string): string {
 }
 
 export default function InventarioRepuestosClient() {
-    const { user, puedeAccion } = useAuth();
+    const { user, role, puedeAccion } = useAuth();
     const [repuestos, setRepuestos] = useState<RepuestoInventarioDTO[]>([]);
     const [filtros, setFiltros] = useState<FiltrosRepuesto>(FILTROS_INICIALES);
     const [edicion, setEdicion] = useState<EdicionRepuesto | null>(null);
@@ -97,11 +98,13 @@ export default function InventarioRepuestosClient() {
     const [mostrarCrear, setMostrarCrear] = useState(false);
     const [repuestoAEliminar, setRepuestoAEliminar] =
         useState<RepuestoInventarioDTO | null>(null);
+    const [modalImagenesAbierto, setModalImagenesAbierto] = useState(false);
     const cargaRef = useRef(0);
 
     const puedeCrear = puedeAccion('inventario_repuestos', 'create');
     const puedeEditar = puedeAccion('inventario_repuestos', 'update');
     const puedeEliminar = puedeAccion('inventario_repuestos', 'delete');
+    const esAdmin = role === 'admin' || role === 'superadmin';
 
     const cargarRepuestos = useCallback(
         async (opciones?: {
@@ -250,6 +253,7 @@ export default function InventarioRepuestosClient() {
                 ubicacion: repuesto.ubicacion ?? '',
                 referencias_alternativas:
                     repuesto.referencias_alternativas ?? [],
+                imagenes_referencia: repuesto.imagenes_referencia ?? [],
             },
         });
         setError(null);
@@ -257,6 +261,7 @@ export default function InventarioRepuestosClient() {
 
     function cancelarEdicion(): void {
         if (guardando) return;
+        setModalImagenesAbierto(false);
         setEdicion(null);
     }
 
@@ -297,6 +302,23 @@ export default function InventarioRepuestosClient() {
                     ...actual.borrador,
                     referencias_alternativas: actualizar(
                         actual.borrador.referencias_alternativas
+                    ),
+                },
+            };
+        });
+    }
+
+    function actualizarImagenesReferencia(
+        actualizar: (actuales: string[]) => string[]
+    ): void {
+        setEdicion((actual) => {
+            if (!actual) return actual;
+            return {
+                ...actual,
+                borrador: {
+                    ...actual.borrador,
+                    imagenes_referencia: actualizar(
+                        actual.borrador.imagenes_referencia ?? []
                     ),
                 },
             };
@@ -351,6 +373,7 @@ export default function InventarioRepuestosClient() {
             }
 
             setEdicion(null);
+            setModalImagenesAbierto(false);
             await cargarRepuestos();
         } catch (errorGuardar) {
             console.error(
@@ -835,6 +858,96 @@ export default function InventarioRepuestosClient() {
                                                     )}
                                                 </p>
                                             ) : null}
+                                            {borrador ? (
+                                                <div className="mt-2 space-y-1.5">
+                                                    {(borrador.imagenes_referencia ??
+                                                        []).length > 0 ? (
+                                                        <ul className="flex flex-wrap gap-1.5">
+                                                            {(
+                                                                borrador.imagenes_referencia ??
+                                                                []
+                                                            ).map(
+                                                                (
+                                                                    url,
+                                                                    indice
+                                                                ) => (
+                                                                    <li
+                                                                        key={`${url}-${indice}`}
+                                                                        className="inline-flex items-center gap-1 rounded-full border border-sky-900/60 bg-sky-950/30 px-2 py-1 text-[10px] text-sky-100"
+                                                                    >
+                                                                        <span>
+                                                                            Imagen{' '}
+                                                                            {indice +
+                                                                                1}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                actualizarImagenesReferencia(
+                                                                                    (
+                                                                                        actuales
+                                                                                    ) =>
+                                                                                        actuales.filter(
+                                                                                            (
+                                                                                                _,
+                                                                                                posicion
+                                                                                            ) =>
+                                                                                                posicion !==
+                                                                                                indice
+                                                                                        )
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                guardando
+                                                                            }
+                                                                            aria-label={`Quitar imagen de referencia ${indice + 1} de ${repuesto.referencia}`}
+                                                                            className="rounded px-1 text-[10px] text-gray-300 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        >
+                                                                            ×
+                                                                        </button>
+                                                                    </li>
+                                                                )
+                                                            )}
+                                                        </ul>
+                                                    ) : (
+                                                        <p className="text-[10px] text-gray-600">
+                                                            Sin imágenes de
+                                                            referencia.
+                                                        </p>
+                                                    )}
+                                                    {esAdmin && puedeEditar ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setModalImagenesAbierto(
+                                                                    true
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                guardando
+                                                            }
+                                                            className="text-[11px] font-semibold text-sky-300 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            {
+                                                                'Añadir imagen de referencia'
+                                                            }
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                            ) : (
+                                                repuesto
+                                                    .imagenes_referencia
+                                                    ?.length ?? 0
+                                            ) > 0 ? (
+                                                <p className="mt-1 text-[11px] text-sky-200/80">
+                                                    Imágenes de referencia:{' '}
+                                                    {
+                                                        repuesto
+                                                            .imagenes_referencia
+                                                            ?.length
+                                                    }
+                                                </p>
+                                            ) : null}
                                             <div className="mt-2">
                                                 {renderAcciones(repuesto)}
                                             </div>
@@ -1025,6 +1138,19 @@ export default function InventarioRepuestosClient() {
                         </div>
                     ) : null}
                 </div>
+            ) : null}
+
+            {edicion && esAdmin && puedeEditar ? (
+                <ImagenesReferenciaModal
+                    isOpen={modalImagenesAbierto}
+                    documentoId={edicion.documento_id}
+                    referencia={edicion.referencia}
+                    imagenes={edicion.borrador.imagenes_referencia ?? []}
+                    onClose={() => setModalImagenesAbierto(false)}
+                    onAplicar={(imagenes) =>
+                        actualizarImagenesReferencia(() => imagenes)
+                    }
+                />
             ) : null}
 
             {puedeCrear ? (

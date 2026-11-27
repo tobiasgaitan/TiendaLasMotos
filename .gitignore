@@ -55,3 +55,8 @@ lint_report*.txt
 lint_output.txt
 /scratch/
 __pycache__/
+
+# vision multimodal validation (fotos reales y reportes)
+scripts/fixtures/vision-multimodal/fotos/
+scripts/fixtures/vision-multimodal/reporte.md
+scripts/fixtures/vision-multimodal/reporte*.md

@@ -368,6 +368,10 @@ import { requirePermiso } from '@/lib/auth/require-permiso';
 const UUID = '550e8400-e29b-41d4-a716-446655440000';
 const FOTO_URL =
     'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fasesor%40test.com%2Ffoto.jpg?alt=media&token=abc';
+const IMAGEN_REF_1 =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-1.jpg?alt=media&token=img1';
+const IMAGEN_REF_2 =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-2.jpg?alt=media&token=img2';
 
 const ACTOR = { uid: 'uid-cliente', idToken: 'token' };
 
@@ -908,6 +912,194 @@ describe('MT-07 Server Actions contracts', () => {
         ).toEqual(['ALT-2']);
     });
 
+    it('crearRepuesto persiste imagenes_referencia y las audita', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-IMG',
+                descripcion: 'Repuesto con imágenes',
+                imagenes_referencia: [IMAGEN_REF_1, IMAGEN_REF_2],
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const creados = repuestosPorReferencia('BRK-IMG');
+        expect(creados).toHaveLength(1);
+        expect(creados[0].data.imagenes_referencia).toEqual([
+            IMAGEN_REF_1,
+            IMAGEN_REF_2,
+        ]);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.campos_modificados).toContain(
+            'imagenes_referencia'
+        );
+    });
+
+    it('crearRepuesto sin imágenes persiste array vacío', async () => {
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-SIN-IMG',
+                descripcion: 'Repuesto sin imágenes',
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            repuestosPorReferencia('BRK-SIN-IMG')[0]?.data
+                .imagenes_referencia
+        ).toEqual([]);
+    });
+
+    it('editarRepuesto persiste imagenes_referencia y las audita', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { imagenes_referencia: [IMAGEN_REF_1] },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')
+                ?.imagenes_referencia
+        ).toEqual([IMAGEN_REF_1]);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.campos_modificados).toContain(
+            'imagenes_referencia'
+        );
+    });
+
+    it('editarRepuesto no escribe si imagenes_referencia no cambia', async () => {
+        seedInventario();
+        const doc = mockState.docs.get('inventario_repuestos/BRK-001');
+        if (!doc) throw new Error('seedInventario no creó el repuesto');
+        doc.imagenes_referencia = [IMAGEN_REF_1];
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { imagenes_referencia: [IMAGEN_REF_1] },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(ledgerWrites()).toHaveLength(0);
+        expect(mockState.writes).toHaveLength(0);
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(0);
+    });
+
+    it('editarRepuesto permite eliminar todas las imágenes de referencia', async () => {
+        seedInventario();
+        const doc = mockState.docs.get('inventario_repuestos/BRK-001');
+        if (!doc) throw new Error('seedInventario no creó el repuesto');
+        doc.imagenes_referencia = [IMAGEN_REF_1, IMAGEN_REF_2];
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { imagenes_referencia: [] },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/BRK-001')
+                ?.imagenes_referencia
+        ).toEqual([]);
+    });
+
+    it('editarRepuesto rechaza más de 5 imágenes antes de Firebase', async () => {
+        seedInventario();
+        const seis = [1, 2, 3, 4, 5, 6].map(
+            (indice) =>
+                `https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-${indice}.jpg?alt=media&token=t${indice}`
+        );
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { imagenes_referencia: seis },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('editarRepuesto rechaza host no canónico antes de Firebase', async () => {
+        seedInventario();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: {
+                    imagenes_referencia: [
+                        'https://evil.example.com/foto.jpg',
+                    ],
+                },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('listarRepuestos expone imagenes_referencia y array vacío legacy', async () => {
+        seedInventario();
+        seedRepuesto('BRK-IMG', 'BRK-IMG', {
+            imagenes_referencia: [IMAGEN_REF_1],
+        });
+
+        const conImagenes = await listarRepuestos(
+            { referencia: 'BRK-IMG' },
+            ACTOR
+        );
+        expect(conImagenes.success).toBe(true);
+        expect(conImagenes.repuestos[0]?.imagenes_referencia).toEqual([
+            IMAGEN_REF_1,
+        ]);
+
+        const legacy = await listarRepuestos(
+            { referencia: 'BRK-001' },
+            ACTOR
+        );
+        expect(legacy.repuestos[0]?.imagenes_referencia).toEqual([]);
+    });
+
+    it('editarRepuesto rechaza al asesor aunque intente imágenes', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'BRK-001',
+                referencia: 'BRK-001',
+                cambios: { imagenes_referencia: [IMAGEN_REF_1] },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('Solo un administrador');
+    });
+
     it('listarSedes devuelve solo sedes activas', async () => {
         const resultado = await listarSedes({}, ACTOR);
 
@@ -1232,6 +1424,112 @@ describe('MT-07 Server Actions contracts', () => {
                 ?.precio_etiqueta_fisica
         ).toBeNull();
     });
+
+    it('crearConteoPendiente persiste multimodales solo en fotos_inventario', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                cantidad_sugerida_multimodal: 7,
+                justificacion_multimodal: 'Siete unidades visibles.',
+                confidence_multimodal: 0.82,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+
+        expect(foto?.cantidad_sugerida_multimodal).toBe(7);
+        expect(foto?.justificacion_multimodal).toBe(
+            'Siete unidades visibles.'
+        );
+        expect(foto?.confidence_multimodal).toBe(0.82);
+        expect(conteo?.cantidad_contada).toBe(4);
+        expect(conteo).not.toHaveProperty('cantidad_sugerida_multimodal');
+        expect(conteo).not.toHaveProperty('justificacion_multimodal');
+        expect(conteo).not.toHaveProperty('confidence_multimodal');
+    });
+
+    it('crearConteoPendiente conserva 0 multimodal y no altera cantidad_contada', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            {
+                ...inputCrearConteo(),
+                cantidad_contada: 9,
+                cantidad_sugerida_multimodal: 0,
+                justificacion_multimodal: 'No se observan unidades.',
+                confidence_multimodal: 0,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        const conteo = mockState.docs.get(
+            `conteos_pendientes_repuestos/${UUID}`
+        );
+        expect(foto?.cantidad_sugerida_multimodal).toBe(0);
+        expect(foto?.confidence_multimodal).toBe(0);
+        expect(conteo?.cantidad_contada).toBe(9);
+    });
+
+    it('crearConteoPendiente persiste null multimodal cuando se omite', async () => {
+        seedInventario();
+        seedAsesor();
+
+        const resultado = await crearConteoPendiente(
+            inputCrearConteo(),
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        const foto = mockState.docs.get(`fotos_inventario/${UUID}`);
+        expect(foto?.cantidad_sugerida_multimodal).toBeNull();
+        expect(foto?.justificacion_multimodal).toBeNull();
+        expect(foto?.confidence_multimodal).toBeNull();
+    });
+
+    it.each([
+        ['cantidad negativa', { cantidad_sugerida_multimodal: -1 }],
+        ['cantidad decimal', { cantidad_sugerida_multimodal: 1.5 }],
+        ['cantidad string', { cantidad_sugerida_multimodal: '7' }],
+        ['confidence fuera de rango', { confidence_multimodal: 1.01 }],
+        [
+            'justificación demasiado larga',
+            { justificacion_multimodal: 'a'.repeat(501) },
+        ],
+    ])(
+        'crearConteoPendiente rechaza multimodal inválido: %s',
+        async (_nombre, extra) => {
+            seedInventario();
+
+            const resultado = await crearConteoPendiente(
+                {
+                    ...inputCrearConteo(),
+                    ...extra,
+                },
+                ACTOR
+            );
+
+            expect(resultado.success).toBe(false);
+            expect(
+                mockState.docs.get(
+                    `conteos_pendientes_repuestos/${UUID}`
+                )
+            ).toBeUndefined();
+            expect(
+                mockState.docs.get(`fotos_inventario/${UUID}`)
+            ).toBeUndefined();
+        }
+    );
 
     it.each([
         ['negativo', -1],

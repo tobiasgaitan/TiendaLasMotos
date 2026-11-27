@@ -34,6 +34,7 @@ export interface BorradorRepuesto {
     unidad_medida: UnidadMedida;
     ubicacion: string;
     referencias_alternativas: string[];
+    imagenes_referencia?: string[];
 }
 
 export interface CambiosRepuesto {
@@ -44,6 +45,7 @@ export interface CambiosRepuesto {
     unidad_medida?: UnidadMedida;
     ubicacion?: string;
     referencias_alternativas?: string[];
+    imagenes_referencia?: string[];
 }
 
 export interface CursorRepuestos {

@@ -47,6 +47,10 @@ const clavesFirestore = [
     'mime_type',
     'tamano_bytes',
     'etiquetas_vision',
+    'cantidad_sugerida_multimodal',
+    'justificacion_multimodal',
+    'confidence_multimodal',
+    'imagenes_referencia',
     'estado',
     'motivo_rechazo',
     'asesor_email',
@@ -99,5 +103,20 @@ describe('NAMING LOCK', () => {
         expect(fuentes).toContain('precio_etiqueta_fisica');
         expect(fuentes).not.toContain('precio_compra');
         expect(fuentes).not.toMatch(/\bprecio_etiqueta\b(?!_fisica)/);
+    });
+
+    it('declara los aditivos multimodales y prohíbe alias', () => {
+        expect(fuentes).toContain('cantidad_sugerida_multimodal');
+        expect(fuentes).toContain('justificacion_multimodal');
+        expect(fuentes).toContain('confidence_multimodal');
+        expect(fuentes).not.toContain('cantidad_multimodal');
+        expect(fuentes).not.toContain('justificacion_vision');
+        expect(fuentes).not.toContain('confianza_multimodal');
+    });
+
+    it('declara imagenes_referencia y prohíbe alias', () => {
+        expect(fuentes).toContain('imagenes_referencia');
+        expect(fuentes).not.toContain('imagenes_referencia_url');
+        expect(fuentes).not.toContain('imagenes_ref_url');
     });
 });

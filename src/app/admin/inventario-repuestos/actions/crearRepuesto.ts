@@ -75,6 +75,7 @@ export async function crearRepuesto(
                 referencias_alternativas:
                     data.referencias_alternativas ?? [],
                 imagen_url: data.imagen_url ?? '',
+                imagenes_referencia: data.imagenes_referencia ?? [],
                 creado_por: me.email,
                 creado_en: ahora,
                 actualizado_por: me.email,

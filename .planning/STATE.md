@@ -231,3 +231,31 @@
 - **Evidencia:** `LoginForm.tsx` L38–L82; `AuthContext.tsx` L143–L189 y L236–L260; `firebase.ts` L15, L21–L29 y L67–L87; `post-login.ts` L36–L69; `landing.ts` L9–L14; `RoleBasedRedirect.tsx` L37–L45.
 - **SSOT:** §34.25 aditiva; header L5 con token; §18 L493 y §20 L513 intactas.
 - **Invariantes:** sin cambios de código, `package*.json`, God Nodes, reglas o índices; NAMING LOCK intacto; v8.9.18 sin bump.
+## Cierre WEB-INV-044 — Conteo multimodal con OpenRouter (v8.9.18, 2026-11-26)
+- **Estado:** CERRADO CON CÓDIGO + OBSERVACIÓN DOCUMENTAL.
+- **Alcance:** Cliente OpenRouter puro, Server Action stateless, persistencia aditiva en `fotos_inventario` (3 campos), UI paralela con Google Vision.
+- **Limitación documentada:** `OBS-WEB-INV-044-EXACTITUD-LIMITADA-001` en §10.G del Documento Maestro (54% exactitud, 88% dentro de ±1, 0 autocompletados inseguros).
+- **SSOT:** §10.G aditiva; header actualizado con token de cierre.
+- **Invariantes:** NAMING LOCK intacto; `conteos_pendientes_repuestos` sin cambios; `cantidad_contada` humana; sin cambios en bot, reglas o índices.
+
+## Cierre WEB-INV-047 — Evaluación de modelos alternativos para conteo multimodal (v8.9.18, 2026-11-26)
+- **Estado:** CERRADO SIN CÓDIGO (no viable).
+- **Alcance:** Benchmark de 4 modelos de visión en OpenRouter sobre el manifiesto de 27 fotos.
+- **Resultado:** Los 3 modelos alternativos (`deepseek-v4.1-flash`, `qwen2.5-vl-72b`, `hy4-flash`) presentan problemas de infraestructura (timeouts/rate limiting) que los hacen inviables. Se mantiene el baseline `glm-5.3-flash` con 54% de exactitud.
+- **Observación:** `OBS-WEB-INV-047-MODELO-ALTERNATIVO-NO-VIABLE-001` registrada en §10.G del Documento Maestro.
+- **Invariantes:** NAMING LOCK intacto; cero cambios en código, reglas, índices ni datos.
+
+## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
+- **Estado:** CERRADO CON CÓDIGO (UI).
+- **Alcance:** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. Tabla tipada `GUIA_MOTIVO` con 8 motivos, causa, acción y recuperabilidad. Justificación colapsable en `<details>`.
+- **Gates:** `test:ci` EXIT 0 (33 render), `build` EXIT 0, `git diff --name-only` = 2 archivos, CI beta run `45851163015` success.
+- **Observación:** `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada en §10.G del Documento Maestro. UAT runtime no ejecutada por falta de configuración de OpenRouter en beta; mitigada por 20 tests de render nuevos.
+- **Invariantes:** NAMING LOCK intacto; cero cambios en tipos, normalización, umbral ni Server Actions.
+
+
+## Cierre WEB-INV-049 — Campo aditivo e imágenes de referencia (2026-11-27)
+- **Estado:** CERRADO CON CÓDIGO.
+- **Alcance:** Campo aditivo `imagenes_referencia: string[]` en `inventario_repuestos`, UI de curaduría admin-only (`ImagenesReferenciaModal`), persistencia en ledger append-only.
+- **Gates:** `test:ci` EXIT 0 (186 unit, 38 render), `tsc`/`lint`/`build` EXIT 0, CI beta run `46048541754` success.
+- **Observaciones:** `OBS-WEB-INV-049-BLOBS-HUERFANOS-001` y `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001` registradas.
+- **Invariantes:** NAMING LOCK intacto (`imagen_url` sin tocar); flujo del Asesor intacto; sin reglas/índices/dependencias nuevas.

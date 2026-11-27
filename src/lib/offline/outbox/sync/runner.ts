@@ -127,6 +127,12 @@ export async function sincronizarOutbox(
                         ? foto.tamano_bytes
                         : pendiente.payload.tamano_bytes,
                     etiquetas_vision: pendiente.payload.etiquetas_vision,
+                    cantidad_sugerida_multimodal:
+                        pendiente.payload.cantidad_sugerida_multimodal ?? null,
+                    justificacion_multimodal:
+                        pendiente.payload.justificacion_multimodal ?? null,
+                    confidence_multimodal:
+                        pendiente.payload.confidence_multimodal ?? null,
                 };
 
                 const resultado = await crearConteoPendiente(input, actor);

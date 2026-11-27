@@ -52,6 +52,9 @@ const ENTRADA = {
     ubicacion: 'A-01-05',
     anotaciones: '',
     etiquetas_vision: [],
+    cantidad_sugerida_multimodal: null,
+    justificacion_multimodal: null,
+    confidence_multimodal: null,
 };
 
 function fotoSubida(conteoId: string, storagePath: string, fotoUrl: string) {
@@ -250,6 +253,9 @@ describe('MT-08 outbox/offline contracts', () => {
             tamano_bytes: 1024,
         } as Record<string, unknown>;
         delete payloadAntiguo.precio_etiqueta_fisica;
+        delete payloadAntiguo.cantidad_sugerida_multimodal;
+        delete payloadAntiguo.justificacion_multimodal;
+        delete payloadAntiguo.confidence_multimodal;
         await sembrarBorrador('uid-A', UUID_A, payloadAntiguo);
 
         const resultado = await sincronizarOutbox({
@@ -259,6 +265,77 @@ describe('MT-08 outbox/offline contracts', () => {
 
         expect(resultado.exitosos).toBe(1);
         expect(resultado.fallidos).toBe(0);
+        const input = vi.mocked(crearConteoPendiente).mock
+            .calls[0][0] as {
+            cantidad_sugerida_multimodal?: number | null;
+            justificacion_multimodal?: string | null;
+            confidence_multimodal?: number | null;
+        };
+        expect(input.cantidad_sugerida_multimodal).toBeNull();
+        expect(input.justificacion_multimodal).toBeNull();
+        expect(input.confidence_multimodal).toBeNull();
+    });
+
+    it('persiste los aditivos multimodales y distingue null de 0', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A, {
+            ...ENTRADA,
+            cantidad_sugerida_multimodal: 0,
+            justificacion_multimodal: 'No se observan unidades.',
+            confidence_multimodal: 0,
+        });
+        await encolar('uid-B', UUID_B, STORAGE_PATH_B, FOTO_URL_B, {
+            ...ENTRADA,
+            cantidad_sugerida_multimodal: null,
+            justificacion_multimodal: null,
+            confidence_multimodal: null,
+        });
+
+        const borradores = await listarBorradores('uid-A');
+        expect(borradores).toHaveLength(1);
+        const [borrador] = borradores;
+        expect(borrador.payload.cantidad_sugerida_multimodal).toBe(0);
+        expect(borrador.payload.justificacion_multimodal).toBe(
+            'No se observan unidades.'
+        );
+        expect(borrador.payload.confidence_multimodal).toBe(0);
+        expect(
+            Object.prototype.hasOwnProperty.call(
+                borrador.payload,
+                'cantidad_sugerida_multimodal'
+            )
+        ).toBe(true);
+
+        const [borradorB] = await listarBorradores('uid-B');
+        expect(borradorB.payload.cantidad_sugerida_multimodal).toBeNull();
+        expect(borradorB.payload.justificacion_multimodal).toBeNull();
+        expect(borradorB.payload.confidence_multimodal).toBeNull();
+    });
+
+    it('sincroniza los aditivos multimodales hacia crearConteoPendiente', async () => {
+        await encolar('uid-A', UUID_A, STORAGE_PATH_A, FOTO_URL_A, {
+            ...ENTRADA,
+            cantidad_sugerida_multimodal: 7,
+            justificacion_multimodal: 'Siete unidades visibles.',
+            confidence_multimodal: 0.82,
+        });
+
+        const resultado = await sincronizarOutbox({
+            uid: 'uid-A',
+            idToken: 'token',
+        });
+
+        expect(resultado.exitosos).toBe(1);
+        const input = vi.mocked(crearConteoPendiente).mock
+            .calls[0][0] as {
+            cantidad_sugerida_multimodal?: number | null;
+            justificacion_multimodal?: string | null;
+            confidence_multimodal?: number | null;
+        };
+        expect(input.cantidad_sugerida_multimodal).toBe(7);
+        expect(input.justificacion_multimodal).toBe(
+            'Siete unidades visibles.'
+        );
+        expect(input.confidence_multimodal).toBe(0.82);
     });
 
     it('rechaza encolar sin propietario', async () => {

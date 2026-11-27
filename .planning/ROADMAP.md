@@ -247,3 +247,23 @@
 - [x] **Destino:** `landingPorRol('asesor')` → `/admin/inventario-asesor`; `RoleBasedRedirect` usa `router.replace` con `defaultLanding=1`.
 - [x] **Cierre:** `OBS-WEB046-REDIRECT-ASESOR-SIMULADOR` CERRADA; sin cambio de código.
 - [x] **Invariantes:** NAMING LOCK; sin cambios de código ni `package*.json`; v8.9.18 sin bump.
+
+## Cierre WEB-INV-044 — Conteo multimodal con OpenRouter (v8.9.18, 2026-11-26)
+- [x] **SSOT:** §10.G aditiva en `Documento_Maestro_Pagina.md` con `OBS-WEB-INV-044-EXACTITUD-LIMITADA-001`.
+- [x] **Alcance:** Cliente OpenRouter, Server Action stateless, persistencia aditiva en `fotos_inventario`, UI paralela.
+- [x] **Gates:** 0 autocompletados inseguros, 88% dentro de ±1, latencia mediana 1.47s.
+- [x] **Invariantes:** NAMING LOCK intacto; `conteos_pendientes_repuestos` sin cambios; `cantidad_contada` humana.
+
+## Cierre WEB-INV-047 — Evaluación de modelos alternativos (v8.9.18, 2026-11-26)
+- [x] **WEB-INV-047 CERRADO SIN CÓDIGO (no viable):** Benchmark de 4 modelos de visión en OpenRouter. Los 3 alternativos (`deepseek-v4.1-flash`, `qwen2.5-vl-72b`, `hy4-flash`) fallan por timeouts/rate limiting. Se mantiene baseline `glm-5.3-flash` con 54% exactitud. Observación `OBS-WEB-INV-047-MODELO-ALTERNATIVO-NO-VIABLE-001` registrada.
+
+## Cierre WEB-INV-048 — Mejora de copy en alertas de confianza multimodal (v8.9.18, 2026-11-26)
+- [x] **WEB-INV-048 CERRADO CON CÓDIGO (UI):** Personalización de alertas en `SugerenciasVision.tsx` según `motivo_no_conteo`. 8 motivos con causa, acción y recuperabilidad. Justificación colapsable en `<details>`. 33 tests de render (13 previos + 20 nuevos). CI beta run `45851163015` success. Observación `OBS-WEB-INV-048-UAT-RUNTIME-BLOQUEADA-001` registrada (UAT runtime bloqueada por falta de configuración de OpenRouter en beta; mitigada por tests de render).
+
+## Fase 049 — WEB-INV-049: imágenes de referencia por repuesto (CERRADO, 2026-11-27)
+- [x] **Campo aditivo:** `imagenes_referencia: string[]` opcional en `inventario_repuestos`, máximo 5 URLs HTTPS canónicas de Firebase Storage.
+- [x] **UI admin-only:** modal de curaduría con preview, lista y eliminación en `/admin/inventario-repuestos`.
+- [x] **Ledger:** asiento UPDATE con `campos_modificados` incluyendo `imagenes_referencia`.
+- [x] **Invariantes:** `imagen_url` intacto; flujo del Asesor sin cambios; sin reglas/índices/dependencias nuevas.
+- [x] **Artefactos GSD:** `.planning/phases/049-web-inv-049-imagenes-referencia/`.
+

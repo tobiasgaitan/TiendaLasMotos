@@ -51,6 +51,14 @@ const INVENTARIO_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/InventarioRepuestosClient.tsx',
     'utf8'
 );
+const SUGERENCIAS_SOURCE = readFileSync(
+    'src/components/inventario/SugerenciasVision.tsx',
+    'utf8'
+);
+const MULTIMODAL_ACTION_SOURCE = readFileSync(
+    'src/app/admin/inventario-asesor/actions/analizarImagenConVision.ts',
+    'utf8'
+);
 
 let failures = 0;
 function check(name: string, cond: boolean) {
@@ -193,6 +201,70 @@ async function run() {
             FORM_ASESOR_SOURCE.includes('fabricante') &&
             FORM_ASESOR_SOURCE.includes('categoria') &&
             FORM_ASESOR_SOURCE.includes('aplicaA')
+    );
+    const bloqueConteo = CREAR_SOURCE.slice(
+        CREAR_SOURCE.indexOf('tx.create(conteoRef'),
+        CREAR_SOURCE.indexOf('tx.create(fotoRef')
+    );
+    const bloqueFoto = CREAR_SOURCE.slice(
+        CREAR_SOURCE.indexOf('tx.create(fotoRef'),
+        CREAR_SOURCE.indexOf('return { idempotente: false }')
+    );
+    check(
+        'aditivos multimodales se escriben solo en fotos_inventario',
+        bloqueConteo.length > 0 &&
+            bloqueFoto.length > 0 &&
+            bloqueFoto.includes('cantidad_sugerida_multimodal') &&
+            bloqueFoto.includes('justificacion_multimodal') &&
+            bloqueFoto.includes('confidence_multimodal') &&
+            !bloqueConteo.includes('cantidad_sugerida_multimodal') &&
+            !bloqueConteo.includes('justificacion_multimodal') &&
+            !bloqueConteo.includes('confidence_multimodal')
+    );
+    check(
+        'formulario asesor integra el análisis multimodal paralelo',
+        FORM_ASESOR_SOURCE.includes('analizarImagenConVision') &&
+            FORM_ASESOR_SOURCE.includes('Promise.allSettled') &&
+            FORM_ASESOR_SOURCE.includes('ejecutarAnalisisMultimodal') &&
+            FORM_ASESOR_SOURCE.includes('cantidad_sugerida_multimodal') &&
+            FORM_ASESOR_SOURCE.includes('onUsarCantidadMultimodal') &&
+            FORM_ASESOR_SOURCE.includes('setCantidadOrigen')
+    );
+    check(
+        'UI multimodal muestra estimación, botón explícito y alertas',
+        (() => {
+            const texto = SUGERENCIAS_SOURCE.replace(/\s+/g, ' ');
+            return (
+                texto.includes('Conteo multimodal (IA)') &&
+                texto.includes('Usar cantidad sugerida') &&
+                texto.includes('No reemplaza tu conteo') &&
+                texto.includes('Es una estimación') &&
+                texto.includes(
+                    'El autocompletado está deshabilitado; cuenta manualmente.'
+                ) &&
+                texto.includes('La imagen está saturada') &&
+                SUGERENCIAS_SOURCE.includes('role="alert"') &&
+                SUGERENCIAS_SOURCE.includes('aria-live="polite"')
+            );
+        })()
+    );
+    check(
+        'acción multimodal es stateless y usa Faraday Cage',
+        MULTIMODAL_ACTION_SOURCE.startsWith("'use server';") &&
+            MULTIMODAL_ACTION_SOURCE.includes('validarActor(actor)') &&
+            MULTIMODAL_ACTION_SOURCE.includes('verifyIdToken') &&
+            MULTIMODAL_ACTION_SOURCE.includes('requirePermiso') &&
+            MULTIMODAL_ACTION_SOURCE.includes("permiso.rol !== 'asesor'") &&
+            MULTIMODAL_ACTION_SOURCE.includes('OPENROUTER_API_KEY') &&
+            MULTIMODAL_ACTION_SOURCE.includes('VISION_MODEL_SLUG') &&
+            MULTIMODAL_ACTION_SOURCE.includes('analizarConteoMultimodal') &&
+            !MULTIMODAL_ACTION_SOURCE.includes('getDb') &&
+            !MULTIMODAL_ACTION_SOURCE.includes('.collection(') &&
+            !MULTIMODAL_ACTION_SOURCE.includes('runTransaction') &&
+            !/(setDoc|updateDoc|addDoc|deleteDoc)/.test(
+                MULTIMODAL_ACTION_SOURCE
+            ) &&
+            !/\btx\s*\./.test(MULTIMODAL_ACTION_SOURCE)
     );
     check(
         'listarPendientes enriquece sede_nombre con fallbacks',

@@ -42,6 +42,14 @@ const MODAL_SOURCE = readFileSync(
     'src/components/inventario/CrearRepuestoModal.tsx',
     'utf8'
 );
+const IMAGENES_MODAL_SOURCE = readFileSync(
+    'src/app/admin/inventario-repuestos/components/ImagenesReferenciaModal.tsx',
+    'utf8'
+);
+const ASESOR_SOURCE = readFileSync(
+    'src/app/admin/inventario-asesor/ConteoAsesorForm.tsx',
+    'utf8'
+);
 const PAGE_SOURCE = readFileSync(
     'src/app/admin/inventario-repuestos/page.tsx',
     'utf8'
@@ -105,6 +113,13 @@ function lanza(fn: () => void): boolean {
     }
 }
 
+const IMAGEN_REF_1 =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-BRK-001-1.jpg?alt=media&token=aaa';
+const IMAGEN_REF_2 =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-BRK-001-2.jpg?alt=media&token=bbb';
+const IMAGEN_REF_FUERA =
+    'https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/productos%2Ffoto.jpg?alt=media&token=ccc';
+
 const BASE: RepuestoInventarioDTO = {
     documento_id: 'doc-brk-001',
     referencia: 'BRK-001',
@@ -121,6 +136,7 @@ const BASE: RepuestoInventarioDTO = {
     stock_minimo: 3,
     referencias_alternativas: ['BRK-ALT-1'],
     imagen_url: 'https://example.com/foto.jpg',
+    imagenes_referencia: [IMAGEN_REF_1],
     creado_por: 'admin@test.com',
     creado_en: '2026-01-01T00:00:00.000Z',
     actualizado_por: 'admin@test.com',
@@ -135,6 +151,7 @@ const BORRADOR = {
     unidad_medida: BASE.unidad_medida,
     ubicacion: BASE.ubicacion ?? '',
     referencias_alternativas: [...BASE.referencias_alternativas],
+    imagenes_referencia: [...(BASE.imagenes_referencia ?? [])],
 };
 
 const VALIDO = editarRepuestoSchema.safeParse({
@@ -360,6 +377,85 @@ check(
         documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
         cambios: { unidad_medida: 'gramo' },
+    }).success
+);
+
+const cincoImagenes = [1, 2, 3, 4, 5].map(
+    (indice) =>
+        `https://firebasestorage.googleapis.com/v0/b/tiendalasmotos.appspot.com/o/inventario_repuestos%2Fadmin%40test.com%2Fref-${indice}.jpg?alt=media&token=t${indice}`
+);
+
+check(
+    'schema acepta hasta 5 imágenes de referencia canónicas',
+    editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { imagenes_referencia: cincoImagenes },
+    }).success &&
+        crearRepuestoSchema.safeParse({
+            ...CREAR_BASE,
+            imagenes_referencia: cincoImagenes,
+        }).success
+);
+check(
+    'schema acepta imagenes_referencia omitida y vacía',
+    editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { stock: 1 },
+    }).success &&
+        editarRepuestoSchema.safeParse({
+            documento_id: 'doc-brk-001',
+            referencia: 'BRK-001',
+            cambios: { imagenes_referencia: [] },
+        }).success
+);
+check(
+    'schema rechaza más de 5 imágenes de referencia',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { imagenes_referencia: [...cincoImagenes, IMAGEN_REF_2] },
+    }).success
+);
+check(
+    'schema rechaza imágenes con host ajeno',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: {
+            imagenes_referencia: [
+                'https://firebasestorage.googleapis.com.evil.com/v0/b/x/o/inventario_repuestos%2Fadmin%2Ff.jpg',
+            ],
+        },
+    }).success
+);
+check(
+    'schema rechaza imágenes HTTP',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: {
+            imagenes_referencia: [IMAGEN_REF_1.replace('https://', 'http://')],
+        },
+    }).success
+);
+check(
+    'schema rechaza imágenes fuera del prefijo inventario_repuestos',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { imagenes_referencia: [IMAGEN_REF_FUERA] },
+    }).success
+);
+check(
+    'schema rechaza imágenes de referencia duplicadas',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: {
+            imagenes_referencia: [IMAGEN_REF_1, IMAGEN_REF_1],
+        },
     }).success
 );
 
@@ -624,6 +720,33 @@ check(
             referencias_alternativas: ['BRK-ALT-1'],
         })
     ).length === 0
+);
+
+const sinCambioImagenes = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    imagenes_referencia: [IMAGEN_REF_1],
+});
+check(
+    'construirCambiosRepuesto no emite imágenes sin cambios',
+    sinCambioImagenes.imagenes_referencia === undefined
+);
+const conImagenes = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    imagenes_referencia: [IMAGEN_REF_1, IMAGEN_REF_2],
+});
+check(
+    'construirCambiosRepuesto emite imágenes cuando cambian',
+    conImagenes.imagenes_referencia?.join('|') ===
+        `${IMAGEN_REF_1}|${IMAGEN_REF_2}`
+);
+check(
+    'construirCambiosRepuesto rechaza imágenes inválidas',
+    lanza(() =>
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            imagenes_referencia: [IMAGEN_REF_FUERA],
+        })
+    )
 );
 
 async function run() {
@@ -1004,6 +1127,35 @@ async function run() {
             LISTAR_SOURCE.includes('unidad_medida')
     );
     check(
+        'acciones persisten imagenes_referencia y la auditan',
+        CREAR_SOURCE.includes('imagenes_referencia') &&
+            EDITAR_SOURCE.includes('imagenes_referencia') &&
+            LISTAR_SOURCE.includes('imagenes_referencia')
+    );
+    check(
+        'UI admin permite añadir y quitar imágenes de referencia',
+        CLIENT_SOURCE.includes('ImagenesReferenciaModal') &&
+            CLIENT_SOURCE.includes('Añadir imagen de referencia') &&
+            CLIENT_SOURCE.includes('imagenes_referencia') &&
+            CLIENT_SOURCE.includes('actualizarImagenesReferencia') &&
+            CLIENT_SOURCE.includes('esAdmin') &&
+            CLIENT_SOURCE.includes('puedeEditar')
+    );
+    check(
+        'modal de imágenes valida, previsualiza, sube y elimina',
+        IMAGENES_MODAL_SOURCE.includes('uploadBytes') &&
+            IMAGENES_MODAL_SOURCE.includes('getDownloadURL') &&
+            IMAGENES_MODAL_SOURCE.includes('MAX_IMAGENES_REFERENCIA') &&
+            IMAGENES_MODAL_SOURCE.includes('MAX_BYTES_IMAGEN') &&
+            IMAGENES_MODAL_SOURCE.includes('previewUrl') &&
+            IMAGENES_MODAL_SOURCE.includes('Quitar') &&
+            IMAGENES_MODAL_SOURCE.includes('extraerStoragePath')
+    );
+    check(
+        'flujo del asesor no expone imagenes_referencia',
+        !ASESOR_SOURCE.includes('imagenes_referencia')
+    );
+    check(
         'modal de alta permite elegir unidad de medida',
         MODAL_SOURCE.includes('unidad_medida') &&
             MODAL_SOURCE.includes('UNIDADES_MEDIDA') &&
@@ -1023,6 +1175,7 @@ async function run() {
             TYPES_SOURCE.includes('Omit<') &&
             TYPES_SOURCE.includes('documento_id') &&
             TYPES_SOURCE.includes('referencias_alternativas') &&
+            TYPES_SOURCE.includes('imagenes_referencia') &&
             TYPES_SOURCE.includes('sede_nombre') &&
             TYPES_SOURCE.includes('creado_en') &&
             TYPES_SOURCE.includes('actualizado_en')

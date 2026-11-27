@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { createUser, updateUser, deleteUser } from './actions';
 import { Plus, Trash2, Edit2, Shield, User, Search, RefreshCw, Mail, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { ROLES, type Rol } from '@/types/roles';
+import { type Rol } from '@/types/roles';
 import { resolverRol } from '@/lib/auth/resolve-rol';
 
 interface AdminUser {
@@ -22,7 +22,7 @@ interface AdminUser {
 }
 
 /** Rol efectivo para display (resiliente rol ?? role, legacy vendedor→cobrador). */
-function rolDe(u: AdminUser): string {
+function rolDe(u: AdminUser): Rol | 'guest' {
     return resolverRol(u as unknown as Record<string, unknown>);
 }
 
@@ -36,7 +36,17 @@ export default function UsersPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-    const [formData, setFormData] = useState<{ name: string; email: string; role: Rol; active: boolean }>({ name: '', email: '', role: 'admin', active: true });
+    const [formData, setFormData] = useState<{
+        name: string;
+        email: string;
+        role: Rol | "";
+        active: boolean;
+    }>({
+        name: '',
+        email: '',
+        role: '',
+        active: true,
+    });
     const [saving, setSaving] = useState(false);
 
     const fetchUsers = async () => {
@@ -64,6 +74,13 @@ export default function UsersPage() {
             alert("Sesión inválida. Vuelve a iniciar sesión.");
             return;
         }
+
+        const rolSeleccionado = formData.role;
+        if (!rolSeleccionado) {
+            alert("Selecciona un rol válido antes de guardar.");
+            return;
+        }
+
         setSaving(true);
         try {
             // WEB-029: escrituras vía Server Actions (Admin SDK). El SDK cliente
@@ -72,13 +89,13 @@ export default function UsersPage() {
             const res = editingUser
                 ? await updateUser(editingUser.id, {
                     name: formData.name.trim(),
-                    rol: formData.role,
+                    rol: rolSeleccionado,
                     active: formData.active,
                 }, actor)
                 : await createUser({
                     name: formData.name.trim(),
                     email: formData.email,
-                    rol: formData.role,
+                    rol: rolSeleccionado,
                     active: formData.active,
                 }, actor);
             if (!res.success) {
@@ -97,7 +114,7 @@ export default function UsersPage() {
                     await sendInvitation({
                         name: formData.name,
                         email: emailKey,
-                        role: formData.role
+                        role: rolSeleccionado
                     });
 
                     alert(`Usuario creado exitosamente.\n\n✅ Invitación enviada a ${emailKey}`);
@@ -146,7 +163,7 @@ export default function UsersPage() {
             setFormData({
                 name: user.name || '',
                 email: user.email || '',
-                role: (rolActual === 'guest' ? 'admin' : rolActual) as Rol,
+                role: rolActual === 'guest' ? '' : rolActual,
                 active: user.active === true // Strict check: undefined/false -> false
             });
         } else {
@@ -156,7 +173,8 @@ export default function UsersPage() {
         setIsModalOpen(true);
     };
 
-    const resetForm = () => setFormData({ name: '', email: '', role: 'admin', active: true });
+    const resetForm = () =>
+        setFormData({ name: '', email: '', role: '', active: true });
 
     const filteredUsers = users.filter(u => {
         if (!u) return false;
@@ -321,10 +339,12 @@ export default function UsersPage() {
                                     <label htmlFor="user-rol" className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                                     <select
                                         id="user-rol"
+                                        required
                                         className="w-full px-4 py-2 border rounded-lg outline-none text-slate-900 bg-white"
                                         value={formData.role}
-                                        onChange={e => setFormData({ ...formData, role: e.target.value as Rol })}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value as Rol | '' })}
                                     >
+                                        <option value="" disabled>Selecciona un rol</option>
                                         <option value="cobrador">Cobrador</option>
                                         <option value="asesor">Asesor</option>
                                         <option value="inversor">Inversor</option>
