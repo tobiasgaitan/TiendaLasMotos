@@ -259,3 +259,10 @@
 - **Gates:** `test:ci` EXIT 0 (186 unit, 38 render), `tsc`/`lint`/`build` EXIT 0, CI beta run `46048541754` success.
 - **Observaciones:** `OBS-WEB-INV-049-BLOBS-HUERFANOS-001` y `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001` registradas.
 - **Invariantes:** NAMING LOCK intacto (`imagen_url` sin tocar); flujo del Asesor intacto; sin reglas/índices/dependencias nuevas.
+
+## Cierre WEB-INV-049 — Campo aditivo e imágenes de referencia (2026-11-27)
+- **Estado:** CERRADO END-TO-END (beta + producción).
+- **Alcance:** Campo aditivo `imagenes_referencia: string[]` en `inventario_repuestos`, UI de curaduría admin-only (`ImagenesReferenciaModal`), persistencia en ledger append-only.
+- **Gates:** `test:ci` EXIT 0 (186 unit, 38 render), `tsc`/`lint`/`build` EXIT 0, CI beta run `46048541754` success, CI producción run #110 success.
+- **Observaciones:** `OBS-WEB-INV-049-BLOBS-HUERFANOS-001`, `OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001`, `OBS-INFRA-PROD-SETSECRETS-CLOBBER-001`, `OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001` registradas.
+- **Invariantes:** NAMING LOCK intacto (`imagen_url` sin tocar); flujo del Asesor intacto; sin reglas/índices/dependencias nuevas.
