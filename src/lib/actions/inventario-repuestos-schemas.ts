@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { UNIDADES_MEDIDA } from '@/types/inventario';
 import {
+    FIREBASE_STORAGE_HOST,
+    extraerStoragePath,
     normalizarReferenciasAlternativas,
     referenciaRepuestoEstrictaSchema,
     referenciasAlternativasSchema,
@@ -17,6 +19,43 @@ import {
 
 const stockSchema = z.number().int().min(0).max(1_000_000);
 const precioSchema = z.number().finite().min(0);
+
+/**
+ * WEB-INV-049 — Aditivo de imágenes de referencia.
+ *
+ * Solo URLs HTTPS del bucket canónico de Firebase Storage y dentro del prefijo
+ * `inventario_repuestos/`. No se guarda base64 ni hosts alternos.
+ */
+export const MAX_IMAGENES_REFERENCIA = 5;
+
+const imagenReferenciaUrlSchema = z
+    .string()
+    .trim()
+    .max(2048)
+    .url()
+    .refine((value) => {
+        try {
+            const url = new URL(value);
+            if (url.protocol !== 'https:') return false;
+            if (url.host !== FIREBASE_STORAGE_HOST) return false;
+            const path = extraerStoragePath(value);
+            return path !== null && path.startsWith('inventario_repuestos/');
+        } catch {
+            return false;
+        }
+    }, 'La imagen debe ser una URL HTTPS de Firebase Storage.');
+
+export const imagenesReferenciaSchema = z
+    .array(imagenReferenciaUrlSchema)
+    .max(
+        MAX_IMAGENES_REFERENCIA,
+        `Máximo ${MAX_IMAGENES_REFERENCIA} imágenes de referencia.`
+    )
+    .refine(
+        (urls) => new Set(urls).size === urls.length,
+        'No se permiten imágenes de referencia duplicadas.'
+    )
+    .optional();
 
 const textoCatalogoSchema = z
     .string()
@@ -35,6 +74,7 @@ export const cambiosRepuestoSchema = z
         unidad_medida: unidadMedidaSchema.optional(),
         ubicacion: ubicacionSchema.optional(),
         referencias_alternativas: referenciasAlternativasSchema,
+        imagenes_referencia: imagenesReferenciaSchema,
     })
     .strict()
     .refine((cambios) => Object.keys(cambios).length > 0, {
@@ -91,6 +131,7 @@ export const crearRepuestoSchema = z
             .max(1_000_000)
             .optional(),
         referencias_alternativas: referenciasAlternativasSchema,
+        imagenes_referencia: imagenesReferenciaSchema,
         imagen_url: z
             .union([
                 z.string().trim().url().max(2048),

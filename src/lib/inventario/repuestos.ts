@@ -2,6 +2,7 @@ import {
     normalizarReferenciasAlternativas,
     referenciasAlternativasSchema,
 } from '@/lib/actions/inventario-schemas';
+import { imagenesReferenciaSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import { UNIDADES_MEDIDA } from '@/types/inventario';
 import type {
     BorradorRepuesto,
@@ -164,6 +165,28 @@ export function construirCambiosRepuesto(
         alternativasNormalizadas.join('|') !== alternativasActuales.join('|')
     ) {
         cambios.referencias_alternativas = alternativasNormalizadas;
+    }
+
+    const imagenes = imagenesReferenciaSchema.safeParse(
+        borrador.imagenes_referencia ?? []
+    );
+    if (!imagenes.success) {
+        const issue = imagenes.error.issues[0];
+        const indice =
+            typeof issue?.path[0] === 'number' ? issue.path[0] + 1 : 1;
+        throw new Error(
+            `Imagen de referencia #${indice}: ${
+                issue?.message ?? 'URL inválida'
+            }`
+        );
+    }
+
+    const imagenesNormalizadas = imagenes.data ?? [];
+    const imagenesActuales = original.imagenes_referencia ?? [];
+    if (
+        imagenesNormalizadas.join('|') !== imagenesActuales.join('|')
+    ) {
+        cambios.imagenes_referencia = imagenesNormalizadas;
     }
 
     return cambios;

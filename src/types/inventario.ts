@@ -52,6 +52,8 @@ export interface InventarioRepuesto {
     stock_minimo: number;
     referencias_alternativas: string[];
     imagen_url: string;
+    /** WEB-INV-049 — URLs HTTPS canónicas de Firebase Storage (máx. 5). */
+    imagenes_referencia?: string[];
     creado_por: string;
     creado_en: Timestamp;
     actualizado_por: string;

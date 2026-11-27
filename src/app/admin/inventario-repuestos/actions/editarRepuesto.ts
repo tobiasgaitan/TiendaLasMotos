@@ -18,6 +18,11 @@ function numero(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function arregloTexto(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === 'string');
+}
+
 /**
  * Edita campos permitidos de un documento existente de inventario_repuestos.
  *
@@ -142,6 +147,17 @@ export async function editarRepuesto(
                 ) {
                     updates.referencias_alternativas =
                         cambios.referencias_alternativas;
+                }
+            }
+
+            if (cambios.imagenes_referencia !== undefined) {
+                const actuales = arregloTexto(antes.imagenes_referencia);
+                if (
+                    actuales.join('|') !==
+                    cambios.imagenes_referencia.join('|')
+                ) {
+                    updates.imagenes_referencia =
+                        cambios.imagenes_referencia;
                 }
             }
 
