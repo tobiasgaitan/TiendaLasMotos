@@ -8,7 +8,7 @@ async function main() {
         console.log(`\n=== Escaneando ${col} ===`);
         const snap = await db.collection(col).get();
         let residuos = 0;
-        snap.forEach(doc => {
+        snap.forEach((doc: { id: string; data: () => unknown }) => {
             const data = doc.data();
             const str = JSON.stringify(data).toLowerCase();
             if (str.includes('prueba') || str.includes('test_') || str.includes('simulacro') || str.includes('faker')) {
