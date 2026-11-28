@@ -224,7 +224,7 @@ export default function AdminSidebar() {
                 <div className="space-y-1">
                     <button
                         onClick={() => toggleGroup('inventario')}
-                        className={`w-full flex items-center justify-between p-2 text-sm font-medium rounded-lg transition-colors group ${isActive('/admin/inventory') || isActive('/admin/inventario-repuestos') ? 'text-white bg-slate-800/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                        className={`w-full flex items-center justify-between p-2 text-sm font-medium rounded-lg transition-colors group ${isActive('/admin/inventory') || isActive('/admin/inventario-repuestos') || isActive('/admin/inventario-categorias') ? 'text-white bg-slate-800/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                     >
                         <div className="flex items-center gap-3">
                             <Tag className="w-5 h-5 text-blue-500 group-hover:text-blue-400" />
@@ -233,7 +233,7 @@ export default function AdminSidebar() {
                         {openGroups['inventario'] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
 
-                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['inventario'] ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className={`space-y-1 pl-4 overflow-hidden transition-all duration-300 ease-in-out ${openGroups['inventario'] ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
                         <Link
                             href="/admin/inventory"
                             className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/inventory') ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
@@ -248,6 +248,15 @@ export default function AdminSidebar() {
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
                             Repuestos
+                        </Link>
+                        )}
+                        {puedeVerNodo('inventario-categorias') && (
+                        <Link
+                            href="/admin/inventario-categorias"
+                            className={`flex items-center gap-3 p-2 text-sm rounded-lg transition-colors ${isActive('/admin/inventario-categorias') ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                            Categorías
                         </Link>
                         )}
                     </div>

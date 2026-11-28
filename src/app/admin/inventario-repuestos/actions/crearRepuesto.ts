@@ -8,6 +8,7 @@ import {
     validarActor,
 } from '@/lib/actions/inventario-actor';
 import { crearRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
+import { claveCategoria } from '@/lib/inventario/categorias';
 import type { InventarioActionResult } from '@/types/inventario';
 
 /**
@@ -59,6 +60,24 @@ export async function crearRepuesto(
             .doc();
 
         await adminDb.runTransaction(async (tx: any) => {
+            const categoriaRef = adminDb
+                .collection('categorias_repuestos')
+                .doc(claveCategoria(data.categoria));
+            const categoriaSnap = await tx.get(categoriaRef);
+            if (!categoriaSnap.exists) {
+                throw new Error('La categoría seleccionada no existe.');
+            }
+            const categoriaData = (categoriaSnap.data() ?? {}) as Record<
+                string,
+                unknown
+            >;
+            if (categoriaData.activo !== true) {
+                throw new Error('La categoría seleccionada está archivada.');
+            }
+            if (categoriaData.nombre !== data.categoria) {
+                throw new Error('La categoría seleccionada no es válida.');
+            }
+
             const ahora = new Date();
             const payload: Record<string, unknown> = {
                 referencia: data.referencia,
@@ -66,7 +85,7 @@ export async function crearRepuesto(
                 sede_id: data.sede_id ?? '',
                 fabricante: data.fabricante ?? '',
                 aplica_a: data.aplica_a ?? [],
-                categoria: data.categoria ?? '',
+                categoria: data.categoria,
                 unidad_medida: data.unidad_medida ?? 'unidad',
                 precio: data.precio ?? 0,
                 ubicacion: data.ubicacion ?? '',

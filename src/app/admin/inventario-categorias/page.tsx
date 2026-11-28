@@ -1,0 +1,61 @@
+'use client';
+
+import { useAuth } from '@/context/AuthContext';
+import AccesoDenegado from '@/components/inventario/AccesoDenegado';
+import CategoriasTable from './CategoriasTable';
+
+/**
+ * WEB-INV-053 — Página de gestión de categorías canónicas de repuestos.
+ *
+ * Solo admin/superadmin con `read` de inventario. El CRUD reutiliza el
+ * permiso `inventario_repuestos` (deuda documentada en §34.31).
+ */
+export default function InventarioCategoriasPage() {
+    const { user, role, loading, puedeAccion } = useAuth();
+
+    if (loading) {
+        return (
+            <div
+                role="status"
+                className="flex items-center justify-center p-12"
+            >
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-500" />
+                    <p className="animate-pulse text-gray-400">
+                        Validando sesión…
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user || typeof user.email !== 'string' || !user.email.trim()) {
+        return (
+            <AccesoDenegado mensaje="Sesión inválida. Vuelve a iniciar sesión." />
+        );
+    }
+
+    const esAdmin = role === 'admin' || role === 'superadmin';
+    const puedeLeer = puedeAccion('inventario_repuestos', 'read');
+    const puedeCrear = puedeAccion('inventario_repuestos', 'create');
+    const puedeEditar = puedeAccion('inventario_repuestos', 'update');
+    const puedeEliminar = puedeAccion('inventario_repuestos', 'delete');
+
+    if (
+        !esAdmin ||
+        !puedeLeer ||
+        (!puedeCrear && !puedeEditar && !puedeEliminar)
+    ) {
+        return (
+            <AccesoDenegado mensaje="Solo administradores con permiso de inventario pueden gestionar las categorías." />
+        );
+    }
+
+    return (
+        <CategoriasTable
+            puedeCrear={puedeCrear}
+            puedeEditar={puedeEditar}
+            puedeEliminar={puedeEliminar}
+        />
+    );
+}

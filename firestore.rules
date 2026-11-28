@@ -88,6 +88,15 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // WEB-INV-053 — Categorías canónicas de repuestos.
+    // Lectura admin/superadmin/auditor; escritura solo por Admin SDK.
+    match /categorias_repuestos/{categoria} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && rolActual() in ['superadmin', 'admin', 'auditor'];
+      allow create, update, delete: if false;
+    }
+
     match /fotos_inventario/{foto} {
       allow read: if request.auth != null
         && request.auth.token.email != null

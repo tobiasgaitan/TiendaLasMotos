@@ -2,7 +2,7 @@
 **Versión del Stack & Hitos:** v8.9.18  
 **Última Actualización:** 2026-11-27
 **Estado:**  v8.9.18 vigente; promoción v8.9.18 certificada vía PR #11/#12/§34.10 (WEB-INV-CASE-NORMALIZATION-001); T-01 certificado vía PR #14 (cfe7af1, deploy #79); T-02 certificado vía PR #15 (beta) + PR #16 (main, deploy #80); T-04 certificado vía PR #18 (beta, deploy #223) + PR #19 (main, deploy #84); addendum §34.11 (0c32acb), §34.12 (8ac55a5), §34.13, §34.14, §34.15, §34.16, §34.17, §34.18 y §34.19 registrados; WEB-INV-SEARCH-PARTIAL-001 CERRADO SIN CÓDIGO; WEB-AUTH-SCHEMA-HOMOGENIZATION-001 CERRADO SIN CÓDIGO (datos auditados); WEB-TEST-CI-COVERAGE-001 CERRADO SIN CÓDIGO (CI/Config); WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); WEB-USERS-TIMESTAMP-DUAL-WRITE-001 CERRADO SIN CÓDIGO (normalización); OBS-AUDIT-LEDGERS-UNIFICATION-001 CERRADA (no proceder); OBS-TEST-UTILS-INVENTARIO-SCHEMAS-STALE-001 CERRADA (2026-11-23; 47dea28 + 7549833; 12/12 CI run #235);
-WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado; WEB-INV-049 CERRADO END-TO-END (2026-11-27); OBS-INFRA-PROD-SETSECRETS-CLOBBER-001 y OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 registradas. WEB-INV-049 CERRADO CON CÓDIGO (2026-11-27); OBS-WEB-INV-049-BLOBS-HUERFANOS-001 y OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 registradas; OBS-INFRA-PROD-SETSECRETS-CLOBBER-001, OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 y OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001 registradas.
+WEB-A11Y-FILTER-INPUTS-IDS-001 CERRADO CON CÓDIGO (a11y); OBS-INVENTORY-NAMESPACE-LEGACY CERRADA; OBS-PROD-UAT-T03-RESIDUALES CERRADA (2026-11-24; ver §34.14.G); OBS-INV-FILTRO-ADMIN-SIN-ALTERNATIVAS-001 CERRADA (2026-11-23; T-01 cfe7af1; PR #14); OBS-INV-FILTRO-ALTERNATIVA-UX-001 CERRADA; OBS-INV-ADMIN-EMPTY-COPY-MISLEADING CERRADA; OBS-PROD-DATOS-PRUEBA-RESIDUALES CERRADA; OBS-PROMOTE-PR14-SKIP-BETA-001 registrada (no re-manifestada); OBS-PROMOTE-ADMIN-BYPASS-MONO-USUARIO aceptada (diseño); OBS-PROMOTE-PR37-38-ORPHAN-CLOSED-001 CERRADA; OBS-INV-APROBACION-FALLBACK-SIN-ALTERNATIVAS-001 abierta (baja prioridad); OBS-PSD-HEADER-A11Y-DUPLICADO-001 abierta (cosmética); OBS-ASESOR-EMPTY-CATALOG-MISATTRIBUTION CERRADA (2026-11-23; 1407b9b; PR #54; run #100); OBS-DOCTRINA-NO-VERSIONADA CERRADA (2026-11-23; DOCTRINA_QWEN_WEB.md; SHA-256 bf3520d…); OBS-OFFLINE-MIGRATION-LOG-DUPLICADO CERRADA (2026-11-23; 9c87392; sin cambio de código); OBS-WEB046-REDIRECT-ASESOR-SIMULADOR CERRADA (2026-11-23; 2e4e20b; sin cambio de código); pipeline canónico feature→beta→main restaurado; WEB-INV-049 CERRADO END-TO-END (2026-11-27); OBS-INFRA-PROD-SETSECRETS-CLOBBER-001 y OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 registradas. WEB-INV-049 CERRADO CON CÓDIGO (2026-11-27); OBS-WEB-INV-049-BLOBS-HUERFANOS-001 y OBS-WEB-INV-049-CAMPO-LEGIBLE-ASESOR-001 registradas; OBS-INFRA-PROD-SETSECRETS-CLOBBER-001, OBS-INFRA-FRAMEWORKS-DROPS-CUSTOM-ENV-001 y OBS-INFRA-PROMOTE-SQUASH-BREAKS-LINEARITY-001 registradas. WEB-INV-053 IMPLEMENTADO (2026-11-27), seed/UAT/deploy beta pendientes de autorización del Director (§34.31).
 
 ---
 
@@ -1677,3 +1677,50 @@ E. Invariantes
 2. Conteo multimodal intacto; matching es acción independiente.
 3. NAMING LOCK intacto; sin dependencias nuevas.
 4. §1–§34.29 byte-idénticas; §34.30 aditiva conforme al precedente §25.A.
+
+34.31 Implementación WEB-INV-053 — Categorías canónicas de repuestos (2026-11-27)
+Estado: IMPLEMENTADO LOCALMENTE; seed, UAT beta y promoción PENDIENTES de autorización del Director.
+Versión: se mantiene v8.9.18 sin bump.
+Inserción: aditiva al final del documento; §1–§34.30 permanecen byte-idénticas.
+A. Decisión de taxonomía (D-0 opción A)
+1. Los seis valores existentes de `inventario_repuestos` se declaran canónicos: `REPUESTOS` (18.856), `LOS ORIGINALES` (1.507), `ACCESORIOS` (812), `LUBRICANTES` (49), `GENERICOS` (18), `LINEA DE CUIDADO` (14); total 21.256.
+2. Mapeo identidad: el seed NO reescribe documentos de inventario. El gate ≥70% queda en 100% (21.256/21.256) y los huérfanos esperados son 0.
+3. La clasificación fina de `REPUESTOS` (88,7%) queda fuera de alcance y requiere ticket propio con clasificación por documento.
+B. Modelo y contratos
+1. Colección top-level `categorias_repuestos`; ID documental = `clave` normalizada (mayúsculas, sin acentos, separadores `_`), por ejemplo `LOS_ORIGINALES`.
+2. Campos: `clave`, `nombre`, `descripcion`, `orden`, `activo`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`, `version: 1`.
+3. NAMING LOCK intacto: `inventario_repuestos.categoria` conserva su nombre y guarda el `nombre` canónico; no se renombra el campo.
+4. Nombre inmutable en v1: solo se editan descripción, orden y `activo`. Un rename exige migración de todos los documentos referenciados.
+5. Archivar (`activo=false`) si está en uso; borrado físico solo si ningún `inventario_repuestos` referencia el nombre, verificado dentro de la transacción.
+6. Categoría obligatoria al crear repuesto: el select inicia vacío y el schema rechaza cadena vacía. En edición solo se valida si la categoría cambia.
+7. Cero autocompletado inseguro: crear, filtrar y editar usan `<select>` nativo; no hay input libre de categoría en repuestos.
+C. Permisos y Faraday Cage
+1. Se reutiliza el permiso `inventario_repuestos` (`read/create/update/delete`) con rol `admin` o `superadmin`; no se modifica `sys_permissions_matrix`.
+2. Cada Server Action ejecuta `validarActor` → `requireActorInventario` (verifyIdToken) → `requirePermiso` → rol → Zod → transacción.
+3. El ledger de categorías usa `historial_auditoria_inventario` con `coleccion_afectada: 'categorias_repuestos'` y solo `tx.create`; la unión de tipos se extendió de forma aditiva.
+4. `firestore.rules`: lectura `superadmin`/`admin`/`auditor`; create/update/delete de cliente en `false`.
+D. UI y experiencia
+1. Página dedicada `/admin/inventario-categorias` con tabla (orden, nombre, descripción, estado, acciones), alta/edición y confirmación de borrado; nodo `Inventario > Categorías` en el sidebar.
+2. Hook `useCategoriasRepuestos` con carga única y `recargar()`; selector reutilizable `SelectorCategoriaRepuesto` sin autocompletado.
+3. `CrearRepuestoModal` usa select obligatorio de categorías activas; el botón de alta se deshabilita si no hay categorías activas.
+4. `InventarioRepuestosClient`: filtro por select y edición inline de categoría con select; la lógica vive en el hook/selector para aislar el God Node.
+E. Seed y verificación
+1. `scripts/inv-053-categorias.ts` con `--dry-run` (default), `--apply` y `--verify`; usa `initFirebaseGuarded` y `assertOutDirOutsideRepo`, whitelist cerrada y manifiesto con hashes.
+2. Dry-run esperado: 21.256 documentos, 6 valores conocidos, 0 vacíos, 0 desconocidos, 6 categorías a sembrar, 0 updates de inventario.
+3. `--apply` exige TTY, frase `CONFIRMAR`, `--authorized-by=<email>` y aborta si el inventario cambia durante el seed.
+4. `--verify` exige 21.256/21.256 normalizados y 0 huérfanos; cualquier valor nuevo se resuelve con el Director antes de aplicar.
+F. Gates locales ejecutados
+1. `npx tsc --noEmit` EXIT 0; `npm run lint` EXIT 0; `git diff --check` EXIT 0.
+2. `npm run test:ci` EXIT 0: 234 unit (incluye 36 nuevos de categorías), 43 render y suites smoke/utils ALL PASSED; sin regresión.
+3. `npm run build`: EXIT 0; ruta `/admin/inventario-categorias` prerenderizada.
+4. Dry-run (2026-11-28T04:45:35Z, proyecto `tiendalasmotos`): 21.256 documentos; `REPUESTOS` 18.856, `LOS ORIGINALES` 1.507, `ACCESORIOS` 812, `LUBRICANTES` 49, `GENERICOS` 18, `LINEA DE CUIDADO` 14; 0 vacíos, 0 desconocidos, 0 categorías existentes, 6 a sembrar y 0 updates de inventario. Evidencia externa al repo con hashes SHA-256: `reporte.json` `0587d8b5…668d`, `report.md` `26c98950…da12`.
+5. `--apply`: NO ejecutado. El script exige TTY y frase `CONFIRMAR`; la sesión de build no es interactiva. El seed sigue pendiente de autorización explícita del Director y de una terminal interactiva, por tratarse de una escritura en el Firestore compartido beta/producción.
+6. `--verify`: pendiente de ejecutarse después del seed.
+G. Observaciones registradas
+1. OBS-WEB-INV-053-CAMPO-MUERTO-APROBAR-CONTEO-001: `AprobarConteoModal` tiene un campo de categoría libre, pero `aprobarConteo` no persiste `datos_maestro`. Campo muerto preexistente, fuera de alcance de WEB-INV-053.
+2. OBS-WEB-INV-053-PERMISO-REUTILIZADO-001: deuda semántica; el permiso `inventario_repuestos` se reutiliza para `categorias_repuestos`. Requiere matriz propia en un ticket futuro.
+3. OBS-WEB-INV-053-RENAME-FUTURO-001: renombrar una categoría exige migrar todos los documentos referenciados; fuera de alcance de v1, requiere ticket propio.
+H. Invariantes
+1. Intactos: `src/lib/vision-client.ts`, `src/lib/inventario/matching.ts`, `package.json`, `package-lock.json`, `firebase.json`, `firestore.indexes.json`, `bot-tiendalasmotos/**`, `src/app/admin/inventario-asesor/**` y `src/app/admin/inventario-aprobaciones/**`.
+2. Sin dependencias nuevas, sin bump de versión y sin cambios en `sys_permissions_matrix`.
+3. §1–§34.30 byte-idénticas; §34.31 aditiva conforme al precedente §25.A.

@@ -28,6 +28,7 @@ export interface FiltrosRepuesto {
 
 export interface BorradorRepuesto {
     descripcion: string;
+    categoria: string;
     stock: string;
     stock_minimo: string;
     precio: string;
@@ -39,6 +40,7 @@ export interface BorradorRepuesto {
 
 export interface CambiosRepuesto {
     descripcion?: string;
+    categoria?: string;
     stock?: number;
     stock_minimo?: number;
     precio?: number;

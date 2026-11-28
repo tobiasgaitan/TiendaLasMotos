@@ -145,6 +145,7 @@ const BASE: RepuestoInventarioDTO = {
 
 const BORRADOR = {
     descripcion: BASE.descripcion,
+    categoria: BASE.categoria,
     stock: String(BASE.stock),
     stock_minimo: String(BASE.stock_minimo),
     precio: String(BASE.precio),
@@ -224,7 +225,28 @@ check(
     !editarRepuestoSchema.safeParse({
         documento_id: 'doc-brk-001',
         referencia: 'BRK-001',
-        cambios: { stock: 1, categoria: 'Frenos' },
+        cambios: { stock: 1, referencia: 'BRK-999' },
+    }).success
+);
+
+check(
+    'cambiosRepuestoSchema acepta categoria (WEB-INV-053)',
+    (() => {
+        const resultado = editarRepuestoSchema.safeParse({
+            documento_id: 'doc-brk-001',
+            referencia: 'BRK-001',
+            cambios: { categoria: 'Frenos' },
+        });
+        return resultado.success && resultado.data.cambios.categoria === 'FRENOS';
+    })()
+);
+
+check(
+    'cambiosRepuestoSchema rechaza categoria vacía',
+    !editarRepuestoSchema.safeParse({
+        documento_id: 'doc-brk-001',
+        referencia: 'BRK-001',
+        cambios: { categoria: '   ' },
     }).success
 );
 
@@ -307,6 +329,7 @@ check(
         descripcion: 'Repuesto mínimo',
         sede_id: 'sede-1',
         ubicacion: 'Pasillo 1',
+        categoria: 'REPUESTOS',
     }).success
 );
 check(
@@ -343,6 +366,7 @@ const crearUnidadDefault = crearRepuestoSchema.safeParse({
     descripcion: 'Repuesto sin unidad explícita',
     sede_id: 'sede-1',
     ubicacion: 'Pasillo 1',
+    categoria: 'REPUESTOS',
 });
 check(
     'crearRepuestoSchema usa unidad como default',
@@ -659,6 +683,37 @@ const soloStock = construirCambiosRepuesto(BASE, {
 check(
     'construirCambiosRepuesto devuelve solo stock modificado',
     Object.keys(soloStock).length === 1 && soloStock.stock === 12
+);
+
+const soloCategoria = construirCambiosRepuesto(BASE, {
+    ...BORRADOR,
+    categoria: 'lubricantes',
+});
+
+check(
+    'construirCambiosRepuesto emite categoria normalizada solo si cambia',
+    Object.keys(soloCategoria).length === 1 &&
+        soloCategoria.categoria === 'LUBRICANTES'
+);
+
+check(
+    'construirCambiosRepuesto no emite categoria sin cambios',
+    Object.keys(
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            categoria: '  Frenos  ',
+        })
+    ).length === 0
+);
+
+check(
+    'construirCambiosRepuesto rechaza categoria vacía',
+    lanza(() =>
+        construirCambiosRepuesto(BASE, {
+            ...BORRADOR,
+            categoria: '   ',
+        })
+    )
 );
 
 check(

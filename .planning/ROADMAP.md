@@ -274,3 +274,15 @@
 - [x] **D-2:** `VISION_MODEL_SLUG` versionada en `.env.tiendalasmotos`; `firebase.json` intacto. Beta verificada (run `46072218462`).
 - [ ] **UAT beta:** 10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros.
 - [ ] **Verificación post-deploy:** `VISION_MODEL_SLUG` presente en env de producción tras promoción.
+
+## Fase 053 — WEB-INV-053: categorías canónicas de repuestos (IMPLEMENTADO LOCAL, 2026-11-27)
+- [x] **Taxonomía D-0 = A:** los seis valores existentes (`REPUESTOS`, `LOS ORIGINALES`, `ACCESORIOS`, `LUBRICANTES`, `GENERICOS`, `LINEA DE CUIDADO`) son canónicos; 0 reescrituras de inventario.
+- [x] **Colección `categorias_repuestos`:** CRUD admin+superadmin con Faraday Cage, nombre inmutable en v1, archivar en uso y borrado físico solo sin referencias.
+- [x] **UI:** página `/admin/inventario-categorias`, nodo `Inventario > Categorías`, selector nativo en alta/filtro/edición inline.
+- [x] **Validación:** `crearRepuesto` exige categoría canónica activa; `editarRepuesto` valida solo si cambia; `cambiosRepuestoSchema` incorpora `categoria`.
+- [x] **Ledger:** `historial_auditoria_inventario` con `coleccion_afectada: 'categorias_repuestos'` y solo `tx.create`.
+- [x] **Script:** `scripts/inv-053-categorias.ts` con `--dry-run`/`--apply`/`--verify`, whitelist cerrada y manifiesto.
+- [x] **Dry-run:** 21.256 documentos, 6 valores, 0 vacíos, 0 desconocidos, 6 categorías a sembrar, 0 updates de inventario; evidencia externa con hashes.
+- [x] **Gates locales:** `test:ci` EXIT 0 (234 unit, 43 render), `tsc`/`lint` EXIT 0.
+- [ ] **Seed dry-run/apply/verify:** pendiente de credenciales y autorización del Director (Firestore compartido beta/prod).
+- [ ] **UAT beta y promoción:** CRUD, dropdowns, permisos, latencia ≤500 ms, 0 huérfanos, `§34.31`.

@@ -96,7 +96,7 @@ function parsePrecio(valor: string): number {
 
 /**
  * Devuelve únicamente los campos que cambiaron y son editables por esta
- * pantalla. No incluye referencia, categoría, fabricante ni auditoría.
+ * pantalla. No incluye referencia, fabricante ni auditoría.
  */
 export function construirCambiosRepuesto(
     original: RepuestoInventarioDTO,
@@ -110,6 +110,15 @@ export function construirCambiosRepuesto(
             throw new Error('La descripción es obligatoria.');
         }
         cambios.descripcion = descripcion;
+    }
+
+    const categoria = borrador.categoria.trim().toUpperCase();
+    const categoriaActual = original.categoria.trim().toUpperCase();
+    if (categoria !== categoriaActual) {
+        if (!categoria) {
+            throw new Error('La categoría es obligatoria.');
+        }
+        cambios.categoria = categoria;
     }
 
     const stock = parseEntero(borrador.stock, 'El stock');

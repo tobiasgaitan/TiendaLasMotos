@@ -381,6 +381,11 @@ import { listarPendientes } from '@/app/admin/inventario-aprobaciones/actions/li
 import { obtenerRepuestoPorReferencia } from '@/app/admin/inventario-repuestos/actions/obtenerRepuestoPorReferencia';
 import { requireActorInventario } from '@/lib/actions/inventario-actor';
 import { requirePermiso } from '@/lib/auth/require-permiso';
+import { claveCategoria } from '@/lib/inventario/categorias';
+import { crearCategoriaRepuesto } from '@/app/admin/inventario-categorias/actions/crearCategoria';
+import { editarCategoriaRepuesto } from '@/app/admin/inventario-categorias/actions/editarCategoria';
+import { eliminarCategoriaRepuesto } from '@/app/admin/inventario-categorias/actions/eliminarCategoria';
+import { listarCategoriasRepuestos } from '@/app/admin/inventario-categorias/actions/listarCategorias';
 
 const UUID = '550e8400-e29b-41d4-a716-446655440000';
 const FOTO_URL =
@@ -454,8 +459,28 @@ function seedRepuesto(
     });
 }
 
-function seedAsesor() {
-    vi.mocked(requireActorInventario).mockResolvedValueOnce({
+function seedCategoria(
+    nombre: string,
+    extra: Record<string, unknown> = {}
+) {
+    const clave = claveCategoria(nombre);
+    const ahora = new Date();
+    mockState.docs.set(`categorias_repuestos/${clave}`, {
+        clave,
+        nombre,
+        descripcion: '',
+        orden: 100,
+        activo: true,
+        creado_por: 'admin@test.com',
+        creado_en: ahora,
+        actualizado_por: 'admin@test.com',
+        actualizado_en: ahora,
+        version: 1,
+        ...extra,
+    });
+}
+
+function seedAsesor() {    vi.mocked(requireActorInventario).mockResolvedValueOnce({
         uid: 'uid-asesor',
         email: 'asesor@test.com',
     });
@@ -536,6 +561,17 @@ beforeEach(() => {
         department: 'Caldas',
         isActive: false,
     });
+    for (const nombre of [
+        'FRENOS',
+        'REPUESTOS',
+        'LOS ORIGINALES',
+        'ACCESORIOS',
+        'LUBRICANTES',
+        'GENERICOS',
+        'LINEA DE CUIDADO',
+    ]) {
+        seedCategoria(nombre);
+    }
     vi.mocked(requirePermiso).mockResolvedValue({
         rol: 'admin',
         email: 'admin@test.com',
@@ -702,6 +738,7 @@ describe('MT-07 Server Actions contracts', () => {
             descripcion: 'Pastillas',
             sede_id: 'sede-1',
             ubicacion: 'Pasillo 1',
+            categoria: 'Frenos',
         };
 
         const primero = await crearRepuesto(base, ACTOR);
@@ -724,11 +761,12 @@ describe('MT-07 Server Actions contracts', () => {
         );
     });
 
-    it('crearRepuesto acepta solo referencia y descripción', async () => {
+    it('crearRepuesto acepta campos opcionales omitidos con categoría canónica', async () => {
         const resultado = await crearRepuesto(
             {
                 referencia: 'BRK-030',
                 descripcion: 'Repuesto mínimo',
+                categoria: 'Frenos',
             },
             ACTOR
         );
@@ -749,6 +787,7 @@ describe('MT-07 Server Actions contracts', () => {
             {
                 referencia: 'BRK-032',
                 descripcion: 'Aceite 20W-50',
+                categoria: 'Lubricantes',
                 unidad_medida: 'litro',
             },
             ACTOR
@@ -773,6 +812,7 @@ describe('MT-07 Server Actions contracts', () => {
             {
                 referencia: 'BRK-031',
                 descripcion: 'Repuesto con alternativas',
+                categoria: 'Frenos',
                 referencias_alternativas: [
                     'alt-1',
                     'BRK-031',
@@ -936,6 +976,7 @@ describe('MT-07 Server Actions contracts', () => {
             {
                 referencia: 'BRK-IMG',
                 descripcion: 'Repuesto con imágenes',
+                categoria: 'Frenos',
                 imagenes_referencia: [IMAGEN_REF_1, IMAGEN_REF_2],
             },
             ACTOR
@@ -960,6 +1001,7 @@ describe('MT-07 Server Actions contracts', () => {
             {
                 referencia: 'BRK-SIN-IMG',
                 descripcion: 'Repuesto sin imágenes',
+                categoria: 'Frenos',
             },
             ACTOR
         );
@@ -2263,5 +2305,291 @@ describe('WEB-INV-050 matching visual', () => {
             write.path.startsWith('auditoria_matching_visual/')
         );
         expect(auditoria?.data.estado).toBe('timeout');
+    });
+});
+
+describe('WEB-INV-053 categorías canónicas', () => {
+    beforeEach(() => {
+        vi.mocked(requireActorInventario)
+            .mockReset()
+            .mockResolvedValue({
+                uid: 'uid-admin',
+                email: 'admin@test.com',
+            });
+        vi.mocked(requirePermiso).mockReset().mockResolvedValue({
+            rol: 'admin',
+            email: 'admin@test.com',
+        });
+    });
+
+    it('crearCategoriaRepuesto crea la categoría y un asiento CREATE', async () => {
+        prepararAdmin();
+
+        const resultado = await crearCategoriaRepuesto(
+            {
+                nombre: '  filtros  ',
+                descripcion: 'Filtros de aire y aceite',
+                orden: 70,
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.id).toBe('FILTROS');
+        const doc = mockState.docs.get('categorias_repuestos/FILTROS');
+        expect(doc?.nombre).toBe('FILTROS');
+        expect(doc?.activo).toBe(true);
+        expect(doc?.orden).toBe(70);
+        expect(doc?.creado_por).toBe('admin@test.com');
+
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].kind).toBe('create');
+        expect(ledger[0].data.coleccion_afectada).toBe(
+            'categorias_repuestos'
+        );
+        expect(ledger[0].data.operacion).toBe('CREATE');
+        expect(ledger[0].data.registrado_por).toBe('uid-admin');
+    });
+
+    it('crearCategoriaRepuesto rechaza duplicados sin escribir', async () => {
+        prepararAdmin();
+
+        const resultado = await crearCategoriaRepuesto(
+            { nombre: 'Frenos' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('ya existe');
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('crearCategoriaRepuesto rechaza al asesor', async () => {
+        seedAsesor();
+
+        const resultado = await crearCategoriaRepuesto(
+            { nombre: 'Filtros' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('administrador');
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('editarCategoriaRepuesto actualiza campos editables y audita UPDATE', async () => {
+        prepararAdmin();
+
+        const resultado = await editarCategoriaRepuesto(
+            {
+                clave: 'FRENOS',
+                nombre: 'FRENOS',
+                cambios: {
+                    descripcion: 'Sistema de frenos',
+                    orden: 5,
+                    activo: false,
+                },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(false);
+        const doc = mockState.docs.get('categorias_repuestos/FRENOS');
+        expect(doc?.descripcion).toBe('Sistema de frenos');
+        expect(doc?.orden).toBe(5);
+        expect(doc?.activo).toBe(false);
+        expect(doc?.nombre).toBe('FRENOS');
+
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.operacion).toBe('UPDATE');
+        expect(ledger[0].data.coleccion_afectada).toBe(
+            'categorias_repuestos'
+        );
+        expect(ledger[0].data.datos_anteriores).not.toBeNull();
+    });
+
+    it('editarCategoriaRepuesto es idempotente si no hay cambios', async () => {
+        prepararAdmin();
+
+        const resultado = await editarCategoriaRepuesto(
+            {
+                clave: 'FRENOS',
+                nombre: 'FRENOS',
+                cambios: { descripcion: '', orden: 100, activo: true },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.idempotente).toBe(true);
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('editarCategoriaRepuesto rechaza nombre que no coincide con el documento', async () => {
+        prepararAdmin();
+
+        const resultado = await editarCategoriaRepuesto(
+            {
+                clave: 'FRENOS',
+                nombre: 'LUBRICANTES',
+                cambios: { orden: 7 },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('no coincide');
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarCategoriaRepuesto bloquea si está en uso', async () => {
+        prepararAdmin();
+        seedInventario();
+
+        const resultado = await eliminarCategoriaRepuesto(
+            { clave: 'FRENOS', nombre: 'FRENOS' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('en uso');
+        expect(
+            mockState.docs.get('categorias_repuestos/FRENOS')
+        ).toBeDefined();
+        expect(mockState.writes).toHaveLength(0);
+    });
+
+    it('eliminarCategoriaRepuesto borra si no está en uso y audita DELETE', async () => {
+        prepararAdmin();
+
+        const resultado = await eliminarCategoriaRepuesto(
+            { clave: 'GENERICOS', nombre: 'GENERICOS' },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('categorias_repuestos/GENERICOS')
+        ).toBeUndefined();
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.operacion).toBe('DELETE');
+        expect(ledger[0].data.datos_nuevos).toBeNull();
+    });
+
+    it('listarCategoriasRepuestos ordena por orden y respeta archivadas', async () => {
+        prepararAdmin();
+        seedCategoria('FILTROS', { orden: 1 });
+
+        const resultado = await listarCategoriasRepuestos(
+            { incluirArchivadas: true },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(resultado.categorias[0]?.nombre).toBe('FILTROS');
+        expect(
+            resultado.categorias.some((c) => c.nombre === 'FRENOS')
+        ).toBe(true);
+    });
+
+    it('crearRepuesto rechaza una categoría inexistente antes de escribir', async () => {
+        prepararAdmin();
+
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-900',
+                descripcion: 'Repuesto sin categoría canónica',
+                categoria: 'NO EXISTE',
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('no existe');
+        expect(repuestosPorReferencia('BRK-900')).toHaveLength(0);
+        expect(ledgerWrites()).toHaveLength(0);
+    });
+
+    it('crearRepuesto rechaza una categoría archivada', async () => {
+        prepararAdmin();
+        seedCategoria('FILTROS', { activo: false });
+
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-901',
+                descripcion: 'Repuesto con categoría archivada',
+                categoria: 'FILTROS',
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('archivada');
+        expect(repuestosPorReferencia('BRK-901')).toHaveLength(0);
+    });
+
+    it('crearRepuesto rechaza categoría omitida por schema', async () => {
+        prepararAdmin();
+
+        const resultado = await crearRepuesto(
+            {
+                referencia: 'BRK-902',
+                descripcion: 'Repuesto sin categoría',
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(repuestosPorReferencia('BRK-902')).toHaveLength(0);
+    });
+
+    it('editarRepuesto cambia categoria canónica y audita el cambio', async () => {
+        prepararAdmin();
+        seedRepuesto('doc-brk-001', 'BRK-001');
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'doc-brk-001',
+                referencia: 'BRK-001',
+                cambios: { categoria: 'Lubricantes' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(true);
+        expect(
+            mockState.docs.get('inventario_repuestos/doc-brk-001')?.categoria
+        ).toBe('LUBRICANTES');
+        const ledger = ledgerWrites();
+        expect(ledger).toHaveLength(1);
+        expect(ledger[0].data.operacion).toBe('UPDATE');
+        expect(
+            (ledger[0].data.datos_nuevos as Record<string, unknown>).categoria
+        ).toBe('LUBRICANTES');
+    });
+
+    it('editarRepuesto rechaza categoria archivada', async () => {
+        prepararAdmin();
+        seedRepuesto('doc-brk-001', 'BRK-001');
+        seedCategoria('GENERICOS', { activo: false });
+
+        const resultado = await editarRepuesto(
+            {
+                documento_id: 'doc-brk-001',
+                referencia: 'BRK-001',
+                cambios: { categoria: 'GENERICOS' },
+            },
+            ACTOR
+        );
+
+        expect(resultado.success).toBe(false);
+        expect(resultado.message).toContain('archivada');
+        expect(
+            mockState.docs.get('inventario_repuestos/doc-brk-001')?.categoria
+        ).toBe('FRENOS');
     });
 });

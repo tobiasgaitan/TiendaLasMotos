@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     AlertCircle,
     Loader2,
@@ -15,6 +15,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import CrearRepuestoModal from '@/components/inventario/CrearRepuestoModal';
 import EliminarRepuestoModal from '@/components/inventario/EliminarRepuestoModal';
+import SelectorCategoriaRepuesto from '@/components/inventario/SelectorCategoriaRepuesto';
+import { useCategoriasRepuestos } from '@/hooks/useCategoriasRepuestos';
 import ImagenesReferenciaModal from './components/ImagenesReferenciaModal';
 import { listarRepuestos } from './actions/listarRepuestos';
 import { contarRepuestos } from './actions/contarRepuestos';
@@ -83,6 +85,11 @@ function mensajeDeError(error: unknown, fallback: string): string {
     return fallback;
 }
 
+function contarImagenesReferencia(repuesto: RepuestoInventarioDTO): number {
+    const imagenes = repuesto.imagenes_referencia;
+    return Array.isArray(imagenes) ? imagenes.length : 0;
+}
+
 export default function InventarioRepuestosClient() {
     const { user, role, puedeAccion } = useAuth();
     const [repuestos, setRepuestos] = useState<RepuestoInventarioDTO[]>([]);
@@ -100,6 +107,33 @@ export default function InventarioRepuestosClient() {
         useState<RepuestoInventarioDTO | null>(null);
     const [modalImagenesAbierto, setModalImagenesAbierto] = useState(false);
     const cargaRef = useRef(0);
+    const {
+        categorias,
+        cargando: cargandoCategorias,
+        error: errorCategorias,
+        recargar: recargarCategorias,
+    } = useCategoriasRepuestos();
+
+    const categoriasActivas = useMemo(
+        () => categorias.filter((categoria) => categoria.activo),
+        [categorias]
+    );
+    const categoriasEdicion = useMemo(() => {
+        if (!edicion) return categoriasActivas;
+        const actual = categorias.find(
+            (categoria) => categoria.nombre === edicion.borrador.categoria
+        );
+        if (
+            actual &&
+            !actual.activo &&
+            !categoriasActivas.some(
+                (categoria) => categoria.clave === actual.clave
+            )
+        ) {
+            return [...categoriasActivas, actual];
+        }
+        return categoriasActivas;
+    }, [categorias, categoriasActivas, edicion]);
 
     const puedeCrear = puedeAccion('inventario_repuestos', 'create');
     const puedeEditar = puedeAccion('inventario_repuestos', 'update');
@@ -111,8 +145,12 @@ export default function InventarioRepuestosClient() {
             append?: boolean;
             cursor?: CursorRepuestos | null;
         }) => {
-            const append = opciones?.append ?? false;
-            const cursor = opciones?.cursor ?? null;
+            const append =
+                opciones !== undefined && opciones.append === true;
+            const cursor =
+                opciones !== undefined && opciones.cursor !== undefined
+                    ? opciones.cursor
+                    : null;
 
             if (!user) {
                 setError('Sesión inválida. Vuelve a iniciar sesión.');
@@ -246,6 +284,7 @@ export default function InventarioRepuestosClient() {
             referencia: repuesto.referencia,
             borrador: {
                 descripcion: repuesto.descripcion,
+                categoria: repuesto.categoria,
                 stock: String(repuesto.stock),
                 stock_minimo: String(repuesto.stock_minimo),
                 precio: String(repuesto.precio),
@@ -472,7 +511,7 @@ export default function InventarioRepuestosClient() {
                     </h1>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
                         Consulta y edita stock, stock mínimo, precio, unidad de
-                        medida, ubicación, descripción y referencias
+                        medida, ubicación, categoría, descripción y referencias
                         alternativas. Cada cambio queda auditado.
                     </p>
                 </div>
@@ -482,7 +521,11 @@ export default function InventarioRepuestosClient() {
                         <button
                             type="button"
                             onClick={() => setMostrarCrear(true)}
-                            disabled={guardando}
+                            disabled={
+                                guardando ||
+                                cargandoCategorias ||
+                                categoriasActivas.length === 0
+                            }
                             aria-label="Crear nuevo repuesto"
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -510,6 +553,37 @@ export default function InventarioRepuestosClient() {
                     </button>
                 </div>
             </header>
+
+            {errorCategorias ? (
+                <div
+                    role="status"
+                    className="rounded-2xl border border-amber-900/70 bg-amber-950/30 p-4 text-sm text-amber-100"
+                >
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span>{errorCategorias}</span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                void recargarCategorias();
+                            }}
+                            className="font-semibold underline underline-offset-2 hover:text-white"
+                        >
+                            Reintentar
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
+            {!cargandoCategorias && categoriasActivas.length === 0 ? (
+                <div
+                    role="status"
+                    className="rounded-2xl border border-amber-900/70 bg-amber-950/30 p-4 text-sm text-amber-100"
+                >
+                    No hay categorías activas. Un administrador debe crear o
+                    reactivar una en Inventario &gt; Categorías antes de dar de
+                    alta repuestos.
+                </div>
+            ) : null}
 
             {error ? (
                 <div
@@ -592,25 +666,21 @@ export default function InventarioRepuestosClient() {
                     />
                 </label>
 
-                <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    Categoría
-                    <input
-                        id="filtro-categoria"
-                        name="categoria"
-                        type="search"
-                        value={filtros.categoria}
-                        maxLength={100}
-                        onChange={(event) =>
-                            setFiltros((actual) => ({
-                                ...actual,
-                                categoria: event.target.value,
-                            }))
-                        }
-                        aria-label="Filtrar por categoría"
-                        placeholder="Categoría exacta…"
-                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm font-normal normal-case text-white placeholder-gray-500 outline-none focus:border-red-500"
-                    />
-                </label>
+                <SelectorCategoriaRepuesto
+                    id="filtro-categoria"
+                    name="categoria"
+                    label="Categoría"
+                    categorias={categorias}
+                    value={filtros.categoria}
+                    onChange={(valor) =>
+                        setFiltros((actual) => ({
+                            ...actual,
+                            categoria: valor,
+                        }))
+                    }
+                    incluirTodas
+                    ariaLabel="Filtrar por categoría"
+                />
 
                 <label className="space-y-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Fabricante
@@ -935,17 +1005,15 @@ export default function InventarioRepuestosClient() {
                                                     ) : null}
                                                 </div>
                                             ) : (
-                                                repuesto
-                                                    .imagenes_referencia
-                                                    ?.length ?? 0
+                                                contarImagenesReferencia(
+                                                    repuesto
+                                                )
                                             ) > 0 ? (
                                                 <p className="mt-1 text-[11px] text-sky-200/80">
                                                     Imágenes de referencia:{' '}
-                                                    {
+                                                    {contarImagenesReferencia(
                                                         repuesto
-                                                            .imagenes_referencia
-                                                            ?.length
-                                                    }
+                                                    )}
                                                 </p>
                                             ) : null}
                                             <div className="mt-2">
@@ -975,7 +1043,26 @@ export default function InventarioRepuestosClient() {
                                             )}
                                         </td>
                                         <td className="px-4 py-4 text-gray-300">
-                                            {repuesto.categoria || '—'}
+                                            {borrador ? (
+                                                <SelectorCategoriaRepuesto
+                                                    id={`categoria-${repuesto.documento_id}`}
+                                                    categorias={
+                                                        categoriasEdicion
+                                                    }
+                                                    value={borrador.categoria}
+                                                    onChange={(valor) =>
+                                                        actualizarBorrador(
+                                                            'categoria',
+                                                            valor
+                                                        )
+                                                    }
+                                                    disabled={guardando}
+                                                    compacto
+                                                    ariaLabel={`Categoría de ${repuesto.referencia}`}
+                                                />
+                                            ) : (
+                                                repuesto.categoria || '—'
+                                            )}
                                         </td>
                                         <td className="px-4 py-4 text-gray-300">
                                             {borrador ? (
@@ -1156,6 +1243,7 @@ export default function InventarioRepuestosClient() {
             {puedeCrear ? (
                 <CrearRepuestoModal
                     isOpen={mostrarCrear}
+                    categorias={categorias}
                     onClose={() => setMostrarCrear(false)}
                     onCreado={cargarRepuestos}
                 />

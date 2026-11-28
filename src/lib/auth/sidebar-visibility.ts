@@ -24,6 +24,7 @@ export type NodoSidebar =
     | 'simuladores'
     | 'inventario'
     | 'inventario-repuestos'
+    | 'inventario-categorias'
     | 'inventario-asesor'
     | 'inventario-aprobaciones'
     | 'prospectos'
@@ -55,6 +56,12 @@ export const MAPA_NODOS: Record<NodoSidebar, RequisitoNodo> = {
     'creditos-auditoria': { coleccion: 'historial_auditoria', accion: 'read' },
     // WEB-038-UI: pantallas dedicadas de repuestos.
     'inventario-repuestos': {
+        coleccion: 'inventario_repuestos',
+        accion: 'update',
+        rolesPermitidos: ['admin', 'superadmin'],
+    },
+    // WEB-INV-053 — CRUD de categorías canónicas (reusa el permiso de repuestos).
+    'inventario-categorias': {
         coleccion: 'inventario_repuestos',
         accion: 'update',
         rolesPermitidos: ['admin', 'superadmin'],

@@ -92,7 +92,8 @@ export interface HistorialAuditoriaInventario {
     coleccion_afectada:
         | 'inventario_repuestos'
         | 'conteos_pendientes_repuestos'
-        | 'fotos_inventario';
+        | 'fotos_inventario'
+        | 'categorias_repuestos';
     documento_id: string;
     referencia: string | null;
     conteo_id: string | null;

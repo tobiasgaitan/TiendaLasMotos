@@ -8,6 +8,7 @@ import {
     validarActor,
 } from '@/lib/actions/inventario-actor';
 import { editarRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
+import { claveCategoria } from '@/lib/inventario/categorias';
 import type { InventarioActionResult } from '@/types/inventario';
 
 function texto(value: unknown): string {
@@ -90,6 +91,36 @@ export async function editarRepuesto(
                 const actual = texto(antes.descripcion);
                 if (actual !== cambios.descripcion) {
                     updates.descripcion = cambios.descripcion;
+                }
+            }
+
+            if (cambios.categoria !== undefined) {
+                const actual = texto(antes.categoria).trim().toUpperCase();
+                if (actual !== cambios.categoria) {
+                    const categoriaRef = adminDb
+                        .collection('categorias_repuestos')
+                        .doc(claveCategoria(cambios.categoria));
+                    const categoriaSnap = await tx.get(categoriaRef);
+                    if (!categoriaSnap.exists) {
+                        throw new Error(
+                            'La categoría seleccionada no existe.'
+                        );
+                    }
+                    const categoriaData = (categoriaSnap.data() ?? {}) as Record<
+                        string,
+                        unknown
+                    >;
+                    if (categoriaData.activo !== true) {
+                        throw new Error(
+                            'La categoría seleccionada está archivada.'
+                        );
+                    }
+                    if (categoriaData.nombre !== cambios.categoria) {
+                        throw new Error(
+                            'La categoría seleccionada no es válida.'
+                        );
+                    }
+                    updates.categoria = cambios.categoria;
                 }
             }
 

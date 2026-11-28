@@ -10,6 +10,8 @@ import { useAuth } from '@/context/AuthContext';
 import { crearRepuesto } from '@/app/admin/inventario-repuestos/actions/crearRepuesto';
 import { crearRepuestoSchema } from '@/lib/actions/inventario-repuestos-schemas';
 import { parseAplicaA } from '@/lib/inventario/ui-helpers';
+import SelectorCategoriaRepuesto from '@/components/inventario/SelectorCategoriaRepuesto';
+import type { CategoriaRepuestoDTO } from '@/types/categorias-repuestos';
 import {
     UNIDADES_MEDIDA,
     type UnidadMedida,
@@ -17,6 +19,7 @@ import {
 
 interface CrearRepuestoModalProps {
     isOpen: boolean;
+    categorias: CategoriaRepuestoDTO[];
     onClose: () => void;
     onCreado: () => Promise<void>;
 }
@@ -62,10 +65,14 @@ function mensajesDeValidacion(issues: ZodIssue[]): string {
 
 export default function CrearRepuestoModal({
     isOpen,
+    categorias,
     onClose,
     onCreado,
 }: CrearRepuestoModalProps) {
     const { user } = useAuth();
+    const categoriasActivas = categorias.filter(
+        (categoria) => categoria.activo
+    );
 
     const [referencia, setReferencia] = useState('');
     const [referenciasAlternativas, setReferenciasAlternativas] = useState<
@@ -353,24 +360,23 @@ export default function CrearRepuestoModal({
                     </div>
 
                     <div>
-                        <label
-                            htmlFor="crear-categoria"
-                            className="block text-xs font-semibold uppercase tracking-wide text-gray-400"
-                        >
-                            Categoría
-                        </label>
-                        <input
+                        <SelectorCategoriaRepuesto
                             id="crear-categoria"
-                            type="text"
+                            name="categoria"
+                            label="Categoría"
+                            categorias={categoriasActivas}
                             value={categoria}
-                            maxLength={100}
-                            disabled={creando}
-                            onChange={(event) =>
-                                setCategoria(event.target.value)
-                            }
-                            className="mt-1.5 w-full rounded-lg border border-gray-700 bg-gray-950/80 px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="Ej. Filtros"
+                            onChange={setCategoria}
+                            disabled={creando || categoriasActivas.length === 0}
+                            required
+                            placeholder="Selecciona una categoría…"
                         />
+                        {categoriasActivas.length === 0 ? (
+                            <p className="mt-1.5 text-xs text-amber-300">
+                                No hay categorías activas. Crea una en
+                                Inventario &gt; Categorías.
+                            </p>
+                        ) : null}
                     </div>
 
                     <div>

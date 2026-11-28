@@ -280,3 +280,15 @@
 - **Pendiente:** UAT beta (10 fotos vs 3 fichas, ≥70% Precision@1, mediana ≤3 s, 0 autocompletados inseguros) y verificación de `VISION_MODEL_SLUG` en producción tras promoción.
 - **Beta:** CI run `46072218462` success; `VISION_MODEL_SLUG` presente en `ssrtiendalasmotosbeta`; reglas de Firestore desplegadas.
 - **Invariantes:** vision-client, matching.ts, package*.json, firebase.json y bot intactos; NAMING LOCK intacto.
+
+## Implementación WEB-INV-053 — Categorías canónicas de repuestos (2026-11-27)
+- **Estado:** IMPLEMENTADO LOCALMENTE; seed, UAT beta y promoción pendientes de autorización del Director.
+- **Taxonomía (D-0=A):** seis valores existentes canónicos; mapeo identidad; 0 updates de inventario; gate ≥70% = 100% (21.256/21.256).
+- **Código:** `src/types/categorias-repuestos.ts`, `src/lib/inventario/categorias.ts`, `categorias-canonicas.ts`, `src/lib/actions/categorias-repuestos-schemas.ts`, cuatro Server Actions, página `/admin/inventario-categorias`, hook `useCategoriasRepuestos`, `SelectorCategoriaRepuesto`.
+- **Datos:** `crearRepuesto` valida categoría existente/activa/nombre exacto; `editarRepuesto` valida solo si cambia; `categoria` sigue siendo el nombre canónico (NAMING LOCK).
+- **Reglas:** `categorias_repuestos` lectura admin/superadmin/auditor, escritura cliente `false`; ledger append-only con `coleccion_afectada: 'categorias_repuestos'`.
+- **Gates locales:** `npx tsc --noEmit`, `npm run lint`, `npm run test:ci` EXIT 0 (234 unit, 43 render).
+- **Script:** `scripts/inv-053-categorias.ts` dry-run por defecto; `--apply` exige `--authorized-by` + confirmación; `--verify` exige 0 huérfanos.
+- **Dry-run:** 21.256 documentos, 6 valores, 0 vacíos, 0 desconocidos, 6 categorías a sembrar, 0 updates; evidencia externa con hashes. `--apply` no ejecutado (requiere TTY + autorización del Director).
+- **OBS:** `OBS-WEB-INV-053-CAMPO-MUERTO-APROBAR-CONTEO-001`, `OBS-WEB-INV-053-PERMISO-REUTILIZADO-001`, `OBS-WEB-INV-053-RENAME-FUTURO-001`.
+- **Invariantes:** sin dependencias nuevas, sin bump de versión, `sys_permissions_matrix` intacto, `vision-client`/`matching.ts`/`package*.json`/`firebase.json`/`firestore.indexes.json`/`bot-tiendalasmotos/**` intactos.

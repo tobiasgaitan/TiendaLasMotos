@@ -68,6 +68,7 @@ export const unidadMedidaSchema = z.enum(UNIDADES_MEDIDA);
 export const cambiosRepuestoSchema = z
     .object({
         descripcion: z.string().trim().min(1).max(500).optional(),
+        categoria: textoCatalogoSchema.min(1).optional(),
         stock: stockSchema.optional(),
         stock_minimo: stockSchema.optional(),
         precio: precioSchema.optional(),
@@ -114,7 +115,9 @@ export const crearRepuestoSchema = z
             .array(z.string().trim().min(1).max(100))
             .max(50)
             .optional(),
-        categoria: textoCatalogoSchema.optional(),
+        categoria: textoCatalogoSchema.min(1, {
+            message: 'Selecciona una categoría.',
+        }),
         unidad_medida: unidadMedidaSchema.default('unidad'),
         precio: z.coerce.number().finite().min(0).optional(),
         ubicacion: ubicacionSchema.optional(),
